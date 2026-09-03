@@ -1,10 +1,12 @@
 # ARTIFACT capability audit
 
-Status: DECIDED RETIREMENT / SOURCE AUDIT COMPLETE / IMPLEMENTATION BLOCKED ON CANONICAL DOCUMENT REACHABILITY
+Status: DECIDED RETIREMENT / STAGE A PRESERVATION CURRENT + VERIFIED / STAGE B PENDING
 
-This document records the focused Android source audit for the legacy ARTIFACT capability.
+This document records the focused Android source audit and accepted retirement
+contract for the legacy ARTIFACT capability.
 
-It does not authorize a runtime, Room, transport, or UI cutover.
+Stage A Room/transport preservation was subsequently implemented at schema 164.
+Stage B runtime/UI retirement remains governed by the constraints recorded here.
 
 ## Accepted direction
 
@@ -74,19 +76,31 @@ ARTIFACT retirement therefore depends on canonical CONNECTIONS placement being a
 
 Do not invent a separate Artifact-to-Workspace binding merely to retire the legacy capability.
 
-## Deletion hazard
+## Former deletion hazard — resolved prerequisite
 
-Current legacy Context/Backlog deletion paths are not yet a safe canonical reachability contract.
+The source-audit blocker is now resolved.
 
-ContextRepository.deleteListItemsFromContext can dispatch NOTE_DOCUMENT and JOURNAL_DOCUMENT attachment-backed items to NoteDocumentRepository.deleteDocument, deleting content rather than merely unlinking one placement.
+`ContextRepository.deleteListItemsFromContext()` delegates to
+`BacklogPresentationLifecycle.remove()`. Attachment-backed presentations are
+removed through `AttachmentsRepository.unlinkAttachmentFromContext()`, whose
+Room path tombstones the matching `workspace_connections` row without deleting
+the Attachment or its NoteDocument content.
 
-This is incompatible with the accepted CONNECTIONS ownership rule where unlinking a placement must not silently delete reusable content.
+The normal Connections UI exposes the same distinction explicitly: remove from
+the current Context unlinks placement, while delete-everywhere is a separate
+destructive action. `NoteDocumentRepository.deleteDocument()` remains the
+explicit content-deletion path rather than the meaning of ordinary unlink.
 
-ARTIFACT retirement must therefore wait until the canonical connection path has explicit placement-only lifecycle semantics and content deletion is a separate destructive command.
+Context deletion also tombstones owned canonical Connections. Before deleting a
+Context, shared attachment-backed content whose owner is being removed is
+rebound to another surviving live Context placement where available.
+
+The accepted placement-only CONNECTIONS lifecycle prerequisite for ARTIFACT
+retirement is therefore satisfied.
 
 ## Migration accounting requirements
 
-A future retirement migration must fail closed or explicitly account for:
+The Stage A retirement migration was required to fail closed or explicitly account for:
 
 - every legacy Artifact row;
 - empty versus non-empty content;
@@ -104,8 +118,26 @@ Only after one-to-one accounting and reachability are proven may legacy Artifact
 
 ## Safe-lane conclusion
 
-No production change is appropriate during the current parallel work.
+The architectural decision and source audit are complete.
 
-The architectural decision is complete.
+Canonical document reachability and placement-only unlink semantics are now
+present in the production path, so ARTIFACT retirement is no longer blocked on
+CONNECTIONS plumbing.
 
-Implementation is blocked on the canonical CONNECTIONS/document reachability path, not on further ARTIFACT domain design.
+Stage A implementation is complete and host-verified at schema 164.
+Migration `163 -> 164` performs deterministic/fail-closed source-row accounting,
+ordinary NoteDocument preservation, canonical AttachmentEntity plus
+WorkspaceConnection reachability, and guarded old-backup compatibility
+materialization. Legacy Artifact full-snapshot and changed-since outbound
+authority is suppressed.
+
+The retained `context_artifacts` table is compatibility evidence/staging only,
+not current content authority. It is emptied after successful local migration
+or compatibility materialization.
+
+Stage B remains: prove durable user-visible discoverability of the preserved
+documents without the dedicated Artifact surface, then remove legacy
+Artifact runtime/UI/configuration paths. Physical compatibility persistence and
+ingress may be removed only together with an explicit decision to retire the
+old-backup compatibility boundary. No new canonical ARTIFACT domain model is
+authorized.

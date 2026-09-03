@@ -237,7 +237,6 @@ class AndroidWorkspaceRepositoryAdapter(
         val updated =
             current.copy(
                 enableInbox = capabilityIds.contains("inbox"),
-                enableArtifact = capabilityIds.contains("artifact"),
                 enableBacklog = capabilityIds.contains("backlog"),
                 enableAttachments = capabilityIds.contains("connections"),
                 experimentalCapabilityIds =
@@ -287,7 +286,6 @@ private fun ContextConfiguration?.enabledCapabilityIds(
         buildList {
             if (this@enabledCapabilityIds?.enableInbox == true) add("inbox")
             if (this@enabledCapabilityIds?.enableLog == true) add("log")
-            if (this@enabledCapabilityIds?.enableArtifact == true) add("artifact")
             if (this@enabledCapabilityIds?.enableDashboard == true) add("dashboard")
             if (this@enabledCapabilityIds?.enableBacklog == true) add("backlog")
             if (this@enabledCapabilityIds?.enableAttachments == true) add("connections")
@@ -376,8 +374,6 @@ private fun String?.toSharedView(): SharedContextView =
         ContextViewMode.DASHBOARD.name -> SharedContextView.Dashboard
         ContextViewMode.DIRECTION.name -> SharedContextView.Direction
         ContextViewMode.LOG.name -> SharedContextView.Log
-        ContextViewMode.JOURNAL_LOG.name -> SharedContextView.JournalLog
-        ContextViewMode.ARTIFACT.name -> SharedContextView.Artifact
         ContextViewMode.KEY_PROBLEMS.name -> SharedContextView.KeyProblems
         else -> SharedContextView.Backlog
     }
@@ -389,8 +385,6 @@ private fun SharedContextView.toAndroidViewMode(): ContextViewMode =
         SharedContextView.Dashboard -> ContextViewMode.DASHBOARD
         SharedContextView.Direction -> ContextViewMode.DIRECTION
         SharedContextView.Log -> ContextViewMode.LOG
-        SharedContextView.JournalLog -> ContextViewMode.JOURNAL_LOG
-        SharedContextView.Artifact -> ContextViewMode.ARTIFACT
         SharedContextView.KeyProblems -> ContextViewMode.KEY_PROBLEMS
         else -> ContextViewMode.BACKLOG
     }
@@ -413,7 +407,6 @@ private val LEGACY_ANDROID_CAPABILITY_IDS =
     setOf(
         "inbox",
         "log",
-        "artifact",
         "dashboard",
         "backlog",
         "connections",

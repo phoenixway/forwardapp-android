@@ -246,7 +246,7 @@ class SearchRepository
                 when (link.type) {
                     LinkType.URL, LinkType.OBSIDIAN -> link.target
                     LinkType.CONTEXT -> link.displayName ?: link.target
-                    LinkType.NOTE_DOCUMENT, LinkType.JOURNAL_DOCUMENT, LinkType.CHECKLIST, LinkType.MUSIC_NOTE -> link.displayName ?: link.target
+                    LinkType.NOTE_DOCUMENT, LinkType.CHECKLIST, LinkType.MUSIC_NOTE -> link.displayName ?: link.target
                     null -> link.target
                 }
             }

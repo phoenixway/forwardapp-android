@@ -83,15 +83,6 @@ class StructurePresetService
                             roleCode = item.roleCode,
                             isSystem = true,
                         )
-                    BacklogItemTypeValues.JOURNAL_DOCUMENT ->
-                        noteDocumentRepository.createDocument(
-                            name = item.title,
-                            contextId = contextId,
-                            content = null,
-                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
-                            roleCode = item.roleCode,
-                            isSystem = true,
-                        )
                     BacklogItemTypeValues.CHECKLIST ->
                         checklistRepository.createChecklist(
                             name = item.title,
@@ -155,8 +146,6 @@ class StructurePresetService
             when (containerType?.uppercase(Locale.US)) {
                 "NOTE" -> BacklogItemTypeValues.NOTE_DOCUMENT
                 "JOURNAL",
-                "JOURNAL_DOCUMENT",
-                -> BacklogItemTypeValues.JOURNAL_DOCUMENT
                 "CHECKLIST" -> BacklogItemTypeValues.CHECKLIST
                 "URL",
                 "CONTEXT_LINK",

@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.js.ExperimentalJsExport::class)
+
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
 
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceConnection
+import kotlin.js.JsExport
 
 /** CONNECTIONS v1 intentionally owns no configurable fields. */
 data object ConnectionsCapabilityConfigurationV1
@@ -37,6 +40,16 @@ object ConnectionsCapabilityConfigurationCodec : CapabilityConfigurationCodec {
         return ConnectionsCapabilityConfigurationV1
     }
 }
+
+/** Kotlin/JS boundary: CONNECTIONS configuration semantics remain shared-owned. */
+@JsExport
+fun validateConnectionsCapabilityConfigurationWire(
+    version: Int,
+    raw: String,
+): Array<String> =
+    runCatching {
+        ConnectionsCapabilityConfigurationCodec.validate(version, raw)
+    }.exceptionOrNull()?.message?.let(::arrayOf) ?: emptyArray()
 
 data class ConnectionsContractViolation(
     val path: String,

@@ -388,3 +388,22 @@ projection do not depend on mutable runtime adapters or enums.
 The final host verification gate is green for the canonical repository,
 canonical sync-store, shared-domain tests, and fail-closed Room migration
 acceptance tests.
+
+## Desktop canonical convergence
+
+Desktop DIRECTION is now `CURRENT / VERIFIED`. The unchanged Direction UI is a
+projection over canonical entries for proven Context-backed Workspaces. Text
+creation authors a validator-coherent `ManagedSubject` /
+`Orientation(kind=DIRECTION)` assessment graph plus a semantic entry; Workspace
+links author only `targetWorkspaceId` and `labelOverride`. Semantic title edits
+mutate the subject, navigation labels mutate the entry, reorder changes only
+entry order/version, and delete tombstones only the placement. Link/unlink
+conversion uses a tombstone plus a new entry so peer identity never moves.
+
+Desktop keeps exact pending versions for Orientation and
+WorkspaceDirectionEntry independently. Preflight applies stronger Android
+winners, new semantic dependencies and their placement share one SnapshotBundle,
+and an observed post-import export is required before pending clear. Generic
+canonical shadow serialization remains suppressed. Legacy `directionItems`
+remain readable for noncanonical/local file compatibility but are excluded from
+Context push, sync acknowledgement, and Android live transport.

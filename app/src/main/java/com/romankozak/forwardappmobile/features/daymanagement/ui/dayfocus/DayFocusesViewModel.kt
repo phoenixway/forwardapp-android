@@ -323,15 +323,6 @@ class DayFocusesViewModel
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
                 }
-                is NewDocumentDraft.JournalDocument -> {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = request.name.ifBlank { "Новий журнал" },
-                            contextId = SystemContexts.TODAY.raw,
-                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
-                        )
-                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)?.id
-                }
                 is NewDocumentDraft.MusicNote -> {
                     val musicNoteId =
                         musicNoteRepository.create(

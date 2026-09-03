@@ -17,7 +17,6 @@ data class ContextRoleProfile(
     @SerializedName("description") val description: String?,
     @ColumnInfo(name = "enable_inbox") @SerializedName("enableInbox") val enableInbox: Boolean? = null,
     @ColumnInfo(name = "enable_log") @SerializedName("enableLog") val enableLog: Boolean? = null,
-    @ColumnInfo(name = "enable_artifact") @SerializedName("enableArtifact") val enableArtifact: Boolean? = null,
     @ColumnInfo(name = "enable_advanced") @SerializedName("enableAdvanced") val enableAdvanced: Boolean? = null,
     @ColumnInfo(name = "enable_dashboard") @SerializedName("enableDashboard") val enableDashboard: Boolean? = null,
     @ColumnInfo(name = "enable_backlog") @SerializedName("enableBacklog") val enableBacklog: Boolean? = null,

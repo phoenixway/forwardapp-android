@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 
 enum class AttachmentLibraryType {
     NOTE_DOCUMENT,
-    JOURNAL_DOCUMENT,
     MUSIC_NOTE,
     CHECKLIST,
     LINK,
@@ -25,7 +24,6 @@ enum class AttachmentLibraryFilter {
             All -> true
             Notes ->
                 type == AttachmentLibraryType.NOTE_DOCUMENT ||
-                    type == AttachmentLibraryType.JOURNAL_DOCUMENT ||
                     type == AttachmentLibraryType.MUSIC_NOTE
             Checklists -> type == AttachmentLibraryType.CHECKLIST
             Links -> type == AttachmentLibraryType.LINK

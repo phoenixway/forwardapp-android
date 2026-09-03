@@ -116,9 +116,6 @@ class NoteDocumentRepository
             attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.let {
                 attachmentRepository.deleteAttachment(it.id)
             }
-            attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)?.let {
-                attachmentRepository.deleteAttachment(it.id)
-            }
         }
 
         suspend fun importFromLegacy(note: LegacyNoteEntity) {

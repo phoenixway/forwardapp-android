@@ -55,7 +55,6 @@ class AttachmentsLibraryViewModel
                         val type =
                             when (result.attachmentType) {
                                 BacklogItemTypeValues.NOTE_DOCUMENT -> AttachmentLibraryType.NOTE_DOCUMENT
-                                BacklogItemTypeValues.JOURNAL_DOCUMENT -> AttachmentLibraryType.JOURNAL_DOCUMENT
                                 BacklogItemTypeValues.MUSIC_NOTE -> AttachmentLibraryType.MUSIC_NOTE
                                 BacklogItemTypeValues.CHECKLIST -> AttachmentLibraryType.CHECKLIST
                                 BacklogItemTypeValues.LINK_ITEM -> AttachmentLibraryType.LINK
@@ -117,19 +116,6 @@ class AttachmentsLibraryViewModel
                         entityId = result.entityId,
                         title = name,
                         subtitle = null, // Додано обов'язковий параметр
-                        type = type,
-                        contexts = contexts,
-                        ownerContext = owner,
-                        updatedAt = result.noteUpdatedAt ?: result.attachmentUpdatedAt,
-                    )
-                }
-                AttachmentLibraryType.JOURNAL_DOCUMENT -> {
-                    val name = result.noteName ?: return null
-                    AttachmentLibraryItem(
-                        id = result.id,
-                        entityId = result.entityId,
-                        title = name,
-                        subtitle = null,
                         type = type,
                         contexts = contexts,
                         ownerContext = owner,

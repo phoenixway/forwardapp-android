@@ -11,14 +11,6 @@ class SnapshotBundleSelectiveImportFilter {
         val filteredContexts = source.contexts.filter { context -> context.id in selection.selectedContextIds }
         val validContextIds = filteredContexts.mapTo(linkedSetOf()) { context -> context.id }
         val filteredGoals = source.goals.filter { goal -> goal.id in selection.selectedGoalIds }
-        val validGoalIds = filteredGoals.mapTo(linkedSetOf()) { goal -> goal.id }
-        val filteredBacklogItems =
-            source.backlogItems.filter { item ->
-                item.id in selection.selectedBacklogItemIds &&
-                    item.contextId in validContextIds &&
-                    (item.itemType != "GOAL" || item.entityId in validGoalIds)
-            }
-        val validBacklogItemIds = filteredBacklogItems.mapTo(linkedSetOf()) { item -> item.id }
         val filteredDocuments =
             source.documents.filter { document ->
                 document.id in selection.selectedDocumentIds &&
@@ -48,14 +40,14 @@ class SnapshotBundleSelectiveImportFilter {
         val filteredMainBeacons = source.mainBeacons
         val validMainBeaconIds = filteredMainBeacons.mapTo(linkedSetOf()) { beacon -> beacon.id }
 
-        return source.copy(
+        val filtered = source.copy(
             contexts = filteredContexts,
             goals = filteredGoals,
-            backlogItems = filteredBacklogItems,
-            backlogOrders =
-                source.backlogOrders.filter { order ->
-                    order.listId in validContextIds && order.itemId in validBacklogItemIds
-                },
+            // Legacy BACKLOG is neither selectable nor importable after the
+            // canonical Workspace placement cutover. Canonical placement
+            // selection and dependency closure are applied below.
+            backlogItems = emptyList(),
+            backlogOrders = emptyList(),
             documents = filteredDocuments,
             checklists = filteredChecklists,
             checklistItems =
@@ -106,7 +98,6 @@ class SnapshotBundleSelectiveImportFilter {
             dayManagementRuntimeState = source.dayManagementRuntimeState,
             notes = emptyList(),
             musicNotes = emptyList(),
-            artifacts = emptyList(),
             systemApps = emptyList(),
             recentProjectEntries = emptyList(),
             conversations = emptyList(),
@@ -133,11 +124,13 @@ class SnapshotBundleSelectiveImportFilter {
             workspaceProblemAttachmentRefs = null,
             workspaceInboxRecords = null,
             workspaceConnections = null,
-            // Canonical BACKLOG selection requires Workspace + typed-target closure.
-            // Keep it absent until the selective-import contract can express that selection.
             workspaceBacklogEntries = null,
             focusContextIntervals = emptyList(),
             userStateIntervals = emptyList(),
+        )
+        return filtered.withCanonicalBacklogSelectiveClosure(
+            source = source,
+            selectedIds = selection.selectedWorkspaceBacklogEntryIds,
         )
     }
 }

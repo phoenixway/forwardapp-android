@@ -4,22 +4,43 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow
+import androidx.room.withTransaction
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 
 private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
+
+private fun com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMapping.toEntity() =
+    LegacySubjectMappingEntity(
+        id = id,
+        sourceType = source.sourceType.name,
+        sourceId = source.sourceId,
+        subjectId = subjectId,
+        migrationVersion = migrationVersion,
+        state = state.name,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
 
 @Singleton
 class GoalRepository
@@ -32,6 +53,9 @@ class GoalRepository
         private val tagAssociationHandler: TagAssociationHandler,
         private val contextStructureRepository: ContextStructureRepository,
         private val backlogPlacementCommands: BacklogPlacementCommands,
+        private val database: AppDatabase,
+        private val orientationDao: OrientationDao,
+        private val canonicalOrientationRepository: CanonicalOrientationRepository,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -61,17 +85,17 @@ class GoalRepository
                 normalizeGoalState(goal).copy(
                     updatedAt = goal.updatedAt ?: System.currentTimeMillis(),
                 )
-            goalDao.insertGoal(goalToInsert)
-
-            // Тепер ContextTextAction буде знайдено
-            syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD)
-
-            val backlogItemId =
+            val backlogItemId = database.withTransaction {
+                goalDao.insertGoal(goalToInsert)
+                createCanonicalGoalSubject(goalToInsert)
                 backlogPlacementCommands.addToContextBacked(
                     contextId = contextId,
                     itemType = BacklogItemTypeValues.GOAL,
                     entityId = goalToInsert.id,
                 )
+            }
+
+            syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD)
 
             val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
             contextMarkerHandler.handleContextsOnCreate(finalGoalState)
@@ -101,7 +125,7 @@ class GoalRepository
                     updatedAt = currentTime,
                 )
             goalDao.insertGoal(newGoal)
-
+            createCanonicalGoalSubject(newGoal)
             backlogPlacementCommands.addToContextBacked(
                 contextId = contextId,
                 itemType = BacklogItemTypeValues.GOAL,
@@ -119,6 +143,29 @@ class GoalRepository
                 associatedContextIds = associatedContexts.keys,
             )
             return newGoal
+        }
+
+        private suspend fun createCanonicalGoalSubject(goal: Goal) {
+            val now = goal.updatedAt ?: goal.createdAt
+            val subjectId = java.util.UUID.randomUUID().toString()
+            val graph = createGoalLikeCanonicalSubject(
+                goalId = goal.id,
+                subjectId = subjectId,
+                assessmentId = java.util.UUID.randomUUID().toString(),
+                mappingId = subjectId,
+                title = goal.text,
+                description = goal.description,
+                completed = goal.completed,
+                createdAt = goal.createdAt,
+                updatedAt = now,
+                migrationVersion = com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+            )
+            canonicalOrientationRepository.saveOrientation(graph.subject, graph.orientation, graph.revision)
+            orientationDao.upsertLegacyMappings(
+                listOf(
+                    graph.mapping.toEntity(),
+                ),
+            )
         }
 
         suspend fun updateGoal(

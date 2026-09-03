@@ -22,6 +22,21 @@ class InboxCapabilityContractTest {
     }
 
     @Test
+    fun `js wire facade validates typed config and applies owner visibility`() {
+        val keep = InboxCapabilityConfigurationCodec.encodeDefault()
+        val hide = InboxCapabilityConfigurationCodec.encode(
+            InboxCapabilityConfigurationV1(InboxOwnerVisibility.HIDE_WHEN_ASSOCIATED),
+        )
+
+        assertTrue(validateInboxCapabilityConfigurationWire(1, keep).isEmpty())
+        assertTrue(validateInboxCapabilityConfigurationWire(2, keep).isNotEmpty())
+        assertTrue(validateInboxCapabilityConfigurationWire(1, "{}").isNotEmpty())
+        assertTrue(inboxCapabilityOwnerVisibleWire(1, keep, hasForeignAssociation = true))
+        assertFalse(inboxCapabilityOwnerVisibleWire(1, hide, hasForeignAssociation = true))
+        assertTrue(inboxCapabilityOwnerVisibleWire(1, hide, hasForeignAssociation = false))
+    }
+
+    @Test
     fun `planner preserves identity sync lifecycle and current visible order`() {
         val plan =
             InboxMigrationPlanner.plan(

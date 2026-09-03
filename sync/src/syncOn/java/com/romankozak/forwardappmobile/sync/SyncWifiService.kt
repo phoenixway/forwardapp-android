@@ -429,18 +429,7 @@ internal fun buildCanonicalSnapshotDelta(
     val requiredConnectionAttachmentIds =
         explicitCanonicalWorkspaceConnections.mapTo(hashSetOf()) { it.attachmentId }
 
-    val liveBacklogEntries = explicitCanonicalWorkspaceBacklog.filterNot { it.isDeleted }
-    fun backlogTargetIds(kind: String): Set<String> =
-        liveBacklogEntries
-            .filter { it.targetKind == kind }
-            .mapTo(hashSetOf()) { it.targetId }
-
-    val requiredBacklogLinkIds = backlogTargetIds("LINK_ITEM")
-    val requiredBacklogLegacyNoteIds = backlogTargetIds("LEGACY_NOTE")
-    val requiredBacklogDocumentIds =
-        backlogTargetIds("NOTE_DOCUMENT") + backlogTargetIds("JOURNAL_DOCUMENT")
-    val requiredBacklogChecklistIds = backlogTargetIds("CHECKLIST")
-    val requiredBacklogMusicNoteIds = backlogTargetIds("MUSIC_NOTE")
+    val backlogDependencies = explicitCanonicalWorkspaceBacklog.canonicalBacklogTargetDependencies()
 
     val selectedAttachments =
         if (includeCanonicalWorkspaceProblems || includeCanonicalWorkspaceConnections) {
@@ -465,32 +454,32 @@ internal fun buildCanonicalSnapshotDelta(
     val selectedLegacyNotes =
         mergeById(
             baseDelta.notes,
-            fullSnapshot.notes.filter { it.id in requiredBacklogLegacyNoteIds },
+            fullSnapshot.notes.filter { it.id in backlogDependencies.legacyNoteIds },
         ) { it.id }
     val selectedDocuments =
         mergeById(
             baseDelta.documents,
-            fullSnapshot.documents.filter { it.id in requiredBacklogDocumentIds },
+            fullSnapshot.documents.filter { it.id in backlogDependencies.documentIds },
         ) { it.id }
     val selectedMusicNotes =
         mergeById(
             baseDelta.musicNotes,
-            fullSnapshot.musicNotes.filter { it.id in requiredBacklogMusicNoteIds },
+            fullSnapshot.musicNotes.filter { it.id in backlogDependencies.musicNoteIds },
         ) { it.id }
     val selectedChecklists =
         mergeById(
             baseDelta.checklists,
-            fullSnapshot.checklists.filter { it.id in requiredBacklogChecklistIds },
+            fullSnapshot.checklists.filter { it.id in backlogDependencies.checklistIds },
         ) { it.id }
     val selectedChecklistItems =
         mergeById(
             baseDelta.checklistItems,
-            fullSnapshot.checklistItems.filter { it.checklistId in requiredBacklogChecklistIds },
+            fullSnapshot.checklistItems.filter { it.checklistId in backlogDependencies.checklistIds },
         ) { it.id }
     val selectedLinkItems =
         mergeById(
             baseDelta.linkItemEntities,
-            fullSnapshot.linkItemEntities.filter { it.id in requiredBacklogLinkIds },
+            fullSnapshot.linkItemEntities.filter { it.id in backlogDependencies.linkItemIds },
         ) { it.id }
 
     val result =

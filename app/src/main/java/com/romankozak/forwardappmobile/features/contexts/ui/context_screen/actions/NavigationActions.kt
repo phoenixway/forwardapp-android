@@ -168,7 +168,6 @@ class NavigationActions(
             }
 
             com.romankozak.forwardappmobile.core.data.models.entities.LinkType.NOTE_DOCUMENT,
-            com.romankozak.forwardappmobile.core.data.models.entities.LinkType.JOURNAL_DOCUMENT,
             com.romankozak.forwardappmobile.core.data.models.entities.LinkType.CHECKLIST,
             com.romankozak.forwardappmobile.core.data.models.entities.LinkType.MUSIC_NOTE -> {
                 LinkItemClickResult.DelegateToUi(link)

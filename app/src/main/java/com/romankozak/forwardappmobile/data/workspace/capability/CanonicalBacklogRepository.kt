@@ -369,29 +369,75 @@ class CanonicalBacklogRepository
                 sourceWorkspaces.forEach { instanceStore.requireActiveInstance(SPEC, it) }
                 entries.forEach { entry ->
                     targetValidator.requireLive(entry.targetRef())
+                }
+
+                // Preserve the existing same-owner move semantics (append the
+                // selected rows in request order, then compact) without
+                // changing placement identity. Cross-owner moves use a new
+                // destination placement identity instead.
+                if (sourceWorkspaces.size == 1 && sourceWorkspaces.single() == targetWorkspaceId) {
+                    var order = nextOrder(targetWorkspaceId)
+                    entryDao.upsert(
+                        entries.map { entry ->
+                            entry.bump(now).copy(entryOrder = order++)
+                        },
+                    )
+                    compactOrder(targetWorkspaceId, now)
+                    return@withTransaction entries.size
+                }
+
+                val destinationByTarget = mutableMapOf<String, WorkspaceBacklogEntryEntity?>()
+                entries.filter { it.workspaceId != targetWorkspaceId }.forEach { entry ->
+                    val targetKey = "${entry.targetKind}\u0000${entry.targetId}"
+                    require(!destinationByTarget.containsKey(targetKey)) {
+                        "Target Backlog already contains ${entry.targetKind}:${entry.targetId}"
+                    }
                     val collision =
                         entryDao.getLogicalPlacement(
                             targetCapability.id,
                             entry.targetKind,
                             entry.targetId,
                         )
-                    require(collision == null || collision.id == entry.id) {
+                    require(collision == null || collision.isDeleted) {
                         "Target Backlog already contains ${entry.targetKind}:${entry.targetId}"
                     }
+                    destinationByTarget[targetKey] = collision
                 }
 
-                var order = nextOrder(targetWorkspaceId)
+                // Tombstone each source placement first. The source ids never
+                // change owner; only a destination placement can become live.
                 entryDao.upsert(
-                    entries.map { entry ->
-                        entry.bump(now).copy(
-                            workspaceId = targetWorkspaceId,
-                            capabilityInstanceId = targetCapability.id,
-                            entryOrder = order++,
-                        )
-                    },
+                    entries.filter { it.workspaceId != targetWorkspaceId }
+                        .map { it.bump(now).copy(isDeleted = true) },
                 )
                 sourceWorkspaces.filterNot { it == targetWorkspaceId }
                     .forEach { compactOrder(it, now) }
+
+                var order = nextOrder(targetWorkspaceId)
+                val destinationEntries = entries.map { entry ->
+                    if (entry.workspaceId == targetWorkspaceId) {
+                        entry.bump(now).copy(entryOrder = order++)
+                    } else {
+                        val collision = destinationByTarget["${entry.targetKind}\u0000${entry.targetId}"]
+                        collision?.bump(now)?.copy(
+                            entryOrder = order++,
+                            isDeleted = false,
+                        ) ?: WorkspaceBacklogEntryEntity(
+                            id = UUID.randomUUID().toString(),
+                            workspaceId = targetWorkspaceId,
+                            capabilityInstanceId = targetCapability.id,
+                            targetKind = entry.targetKind,
+                            targetId = entry.targetId,
+                            entryOrder = order++,
+                            createdAt = now,
+                            updatedAt = now,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        )
+                    }
+                }
+                entryDao.upsert(destinationEntries)
                 compactOrder(targetWorkspaceId, now)
                 entries.size
             }

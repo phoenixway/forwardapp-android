@@ -119,6 +119,12 @@ class CanonicalWorkspaceBacklogSyncStore
                 targetValidator.requireLive(WorkspaceBacklogTargetRef(targetKind, candidate.targetId))
             }
             local?.let { current ->
+                require(current.workspaceId == candidate.workspaceId) {
+                    "Canonical BACKLOG Workspace identity is immutable: ${candidate.id}"
+                }
+                require(current.capabilityInstanceId == candidate.capabilityInstanceId) {
+                    "Canonical BACKLOG capability identity is immutable: ${candidate.id}"
+                }
                 require(current.targetKind == candidate.targetKind && current.targetId == candidate.targetId) {
                     "Canonical BACKLOG target identity is immutable: ${candidate.id}"
                 }

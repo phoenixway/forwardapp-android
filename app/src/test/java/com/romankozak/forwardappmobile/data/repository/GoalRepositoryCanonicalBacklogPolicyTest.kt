@@ -3,6 +3,9 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import io.mockk.coEvery
@@ -81,5 +84,8 @@ class GoalRepositoryCanonicalBacklogPolicyTest {
             tagAssociationHandler = associations,
             contextStructureRepository = structures,
             backlogPlacementCommands = placements,
+            database = mockk(relaxed = true),
+            orientationDao = mockk(relaxed = true),
+            canonicalOrientationRepository = mockk(relaxed = true),
         )
 }

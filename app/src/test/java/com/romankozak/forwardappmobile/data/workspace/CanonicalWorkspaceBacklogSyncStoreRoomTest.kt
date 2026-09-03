@@ -23,7 +23,7 @@ class CanonicalWorkspaceBacklogSyncStoreRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `canonical placement merges moves and uses exact version ack`() = runBlocking {
+    fun `canonical placement identity is immutable and exact version ack remains safe`() = runBlocking {
         val database = database()
         try {
             seedDependencies(database)
@@ -40,23 +40,44 @@ class CanonicalWorkspaceBacklogSyncStoreRoomTest {
             store.markSynced(listOf(WorkspaceBacklogEntrySyncVersion("placement", 3L)))
             assertNotNull(database.workspaceBacklogEntryDao().getById("placement")!!.syncedAt)
 
-            store.mergeIncoming(
-                listOf(
-                    original.copy(
-                        workspaceId = "owner-b",
-                        capabilityInstanceId = "backlog-owner-b",
-                        order = 7L,
-                        updatedAt = 20L,
-                        version = 4L,
-                    ),
-                ),
-            )
+            val ownerMoveFailure =
+                runCatching {
+                    store.mergeIncoming(
+                        listOf(
+                            original.copy(
+                                workspaceId = "owner-b",
+                                capabilityInstanceId = "backlog-owner-b",
+                                order = 7L,
+                                updatedAt = 20L,
+                                version = 4L,
+                            ),
+                        ),
+                    )
+                }.exceptionOrNull()
+            assertTrue(ownerMoveFailure is IllegalArgumentException)
 
-            val moved = requireNotNull(database.workspaceBacklogEntryDao().getById("placement"))
-            assertEquals("owner-b", moved.workspaceId)
-            assertEquals("backlog-owner-b", moved.capabilityInstanceId)
-            assertEquals(7L, moved.entryOrder)
-            assertNull(moved.syncedAt)
+            val capabilityMoveFailure =
+                runCatching {
+                    store.mergeIncoming(
+                        listOf(
+                            original.copy(
+                                capabilityInstanceId = "backlog-owner-b",
+                                order = 7L,
+                                updatedAt = 20L,
+                                version = 4L,
+                            ),
+                        ),
+                    )
+                }.exceptionOrNull()
+            assertTrue(capabilityMoveFailure is IllegalArgumentException)
+
+            store.mergeIncoming(listOf(original.copy(order = 7L, updatedAt = 20L, version = 4L)))
+            val updated = requireNotNull(database.workspaceBacklogEntryDao().getById("placement"))
+            assertEquals("owner-a", updated.workspaceId)
+            assertEquals("backlog-owner-a", updated.capabilityInstanceId)
+            assertEquals(7L, updated.entryOrder)
+            assertEquals(4L, updated.version)
+            assertNull(updated.syncedAt)
         } finally {
             database.close()
         }

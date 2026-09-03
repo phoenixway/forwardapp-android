@@ -41,7 +41,7 @@ It is a capability host that can provide any useful combination of:
 - inbox;
 - direction list;
 - key-problem list;
-- execution log or journal;
+- execution log;
 - notes and documents;
 - attachments;
 - connections;
@@ -49,7 +49,7 @@ It is a capability host that can provide any useful combination of:
 - future capability modules.
 
 Any Orientation or Aspect may have a Workspace. This makes it possible to
-attach a backlog, problem list, journal, notes, or other management tools to a
+attach a backlog, problem list, execution log, notes, or other management tools to a
 Main Beacon, Main Beacon Group, Goal, Day Theme, Engineering Aspect, or another
 semantic subject without copying those capabilities into every entity model.
 
@@ -503,7 +503,7 @@ Add workspace capability
     Key problems
     Inbox
     Direction
-    Journal
+    Execution log
     Notes
     Attachments
 ```

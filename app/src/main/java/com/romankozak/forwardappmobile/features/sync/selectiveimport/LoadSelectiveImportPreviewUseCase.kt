@@ -24,7 +24,11 @@ class LoadSelectiveImportPreviewUseCase
                 SelectiveImportPreview(
                     backupContent =
                         previewBundle.legacyDiff?.toSelectable()
-                            ?: previewBundle.snapshotDiff?.toSelectable()
+                            ?: previewBundle.snapshotDiff?.toSelectable(
+                                requireNotNull(previewBundle.sourceSnapshotBundle) {
+                                    "Snapshot selective import preview requires its source SnapshotBundle."
+                                },
+                            )
                             ?: error("Preview bundle does not contain a diff."),
                     sourceSnapshotBundle = previewBundle.sourceSnapshotBundle,
                     sourceMode = previewBundle.descriptor.sourceMode,

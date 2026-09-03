@@ -101,8 +101,6 @@ private val ViewModeLogBg = Color(0xFFE0F2F7)
 private val ViewModeLogFg = Color(0xFF0277BD)
 private val ViewModeJournalBg = Color(0xFFF4E7FF)
 private val ViewModeJournalFg = Color(0xFF7B1FA2)
-private val ViewModeArtifactBg = Color(0xFFFBE9E7)
-private val ViewModeArtifactFg = Color(0xFFD84315)
 private val ViewModeProblemsBg = Color(0xFFFFEBEE)
 private val ViewModeProblemsFg = Color(0xFFC62828)
 private val ViewModeNotesBg = Color(0xFFFFFDE7)
@@ -119,8 +117,6 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.DASHBOARD -> "Dashboard"
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
-        ContextViewMode.JOURNAL_LOG -> "Journal Log"
-        ContextViewMode.ARTIFACT -> "Artifacts"
         ContextViewMode.KEY_PROBLEMS -> "Issues"
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
@@ -201,16 +197,6 @@ private fun ViewModeIndicator(
                 Pair(
                     ViewModeLogBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
                     ViewModeLogFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
-                )
-            ContextViewMode.JOURNAL_LOG ->
-                Pair(
-                    ViewModeJournalBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
-                    ViewModeJournalFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
-                )
-            ContextViewMode.ARTIFACT ->
-                Pair(
-                    ViewModeArtifactBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
-                    ViewModeArtifactFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.KEY_PROBLEMS ->
                 Pair(

@@ -49,6 +49,7 @@ data class OptionsMenuActions(
     val onShowDisplayPropertiesClick: () -> Unit,
     val onAddMilestone: (String) -> Unit,
     val onToggleFocusContext: () -> Unit,
+    val onShowDocuments: () -> Unit,
 )
 
 // Ця модель тепер доступна у всьому пакеті

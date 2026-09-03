@@ -54,12 +54,6 @@ class ContextRouteResolver(
                 NavTarget.NoteDocument(id = id, startEdit = startEdit)
             }
 
-            route.startsWith("journal_document_screen/") -> {
-                val tail = route.substringAfter("journal_document_screen/")
-                val id = tail.substringBefore("?")
-                val startEdit = tail.substringAfter("?", "").contains("startEdit=true")
-                NavTarget.JournalDocument(id = id, startEdit = startEdit)
-            }
 
             route.startsWith("note_document_edit_screen") -> {
                 val paramMap = parseQueryParams(route.substringAfter("?", ""))

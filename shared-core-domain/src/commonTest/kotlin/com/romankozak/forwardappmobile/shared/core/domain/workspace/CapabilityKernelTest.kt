@@ -46,7 +46,7 @@ class CapabilityKernelTest {
     }
 
     @Test
-    fun `registry declares target reserved and retired archetypes`() {
+    fun `registry declares target and reserved archetypes`() {
         val definitions = orientationCapabilityRegistry.associateBy { it.type }
 
         assertEquals(
@@ -60,14 +60,6 @@ class CapabilityKernelTest {
         assertEquals(
             WorkspaceCapabilityAvailability.RESERVED,
             definitions.getValue(WorkspaceCapabilityType.DOCUMENTS).availability,
-        )
-        assertEquals(
-            WorkspaceCapabilityAvailability.RETIRED,
-            definitions.getValue(WorkspaceCapabilityType.ARTIFACT).availability,
-        )
-        assertEquals(
-            WorkspaceCapabilityAvailability.RETIRED,
-            definitions.getValue(WorkspaceCapabilityType.JOURNAL).availability,
         )
     }
 }

@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'TXT'
+Usage:
+  ./tools/agent-test TestClass
+  ./tools/agent-test TestClass.testMethod
+  ./tools/agent-test :module:testTask [test-filter]
+  ./tools/agent-test [--plan] [--raw] [--verbose] ... [-- extra-gradle-args]
+
+Examples:
+  ./tools/agent-test BacklogCapabilityContractTest
+  ./tools/agent-test BacklogCapabilityContractTest.someSpecificTest
+  ./tools/agent-test :shared-core-domain:jvmTest '*BacklogCapabilityContractTest'
+  ./tools/agent-test :app:testDebugUnitTest '*FooTest'
+
+Options:
+  --plan      Resolve and print the command without running tests.
+  --raw       Do not wrap Gradle with RTK.
+  --verbose   Add --stacktrace.
+  -h,--help   Show this help.
+
+Auto mode finds the test source file, derives its Gradle module,
+selects a likely narrow test task, and applies --tests automatically.
+TXT
+}
+
+raw=0
+verbose=0
+plan=0
+declare -a positional=()
+declare -a extra=()
+
+while (($#)); do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --plan)
+      plan=1
+      shift
+      ;;
+    --raw)
+      raw=1
+      shift
+      ;;
+    --verbose)
+      verbose=1
+      shift
+      ;;
+    --)
+      shift
+      extra+=("$@")
+      break
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if ((${#positional[@]} == 0)); then
+  usage >&2
+  exit 2
+fi
+
+task=""
+filter=""
+
+# Explicit mode:
+#   ./tools/agent-test :module:testTask [filter]
+if [[ "${positional[0]}" == :* ]]; then
+  task="${positional[0]}"
+
+  if ((${#positional[@]} >= 2)); then
+    filter="${positional[1]}"
+  fi
+
+  if ((${#positional[@]} > 2)); then
+    echo "agent-test: too many positional arguments" >&2
+    exit 2
+  fi
+
+else
+  # Auto mode:
+  #   ./tools/agent-test TestClass[.method]
+  if ((${#positional[@]} != 1)); then
+    echo "agent-test: auto mode accepts one TestClass[.method]" >&2
+    exit 2
+  fi
+
+  selector="${positional[0]}"
+  class_name="${selector%%.*}"
+
+  if [[ -z "$class_name" ]]; then
+    echo "agent-test: invalid test selector: $selector" >&2
+    exit 2
+  fi
+
+  declare -a matches=()
+
+  # Fast path: conventional Kotlin filename == test class name.
+  while IFS= read -r file; do
+    [[ "$file" == */src/*Test*/* || "$file" == src/*Test*/* ]] || continue
+    [[ "${file##*/}" == "${class_name}.kt" ]] || continue
+    matches+=("$file")
+  done < <(git ls-files '*.kt')
+
+  # Fallback: class may live in a differently named Kotlin file.
+  if ((${#matches[@]} == 0)) && command -v rg >/dev/null 2>&1; then
+    while IFS= read -r file; do
+      [[ "$file" == */src/*Test*/* || "$file" == src/*Test*/* ]] || continue
+      matches+=("$file")
+    done < <(
+      rg -l \
+        --glob '*.kt' \
+        --glob '!**/build/**' \
+        --glob '!.gradle/**' \
+        --glob '!.kotlin/**' \
+        "(class|object)[[:space:]]+${class_name}\\b" \
+        . 2>/dev/null \
+        | sed 's#^\./##'
+    )
+  fi
+
+  if ((${#matches[@]} == 0)); then
+    echo "agent-test: test class not found: $class_name" >&2
+    echo "Use explicit mode, e.g.:" >&2
+    echo "  ./tools/agent-test :module:testTask '*$selector'" >&2
+    exit 3
+  fi
+
+  if ((${#matches[@]} > 1)); then
+    echo "agent-test: ambiguous test class: $class_name" >&2
+    printf '  %s\n' "${matches[@]}" >&2
+    echo "Use explicit :module:testTask mode." >&2
+    exit 3
+  fi
+
+  test_file="${matches[0]}"
+
+  if [[ "$test_file" == */src/* ]]; then
+    module_dir="${test_file%%/src/*}"
+  elif [[ "$test_file" == src/* ]]; then
+    module_dir=""
+  else
+    echo "agent-test: cannot derive Gradle module from: $test_file" >&2
+    exit 3
+  fi
+
+  if [[ -n "$module_dir" ]]; then
+    module=":${module_dir//\//:}"
+  else
+    module=""
+  fi
+
+  source_tail="${test_file#*/src/}"
+  if [[ "$source_tail" == "$test_file" ]]; then
+    source_tail="${test_file#src/}"
+  fi
+  source_set="${source_tail%%/*}"
+
+  # Resolve obvious source-set/target combinations without starting Gradle.
+  # This keeps planning cheap and also works in restricted environments.
+  module_build=""
+  for f in \
+    "${module_dir:+$module_dir/}build.gradle.kts" \
+    "${module_dir:+$module_dir/}build.gradle"
+  do
+    if [[ -f "$f" ]]; then
+      module_build="$f"
+      break
+    fi
+  done
+
+  declare -a candidates=()
+
+  case "$source_set" in
+    jvmTest*)
+      candidates=(jvmTest)
+      ;;
+    commonTest*)
+      # Kotlin Multiplatform with the default jvm() target creates jvmTest.
+      if [[ -n "$module_build" ]] &&
+         grep -Eq '^[[:space:]]*jvm[[:space:]]*\(' "$module_build"; then
+        if [[ -n "$module" ]]; then
+          task="${module}:jvmTest"
+        else
+          task=":jvmTest"
+        fi
+      else
+        candidates=(jvmTest testDebugUnitTest test)
+      fi
+      ;;
+    androidUnitTest*|androidTest*)
+      candidates=(testDebugUnitTest test)
+      ;;
+    test*)
+      candidates=(test testDebugUnitTest jvmTest)
+      ;;
+    *)
+      candidates=(test jvmTest testDebugUnitTest)
+      ;;
+  esac
+
+  # Only probe Gradle when static resolution was not possible.
+  # Probe failures are non-fatal: explicit mode remains available.
+  if [[ -z "$task" ]]; then
+    for candidate in "${candidates[@]}"; do
+      if [[ -n "$module" ]]; then
+        candidate_task="${module}:${candidate}"
+      else
+        candidate_task=":${candidate}"
+      fi
+
+      if ./gradlew "$candidate_task" \
+           --dry-run \
+           --console=plain \
+           --warning-mode=none \
+           >/dev/null 2>&1; then
+        task="$candidate_task"
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$task" ]]; then
+    echo "agent-test: no supported narrow test task found for:" >&2
+    echo "  file:       $test_file" >&2
+    echo "  module:     ${module:-<root>}" >&2
+    echo "  source set: $source_set" >&2
+    echo "Use explicit mode:" >&2
+    echo "  ./tools/agent-test :module:testTask '*$selector'" >&2
+    exit 4
+  fi
+
+  # Gradle --tests suffix matching makes the short class name convenient.
+  filter="*$selector"
+
+  echo "agent-test: $task  $filter" >&2
+fi
+
+cmd=(
+  ./gradlew
+  "$task"
+  --console=plain
+  --warning-mode=none
+)
+
+if [[ -n "$filter" ]]; then
+  cmd+=(--tests "$filter")
+fi
+
+if ((verbose)); then
+  cmd+=(--stacktrace)
+fi
+
+cmd+=("${extra[@]}")
+
+if ((plan)); then
+  if ((raw == 0)) && command -v rtk >/dev/null 2>&1; then
+    printf 'rtk '
+  fi
+  printf '%q ' "${cmd[@]}"
+  printf '\n'
+  exit 0
+fi
+
+if ((raw == 0)) && command -v rtk >/dev/null 2>&1; then
+  exec rtk "${cmd[@]}"
+fi
+
+exec "${cmd[@]}"

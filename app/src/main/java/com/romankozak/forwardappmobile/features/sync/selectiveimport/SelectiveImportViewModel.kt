@@ -154,6 +154,29 @@ class SelectiveImportViewModel
             onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Goals, goalId, isSelected)
         }
 
+        fun toggleCanonicalBacklogSelection(
+            placementId: String,
+            isSelected: Boolean,
+        ) {
+            _uiState.update { currentState ->
+                val updatedEntries =
+                    currentState.backupContent?.workspaceBacklogEntries?.map {
+                        if (it.item.entry.id == placementId && it.isSelectable) {
+                            it.copy(isSelected = isSelected)
+                        } else {
+                            it
+                        }
+                    }
+                currentState.copy(
+                    backupContent =
+                        currentState.backupContent?.copy(
+                            workspaceBacklogEntries = updatedEntries.orEmpty(),
+                        ),
+                )
+            }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Backlog, placementId, isSelected)
+        }
+
         fun toggleLegacyNoteSelection(
             noteId: String,
             isSelected: Boolean,
@@ -182,20 +205,6 @@ class SelectiveImportViewModel
                 currentState.copy(backupContent = currentState.backupContent?.copy(activityRecords = updatedRecords ?: emptyList()))
             }
             onItemSelectionChanged(WorkspaceImportPreviewSectionKind.ActivityRecords, recordId, isSelected)
-        }
-
-        fun toggleListItemSelection(
-            itemId: String,
-            isSelected: Boolean,
-        ) {
-            _uiState.update { currentState ->
-                val updatedItems =
-                    currentState.backupContent?.backlogItems?.map {
-                        if (it.item.id == itemId && it.isSelectable) it.copy(isSelected = isSelected) else it
-                    }
-                currentState.copy(backupContent = currentState.backupContent?.copy(backlogItems = updatedItems ?: emptyList()))
-            }
-            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.BacklogItems, itemId, isSelected)
         }
 
         fun toggleDocumentSelection(
@@ -312,6 +321,13 @@ class SelectiveImportViewModel
                             content.copy(
                                 goals = content.goals.map { if (it.isSelectable) it.copy(isSelected = selectAll) else it },
                             )
+                        EntityType.BACKLOG ->
+                            content.copy(
+                                workspaceBacklogEntries =
+                                    content.workspaceBacklogEntries.map {
+                                        if (it.isSelectable) it.copy(isSelected = selectAll) else it
+                                    },
+                            )
                         EntityType.LEGACY_NOTE ->
                             content.copy(
                                 legacyNotes =
@@ -323,13 +339,6 @@ class SelectiveImportViewModel
                             content.copy(
                                 activityRecords =
                                     content.activityRecords.map {
-                                        if (it.isSelectable) it.copy(isSelected = selectAll) else it
-                                    },
-                            )
-                        EntityType.LIST_ITEM ->
-                            content.copy(
-                                backlogItems =
-                                    content.backlogItems.map {
                                         if (it.isSelectable) it.copy(isSelected = selectAll) else it
                                     },
                             )
@@ -424,6 +433,9 @@ class SelectiveImportViewModel
                 when (entityType) {
                     EntityType.PROJECT -> WorkspaceImportPreviewSectionKind.Contexts to content.projects.selectedCandidateIds()
                     EntityType.GOAL -> WorkspaceImportPreviewSectionKind.Goals to content.goals.selectedCandidateIds()
+                    EntityType.BACKLOG ->
+                        WorkspaceImportPreviewSectionKind.Backlog to
+                            content.workspaceBacklogEntries.selectedCandidateIds()
                     EntityType.LEGACY_NOTE -> {
                         syncSelection()
                         syncPreviewSummary()
@@ -431,8 +443,6 @@ class SelectiveImportViewModel
                     }
                     EntityType.ACTIVITY_RECORD ->
                         WorkspaceImportPreviewSectionKind.ActivityRecords to content.activityRecords.selectedCandidateIds()
-                    EntityType.LIST_ITEM ->
-                        WorkspaceImportPreviewSectionKind.BacklogItems to content.backlogItems.selectedCandidateIds()
                     EntityType.DOCUMENT ->
                         WorkspaceImportPreviewSectionKind.Documents to content.documents.selectedCandidateIds()
                     EntityType.CHECKLIST ->
@@ -462,9 +472,9 @@ class SelectiveImportViewModel
 enum class EntityType {
     PROJECT,
     GOAL,
+    BACKLOG,
     LEGACY_NOTE,
     ACTIVITY_RECORD,
-    LIST_ITEM,
     DOCUMENT,
     CHECKLIST,
     LINK_ITEM,
@@ -486,9 +496,9 @@ fun SelectiveImportViewModel.onPreviewItemToggle(
     when (kind) {
         WorkspaceImportPreviewSectionKind.Contexts -> toggleProjectSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.Goals -> toggleGoalSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Backlog -> toggleCanonicalBacklogSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.LegacyNotes -> toggleLegacyNoteSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.ActivityRecords -> toggleActivityRecordSelection(itemId, isSelected)
-        WorkspaceImportPreviewSectionKind.BacklogItems -> toggleListItemSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.Documents -> toggleDocumentSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.Checklists -> toggleChecklistSelection(itemId, isSelected)
         WorkspaceImportPreviewSectionKind.LinkItems -> toggleLinkItemSelection(itemId, isSelected)
@@ -506,9 +516,9 @@ fun SelectiveImportViewModel.onPreviewSectionToggle(
     when (kind) {
         WorkspaceImportPreviewSectionKind.Contexts -> toggleAllSelection(EntityType.PROJECT, selectAll)
         WorkspaceImportPreviewSectionKind.Goals -> toggleAllSelection(EntityType.GOAL, selectAll)
+        WorkspaceImportPreviewSectionKind.Backlog -> toggleAllSelection(EntityType.BACKLOG, selectAll)
         WorkspaceImportPreviewSectionKind.LegacyNotes -> toggleAllSelection(EntityType.LEGACY_NOTE, selectAll)
         WorkspaceImportPreviewSectionKind.ActivityRecords -> toggleAllSelection(EntityType.ACTIVITY_RECORD, selectAll)
-        WorkspaceImportPreviewSectionKind.BacklogItems -> toggleAllSelection(EntityType.LIST_ITEM, selectAll)
         WorkspaceImportPreviewSectionKind.Documents -> toggleAllSelection(EntityType.DOCUMENT, selectAll)
         WorkspaceImportPreviewSectionKind.Checklists -> toggleAllSelection(EntityType.CHECKLIST, selectAll)
         WorkspaceImportPreviewSectionKind.LinkItems -> toggleAllSelection(EntityType.LINK_ITEM, selectAll)
@@ -519,11 +529,11 @@ fun SelectiveImportViewModel.onPreviewSectionToggle(
     }
 }
 
-private fun SelectableDatabaseContent?.toWorkspaceSelectiveImportSelection() =
+internal fun SelectableDatabaseContent?.toWorkspaceSelectiveImportSelection() =
     com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection(
         selectedContextIds = this?.projects.selectedIds().orEmpty(),
         selectedGoalIds = this?.goals.selectedIds().orEmpty(),
-        selectedBacklogItemIds = this?.backlogItems.selectedIds().orEmpty(),
+        selectedWorkspaceBacklogEntryIds = this?.workspaceBacklogEntries.selectedIds().orEmpty(),
         selectedDocumentIds = this?.documents.selectedIds().orEmpty(),
         selectedChecklistIds = this?.checklists.selectedIds().orEmpty(),
         selectedLinkItemIds = this?.linkItems.selectedIds().orEmpty(),
@@ -534,15 +544,17 @@ private fun SelectableDatabaseContent?.toWorkspaceSelectiveImportSelection() =
         selectedActivityRecordIds = this?.activityRecords.selectedIds().orEmpty(),
     )
 
-private fun SelectableDatabaseContent?.toWorkspaceImportPreviewSummary(): WorkspaceImportPreviewSummary =
+internal fun SelectableDatabaseContent?.toWorkspaceImportPreviewSummary(): WorkspaceImportPreviewSummary =
     WorkspaceImportPreviewSummary(
         sections =
             listOfNotNull(
                 this?.projects?.toSectionSummary(WorkspaceImportPreviewSectionKind.Contexts),
                 this?.goals?.toSectionSummary(WorkspaceImportPreviewSectionKind.Goals),
+                this?.workspaceBacklogEntries
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.toSectionSummary(WorkspaceImportPreviewSectionKind.Backlog),
                 this?.legacyNotes?.toSectionSummary(WorkspaceImportPreviewSectionKind.LegacyNotes),
                 this?.activityRecords?.toSectionSummary(WorkspaceImportPreviewSectionKind.ActivityRecords),
-                this?.backlogItems?.toSectionSummary(WorkspaceImportPreviewSectionKind.BacklogItems),
                 this?.documents?.toSectionSummary(WorkspaceImportPreviewSectionKind.Documents),
                 this?.checklists?.toSectionSummary(WorkspaceImportPreviewSectionKind.Checklists),
                 this?.linkItems?.toSectionSummary(WorkspaceImportPreviewSectionKind.LinkItems),
@@ -553,20 +565,22 @@ private fun SelectableDatabaseContent?.toWorkspaceImportPreviewSummary(): Worksp
             ),
     )
 
-private fun SelectableDatabaseContent?.toWorkspaceImportPreviewModel(): WorkspaceImportPreviewModel =
+internal fun SelectableDatabaseContent?.toWorkspaceImportPreviewModel(): WorkspaceImportPreviewModel =
     WorkspaceImportPreviewModel(
         sections =
             listOfNotNull(
                 this?.projects?.toPreviewSection(WorkspaceImportPreviewSectionKind.Contexts) { it.id to (it.name to null) },
                 this?.goals?.toPreviewSection(WorkspaceImportPreviewSectionKind.Goals) { it.id to (it.text to null) },
+                this?.workspaceBacklogEntries
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.toPreviewSection(WorkspaceImportPreviewSectionKind.Backlog) {
+                        it.entry.id to (it.title to it.subtitle)
+                    },
                 this?.legacyNotes?.toPreviewSection(WorkspaceImportPreviewSectionKind.LegacyNotes) {
                     it.id to ((it.title.ifBlank { "Без назви" }) to null)
                 },
                 this?.activityRecords?.toPreviewSection(WorkspaceImportPreviewSectionKind.ActivityRecords) {
                     it.id to ((it.text.ifBlank { "Без опису" }) to null)
-                },
-                this?.backlogItems?.toPreviewSection(WorkspaceImportPreviewSectionKind.BacklogItems) {
-                    it.id to ("ListItem #${it.order} -> ${it.entityId}" to null)
                 },
                 this?.documents?.toPreviewSection(WorkspaceImportPreviewSectionKind.Documents) {
                     it.id to ((it.name.ifBlank { "Без назви" }) to null)
@@ -608,6 +622,7 @@ private fun extractSelectionId(item: Any): String? =
     when (item) {
         is com.romankozak.forwardappmobile.core.data.models.entities.Context -> item.id
         is com.romankozak.forwardappmobile.core.data.models.entities.Goal -> item.id
+        is CanonicalBacklogPreviewRow -> item.entry.id
         is com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem -> item.id
         is com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity -> item.id
         is com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity -> item.id

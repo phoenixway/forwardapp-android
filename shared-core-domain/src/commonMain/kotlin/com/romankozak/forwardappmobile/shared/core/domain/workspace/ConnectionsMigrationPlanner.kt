@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
 
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceConnection
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 /**
  * Legacy Context-scoped placement source.
@@ -283,6 +285,8 @@ object ConnectionsMigrationPlanner {
     }
 }
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 fun canonicalWorkspaceConnectionId(
     capabilityInstanceId: String,
     attachmentId: String,

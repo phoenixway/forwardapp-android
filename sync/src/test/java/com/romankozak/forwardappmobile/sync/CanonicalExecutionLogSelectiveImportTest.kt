@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.sync
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSectionKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -239,6 +240,47 @@ class CanonicalExecutionLogSelectiveImportTest {
 
         assertTrue(filtered.logs.isEmpty())
         assertNull(filtered.canonicalExecutionLogs)
+    }
+
+    @Test
+    fun `filter excludes both legacy and canonical BACKLOG until Workspace aware selection exists`() {
+        val source =
+            bundle(
+                """
+                {
+                  "contexts": [{ "id": "context-1" }],
+                  "goals": [{ "id": "goal-1", "text": "Goal", "completed": false, "createdAt": 1, "updatedAt": 1, "version": 1, "isDeleted": false }],
+                  "backlogItems": [{ "id": "legacy-item", "contextId": "context-1", "itemType": "GOAL", "entityId": "goal-1", "order": 0, "updatedAt": 1, "version": 1, "isDeleted": false }],
+                  "backlogOrders": [{ "id": "legacy-order", "listId": "context-1", "itemId": "goal-1", "order": 0, "orderVersion": 1, "updatedAt": 1, "isDeleted": false }],
+                  "workspaceBacklogEntries": [{ "id": "canonical-placement", "workspaceId": "workspace-1", "capabilityInstanceId": "capability-1", "targetKind": "ORIENTATION", "targetId": "subject-1", "order": 0, "createdAt": 1, "updatedAt": 1, "version": 1, "isDeleted": false }]
+                }
+                """.trimIndent(),
+            )
+
+        val filtered =
+            SnapshotBundleSelectiveImportFilter().filter(
+                source = source,
+                selection =
+                    WorkspaceSelectiveImportSelection(
+                        selectedContextIds = setOf("context-1"),
+                        selectedGoalIds = setOf("goal-1"),
+                    ),
+            )
+
+        assertEquals(listOf("context-1"), filtered.contexts.map { it.id })
+        assertEquals(listOf("goal-1"), filtered.goals.map { it.id })
+        assertTrue(filtered.backlogItems.isEmpty())
+        assertTrue(filtered.backlogOrders.isEmpty())
+        assertNull(filtered.workspaceBacklogEntries)
+    }
+
+    @Test
+    fun `selective import preview contract has no legacy BACKLOG section`() {
+        assertTrue(
+            WorkspaceImportPreviewSectionKind.entries.none { section ->
+                section.name == "BacklogItems"
+            },
+        )
     }
 
     private fun bundle(json: String): SnapshotBundle =

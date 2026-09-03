@@ -22,8 +22,6 @@ object NavTargetRouter {
             is NavTarget.NoteDocument ->
                 NavigationRoutes.noteDocument(id = target.id, startEdit = target.startEdit)
 
-            is NavTarget.JournalDocument ->
-                NavigationRoutes.journalDocument(id = target.id, startEdit = target.startEdit)
 
             is NavTarget.NoteDocumentEdit ->
                 NavigationRoutes.noteDocumentEdit(

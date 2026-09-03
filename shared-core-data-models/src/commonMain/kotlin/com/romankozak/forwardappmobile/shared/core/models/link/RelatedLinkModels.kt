@@ -7,7 +7,6 @@ import kotlin.js.JsExport
 enum class CanonicalLinkType {
     CONTEXT,
     NOTE_DOCUMENT,
-    JOURNAL_DOCUMENT,
     CHECKLIST,
     MUSIC_NOTE,
     URL,

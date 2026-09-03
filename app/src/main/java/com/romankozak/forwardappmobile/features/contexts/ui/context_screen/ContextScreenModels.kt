@@ -5,7 +5,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
@@ -72,7 +71,6 @@ data class UiState(
     val needsStateRefresh: Boolean = false,
     val enableInbox: Boolean = true,
     val enableLog: Boolean = true,
-    val enableArtifact: Boolean = true,
     val isProjectManagementEnabled: Boolean = false,
     val enableBacklog: Boolean = true,
     val enableDashboard: Boolean = true,
@@ -95,7 +93,6 @@ data class UiState(
     val itemForRemindersDialog: BacklogItemContent? = null,
     val remindersForDialog: List<Reminder> = emptyList(),
     val logEntryToEdit: ContextLog? = null,
-    val artifactToEdit: ContextArtifact? = null,
     val selectedDashboardTab: ContextManagementTab = ContextManagementTab.Dashboard,
     val showNoteDocumentEditor: Boolean = false,
     val showDisplayPropertiesDialog: Boolean = false,
@@ -148,7 +145,6 @@ class BacklogMarkdownHandler
                         }
                         is BacklogItemContent.NoteItem -> "- [N] ${item.note.title}"
                         is BacklogItemContent.NoteDocumentItem -> "- [D] ${item.document.name}"
-                        is BacklogItemContent.JournalDocumentItem -> "- [J] ${item.document.name}"
                         is BacklogItemContent.MusicNoteItem -> "- [M] ${item.musicNote.name}"
                         is BacklogItemContent.ChecklistItem -> "- [Ch] ${item.checklist.name}"
                     }

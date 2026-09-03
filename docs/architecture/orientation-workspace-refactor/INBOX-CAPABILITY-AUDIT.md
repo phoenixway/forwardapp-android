@@ -1,10 +1,10 @@
 # INBOX Capability Audit and Source Contract
 
-Status: `CURRENT / VERIFIED` for the Android schema-158 canonical hard cutover.
+Status: `CURRENT / VERIFIED` for the Android schema-158 canonical hard cutover
+and Desktop canonical convergence.
 
-The current UI remains unchanged through compatibility adapters. This document
-describes the canonical Android source boundary after the Room/runtime/sync
-cutover, not a Desktop parity claim.
+The current UI remains unchanged through capability-specific canonical command
+and projection boundaries.
 
 ## Retired legacy boundary
 
@@ -66,12 +66,28 @@ Android now provides:
 - compatibility `InboxRecordDao`, `InboxRecordLinkDao`, and `InboxRepository`
   preserving existing UI behavior without giving legacy rows write authority.
 
+Desktop canonical Context-backed Inbox now projects and mutates
+`workspaceInboxRecords` directly. Create, edit, tombstone, and delete compaction
+preserve immutable owner identity and register exact pending versions. The
+dedicated peer path reconciles Android canonical state before selecting pending
+rows, includes the exact Workspace and INBOX capability dependencies, treats
+HTTP success as processing rather than acknowledgement, and clears pending only
+after observing the same version or a stronger canonical winner. Generic
+canonical shadow serialization and legacy `inboxRecords` live push are disabled.
+
+Desktop evaluates hashtag association and typed owner visibility through the
+shared KMP Inbox policy. It does not persist or sync `InboxRecordLink`, and the
+legacy `hideInOwnerInbox` field has no canonical authority.
+
 ## Remaining boundaries
 
 Selective import drops canonical Inbox rows until Workspace-aware selection
-exists. Goal promotion remains a compatibility command until Goal/Backlog
-authority is canonical.
+exists. No Desktop Inbox-to-Goal promotion action exists in the current
+production UI; any future promotion remains a cross-capability command and must
+delegate to the already-canonical Goal/BACKLOG owners.
 
 Focused verification covers repository lifecycle/content behavior, owner
 deletion cascade, schema-158 migration/fail-closed gates, canonical sync store
-merge/ACK/freshness invariants, and Wi-Fi canonical delta planning.
+merge/ACK/freshness invariants, Wi-Fi canonical delta planning, and Desktop
+command, projection, peer-reconciliation, production-hook, lost-ACK, and legacy
+authority-retirement behavior.

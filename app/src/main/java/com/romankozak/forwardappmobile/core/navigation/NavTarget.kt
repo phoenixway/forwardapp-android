@@ -24,10 +24,6 @@ sealed interface NavTarget {
         val startEdit: Boolean = false,
     ) : NavTarget
 
-    data class JournalDocument(
-        val id: String,
-        val startEdit: Boolean = false,
-    ) : NavTarget
 
     data class NoteDocumentEdit(
         val contextId: String? = null,

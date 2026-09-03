@@ -106,9 +106,11 @@ The following directories contain subsystem documentation:
   Workspace capabilities, attribution, filtering, and legacy mapping.
 
 `architecture/orientation-workspace-refactor/domain-contract-v1.json`
-- `DECIDED`
+- `DECIDED` with historical v1 identifiers
 - Machine-readable value sets and contract matrices corresponding to the
-  accepted Phase 1 domain contract.
+  accepted Phase 1 domain contract. Its original `ARTIFACT` and context
+  `JOURNAL` registry entries are historical evidence only and are superseded
+  by the 2026-09-03 schema-165 hard-removal decision.
 
 `architecture/orientation-workspace-refactor/PHASE2-IMPLEMENTATION.md`
 - `CURRENT`

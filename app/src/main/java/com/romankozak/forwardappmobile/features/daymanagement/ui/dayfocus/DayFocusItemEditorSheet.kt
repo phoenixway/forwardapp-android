@@ -417,8 +417,6 @@ private fun AttachmentOption.toRelatedLink(): RelatedLink? =
             RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name, vault = vault)
         attachmentType == "NOTE_DOCUMENT" && !entityId.isNullOrBlank() ->
             RelatedLink(type = LinkType.NOTE_DOCUMENT, target = entityId, displayName = name)
-        attachmentType == "JOURNAL_DOCUMENT" && !entityId.isNullOrBlank() ->
-            RelatedLink(type = LinkType.JOURNAL_DOCUMENT, target = entityId, displayName = name)
         attachmentType == "CHECKLIST" && !entityId.isNullOrBlank() ->
             RelatedLink(type = LinkType.CHECKLIST, target = entityId, displayName = name)
         attachmentType == "MUSIC_NOTE" && !entityId.isNullOrBlank() ->

@@ -337,15 +337,6 @@ class CommandDeckViewModel
                         )
                     contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
                 }
-                is NewDocumentDraft.JournalDocument -> {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = request.name.ifBlank { "New journal" },
-                            contextId = inboxContextId,
-                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
-                        )
-                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)
-                }
                 is NewDocumentDraft.MusicNote -> {
                     val musicNoteId =
                         musicNoteRepository.create(

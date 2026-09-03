@@ -40,7 +40,6 @@ class ContextStructureRepository
                         description = definition.description,
                         enableInbox = capabilities.contains("inbox"),
                         enableLog = capabilities.contains("log"),
-                        enableArtifact = capabilities.contains("artifact"),
                         enableAdvanced = false,
                         enableDashboard = true,
                         enableBacklog = capabilities.contains("backlog"),
@@ -109,7 +108,6 @@ class ContextStructureRepository
                 setOf(
                     "inbox",
                     "log",
-                    "artifact",
                     "dashboard",
                     "backlog",
                     "attachments",
@@ -123,7 +121,6 @@ class ContextStructureRepository
                     applyMode = "ADDITIVE",
                     enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                     enableLog = presetCapabilities.contains(CapabilityId("log")),
-                    enableArtifact = preset.enableArtifact ?: presetCapabilities.contains(CapabilityId("artifact")),
                     enableAdvanced = false,
                     enableDashboard = preset.enableDashboard,
                     enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),

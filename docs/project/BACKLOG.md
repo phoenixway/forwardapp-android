@@ -24,15 +24,23 @@ still relevant to the current implementation.
   part of the current Context Backlog or Attachments Library runtime, but keep
   obsolete mixed Backlog/CONNECTIONS semantics alive in source. Cost: `small`.
 
+- Export shared JS validation entry points for BACKLOG and DIRECTION capability
+  configuration, then replace the exact v1 mirrors currently used only by
+  Desktop readonly Features status. The mirrors match the shared Kotlin codecs
+  today (`BACKLOG` v1 `{}` and DIRECTION v1
+  `{"autoLinkChildWorkspaces":boolean}`), but shared export should remain the
+  long-term single validation authority. Cost: `small`.
+
 ## DEFERRED
 
 - Define explicit deletion semantics for timestamp-only cross-client collections
   that currently support update freshness but cannot always represent physical
-  deletion in an Android delta: `contextArtifacts`, `mainBeaconParentLinks`, and
+  deletion in an Android delta: `mainBeaconParentLinks` and
   `mainBeaconLevelStatuses`. Prefer an explicit owner-scoped authoritative-set
   contract where valid; otherwise add durable deletion metadata/versioning
   deliberately rather than inferring absence. `contextKeyProblems` no longer
-  belongs to this debt after the schema-157 typed/tombstoned canonical cutover.
+  belongs to this debt after the schema-157 typed/tombstoned canonical cutover,
+  and `contextArtifacts` no longer belongs to it after schema-165 hard removal.
 
 - Remove legacy persisted `InboxRecord.hideInOwnerInbox` after the current
   cross-client Inbox policy has remained stable long enough to perform the

@@ -46,7 +46,6 @@ class ListChooserFlowActions(
         val isAttachmentSupported =
             attachment is BacklogItemContent.LinkItem ||
                 attachment is BacklogItemContent.NoteDocumentItem ||
-                attachment is BacklogItemContent.JournalDocumentItem ||
                 attachment is BacklogItemContent.MusicNoteItem ||
                 attachment is BacklogItemContent.ChecklistItem
         val itemType = attachment.backlogItem.itemType

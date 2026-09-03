@@ -1,3 +1,13 @@
+# Historical Snapshot Architecture Prompt
+
+Status: HISTORICAL
+
+This prompt is preserved only as implementation history. Its sample
+`SnapshotBundle` and file inventory predate the schema-165 Artifact/Context
+Journal hard removal and include obsolete `ContextArtifactSnapshot` /
+`artifacts` examples. Do not use this file as a current persistence, backup, or
+sync contract.
+
 
 > **Context:** Ми впроваджуємо "Snapshot Architecture" для системи синхронізації та бекапу.
 > **Problem:** Зараз Room-сутності (Entities) напряму використовуються в JSON-бекапах та мережевій синхронізації. Це призводить до розривів (breaking changes) при кожній міграції БД.

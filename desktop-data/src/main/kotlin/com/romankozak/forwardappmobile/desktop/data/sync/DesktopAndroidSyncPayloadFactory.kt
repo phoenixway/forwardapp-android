@@ -89,7 +89,6 @@ private fun SharedContextSummary.toConfigurationSnapshotJson(exportedAt: Long): 
         put("applyMode", "OVERRIDE")
         put("enableInbox", capabilities.contains("inbox"))
         put("enableLog", capabilities.contains("log"))
-        put("enableArtifact", capabilities.contains("artifact"))
         put("enableAdvanced", false)
         put("enableDashboard", capabilities.contains("dashboard"))
         put("enableBacklog", capabilities.contains("backlog"))
@@ -112,7 +111,6 @@ private val LEGACY_CONTEXT_CAPABILITY_IDS =
     setOf(
         "inbox",
         "log",
-        "artifact",
         "dashboard",
         "backlog",
         "connections",
@@ -352,7 +350,5 @@ private fun SharedContextView.toAndroidViewModeName(): String =
         SharedContextView.Dashboard -> "DASHBOARD"
         SharedContextView.Direction -> "DIRECTION"
         SharedContextView.Log -> "LOG"
-        SharedContextView.JournalLog -> "JOURNAL_LOG"
-        SharedContextView.Artifact -> "ARTIFACT"
         SharedContextView.KeyProblems -> "KEY_PROBLEMS"
     }

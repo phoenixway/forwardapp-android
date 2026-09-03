@@ -104,7 +104,6 @@ class FullBackupLocalDataSourceImpl
         private val systemContextEnsurer: SystemContextEnsurer,
         private val backlogOrderDao: BacklogOrderDao,
         private val backlogItemDao: ListItemDao,
-        private val contextArtifactDao: ContextArtifactDao,
         private val contextLogDao: ContextManagementDao,
         private val scriptDao: ScriptDao,
         private val contextManagementDao: ContextManagementDao,
@@ -331,7 +330,6 @@ class FullBackupLocalDataSourceImpl
                 workspaceInboxRecords = canonicalWorkspaceInboxSyncStore.loadAll(),
                 workspaceConnections = canonicalWorkspaceConnectionSyncStore.loadAll(),
                 workspaceBacklogEntries = canonicalWorkspaceBacklogSyncStore.loadAll(),
-                artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
                 musicNotes = musicNoteDao.getAll().map { it.toSnapshot() },
@@ -670,7 +668,6 @@ class FullBackupLocalDataSourceImpl
                         applyMode = snapshot.applyMode,
                         enableInbox = snapshot.enableInbox,
                         enableLog = snapshot.enableLog,
-                        enableArtifact = snapshot.enableArtifact,
                         enableAdvanced = snapshot.enableAdvanced,
                         enableDashboard = snapshot.enableDashboard,
                         enableBacklog = snapshot.enableBacklog,
@@ -788,8 +785,6 @@ class FullBackupLocalDataSourceImpl
                 )
             }
 
-            Log.d("SyncV2", "Inserting ContextArtifacts: ${bundle.artifacts.size}")
-            contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() }) // Depends on Context
 
             Log.d("SyncV2", "Inserting DailyMetrics: ${bundle.dailyMetrics.size}")
             dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() }) // Depends on DayPlan

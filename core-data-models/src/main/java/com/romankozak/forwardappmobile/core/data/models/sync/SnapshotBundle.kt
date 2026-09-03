@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextArtifactSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.MusicNoteSnapshot
@@ -103,7 +102,6 @@ data class SnapshotBundle(
     @SerializedName("musicNotes") val musicNotes: List<MusicNoteSnapshot> = emptyList(),
     @SerializedName("checklists") val checklists: List<ChecklistSnapshot> = emptyList(),
     @SerializedName("checklistItems") val checklistItems: List<ChecklistItemSnapshot> = emptyList(),
-    @SerializedName("artifacts") val artifacts: List<ContextArtifactSnapshot> = emptyList(),
     @SerializedName("scripts") val scripts: List<ScriptSnapshot> = emptyList(),
     @SerializedName("attachments") val attachments: List<AttachmentSnapshot> = emptyList(),
     @SerializedName("crossRefs") val crossRefs: List<ContextAttachmentCrossRefSnapshot> = emptyList(),

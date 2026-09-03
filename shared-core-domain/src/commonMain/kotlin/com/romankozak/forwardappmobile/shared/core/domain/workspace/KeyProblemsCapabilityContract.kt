@@ -1,8 +1,13 @@
+@file:OptIn(kotlin.js.ExperimentalJsExport::class)
+
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
 
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblem
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblemAttachmentRef
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblemWorkspaceRef
+import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblemStatus
+import kotlin.js.JsExport
+import kotlinx.serialization.json.*
 
 /** KEY_PROBLEMS configuration v1 intentionally owns no configurable fields. */
 data object KeyProblemsCapabilityConfigurationV1
@@ -98,6 +103,67 @@ fun validateKeyProblemsContract(
     return violations
 }
 
+/** Kotlin/JS transport adapter; canonical relation rules remain in [validateKeyProblemsContract]. */
+@JsExport
+fun validateKeyProblemsContractWire(rawGraph: String): Array<String> {
+    val root = Json.parseToJsonElement(rawGraph).jsonObject
+    return validateKeyProblemsContract(
+        problems = root.rows("workspaceProblems").map { row ->
+            WorkspaceProblem(
+                id = row.string("id"),
+                createdAt = row.long("createdAt"),
+                updatedAt = row.long("updatedAt"),
+                syncedAt = row.nullableLong("syncedAt"),
+                isDeleted = row.boolean("isDeleted"),
+                version = row.long("version"),
+                workspaceId = row.string("workspaceId"),
+                capabilityInstanceId = row.string("capabilityInstanceId"),
+                title = row.string("title"),
+                description = row.string("description"),
+                status = WorkspaceProblemStatus.valueOf(row.string("status")),
+                order = row.long("order"),
+            )
+        },
+        workspaceRefs = root.rows("workspaceProblemWorkspaceRefs").map { row ->
+            WorkspaceProblemWorkspaceRef(
+                id = row.string("id"),
+                createdAt = row.long("createdAt"),
+                updatedAt = row.long("updatedAt"),
+                syncedAt = row.nullableLong("syncedAt"),
+                isDeleted = row.boolean("isDeleted"),
+                version = row.long("version"),
+                problemId = row.string("problemId"),
+                targetWorkspaceId = row.string("targetWorkspaceId"),
+            )
+        },
+        attachmentRefs = root.rows("workspaceProblemAttachmentRefs").map { row ->
+            WorkspaceProblemAttachmentRef(
+                id = row.string("id"),
+                createdAt = row.long("createdAt"),
+                updatedAt = row.long("updatedAt"),
+                syncedAt = row.nullableLong("syncedAt"),
+                isDeleted = row.boolean("isDeleted"),
+                version = row.long("version"),
+                problemId = row.string("problemId"),
+                attachmentId = row.string("attachmentId"),
+            )
+        },
+    ).map { violation -> "${violation.code}:${violation.message}" }.toTypedArray()
+}
+
+/** Kotlin/JS adapter for the existing typed capability configuration codec. */
+@JsExport
+fun validateKeyProblemsCapabilityConfigurationWire(
+    version: Int,
+    raw: String,
+): Array<String> =
+    try {
+        KeyProblemsCapabilityConfigurationCodec.validate(version, raw)
+        emptyArray()
+    } catch (error: IllegalArgumentException) {
+        arrayOf(error.message ?: "Invalid KEY_PROBLEMS configuration")
+    }
+
 private fun addDuplicateIdViolations(
     ids: List<String>,
     path: String,
@@ -176,3 +242,14 @@ private fun violation(
     code: String,
     message: String,
 ) = KeyProblemsContractViolation(path, code, message)
+
+private fun JsonObject.rows(name: String): List<JsonObject> =
+    (get(name) as? JsonArray)?.map { it.jsonObject } ?: emptyList()
+
+private fun JsonObject.string(name: String): String = getValue(name).jsonPrimitive.content
+
+private fun JsonObject.long(name: String): Long = getValue(name).jsonPrimitive.long
+
+private fun JsonObject.nullableLong(name: String): Long? = get(name)?.jsonPrimitive?.longOrNull
+
+private fun JsonObject.boolean(name: String): Boolean = getValue(name).jsonPrimitive.boolean

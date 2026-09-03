@@ -50,11 +50,6 @@ class BacklogCanonicalTargetResolver
                         WorkspaceBacklogTargetKind.NOTE_DOCUMENT,
                         normalizedId,
                     )
-                "JOURNAL_DOCUMENT" ->
-                    WorkspaceBacklogTargetRef(
-                        WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT,
-                        normalizedId,
-                    )
                 "CHECKLIST" ->
                     WorkspaceBacklogTargetRef(
                         WorkspaceBacklogTargetKind.CHECKLIST,

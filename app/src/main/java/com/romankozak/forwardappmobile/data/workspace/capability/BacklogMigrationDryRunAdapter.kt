@@ -436,12 +436,6 @@ class BacklogMigrationDryRunAdapter
                         document.id,
                     ),
                 ] = state
-                result[
-                    WorkspaceBacklogTargetRef(
-                        WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT,
-                        document.id,
-                    ),
-                ] = state
             }
 
             checklists.forEach { checklist ->

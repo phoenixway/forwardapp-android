@@ -39,7 +39,6 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListActions
@@ -49,12 +48,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxViewState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.journallog.JournalLogView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ArtifactContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.LogContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import java.util.Locale
@@ -78,8 +74,6 @@ fun GoalDetailContent(
     inboxListState: LazyListState,
     onEditLog: (ContextLog) -> Unit,
     onDeleteLog: (ContextLog) -> Unit,
-    onSaveArtifact: (String, String) -> Unit,
-    onEditArtifact: (ContextArtifact) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,
     onShowProjectProperties: () -> Unit,
     onSwitchView: (ContextViewMode) -> Unit,
@@ -96,9 +90,7 @@ fun GoalDetailContent(
     val canPasteIntoInbox by viewModel.itemActionHandler.canPasteIntoCurrentInbox.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs = uiState.logs
-    val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
     val keyProblemsData by viewModel.keyProblemsData.collectAsStateWithLifecycle()
-    val journalLogDocument by viewModel.journalLogDocument.collectAsStateWithLifecycle()
     val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
@@ -272,7 +264,6 @@ fun GoalDetailContent(
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
                 enableLog = uiState.enableLog,
-                enableArtifact = uiState.enableArtifact,
                 enableKeyProblems = enableKeyProblems,
             )
         }
@@ -284,35 +275,6 @@ fun GoalDetailContent(
                 isManagementEnabled = true,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
-            )
-        }
-        ContextViewMode.JOURNAL_LOG -> {
-            JournalLogView(
-                modifier = modifier,
-                document = journalLogDocument,
-                searchQuery = localSearchQuery,
-                onUpdateLine = viewModel::updateJournalLogLine,
-                onDeleteLine = viewModel::deleteJournalLogLine,
-                onReorderLines = viewModel::replaceJournalLogLines,
-            )
-        }
-        ContextViewMode.ARTIFACT -> {
-            val editableArtifact =
-                projectArtifact
-                    ?: goalList?.id?.let { contextId ->
-                        ContextArtifact(
-                            id = "draft-artifact-$contextId",
-                            contextId = contextId,
-                            content = "",
-                            createdAt = System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis(),
-                        )
-                    }
-            ArtifactContent(
-                modifier = modifier,
-                artifact = editableArtifact,
-                isManagementEnabled = true,
-                onEditArtifact = onEditArtifact,
             )
         }
         ContextViewMode.KEY_PROBLEMS -> {
@@ -359,7 +321,6 @@ private fun DashboardOverview(
     enableDashboard: Boolean,
     enableAttachments: Boolean,
     enableLog: Boolean,
-    enableArtifact: Boolean,
     enableKeyProblems: Boolean,
 ) {
     val countsByMode =
@@ -572,8 +533,6 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.CONNECTIONS -> "Connections"
         ContextViewMode.DASHBOARD -> "Дашборд"
         ContextViewMode.LOG -> "Лог"
-        ContextViewMode.JOURNAL_LOG -> "Journal Log"
-        ContextViewMode.ARTIFACT -> "Артефакт"
         ContextViewMode.KEY_PROBLEMS -> "Issues"
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
@@ -594,8 +553,6 @@ private fun ContextViewMode.dashboardIcon(): ImageVector =
         ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Default.Dashboard
         ContextViewMode.LOG -> Icons.Outlined.History
-        ContextViewMode.JOURNAL_LOG -> Icons.Outlined.MenuBook
-        ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
         ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
@@ -624,7 +581,6 @@ private fun BacklogItemContent.searchableTexts(): List<String> =
         is BacklogItemContent.LinkItem -> listOfNotNull(link.linkData.displayName, link.linkData.target)
         is BacklogItemContent.NoteItem -> listOfNotNull(note.title, note.content)
         is BacklogItemContent.NoteDocumentItem -> listOfNotNull(document.name, document.content)
-        is BacklogItemContent.JournalDocumentItem -> listOfNotNull(document.name, document.content)
         is BacklogItemContent.ChecklistItem -> listOfNotNull(checklist.name)
         is BacklogItemContent.MusicNoteItem -> listOfNotNull(musicNote.name, musicNote.content)
     }
@@ -640,7 +596,6 @@ private fun AttachmentRowSummary(
                 item.link.linkData.displayName?.takeIf { it.isNotBlank() }
                     ?: item.link.linkData.target
             is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
-            is BacklogItemContent.JournalDocumentItem -> item.document.name.ifBlank { "Journal" }
             is BacklogItemContent.MusicNoteItem -> item.musicNote.name.ifBlank { "Music note" }
             is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
             else -> "Attachment"
@@ -657,7 +612,6 @@ private fun AttachmentRowSummary(
             when (item) {
                 is BacklogItemContent.LinkItem -> Icons.Outlined.Link
                 is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
-                is BacklogItemContent.JournalDocumentItem -> Icons.Outlined.Description
                 is BacklogItemContent.MusicNoteItem -> Icons.Outlined.MusicNote
                 is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
                 else -> Icons.Default.Attachment

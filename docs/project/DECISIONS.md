@@ -5,6 +5,59 @@ Status: CANONICAL
 Record decisions that future work could otherwise accidentally reopen or
 contradict.
 
+## 2026-09-02 - Canonical BACKLOG selective import is placement-id based
+
+Decision:
+
+Selective BACKLOG selection uses `WorkspaceBacklogEntry.id`. Selecting a
+placement includes its owning Workspace, its exact BACKLOG capability instance,
+the required Workspace parent closure, and the minimum live typed-target
+dependency graph. Selecting target content alone never selects placements.
+
+No selected placement emits `workspaceBacklogEntries = null`; selected
+placements emit a non-empty list. Selective import does not express
+authoritative empty BACKLOG state and never emits `workspaceBacklogEntries = []`.
+Legacy `backlogItems` and `backlogOrders` remain outside selective authority.
+
+Reason:
+
+Placement identity, owner identity, and typed target identity are independent.
+Selecting by target or Workspace would unintentionally import sibling
+placements, while omitting owner/target closure would create a bundle Android
+cannot validate or merge safely.
+
+Consequence:
+
+Canonical BACKLOG preview rows retain their source placement ids and freshness.
+Live placement selection pulls dependencies in the placement-to-target
+direction only; tombstones retain identity/deletion state without requiring a
+live target. Historical full-backup fallback and live merge behavior are
+unchanged.
+
+## 2026-09-01 - BACKLOG placement identity is scoped to one owning BACKLOG
+
+Decision:
+
+`WorkspaceBacklogEntry.id` identifies one explicit target appearance inside
+one owning BACKLOG. Its `workspaceId`, `capabilityInstanceId`, `targetKind`,
+`targetId`, and `createdAt` are immutable for that placement id. Cross-Workspace
+MOVE therefore tombstones the source placement and creates or resurrects a
+separate destination placement; it never mutates the source placement's owner.
+
+Reason:
+
+Stable owner-scoped placement history keeps canonical peer freshness and
+tombstone semantics unambiguous across Android and Desktop. BACKLOG changes
+placement/presentation only; typed target content remains owned by its external
+domain and is never copied, moved, or deleted by MOVE.
+
+Consequence:
+
+Android canonical runtime MOVE now uses source tombstone plus destination
+create/resurrection. Canonical sync rejects same-id owner or target identity
+changes. Destination logical placement selection reuses the existing
+live-first, newest-tombstone fallback contract.
+
 ## 2026-09-01 - Legacy Note remains distinct from Note Document during BACKLOG cutover
 
 Decision:
@@ -419,49 +472,26 @@ retaining obsolete cross-client authority.
 
 ## 2026-08-30 - Retire ARTIFACT and context JOURNAL capabilities; omit KEY_PROBLEMS dateTime
 
-Decision:
+**HISTORICAL / PARTIALLY SUPERSEDED.**
 
-The canonical `KEY_PROBLEMS` v1 item model does not contain a generic
-`dateTime` field. No temporal meaning has a current demonstrated requirement,
-and a semantically unspecified timestamp must not become permanent canonical
-schema. A future concrete requirement may introduce a specifically named field
-or relation such as a deadline, review time, or schedule link.
+The `KEY_PROBLEMS` `dateTime` decision remains current: canonical
+`KEY_PROBLEMS` v1 contains no semantically unspecified generic timestamp.
+Populated legacy values must be accounted for rather than silently discarded.
 
-Legacy migration must not silently discard a populated `dateTime`. Preflight
-counts and reports all non-null values. If any exist, the hard cutover remains
-blocked until their meaning and lossless mapping are explicitly decided. If
-none exist, the field is omitted from the canonical schema.
+This decision also established the still-valid architectural direction that
+`ARTIFACT` and Context `JOURNAL` / `journal_log` must not become canonical
+Workspace capabilities or new permanent content models. Artifact duplicated
+ordinary document/note plus Workspace-connection composition, while Context
+Journal duplicated document storage and was distinct from Life Journal.
 
-`ARTIFACT` is retired as a target Workspace capability. It predates the current
-document/note and connection model and no longer owns a distinct product
-concept. No canonical Artifact entity, singleton binding, repository, or UI is
-to be built. Existing non-empty `ContextArtifact` text is preserved by the
-simplest lossless migration into an ordinary note/document associated with the
-owning Workspace through the normal connection/placement model. Duplicate
-legacy artifact rows are diagnosed and preserved individually rather than
-arbitrarily collapsed. Legacy Artifact persistence and enablement are removed
-only after accounting proves the migrated text remains reachable.
+The original 2026-08-30 migration plan proposed preserving their legacy text as
+ordinary document content before removing the wrappers. That preservation and
+compatibility policy is historical and was explicitly superseded by the
+2026-09-03 hard-removal decision. It is not a current migration requirement.
 
-The Context capability `JOURNAL` / legacy `journal_log` is also retired. It is
-not Life Journal and must not become a second structured event-log model. Its
-current content is already a `NoteDocument`; migration preserves that document
-as an ordinary note/document and removes only its special system-journal role,
-capability instance/configuration, and legacy-specific runtime paths after
-reachability is proven. Existing text is not deleted merely because the
-capability is retired.
-
-The `ARTIFACT` and `JOURNAL` entries in DOMAIN-CONTRACT v1 remain historical
-legacy-mapping evidence but are superseded as target capability types by this
-decision. A later machine-readable contract revision must mark them retired;
-new code must not activate or canonicalize them in the meantime.
-
-Rationale:
-
-Artifact and context Journal duplicate the more general document/note plus
-Workspace-connection composition. Preserving them as capabilities would add
-repositories, lifecycle, sync, and UI concepts without distinct semantics.
-Retiring the capability wrappers while losslessly retaining their text reduces
-the ontology and avoids creating another permanent compatibility layer.
+The original DOMAIN-CONTRACT v1 `ARTIFACT` and `JOURNAL` entries therefore
+remain historical legacy-mapping evidence only. Current code must not activate,
+canonicalize, preserve, import, or recreate compatibility state for them.
 
 For canonical `KEY_PROBLEMS`, related Workspace and Attachment references are
 unordered typed sets. A target tombstone preserves the historical relation;
@@ -553,3 +583,103 @@ A static Inbox dependency both over-constrains non-Inbox policies and fails to
 protect Backlog/Connection mutation. Treating sorting as content would also
 create false ownership. Command-scoped dependency checks preserve capability
 boundaries and let each target remain authoritative for its own order.
+## Goal-like creation during canonical BACKLOG transition
+
+For a newly-created goal-like item, Goal compatibility state and canonical
+subject state are created together before canonical placement. Android creates
+the Goal, `ManagedSubject`, `Orientation`, and live `GOAL` to subject mapping in
+the final `CUT_OVER` state, then creates an `ORIENTATION` BACKLOG placement in
+one Room transaction. BACKLOG owns only placement; removing that placement does
+not delete the subject or Goal content. Desktop target creation remains a
+separate follow-up transport slice.
+
+The canonical subject-family construction is shared as a pure factory. It
+accepts caller-supplied identities and timestamps and returns the
+`ManagedSubject`, `Orientation`, initial assessment/revision, and final
+`CUT_OVER` Goal mapping. It performs no persistence, transaction, sync, or
+BACKLOG placement. Android remains the persistence/transaction owner; Desktop
+may reuse the same construction contract only after dependency-closed peer
+transport is established.
+
+## 2026-09-02 - Desktop KEY_PROBLEMS remains Android-authoritative read-only
+
+Decision:
+
+Desktop KEY_PROBLEMS remains Android-authoritative and read-only after canonical
+read-side convergence. Do not add Desktop KEY_PROBLEMS create/edit/delete/reorder
+commands, pending-version state, ACK handling, or peer push until a separately
+accepted Desktop authoring requirement exists.
+
+The canonical Desktop read boundary is the typed
+`workspaceProblems` + `workspaceProblemWorkspaceRefs` +
+`workspaceProblemAttachmentRefs` graph. Legacy `contextKeyProblems.payloadJson`
+remains historical/noncanonical local-file fallback only.
+
+Reason:
+
+The current Desktop product surface exposes KEY_PROBLEMS as a readonly capability
+view and has no production writer. Implementing capability-specific authoring and
+three-stream exact-version peer transport without an accepted user-facing writer
+would create unused protocol and ownership complexity. Android already owns the
+canonical mutation and sync contract.
+
+Consequence:
+
+Future Desktop KEY_PROBLEMS authoring requires a separate explicit decision and
+implementation slice. Read-side convergence is complete and does not imply a
+write-side commitment.
+## 2026-09-03 - Hard-remove Artifact and Context Journal without compatibility
+
+Decision:
+
+`ARTIFACT` and Context `JOURNAL` / `journal_log` cease to be domain concepts.
+Their legacy payloads and compatibility boundaries do not need to survive the
+retirement.
+
+This supersedes the 2026-08-30 requirement to preserve non-empty
+`ContextArtifact` text and the special Context Journal document as ordinary
+documents.
+
+The canonical retirement contract is:
+
+- no `ARTIFACT` or Context `JOURNAL` Workspace capability type;
+- no `ContextArtifact` entity, snapshot, repository, runtime, UI,
+  configuration, sync collection, backup compatibility importer, or
+  enablement flag;
+- no `JOURNAL_DOCUMENT` semantic document type, navigation target, creation
+  path, Backlog target kind, or special `system_journal_log_*` content;
+- schema 165 physically removes `context_artifacts` and both
+  `enable_artifact` columns and deletes recognizable persisted retired
+  Artifact/Journal data and placements;
+- old Artifact/Context-Journal backups are intentionally unsupported;
+- ordinary unrelated `NOTE_DOCUMENT` data is not part of the destructive
+  retirement and must survive migration.
+
+Schema 163 -> 164 remains a no-op bridge. Schema 164 -> 165 is the sole
+hard-removal boundary.
+
+Two names that contain "Artifact" or "Journal" are explicitly outside this
+decision:
+
+1. Strategic Arc's Artifact tab/panel remains. Its content is an ordinary
+   `NOTE_DOCUMENT` with `roleCode = "strategic_arc_artifact"`; it is a product
+   presentation name, not the retired Context Artifact subsystem.
+2. Life Journal / `DayManagementTab.JOURNAL` remains. It is the ActivityRecord
+   execution/history feature and is not Context `JOURNAL`, `journal_log`, or
+   `JOURNAL_DOCUMENT`.
+
+Rationale:
+
+The user explicitly chose deletion over compatibility for these legacy
+concepts. Keeping preservation materialization, legacy snapshot ingress, or a
+special Journal document role would preserve exactly the ontology and
+compatibility machinery the retirement is intended to remove.
+
+Verification:
+
+The generated Room schema 165 contains neither `context_artifacts` nor either
+`enable_artifact` column. The 164 -> 165 structural delta contains no other
+table or column changes. Room acceptance tests pass for both direct
+164 -> 165 and chained 163 -> 164 -> 165 migration, including schema
+validation, retired-data deletion, unrelated ordinary-document survival,
+foreign-key checks, and SQLite integrity checks.

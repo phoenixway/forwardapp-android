@@ -14,7 +14,6 @@ data class ContextConfigurationSnapshot(
     @SerializedName("applyMode") val applyMode: String,
     @SerializedName("enableInbox") val enableInbox: Boolean,
     @SerializedName("enableLog") val enableLog: Boolean,
-    @SerializedName("enableArtifact") val enableArtifact: Boolean,
     @SerializedName("enableAdvanced") val enableAdvanced: Boolean,
     @SerializedName("enableDashboard") val enableDashboard: Boolean,
     @SerializedName("enableBacklog") val enableBacklog: Boolean,

@@ -1,4 +1,8 @@
+@file:OptIn(kotlin.js.ExperimentalJsExport::class)
+
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
+
+import kotlin.js.JsExport
 
 /**
  * DASHBOARD capability configuration v1.
@@ -40,3 +44,16 @@ object DashboardCapabilityConfigurationCodec : CapabilityConfigurationCodec {
         return DashboardCapabilityConfigurationV1
     }
 }
+
+/** Kotlin/JS adapter for the typed DASHBOARD capability configuration contract. */
+@JsExport
+fun validateDashboardCapabilityConfigurationWire(
+    version: Int,
+    raw: String,
+): Array<String> =
+    try {
+        DashboardCapabilityConfigurationCodec.validate(version, raw)
+        emptyArray()
+    } catch (error: IllegalArgumentException) {
+        arrayOf(error.message ?: "Invalid DASHBOARD configuration")
+    }

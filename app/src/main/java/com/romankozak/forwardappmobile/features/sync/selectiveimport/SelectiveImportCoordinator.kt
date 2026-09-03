@@ -4,8 +4,6 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -66,10 +64,12 @@ class SelectiveImportCoordinator @Inject constructor(
         sharedSelection: WorkspaceSelectiveImportSelection,
     ): Result<Unit> {
         val filteredSnapshotBundle =
-            syncRepository.filterSnapshotBundleForSelectiveImport(
-                bundle = snapshotBundle,
-                selection = sharedSelection.takeUnless { it.isEmpty() } ?: selection.snapshotSelection,
-            )
+            runCatching {
+                syncRepository.filterSnapshotBundleForSelectiveImport(
+                    bundle = snapshotBundle,
+                    selection = sharedSelection.takeUnless { it.isEmpty() } ?: selection.snapshotSelection,
+                )
+            }.getOrElse { error -> return Result.failure(error) }
 
         return syncRepository.importSelectedSnapshotBundle(filteredSnapshotBundle).map { Unit }
     }
@@ -81,8 +81,6 @@ class SelectiveImportCoordinator @Inject constructor(
         val selectedGoals: List<Goal>,
         val selectedLegacyNotes: List<LegacyNoteEntity>,
         val selectedActivityRecords: List<ActivityRecord>,
-        val selectedBacklogItems: List<BacklogItem>,
-        val selectedBacklogOrdersFiltered: List<BacklogOrder>,
         val selectedDocuments: List<NoteDocumentEntity>,
         val selectedChecklists: List<ChecklistEntity>,
         val filteredChecklistItems: List<ChecklistItemEntity>,
@@ -93,14 +91,13 @@ class SelectiveImportCoordinator @Inject constructor(
         val filteredScripts: List<ScriptEntity>,
         val selectedAttachments: List<AttachmentEntity>,
         val filteredCrossRefs: List<ContextAttachmentCrossRef>,
-        val filteredListItems: List<BacklogItem>,
         val snapshotSelection: WorkspaceSelectiveImportSelection,
     ) {
         companion object {
             fun from(content: SelectableDatabaseContent): PreparedSelection {
                 val rawSelection = RawSelection.from(content)
                 val projectSelection = buildProjectSelection(content, rawSelection.selectedProjects)
-                val legacySelection = buildLegacySelection(content, rawSelection, projectSelection.selectedContextIds)
+                val dependentSelection = buildDependentSelection(content, rawSelection, projectSelection.selectedContextIds)
                 val snapshotSelection = buildSnapshotSelection(rawSelection)
 
                 return PreparedSelection(
@@ -110,19 +107,16 @@ class SelectiveImportCoordinator @Inject constructor(
                     selectedGoals = rawSelection.selectedGoals,
                     selectedLegacyNotes = rawSelection.selectedLegacyNotes,
                     selectedActivityRecords = rawSelection.selectedActivityRecords,
-                    selectedBacklogItems = rawSelection.selectedBacklogItems,
-                    selectedBacklogOrdersFiltered = legacySelection.selectedBacklogOrdersFiltered,
                     selectedDocuments = rawSelection.selectedDocuments,
                     selectedChecklists = rawSelection.selectedChecklists,
-                    filteredChecklistItems = legacySelection.filteredChecklistItems,
+                    filteredChecklistItems = dependentSelection.filteredChecklistItems,
                     selectedLinkItems = rawSelection.selectedLinkItems,
                     selectedInboxRecords = rawSelection.selectedInboxRecords,
                     selectedContextLogs = rawSelection.selectedContextLogs,
                     selectedScripts = rawSelection.selectedScripts,
-                    filteredScripts = legacySelection.filteredScripts,
+                    filteredScripts = dependentSelection.filteredScripts,
                     selectedAttachments = rawSelection.selectedAttachments,
-                    filteredCrossRefs = legacySelection.filteredCrossRefs,
-                    filteredListItems = legacySelection.filteredListItems,
+                    filteredCrossRefs = dependentSelection.filteredCrossRefs,
                     snapshotSelection = snapshotSelection,
                 )
             }
@@ -150,33 +144,14 @@ class SelectiveImportCoordinator @Inject constructor(
                 )
             }
 
-            private fun buildLegacySelection(
+            private fun buildDependentSelection(
                 content: SelectableDatabaseContent,
                 rawSelection: RawSelection,
                 selectedContextIds: Set<String>,
-            ): LegacySelection {
-                val selectedGoalIds = rawSelection.selectedGoals.map { it.id }.toSet()
-                val selectedLegacyNoteIds = rawSelection.selectedLegacyNotes.map { it.id }.toSet()
-                val selectedDocumentIds = rawSelection.selectedDocuments.map { it.id }.toSet()
+            ): DependentSelection {
                 val selectedChecklistIds = rawSelection.selectedChecklists.map { it.id }.toSet()
-                val selectedScriptIds = rawSelection.selectedScripts.map { it.id }.toSet()
-                val selectedInboxRecordIds = rawSelection.selectedInboxRecords.map { it.id }.toSet()
                 val selectedAttachmentIds = rawSelection.selectedAttachments.map { it.id }.toSet()
 
-                val selectedBacklogOrdersFiltered =
-                    rawSelection.selectedBacklogOrders.filter { order ->
-                        order.listId in selectedContextIds && order.itemId in (selectedContextIds + selectedGoalIds)
-                    }
-                val filteredListItems =
-                    content.backlogItems.map { it.item }.filter { listItem ->
-                        listItem.contextId in selectedContextIds ||
-                            listItem.entityId in selectedGoalIds ||
-                            listItem.entityId in selectedLegacyNoteIds ||
-                            listItem.entityId in selectedDocumentIds ||
-                            listItem.entityId in selectedChecklistIds ||
-                            listItem.entityId in selectedScriptIds ||
-                            listItem.entityId in selectedInboxRecordIds
-                    }
                 val filteredChecklistItems =
                     content.checklistItems.map { it.item }.filter { it.checklistId in selectedChecklistIds }
                 val filteredCrossRefs =
@@ -188,9 +163,7 @@ class SelectiveImportCoordinator @Inject constructor(
                         script.contextId == null || script.contextId in selectedContextIds
                     }
 
-                return LegacySelection(
-                    selectedBacklogOrdersFiltered = selectedBacklogOrdersFiltered,
-                    filteredListItems = filteredListItems,
+                return DependentSelection(
                     filteredChecklistItems = filteredChecklistItems,
                     filteredCrossRefs = filteredCrossRefs,
                     filteredScripts = filteredScripts,
@@ -201,7 +174,8 @@ class SelectiveImportCoordinator @Inject constructor(
                 WorkspaceSelectiveImportSelection(
                     selectedContextIds = rawSelection.selectedProjects.map { it.id }.toSet(),
                     selectedGoalIds = rawSelection.selectedGoals.map { it.id }.toSet(),
-                    selectedBacklogItemIds = rawSelection.selectedBacklogItems.map { it.id }.toSet(),
+                    selectedWorkspaceBacklogEntryIds =
+                        rawSelection.selectedWorkspaceBacklogEntries.map { it.entry.id }.toSet(),
                     selectedDocumentIds = rawSelection.selectedDocuments.map { it.id }.toSet(),
                     selectedChecklistIds = rawSelection.selectedChecklists.map { it.id }.toSet(),
                     selectedLinkItemIds = rawSelection.selectedLinkItems.map { it.id }.toSet(),
@@ -246,10 +220,9 @@ class SelectiveImportCoordinator @Inject constructor(
     private data class RawSelection(
         val selectedProjects: List<Context>,
         val selectedGoals: List<Goal>,
+        val selectedWorkspaceBacklogEntries: List<CanonicalBacklogPreviewRow>,
         val selectedLegacyNotes: List<LegacyNoteEntity>,
         val selectedActivityRecords: List<ActivityRecord>,
-        val selectedBacklogItems: List<BacklogItem>,
-        val selectedBacklogOrders: List<BacklogOrder>,
         val selectedDocuments: List<NoteDocumentEntity>,
         val selectedChecklists: List<ChecklistEntity>,
         val selectedLinkItems: List<LinkItemEntity>,
@@ -263,10 +236,9 @@ class SelectiveImportCoordinator @Inject constructor(
                 RawSelection(
                     selectedProjects = content.projects.selectedItems(),
                     selectedGoals = content.goals.selectedItems(),
+                    selectedWorkspaceBacklogEntries = content.workspaceBacklogEntries.selectedItems(),
                     selectedLegacyNotes = content.legacyNotes.selectedItems(),
                     selectedActivityRecords = content.activityRecords.selectedItems(),
-                    selectedBacklogItems = content.backlogItems.selectedItems(),
-                    selectedBacklogOrders = content.backlogOrders.selectedItems(),
                     selectedDocuments = content.documents.selectedItems(),
                     selectedChecklists = content.checklists.selectedItems(),
                     selectedLinkItems = content.linkItems.selectedItems(),
@@ -284,9 +256,7 @@ class SelectiveImportCoordinator @Inject constructor(
         val selectedContextIds: Set<String>,
     )
 
-    private data class LegacySelection(
-        val selectedBacklogOrdersFiltered: List<BacklogOrder>,
-        val filteredListItems: List<BacklogItem>,
+    private data class DependentSelection(
         val filteredChecklistItems: List<ChecklistItemEntity>,
         val filteredCrossRefs: List<ContextAttachmentCrossRef>,
         val filteredScripts: List<ScriptEntity>,
@@ -299,7 +269,7 @@ private fun <T> List<SelectableDiffItem<T>>.selectedItems(): List<T> =
 private fun WorkspaceSelectiveImportSelection.isEmpty(): Boolean =
     selectedContextIds.isEmpty() &&
         selectedGoalIds.isEmpty() &&
-        selectedBacklogItemIds.isEmpty() &&
+        selectedWorkspaceBacklogEntryIds.isEmpty() &&
         selectedDocumentIds.isEmpty() &&
         selectedChecklistIds.isEmpty() &&
         selectedLinkItemIds.isEmpty() &&

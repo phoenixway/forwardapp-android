@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -68,6 +69,7 @@ private data class OptionsMenuHandlers(
     val onToggleFocusContext: () -> Unit,
     val onSetReminder: () -> Unit,
     val onDeleteList: () -> Unit,
+    val onShowDocuments: () -> Unit,
     val onDismiss: () -> Unit,
 )
 
@@ -163,6 +165,7 @@ private fun buildMenuItems(
             onToggleFocusContext = { menu.onToggleFocusContext() },
             onSetReminder = { menu.onSetReminder() },
             onDeleteList = { menu.onDeleteList() },
+            onShowDocuments = { menu.onShowDocuments() },
             onDismiss = { actions.onMenuExpandedChange(false) },
         )
 
@@ -218,6 +221,14 @@ private fun buildPrimaryMenuItems(
             icon = Icons.Default.Edit,
             onClick = {
                 handlers.onEditList()
+                handlers.onDismiss()
+            },
+        ),
+        MenuItem(
+            text = "Documents",
+            icon = Icons.Outlined.Description,
+            onClick = {
+                handlers.onShowDocuments()
                 handlers.onDismiss()
             },
         ),

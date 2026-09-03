@@ -47,7 +47,5 @@ enum class SharedContextView(
     Dashboard("Dashboard"),
     Direction("Direction"),
     Log("Log"),
-    JournalLog("Journal Log"),
-    Artifact("Artifact"),
     KeyProblems("Key Problems"),
 }

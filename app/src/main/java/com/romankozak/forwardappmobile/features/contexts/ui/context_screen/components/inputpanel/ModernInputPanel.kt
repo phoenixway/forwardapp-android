@@ -66,7 +66,6 @@ fun ModernInputPanel(
     experimentalCapabilityIds: List<CapabilityId> = emptyList(),
     enableInbox: Boolean,
     enableLog: Boolean,
-    enableArtifact: Boolean,
     enableBacklog: Boolean,
     enableDashboard: Boolean,
     enableAttachments: Boolean,
@@ -75,6 +74,7 @@ fun ModernInputPanel(
     onCloseSearch: () -> Unit,
     onAddMilestone: (String) -> Unit,
     onShowDisplayPropertiesClick: () -> Unit,
+    onShowDocuments: () -> Unit,
     capabilityViewActions: List<CapabilityViewActionDescriptor>,
     onCapabilityViewActionClick: (String) -> Unit,
     enabledCapabilitiesOverride: Set<CapabilityId>? = null,
@@ -86,7 +86,6 @@ fun ModernInputPanel(
         remember(
             enableInbox,
             enableLog,
-            enableArtifact,
             enableBacklog,
             enableDashboard,
             enableAttachments,
@@ -98,7 +97,6 @@ fun ModernInputPanel(
                 // 1. Додаємо старі прапорці (Legacy/UI)
                 if (enableInbox) add(CapabilityId("inbox"))
                 if (enableLog) add(CapabilityId("log"))
-                if (enableArtifact) add(CapabilityId("artifact"))
                 if (enableBacklog) add(CapabilityId("backlog"))
                 if (enableDashboard) add(CapabilityId("dashboard"))
                 if (enableAttachments) add(CapabilityId("connections"))
@@ -163,6 +161,7 @@ fun ModernInputPanel(
                     onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
                     onAddMilestone = onAddMilestone,
                     onToggleFocusContext = onToggleFocusContext,
+                    onShowDocuments = onShowDocuments,
                 ),
         )
 
@@ -236,7 +235,6 @@ private fun defaultInputModeForView(view: ContextViewMode): InputMode =
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.LOG -> InputMode.AddProjectLog
-        ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -261,7 +259,6 @@ private fun supportsLocalSearchForView(view: ContextViewMode): Boolean =
         ContextViewMode.CONNECTIONS,
         ContextViewMode.DIRECTION,
         ContextViewMode.LOG,
-        ContextViewMode.JOURNAL_LOG,
         ContextViewMode.KEY_PROBLEMS,
         -> true
         else -> false

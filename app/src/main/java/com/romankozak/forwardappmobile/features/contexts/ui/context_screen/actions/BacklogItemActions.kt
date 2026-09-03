@@ -69,11 +69,6 @@ class BacklogItemActions(
                 "Документ видалено"
             }
 
-            is BacklogItemContent.JournalDocumentItem -> {
-                repositories.noteDocumentRepository.deleteDocument(item.document.id)
-                "Журнал видалено"
-            }
-
             is BacklogItemContent.MusicNoteItem -> {
                 repositories.musicNoteRepository.delete(item.musicNote.id)
                 "Ноти видалено"

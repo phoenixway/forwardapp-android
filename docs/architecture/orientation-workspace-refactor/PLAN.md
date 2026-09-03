@@ -15,11 +15,12 @@ Accepted capability simplification as of 2026-08-30:
 
 - canonical `KEY_PROBLEMS` v1 omits the semantically unspecified `dateTime`;
   populated legacy values block cutover pending an explicit lossless mapping;
-- `ARTIFACT` is retired rather than canonicalized; existing text migrates to
-  ordinary connected notes/documents;
-- context `JOURNAL` / `journal_log` is retired rather than normalized; its
-  existing `NoteDocument` content remains as ordinary reachable document data;
-- neither retirement refers to Life Journal or EXECUTION_LOG.
+- `ARTIFACT` is retired rather than canonicalized; schema 165 removes its
+  legacy data and compatibility surfaces rather than preserving them;
+- context `JOURNAL` / `journal_log` and `JOURNAL_DOCUMENT` are retired and
+  hard-removed at schema 165 rather than normalized or preserved;
+- neither retirement refers to Life Journal, `DayManagementTab.JOURNAL`,
+  Strategic Arc's ordinary-document Artifact panel, or EXECUTION_LOG.
 
 Accepted capability implementation shape:
 
@@ -703,7 +704,7 @@ Every row must be verified before final cutover.
 | Aspects | identity, hierarchy, multi-membership, primary presentation, Workspace, filtering, reflection |
 | Workspace hierarchy | parent hierarchy, secondary appearances, ordering, focus and breadcrumbs |
 | Workspace operations | create, rename, move, copy, cut, paste, delete, restore, search |
-| Capabilities | backlog, inbox, direction, problems, execution log, dashboard, connections, notes, documents, attachments; retire Artifact/context Journal wrappers only after their text remains reachable |
+| Capabilities | backlog, inbox, direction, problems, execution log, dashboard, connections, notes, documents, attachments; Artifact/context Journal are hard-retired at schema 165 with no compatibility or payload-preservation requirement |
 | Roles/configuration | presets, roleCode, capability enablement, default views |
 | Main Beacons | hierarchy, readiness, blocker, next action, meaning tests, levels, attachments |
 | Beacon Groups | own assessment, membership, member order, editor behavior |

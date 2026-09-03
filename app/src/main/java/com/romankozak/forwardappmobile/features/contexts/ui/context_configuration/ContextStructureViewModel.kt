@@ -29,7 +29,6 @@ data class ProjectStructureUiState(
         mapOf(
             "Inbox" to true,
             "Log" to true,
-            "Artifact" to false,
             "Dashboard" to true,
             "Backlog" to true,
             "Connections" to true,
@@ -81,7 +80,6 @@ class ProjectStructureViewModel
                             mapOf(
                                 "Inbox" to (structure.structure.enableInbox ?: _uiState.value.featureFlags["Inbox"] ?: true),
                                 "Log" to executionLogEnabled,
-                                "Artifact" to (structure.structure.enableArtifact ?: _uiState.value.featureFlags["Artifact"] ?: false),
                                 "Dashboard" to dashboardEnabled,
                                 "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
                                 "Connections" to
@@ -202,7 +200,6 @@ class ProjectStructureViewModel
                 contextStructureRepository.updateStructure(
                     structure.copy(
                         enableInbox = updatedFlags["Inbox"],
-                        enableArtifact = updatedFlags["Artifact"],
                         enableAdvanced = false,
                         enableBacklog = updatedFlags["Backlog"],
                         enableAttachments = updatedFlags["Connections"] ?: updatedFlags["Attachments"],

@@ -162,8 +162,6 @@ private fun SharedContextView.toAndroidViewModeName(): String =
         SharedContextView.Dashboard -> "DASHBOARD"
         SharedContextView.Direction -> "DIRECTION"
         SharedContextView.Log -> "LOG"
-        SharedContextView.JournalLog -> "JOURNAL_LOG"
-        SharedContextView.Artifact -> "ARTIFACT"
         SharedContextView.KeyProblems -> "KEY_PROBLEMS"
     }
 

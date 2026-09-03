@@ -77,7 +77,6 @@ fun TacticalScopeLinksSheet(
                         type =
                             when (option?.attachmentType) {
                                 "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                "JOURNAL_DOCUMENT" -> ConnectionType.JOURNAL_DOCUMENT
                                 "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
                                 "CHECKLIST" -> ConnectionType.CHECKLIST
                                 "SCRIPT" -> ConnectionType.SCRIPT

@@ -1,9 +1,9 @@
 # CONNECTIONS capability audit
 
-Status: CURRENT / ANDROID HARD CUTOVER VERIFIED AT SCHEMA 159
+Status: CURRENT / VERIFIED for Android schema 159 and Desktop canonical convergence
 
-This document records the focused CONNECTIONS ownership analysis and the
-Android hard cutover. It does not authorize UI changes or Desktop parity work.
+This document records the focused CONNECTIONS ownership analysis, Android hard
+cutover, and Desktop convergence through the existing UI.
 
 ## Current ownership
 
@@ -96,9 +96,38 @@ tombstones live owned placements without deleting the referenced Attachment.
 Selective import intentionally omits canonical Connections until
 Workspace-aware selection exists.
 
+## Desktop convergence
+
+For a proven Context-backed Workspace with one live ACTIVE CONNECTIONS
+capability, Desktop reads explicit linked placement/order from
+`workspaceConnections` and writes through capability-specific canonical
+link/unlink/reorder commands. Placement identity uses the shared deterministic
+`(capabilityInstanceId, attachmentId)` contract. Owner, capability, Attachment
+target, and `createdAt` are immutable.
+
+Attachment content remains independently owned and continues through its
+existing Context transport. A newly created Attachment and its dependent
+WorkspaceConnection travel in one SnapshotBundle; Android inserts Attachments
+before canonical Connection validation/merge. Unlink tombstones only the
+placement and does not delete Attachment or referenced content. Directly owned
+Attachments remain independently visible.
+
+Desktop's dedicated peer stream selects exact pending placement versions,
+reconciles Android before emission, requires post-import export confirmation,
+adopts stronger Android winners, protects newer local pending versions, and
+does not echo Android-only shadow state. Legacy `contextAttachmentCrossRefs` and
+`projectAttachmentCrossRefs` remain local/file compatibility only and have no
+live Android push or ACK authority.
+
+Strategic Arc `sys_strategic` refs remain on their explicit local/file legacy
+boundary. They are not reinterpreted as canonical CONNECTIONS. Workspace-aware
+canonical CONNECTIONS selective import remains deferred.
+
 Targeted host verification is green for
 `Migration158To159ConnectionsCutoverRoomAcceptanceTest`,
 `CanonicalConnectionsRepositoryRoomTest`,
 `CanonicalWorkspaceConnectionSyncStoreRoomTest`,
 `ConnectionsCanonicalDeltaTest`, and the migration chain regressions through
-schema 159.
+schema 159, plus the focused Desktop command, projection, validation,
+peer-reconciliation, dependency-closure, production-hook, and legacy-retirement
+suites.

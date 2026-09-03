@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -26,8 +24,10 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImport
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 
 data class SelectiveImportState(
     val isLoading: Boolean = true,
@@ -44,10 +44,9 @@ data class SelectiveImportState(
 data class SelectableDatabaseContent(
     val projects: List<SelectableDiffItem<Context>> = emptyList(),
     val goals: List<SelectableDiffItem<Goal>> = emptyList(),
+    val workspaceBacklogEntries: List<SelectableDiffItem<CanonicalBacklogPreviewRow>> = emptyList(),
     val legacyNotes: List<SelectableDiffItem<LegacyNoteEntity>> = emptyList(),
     val activityRecords: List<SelectableDiffItem<ActivityRecord>> = emptyList(),
-    val backlogItems: List<SelectableDiffItem<BacklogItem>> = emptyList(),
-    val backlogOrders: List<SelectableDiffItem<BacklogOrder>> = emptyList(),
     val documents: List<SelectableDiffItem<NoteDocumentEntity>> = emptyList(),
     val checklists: List<SelectableDiffItem<ChecklistEntity>> = emptyList(),
     val checklistItems: List<SelectableDiffItem<ChecklistItemEntity>> = emptyList(), // Dependent, not directly selectable
@@ -59,6 +58,12 @@ data class SelectableDatabaseContent(
     val allContextAttachmentCrossRefs: List<ContextAttachmentCrossRef> = emptyList(), // Dependent, not directly selectable
 )
 
+data class CanonicalBacklogPreviewRow(
+    val entry: WorkspaceBacklogEntrySnapshot,
+    val title: String,
+    val subtitle: String,
+)
+
 data class SelectableDiffItem<T>(
     val item: T,
     val status: DiffStatus,
@@ -67,7 +72,7 @@ data class SelectableDiffItem<T>(
     val changeInfo: String? = null,
 )
 
-fun BackupDiff.toSelectable(): SelectableDatabaseContent {
+fun BackupDiff.toSelectable(source: SnapshotBundle): SelectableDatabaseContent {
     fun <T, R> mapDiff(
         diff: DiffResult<T>,
         toEntity: (T) -> R,
@@ -94,25 +99,11 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         return newItems + updatedItems + deletedItems
     }
 
-    fun mapListItemDiff(diff: DiffResult<BacklogItemSnapshot>): List<SelectableDiffItem<BacklogItem>> {
-        return mapDiff(diff, { it.toEntity() }) { updated ->
-            val oldOrder = updated.local.order
-            val newOrder = updated.incoming.order
-            val orderChanged = oldOrder != newOrder
-            val onlyOrderChanged = updated.local.copy(order = newOrder) == updated.incoming
-            when {
-                orderChanged && onlyOrderChanged -> "Порядок: $oldOrder → $newOrder"
-                orderChanged -> "Порядок: $oldOrder → $newOrder, інші зміни"
-                else -> null
-            }
-        }
-    }
-
     return SelectableDatabaseContent(
         projects = mapDiff(this.projects, { it.toEntity() }),
         goals = mapDiff(this.goals, { it.toEntity() }),
+        workspaceBacklogEntries = source.toSelectableCanonicalBacklog(),
         activityRecords = mapDiff(this.activityRecords, { it.toEntity() }),
-        backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents, { it.toEntity() }),
         checklists = mapDiff(this.checklists, { it.toEntity() }),
         checklistItems = mapDiff(this.checklistItems, { it.toEntity() }),
@@ -121,10 +112,71 @@ fun BackupDiff.toSelectable(): SelectableDatabaseContent {
         contextLogs = mapDiff(this.contextLogs, { it.toEntity() }),
         scripts = mapDiff(this.scripts, { it.toEntity() }),
         attachments = mapDiff(this.attachments, { it.toEntity() }),
-        backlogOrders = mapDiff(this.backlogOrders, { it.toEntity() }),
         allContextAttachmentCrossRefs =
             this.contextAttachmentCrossRefs.added.map {
                 it.toEntity()
             } + this.contextAttachmentCrossRefs.updated.map { it.incoming.toEntity() },
     )
 }
+
+internal fun SnapshotBundle.toSelectableCanonicalBacklog(): List<SelectableDiffItem<CanonicalBacklogPreviewRow>> {
+    val entries = workspaceBacklogEntries ?: return emptyList()
+    val workspacesById = workspaces.orEmpty().associateBy { it.id }
+    val capabilitiesById = workspaceCapabilityInstances.orEmpty().associateBy { it.id }
+    val contextsById = contexts.associateBy { it.id }
+
+    return entries.map { entry ->
+        val workspace = workspacesById[entry.workspaceId]
+        val capability = capabilitiesById[entry.capabilityInstanceId]
+        val ownerViolation =
+            when {
+                workspace == null -> "Missing owner Workspace ${entry.workspaceId}"
+                capability == null -> "Missing BACKLOG capability ${entry.capabilityInstanceId}"
+                capability.workspaceId != entry.workspaceId -> "BACKLOG capability belongs to another Workspace"
+                capability.capabilityType != WorkspaceCapabilityType.BACKLOG.name -> "Capability is not BACKLOG"
+                !entry.isDeleted && workspace.isDeleted -> "Live placement belongs to a deleted Workspace"
+                else -> null
+            }
+        val workspaceTitle =
+            workspace?.nameOverride?.takeIf { it.isNotBlank() }
+                ?: workspace?.sourceContextId?.let { contextsById[it]?.name }
+                ?: entry.workspaceId
+        val targetKind = runCatching { WorkspaceBacklogTargetKind.valueOf(entry.targetKind) }.getOrNull()
+        val targetTitle = resolveCanonicalBacklogTargetTitle(entry, targetKind)
+
+        SelectableDiffItem(
+            item =
+                CanonicalBacklogPreviewRow(
+                    entry = entry,
+                    title = targetTitle,
+                    subtitle = "$workspaceTitle · ${entry.targetKind}",
+                ),
+            status = if (entry.isDeleted) DiffStatus.DELETED else DiffStatus.NEW,
+            isSelected = ownerViolation == null,
+            isSelectable = ownerViolation == null,
+            changeInfo = ownerViolation,
+        )
+    }
+}
+
+private fun SnapshotBundle.resolveCanonicalBacklogTargetTitle(
+    entry: WorkspaceBacklogEntrySnapshot,
+    kind: WorkspaceBacklogTargetKind?,
+): String =
+    when (kind) {
+        WorkspaceBacklogTargetKind.ORIENTATION ->
+            managedSubjects.orEmpty().firstOrNull { it.id == entry.targetId }?.title
+        WorkspaceBacklogTargetKind.WORKSPACE ->
+            workspaces.orEmpty().firstOrNull { it.id == entry.targetId }?.let { workspace ->
+                workspace.nameOverride
+                    ?: workspace.sourceContextId?.let { contextId -> contexts.firstOrNull { it.id == contextId }?.name }
+            }
+        WorkspaceBacklogTargetKind.LINK_ITEM ->
+            linkItemEntities.firstOrNull { it.id == entry.targetId }?.linkData?.let { it.displayName ?: it.target }
+        WorkspaceBacklogTargetKind.LEGACY_NOTE -> notes.firstOrNull { it.id == entry.targetId }?.title
+        WorkspaceBacklogTargetKind.NOTE_DOCUMENT,
+        -> documents.firstOrNull { it.id == entry.targetId }?.name
+        WorkspaceBacklogTargetKind.CHECKLIST -> checklists.firstOrNull { it.id == entry.targetId }?.name
+        WorkspaceBacklogTargetKind.MUSIC_NOTE -> musicNotes.firstOrNull { it.id == entry.targetId }?.name
+        null -> null
+    }?.takeIf { it.isNotBlank() } ?: "${entry.targetKind} · ${entry.targetId}"

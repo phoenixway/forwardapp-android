@@ -48,6 +48,8 @@ dependencies {
     implementation(project(":core-data-interfaces"))
     implementation(project(":core-data-models"))
     implementation(project(":shared-contracts"))
+    implementation(project(":shared-core-data-models"))
+    implementation(project(":shared-core-domain"))
     implementation(project(":shared-domain"))
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)

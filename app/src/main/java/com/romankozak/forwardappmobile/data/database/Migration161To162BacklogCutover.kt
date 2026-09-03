@@ -529,12 +529,6 @@ private fun buildTargetStates161(
                 target.first,
             ),
         ] = BacklogTargetState(target.second)
-        result[
-            WorkspaceBacklogTargetRef(
-                WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT,
-                target.first,
-            ),
-        ] = BacklogTargetState(target.second)
     }
 
     loadTypedTargets161(

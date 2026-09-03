@@ -20,7 +20,6 @@ private fun fallbackInputMode(currentViewMode: ContextViewMode): InputMode =
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.LOG -> InputMode.AddProjectLog
-        ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -31,7 +30,6 @@ private fun defaultInputMode(currentViewMode: ContextViewMode): InputMode =
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.LOG -> InputMode.AddProjectLog
-        ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -43,7 +41,6 @@ private fun allowedInputModes(currentViewMode: ContextViewMode): Set<InputMode> 
         ContextViewMode.CONNECTIONS -> setOf(InputMode.AddConnectionNote, InputMode.SearchInList)
         ContextViewMode.DIRECTION -> setOf(InputMode.AddDirection, InputMode.SearchInList)
         ContextViewMode.INBOX -> setOf(InputMode.AddQuickRecord, InputMode.SearchInList)
-        ContextViewMode.JOURNAL_LOG -> setOf(InputMode.AddJournalLogEntry, InputMode.SearchInList)
         ContextViewMode.KEY_PROBLEMS -> setOf(InputMode.AddIssue, InputMode.SearchInList)
         else -> setOf(InputMode.AddGoal)
     }
@@ -59,7 +56,6 @@ class ContextDataApplyActions(
     private data class CapabilityState(
         val enableInbox: Boolean,
         val enableLog: Boolean,
-        val enableArtifact: Boolean,
         val enableBacklog: Boolean,
         val enableDashboard: Boolean,
         val enableAttachments: Boolean,
@@ -110,7 +106,6 @@ class ContextDataApplyActions(
             config.applyMode,
             config.enableInbox.toString(),
             config.enableLog.toString(),
-            config.enableArtifact.toString(),
             config.enableAdvanced.toString(),
             config.enableDashboard.toString(),
             config.enableBacklog.toString(),
@@ -167,7 +162,6 @@ class ContextDataApplyActions(
         CapabilityState(
             enableInbox = enabledCapabilities.contains(CapabilityId("inbox")),
             enableLog = enabledCapabilities.contains(CapabilityId("log")),
-            enableArtifact = enabledCapabilities.contains(CapabilityId("artifact")),
             enableBacklog = enabledCapabilities.contains(CapabilityId("backlog")),
             enableDashboard = enabledCapabilities.contains(CapabilityId("dashboard")),
             enableAttachments = enabledCapabilities.contains(CapabilityId("connections")),
@@ -207,7 +201,6 @@ class ContextDataApplyActions(
             copy(
                 enableInbox = capabilityState.enableInbox,
                 enableLog = capabilityState.enableLog,
-                enableArtifact = capabilityState.enableArtifact,
                 enableBacklog = capabilityState.enableBacklog,
                 enableDashboard = capabilityState.enableDashboard,
                 enableAttachments = capabilityState.enableAttachments,
@@ -227,7 +220,6 @@ class ContextDataApplyActions(
     ): Boolean =
         enableInbox == capabilityState.enableInbox &&
             enableLog == capabilityState.enableLog &&
-            enableArtifact == capabilityState.enableArtifact &&
             enableBacklog == capabilityState.enableBacklog &&
             enableDashboard == capabilityState.enableDashboard &&
             enableAttachments == capabilityState.enableAttachments &&

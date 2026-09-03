@@ -33,7 +33,6 @@ object NavigationRoutes {
     const val GOAL_SETTINGS = "goal_settings_screen"
     const val SYNC = "sync_screen"
     const val NOTE_DOCUMENT = "note_document_screen"
-    const val JOURNAL_DOCUMENT = "journal_document_screen"
     const val NOTE_DOCUMENT_CREATE = "note_document_create_screen"
     const val NOTE_DOCUMENT_EDIT = "note_document_edit_screen"
     const val SCRIPT_EDITOR = "script_editor_screen"
@@ -100,11 +99,6 @@ object NavigationRoutes {
         id: String,
         startEdit: Boolean,
     ): String = "$NOTE_DOCUMENT/$id" + if (startEdit) "?startEdit=true" else ""
-
-    fun journalDocument(
-        id: String,
-        startEdit: Boolean,
-    ): String = "$JOURNAL_DOCUMENT/$id" + if (startEdit) "?startEdit=true" else ""
 
     fun noteDocumentEdit(
         projectId: String? = null,

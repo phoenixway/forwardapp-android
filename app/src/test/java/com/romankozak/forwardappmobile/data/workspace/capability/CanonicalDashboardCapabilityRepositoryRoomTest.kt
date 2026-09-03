@@ -23,7 +23,7 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `kernel rejects retired capability activation`() = runBlocking {
+    fun `kernel rejects reserved capability activation`() = runBlocking {
         val database = database()
         try {
             val workspaceId = "canonical"
@@ -34,7 +34,7 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
                     instanceStore(database).enable(
                         spec =
                             CanonicalCapabilityInstanceSpec(
-                                type = WorkspaceCapabilityType.ARTIFACT,
+                                type = WorkspaceCapabilityType.DOCUMENTS,
                                 configurationCodec = DashboardCapabilityConfigurationCodec,
                             ),
                         workspaceId = workspaceId,

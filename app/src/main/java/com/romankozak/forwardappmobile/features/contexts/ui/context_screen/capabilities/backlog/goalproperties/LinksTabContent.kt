@@ -152,7 +152,6 @@ private fun getIconForLinkType(type: LinkType?): ImageVector {
     return when (type) {
         LinkType.CONTEXT -> Icons.Default.AccountTree
         LinkType.NOTE_DOCUMENT -> Icons.Default.Description
-        LinkType.JOURNAL_DOCUMENT -> Icons.Default.Description
         LinkType.CHECKLIST -> Icons.Default.Checklist
         LinkType.MUSIC_NOTE -> Icons.Default.MusicNote
         LinkType.URL -> Icons.Default.Language

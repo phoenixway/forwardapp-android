@@ -47,7 +47,6 @@ class ContextCapabilitiesResolver {
         // - explicit overrides in config still win.
         addIfEnabled(roleCapabilities, "inbox", config.enableInbox)
         addIfEnabled(roleCapabilities, "log", config.enableLog)
-        addIfEnabled(roleCapabilities, "artifact", config.enableArtifact)
         addIfEnabled(
             roleCapabilities = roleCapabilities,
             capabilityRaw = "dashboard",
@@ -86,8 +85,7 @@ class ContextCapabilitiesResolver {
                 config.enableDashboard != null ||
                 config.enableBacklog != null ||
                 config.enableAttachments != null ||
-                config.enableAdvanced != null ||
-                config.enableArtifact != null
+                config.enableAdvanced != null
         val hasExperimentalOverrides = config.experimentalCapabilityIds.isNotEmpty()
         return !hasPreset && !hasLegacyOverrides && !hasExperimentalOverrides
     }
@@ -118,7 +116,6 @@ class ContextCapabilitiesResolver {
             setOf(
                 "inbox",
                 "log",
-                "artifact",
                 "dashboard",
                 "backlog",
                 "attachments",

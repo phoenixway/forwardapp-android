@@ -21,7 +21,6 @@ import com.romankozak.forwardappmobile.core.navigation.capability.actions.Capabi
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
-import com.romankozak.forwardappmobile.data.repository.ContextArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -127,7 +126,6 @@ class ContextScreenViewModelNavigationTest {
                 noteRepository = noteRepository,
                 inboxRepository = mockk<InboxRepository>(relaxed = true),
                 contextStructureRepository = contextStructureRepository,
-                contextArtifactRepository = mockk<ContextArtifactRepository>(relaxed = true),
                 contextKeyProblemsRepository = contextKeyProblemsRepository,
                 focusContextRepository = focusContextRepository,
                 contextTimeTrackingRepository = mockk<ContextTimeTrackingRepository>(relaxed = true),
@@ -161,7 +159,6 @@ class ContextScreenViewModelNavigationTest {
             enableBacklog = true,
             enableInbox = false,
             enableLog = false,
-            enableArtifact = false,
             enableDashboard = false,
             enableAttachments = false,
             enableAdvanced = false,

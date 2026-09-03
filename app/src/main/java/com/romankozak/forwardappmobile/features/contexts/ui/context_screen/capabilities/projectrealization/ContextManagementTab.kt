@@ -12,7 +12,6 @@ enum class ContextManagementTab(
     val icon: ImageVector,
 ) {
     Dashboard("Дашборд", Icons.Default.Dashboard),
-    Artifact("Артефакт", Icons.Default.Description),
     Log("Історія", Icons.Default.History),
     Insights("Інсайти", Icons.Default.Lightbulb),
 }

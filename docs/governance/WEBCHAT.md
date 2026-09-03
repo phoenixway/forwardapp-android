@@ -257,3 +257,213 @@ For authoritative project state and documentation rules, follow:
 
 Chat history is working context, not the repository source of truth.
 
+
+## Execution Routing
+
+ChatGPT is the implementation orchestrator and chooses both the execution topology and, when work is delegated, the model strength for each next repository step.
+
+Routing is a two-stage decision:
+
+1. choose the execution topology:
+   - `WEBCHAT_BRIDGE`, or
+   - delegated execution;
+2. if delegated, choose:
+   - `WEAK_MODEL`,
+   - `MEDIUM_MODEL`, or
+   - `STRONG_MODEL`.
+
+Do not treat `WEBCHAT_BRIDGE` as merely another model-strength tier. It is an interactive execution topology with a shorter feedback loop.
+
+### Stage 1: Execution topology
+
+#### WEBCHAT_BRIDGE
+
+ChatGPT performs focused repository investigation or implementation directly through the AI CLI Bridge and interprets each result before deciding the next step.
+
+Prefer `WEBCHAT_BRIDGE` when the next correct action depends materially on repository evidence not yet inspected.
+
+Typical signals:
+
+* root cause is unresolved;
+* ownership or the canonical representation is unclear;
+* multiple plausible architectural hypotheses remain;
+* the next useful inspection depends on the result of the current one;
+* the task naturally requires an inspect -> interpret -> refine loop;
+* code, canonical docs, and runtime behavior must be reconciled before changing anything;
+* a small patch could encode a large architectural decision;
+* legacy, current, compatibility-only, dead, or proposed behavior must first be classified;
+* there is meaningful risk that autonomous implementation would produce a locally-correct adapter, compatibility layer, duplicate authority, or workaround instead of fixing the root cause;
+* tight scope control is more valuable than autonomous throughput;
+* a short evidence -> patch -> verification loop is more efficient than delegation.
+
+`WEBCHAT_BRIDGE` is especially appropriate when the **branching factor is high** and the **safe autonomy horizon is short**.
+
+Definitions:
+
+* **branching factor** — how many materially different next actions may become correct depending on the evidence found now;
+* **safe autonomy horizon** — how many repository steps can be performed safely before new evidence should be interpreted and the plan reconsidered.
+
+`WEBCHAT_BRIDGE` may also be used for a small, well-understood implementation when direct execution and verification is cheaper than preparing a delegation prompt.
+
+#### DELEGATED EXECUTION
+
+Prefer delegation when the execution path is already sufficiently specified for a coding model to work autonomously.
+
+Typical signals:
+
+* root cause and ownership are known;
+* the desired contract is explicit;
+* `IMPLEMENT` and `DO NOT` boundaries can be stated clearly;
+* several files, tests, fixtures, or repetitive edits are required;
+* intermediate implementation details are unlikely to change the architecture;
+* verification and exit criteria can be specified before execution;
+* the coding model can safely perform many sequential steps without requiring a new architectural decision.
+
+Delegated execution is especially appropriate when the **branching factor is low** and the **safe autonomy horizon is long**.
+
+Do not route primarily by task size.
+
+A large deterministic change may be ideal for delegation.
+A three-line change with uncertain ownership may require `WEBCHAT_BRIDGE`.
+
+### Hybrid routing
+
+Prefer:
+
+`WEBCHAT_BRIDGE -> delegated model`
+
+when investigation is required before implementation.
+
+Prefer:
+
+`delegated model -> WEBCHAT_BRIDGE -> delegated model`
+
+when delegated work exposes unresolved architectural uncertainty and focused repository investigation can resolve it.
+
+Typical reasons to return from delegation to `WEBCHAT_BRIDGE`:
+
+* the delegated model cannot establish root cause;
+* ownership or canonical direction remains unclear;
+* evidence contradicts the known contract;
+* the model proposes a new abstraction, adapter, migration path, compatibility mechanism, protocol, or source of truth that was not already justified;
+* the model repeatedly audits instead of implementing because a missing architectural fact blocks safe execution.
+
+Once the uncertainty is resolved, delegate the now-deterministic implementation rather than keeping complex mechanical work in the Bridge unnecessarily.
+
+### Stage 2: Delegated model strength
+
+After choosing delegated execution, select the lowest-cost model likely to complete the work reliably.
+
+#### STRONG_MODEL
+
+Delegate to the strongest available coding/reasoning model.
+
+Use when:
+
+* architecture or ownership boundaries are known only at a high level and substantial reasoning is still required inside the implementation;
+* several canonical representations or dependency graphs must be reconciled;
+* the change crosses layers, modules, platforms, or persistence boundaries;
+* persistence, sync, migrations, transactions, identity, freshness, dependency closure, or protocol semantics are involved;
+* finding or preserving the correct abstraction or seam remains an important part of implementation;
+* a medium model has reached a concrete reasoning limit after the surrounding contract has already been established.
+
+Do not use `STRONG_MODEL` merely because root cause is completely unknown if an interactive Bridge investigation would reduce uncertainty more efficiently first.
+
+#### MEDIUM_MODEL
+
+Delegate to the medium coding model.
+
+Use when:
+
+* architecture and ownership contracts are already known;
+* implementation is scoped but non-trivial;
+* several production files and tests may change;
+* normal debugging or feature work is required;
+* reasoning is needed but architectural invention is not.
+
+#### WEAK_MODEL
+
+Delegate to the cheapest or fastest coding model.
+
+Use when:
+
+* the change is mechanical and explicitly specified;
+* renames, documentation, fixtures, repetitive tests, generated plumbing, or straightforward edits are needed;
+* expected behavior and affected locations are already known;
+* little architectural judgment is required.
+
+### Delegated model escalation
+
+Escalate `WEAK_MODEL -> MEDIUM_MODEL` when:
+
+* the first attempt fails;
+* requirements become materially ambiguous;
+* unexpected production behavior appears;
+* the task stops being mechanical.
+
+Escalate `MEDIUM_MODEL -> STRONG_MODEL` when:
+
+* the known architecture still requires substantial cross-layer reasoning during implementation;
+* several canonical contracts must be composed correctly;
+* implementation exposes a difficult but bounded identity, freshness, transaction, sync, or dependency problem;
+* the model reaches a concrete reasoning blocker that does not require reopening the surrounding architecture.
+
+Return to `WEBCHAT_BRIDGE` instead of escalating blindly when:
+
+* root cause itself becomes uncertain;
+* ownership or canonical direction is no longer established;
+* new repository evidence is required to choose between materially different designs;
+* the model proposes architectural invention that is not justified by the accepted contract.
+
+After a difficult architectural step succeeds, actively downgrade to `MEDIUM_MODEL` or `WEAK_MODEL` for deterministic follow-up work.
+
+### Routing heuristic
+
+Before each repository step, ask in this order:
+
+1. **Do we know enough to specify the execution path?**
+   - no -> prefer `WEBCHAT_BRIDGE`;
+   - yes -> delegation is eligible.
+
+2. **How long can execution proceed safely before new evidence needs interpretation?**
+   - short -> prefer `WEBCHAT_BRIDGE`;
+   - long -> prefer delegation.
+
+3. **If delegated, how much reasoning remains inside the known contract?**
+   - little/mechanical -> `WEAK_MODEL`;
+   - normal scoped reasoning -> `MEDIUM_MODEL`;
+   - substantial bounded cross-layer reasoning -> `STRONG_MODEL`.
+
+The router should optimize for total reliable progress, not for minimizing the number of mode switches.
+
+### Delegation prompt contract
+
+Whenever ChatGPT delegates repository work, the prompt should state:
+
+* `EXECUTION MODE`: `STRONG_MODEL`, `MEDIUM_MODEL`, or `WEAK_MODEL`;
+* `GOAL`: one concrete goal;
+* `WHY THIS MODE`: brief reason for the selected execution level;
+* `KNOWN CONTRACT`: confirmed repository facts and constraints;
+* `IMPLEMENT`: required work;
+* `DO NOT`: important boundaries;
+* `VERIFY`: tests and checks;
+* `EXIT CRITERIA`: binary definition of success;
+* `ESCALATE IF`: conditions under which the model should return the exact blocker instead of improvising architecture.
+
+The coding model should not choose a different architecture merely because the task is difficult.
+
+If the requested contract cannot be implemented safely, it should return the exact blocker and supporting repository evidence.
+
+### Review loop
+
+Every delegated result returns to ChatGPT.
+
+ChatGPT then:
+
+1. evaluates repository evidence and verification results;
+2. determines whether the task is actually closed;
+3. reassesses execution topology based on remaining uncertainty;
+4. if delegation remains appropriate, chooses the lowest sufficient model strength;
+5. otherwise performs the next focused step through the AI CLI Bridge.
+
+A coding model's reported green status is evidence, not authority. Repository state and verification remain authoritative.

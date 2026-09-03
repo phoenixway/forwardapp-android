@@ -6,6 +6,22 @@ import kotlin.test.assertFailsWith
 
 class DashboardCapabilityContractTest {
     @Test
+    fun `wire validator preserves dashboard configuration contract`() {
+        assertEquals(
+            emptyList(),
+            validateDashboardCapabilityConfigurationWire(1, "{}").toList(),
+        )
+        assertEquals(
+            listOf("Unsupported DASHBOARD configuration version: 2"),
+            validateDashboardCapabilityConfigurationWire(2, "{}").toList(),
+        )
+        assertEquals(
+            listOf("Invalid DASHBOARD configuration v1"),
+            validateDashboardCapabilityConfigurationWire(1, "{\"unexpected\":true}").toList(),
+        )
+    }
+
+    @Test
     fun `v1 codec round-trips canonical empty configuration`() {
         val encoded = DashboardCapabilityConfigurationCodec.encode()
 

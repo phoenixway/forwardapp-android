@@ -246,7 +246,7 @@ abstract class AttachmentDao {
             linked_ctx.name AS contextName,
             linked_ctx.updatedAt AS contextUpdatedAt
         FROM attachments AS a
-        LEFT JOIN note_documents AS n ON a.attachment_type IN ('NOTE_DOCUMENT', 'JOURNAL_DOCUMENT') AND a.entity_id = n.id
+        LEFT JOIN note_documents AS n ON a.attachment_type = 'NOTE_DOCUMENT' AND a.entity_id = n.id
         LEFT JOIN music_notes AS mn ON a.attachment_type = 'MUSIC_NOTE' AND a.entity_id = mn.id
         LEFT JOIN checklists AS c ON a.attachment_type = 'CHECKLIST' AND a.entity_id = c.id
         LEFT JOIN link_items AS l ON a.attachment_type = 'LINK_ITEM' AND a.entity_id = l.id

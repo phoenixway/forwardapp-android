@@ -1,7 +1,10 @@
+@file:OptIn(kotlin.js.ExperimentalJsExport::class)
+
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
 
 import com.romankozak.forwardappmobile.shared.core.domain.inbox.inboxOwnerVisible
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceInboxRecord
+import kotlin.js.JsExport
 
 enum class InboxOwnerVisibility {
     KEEP_VISIBLE,
@@ -52,6 +55,33 @@ fun inboxOwnerVisible(
 ): Boolean =
     inboxOwnerVisible(
         removeAfterTagAutocopy = configuration.ownerVisibility == InboxOwnerVisibility.HIDE_WHEN_ASSOCIATED,
+        hasForeignAssociation = hasForeignAssociation,
+    )
+
+/** Kotlin/JS boundary: typed INBOX configuration remains the semantic authority. */
+@JsExport
+fun validateInboxCapabilityConfigurationWire(
+    version: Int,
+    raw: String,
+): Array<String> =
+    runCatching {
+        InboxCapabilityConfigurationCodec.validate(version, raw)
+    }.exceptionOrNull()?.message?.let(::arrayOf) ?: emptyArray()
+
+/**
+ * Kotlin/JS boundary for canonical owner visibility.
+ *
+ * Invalid configuration deliberately throws so callers can fail closed rather
+ * than accidentally interpreting a malformed value as a legacy visibility flag.
+ */
+@JsExport
+fun inboxCapabilityOwnerVisibleWire(
+    version: Int,
+    raw: String,
+    hasForeignAssociation: Boolean,
+): Boolean =
+    inboxOwnerVisible(
+        configuration = InboxCapabilityConfigurationCodec.decode(version, raw),
         hasForeignAssociation = hasForeignAssociation,
     )
 

@@ -332,12 +332,16 @@ Each capability module must declare:
 
 Initial type mapping is:
 
-The 2026-08-30 accepted retirement decision supersedes the target status of
-`ARTIFACT` and context `JOURNAL` in this original v1 mapping. They remain listed
-below only as legacy migration identifiers. New code must preserve their text
-as ordinary note/document content and must not activate canonical capability
-instances for them. A future machine-readable contract revision will encode
-that retirement explicitly.
+The 2026-09-03 hard-removal decision supersedes the target status and the
+earlier preservation semantics of `ARTIFACT` and context `JOURNAL` in this
+original v1 mapping. They remain listed below only as historical v1 legacy
+identifiers and are not current `WorkspaceCapabilityType` values. New code must
+not activate, canonicalize, preserve, import, or recreate compatibility state
+for them. Schema 165 is the destructive retirement boundary.
+
+The corresponding entries in `domain-contract-v1.json` are retained as
+historical evidence of the original v1 contract; they do not describe the
+current runtime capability registry.
 
 | Capability type | Current source |
 | --- | --- |

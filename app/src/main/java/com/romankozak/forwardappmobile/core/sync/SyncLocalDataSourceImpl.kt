@@ -61,7 +61,6 @@ class SyncLocalDataSourceImpl
         private val chatDao: ChatDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val reminderDao: ReminderDao,
-        private val contextArtifactDao: ContextArtifactDao,
         private val tacticalMissionDao: TacticalMissionDao,
         private val tacticalIterationDao: TacticalIterationDao,
         private val missionStreamDao: MissionStreamDao,
@@ -159,7 +158,6 @@ class SyncLocalDataSourceImpl
             val chatMessages = chatDao.getAllMessagesSync()
             val conversationFolders = conversationFolderDao.getAllSync()
             val reminders = reminderDao.getAllRemindersSync()
-            val contextArtifacts = contextArtifactDao.getAllRaw()
             val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
             val tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs()
             val tacticalIterations = tacticalIterationDao.getAllSync()
@@ -258,10 +256,6 @@ class SyncLocalDataSourceImpl
                         .filter { (it.updatedAt ?: it.creationTime) > timestamp }
                         .map { it.toSnapshot() },
                 recurringTasks = emptyList(),
-                artifacts =
-                    contextArtifacts
-                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
-                        .map { it.toSnapshot() },
                 tacticalMissions =
                     tacticalMissions
                         .filter { (it.updatedAt ?: it.createdAt) > timestamp }
@@ -462,7 +456,6 @@ class SyncLocalDataSourceImpl
                 chatDao.deleteAllConversations()
                 conversationFolderDao.deleteAllFolders()
                 reminderDao.deleteAll()
-                contextArtifactDao.deleteAll()
                 tacticalMissionDao.deleteAllMissionAttachmentCrossRefs()
                 tacticalMissionDao.deleteAllMissions()
                 tacticalActivitySlotDao.deleteAll()

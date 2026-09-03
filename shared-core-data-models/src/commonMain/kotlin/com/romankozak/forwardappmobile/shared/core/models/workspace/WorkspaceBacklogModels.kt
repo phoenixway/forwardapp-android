@@ -18,7 +18,6 @@ enum class WorkspaceBacklogTargetKind {
     LINK_ITEM,
     LEGACY_NOTE,
     NOTE_DOCUMENT,
-    JOURNAL_DOCUMENT,
     CHECKLIST,
     MUSIC_NOTE,
 }

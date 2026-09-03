@@ -1,4 +1,8 @@
+@file:OptIn(kotlin.js.ExperimentalJsExport::class)
+
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
+
+import kotlin.js.JsExport
 
 /**
  * EXECUTION_LOG capability configuration v1.
@@ -41,3 +45,16 @@ object ExecutionLogCapabilityConfigurationCodec : CapabilityConfigurationCodec {
         return ExecutionLogCapabilityConfigurationV1
     }
 }
+
+/** Kotlin/JS adapter for the typed EXECUTION_LOG capability configuration contract. */
+@JsExport
+fun validateExecutionLogCapabilityConfigurationWire(
+    version: Int,
+    raw: String,
+): Array<String> =
+    try {
+        ExecutionLogCapabilityConfigurationCodec.validate(version, raw)
+        emptyArray()
+    } catch (error: IllegalArgumentException) {
+        arrayOf(error.message ?: "Invalid EXECUTION_LOG configuration")
+    }

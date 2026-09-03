@@ -4,111 +4,46 @@ package com.romankozak.forwardappmobile.data.orientation
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateAspectOrientationRefs
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateCapabilityInstances
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateOrientationAssessment
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateOrientationRelations
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateSingleParentHierarchy
-import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateWorkspaceBindings
+import com.romankozak.forwardappmobile.shared.core.domain.orientation.*
 import com.romankozak.forwardappmobile.shared.core.models.orientation.*
 
 internal fun validateCanonicalPayloadReferences(bundle: SnapshotBundle) {
-    val subjects = requireNotNull(bundle.managedSubjects).associateBy { it.id }
-    val orientationNodes = requireNotNull(bundle.orientations)
-    val aspectNodes = requireNotNull(bundle.aspects)
-    val orientationIds = orientationNodes.mapTo(hashSetOf()) { it.subjectId }
-    val aspectIds = aspectNodes.mapTo(hashSetOf()) { it.subjectId }
+    val violations = validateCanonicalOrientationReferences(bundle.toCanonicalOrientationValidationGraph())
+    require(violations.isEmpty()) { violations.first().message }
+}
 
-    require(orientationIds.all { subjects[it]?.subjectType == ManagedSubjectType.ORIENTATION.name }) {
-        "Every Orientation must reference an ORIENTATION ManagedSubject."
-    }
-    require(aspectIds.all { subjects[it]?.subjectType == ManagedSubjectType.ASPECT.name }) {
-        "Every Aspect must reference an ASPECT ManagedSubject."
-    }
-    require(validateSingleParentHierarchy(aspectNodes.associate { it.subjectId to it.parentAspectId }).isEmpty()) {
-        "Aspect hierarchy violates DOMAIN-CONTRACT v1."
-    }
-
-    val assessments = requireNotNull(bundle.orientationAssessments)
-    require(assessments.all { it.orientationId in orientationIds }) {
-        "Every current assessment must reference an Orientation in the payload."
-    }
-    val kindById = orientationNodes.associate { it.subjectId to OrientationKind.valueOf(it.kind) }
-    assessments.forEach { assessment ->
-        require(validateOrientationAssessment(kindById.getValue(assessment.orientationId), assessment.toModel()).isEmpty()) {
-            "Assessment ${assessment.orientationId} violates DOMAIN-CONTRACT v1."
-        }
-    }
-    val revisions = requireNotNull(bundle.orientationAssessmentRevisions)
-    require(revisions.all { it.orientationId in orientationIds }) {
-        "Every assessment revision must reference an Orientation in the payload."
-    }
-    val revisionById = revisions.associateBy { it.id }
-    require(assessments.all { revisionById[it.revisionId]?.orientationId == it.orientationId }) {
-        "Every current assessment must reference its matching immutable revision."
-    }
+private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOrientationValidationGraph {
     val gson = Gson()
-    val revisionAssessmentById = mutableMapOf<String, OrientationAssessment>()
-    revisions.forEach { revision ->
-        val assessment = gson.fromJson(revision.assessmentJson, OrientationAssessment::class.java)
-        revisionAssessmentById[revision.id] = assessment
-        require(validateOrientationAssessment(kindById.getValue(revision.orientationId), assessment).isEmpty()) {
-            "Assessment revision ${revision.id} violates DOMAIN-CONTRACT v1."
-        }
-    }
-    require(
-        assessments.all { current ->
-            current.toModel().hasSameAxisValues(revisionAssessmentById.getValue(current.revisionId))
+    return CanonicalOrientationValidationGraph(
+        subjects = requireNotNull(managedSubjects).map {
+            CanonicalSubjectReference(it.id, ManagedSubjectType.valueOf(it.subjectType))
         },
-    ) {
-        "Every current assessment must match the immutable revision it names."
-    }
-    require(requireNotNull(bundle.legacySubjectMappings).all { it.subjectId in subjects }) {
-        "Every legacy mapping must reference a ManagedSubject in the payload."
-    }
-
-    val relations = requireNotNull(bundle.orientationRelations).map { it.toModel() }
-    require(validateOrientationRelations(orientationIds, relations).isEmpty()) {
-        "Orientation relations violate DOMAIN-CONTRACT v1."
-    }
-    val aspectRefs = requireNotNull(bundle.aspectOrientationRefs).map { it.toModel() }
-    require(aspectRefs.all { it.aspectId in aspectIds && it.orientationId in orientationIds }) {
-        "Every Aspect reference must use known Aspect and Orientation endpoints."
-    }
-    require(validateAspectOrientationRefs(aspectRefs).isEmpty()) {
-        "Aspect references violate DOMAIN-CONTRACT v1."
-    }
-
-    val workspaceIds = bundle.workspaces?.mapTo(hashSetOf()) { it.id }
-    bundle.workspaces?.let { workspaces ->
-        require(
-            validateSingleParentHierarchy(
-                workspaces.associate { it.id to it.parentWorkspaceId },
-            ).isEmpty(),
-        ) {
-            "Workspace hierarchy violates DOMAIN-CONTRACT v1."
-        }
-    }
-    val bindings = requireNotNull(bundle.workspaceBindings).map { it.toModel() }
-    require(bindings.all { it.subjectId in subjects }) {
-        "Every Workspace binding must reference a ManagedSubject."
-    }
-    require(workspaceIds == null || bindings.all { it.workspaceId in workspaceIds }) {
-        "Every Workspace binding must reference a Workspace in the payload."
-    }
-    require(validateWorkspaceBindings(bindings).isEmpty()) {
-        "Workspace bindings violate DOMAIN-CONTRACT v1."
-    }
-    val capabilities = requireNotNull(bundle.workspaceCapabilityInstances).map { it.toModel() }
-    require(workspaceIds == null || capabilities.all { it.workspaceId in workspaceIds }) {
-        "Every capability instance must reference a Workspace in the payload."
-    }
-    require(validateCapabilityInstances(capabilities).isEmpty()) {
-        "Workspace capabilities violate DOMAIN-CONTRACT v1."
-    }
-    require(requireNotNull(bundle.savedOrientationViews).all { it.filterAstVersion > 0 }) {
-        "Saved Orientation views require a positive filter AST version."
-    }
+        orientations = requireNotNull(orientations).map {
+            CanonicalOrientationReference(it.subjectId, OrientationKind.valueOf(it.kind))
+        },
+        aspects = requireNotNull(aspects).map { CanonicalAspectReference(it.subjectId, it.parentAspectId) },
+        assessments = requireNotNull(orientationAssessments).map {
+            CanonicalCurrentAssessmentReference(it.orientationId, it.revisionId, it.toModel())
+        },
+        revisions = requireNotNull(orientationAssessmentRevisions).map {
+            CanonicalAssessmentRevisionReference(
+                id = it.id,
+                orientationId = it.orientationId,
+                assessment = gson.fromJson(it.assessmentJson, OrientationAssessment::class.java),
+            )
+        },
+        mappings = requireNotNull(legacySubjectMappings).map {
+            CanonicalLegacyMappingReference(it.id, it.subjectId)
+        },
+        relations = requireNotNull(orientationRelations).map { it.toModel() },
+        aspectRefs = requireNotNull(aspectOrientationRefs).map { it.toModel() },
+        workspaces = workspaces?.map { CanonicalWorkspaceReference(it.id, it.parentWorkspaceId) },
+        bindings = requireNotNull(workspaceBindings).map { it.toModel() },
+        capabilities = requireNotNull(workspaceCapabilityInstances).map { it.toModel() },
+        savedViews = requireNotNull(savedOrientationViews).map {
+            CanonicalSavedViewReference(it.id, it.filterAstVersion)
+        },
+    )
 }
 
 private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity.toModel() =
@@ -122,13 +57,6 @@ private fun com.romankozak.forwardappmobile.core.data.models.entities.orientatio
         commitment = AxisAssessment(commitmentValue, ValueOrigin.valueOf(commitmentOrigin)),
         confidence = AxisAssessment(confidenceValue, ValueOrigin.valueOf(confidenceOrigin)),
     )
-
-private fun OrientationAssessment.hasSameAxisValues(other: OrientationAssessment): Boolean =
-    OrientationAxis.entries.all { axis ->
-        val left = valueFor(axis)
-        val right = other.valueFor(axis)
-        left.valueCode == right.valueCode && left.origin == right.origin
-    }
 
 private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity.toModel() =
     OrientationRelation(

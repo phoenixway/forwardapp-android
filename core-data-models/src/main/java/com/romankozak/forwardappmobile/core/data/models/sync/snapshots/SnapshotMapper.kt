@@ -4,7 +4,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
@@ -65,7 +64,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachmen
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextArtifactSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
@@ -168,9 +166,6 @@ fun LegacyNoteSnapshot.toEntity(): LegacyNoteEntity = LegacyNoteEntity(
     version = version,
 )
 
-fun ContextArtifact.toSnapshot(): ContextArtifactSnapshot = ContextArtifactSnapshot(id, contextId, content, createdAt, updatedAt)
-fun ContextArtifactSnapshot.toEntity(): ContextArtifact =
-    ContextArtifact(id, contextId, content, createdAt, updatedAt)
 
 fun ContextLog.toSnapshot(): ContextLogSnapshot = ContextLogSnapshot(
     id,

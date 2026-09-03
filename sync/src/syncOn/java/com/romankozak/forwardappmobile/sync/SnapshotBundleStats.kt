@@ -15,7 +15,6 @@ internal fun SnapshotBundle.importItemCount(): Int =
         musicNotes.size +
         checklists.size +
         checklistItems.size +
-        artifacts.size +
         scripts.size +
         attachments.size +
         crossRefs.size +

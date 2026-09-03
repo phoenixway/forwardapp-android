@@ -8,8 +8,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -73,7 +76,6 @@ fun ProjectsScreen(
     val autocompleteSuggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
-    val currentProjectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
 
     // Router logic to decide which screen to show
     when {
@@ -93,37 +95,6 @@ fun ProjectsScreen(
                 onValueChange = { textValue = it },
                 onSave = { viewModel.inboxHandler.onInboxRecordEditConfirm(textValue.text) },
                 onCancel = { viewModel.inboxHandler.onInboxRecordEditDismiss() },
-            )
-        }
-        uiState.artifactToEdit != null -> {
-            val artifact = uiState.artifactToEdit!!
-            val focusRequester = remember { FocusRequester() }
-            LaunchedEffect(artifact) {
-                if (editorViewModel.uiState.value.content.text != artifact.content) {
-                    val newContent = artifact.content
-                    editorViewModel.onContentChange(
-                        TextFieldValue(newContent, androidx.compose.ui.text.TextRange(newContent.length)),
-                    )
-                }
-            }
-            UniversalEditorScreen(
-                title = "Редагувати Артефакт",
-                onSave = { content, _ ->
-                    if (projectId != null) {
-                        viewModel.onSaveArtifact(projectId, content)
-                    } else {
-                        // Handle error or show a snackbar
-                        // For now, let's just log it
-                        Log.e(TAG, "projectId is null when trying to save artifact")
-                    }
-                },
-                onAutoSave = { content, _ -> viewModel.onAutoSaveArtifact(content) },
-                onNavigateBack = { viewModel.onDismissArtifactEditor() },
-                navController = navController,
-                navigationManager = viewModel.enhancedNavigationManager,
-                viewModel = editorViewModel,
-                contentFocusRequester = focusRequester,
-                foldingPersistenceKey = "context_artifact:${artifact.id}",
             )
         }
         uiState.showNoteDocumentEditor -> {
@@ -200,7 +171,6 @@ private fun ProjectScaffold(
             ContextViewMode.INBOX -> canPasteIntoCurrentInbox
             ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
             ContextViewMode.CONNECTIONS -> canPasteIntoCurrentAttachments
-            ContextViewMode.JOURNAL_LOG -> false
             else -> false
         }
 
@@ -376,6 +346,7 @@ private fun ProjectScaffold(
                         viewModel = viewModel,
                         navController = navController,
                         uiState = uiState,
+                        listContent = listContent,
                         autocompleteSuggestions = autocompleteSuggestions,
                         isCurrentContextFocused = isCurrentContextFocused,
                         sessionState = sessionState,
@@ -413,8 +384,6 @@ private fun ProjectScaffold(
                     inboxListState = inboxListState,
                     onEditLog = viewModel::onEditLogEntry,
                     onDeleteLog = viewModel::onDeleteLogEntry,
-                    onSaveArtifact = viewModel::onSaveArtifact,
-                    onEditArtifact = viewModel::onEditArtifact,
                     onRemindersClick = { item ->
                         // Використовуємо 'as?', щоб не падати, якщо прийшов не той тип
                         val safeItem = item as? BacklogItemContent
@@ -464,10 +433,70 @@ private fun ProjectScaffold(
 }
 
 @Composable
+private fun ContextDocumentsDialog(
+    documents: List<com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity>,
+    listContent: List<BacklogItemContent>,
+    onDismiss: () -> Unit,
+    onOpenDocument: (BacklogItemContent?, com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Documents") },
+        text = {
+            if (documents.isEmpty()) {
+                Text(
+                    text = "No documents are linked to this context.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    items(
+                        items = documents,
+                        key = { it.id },
+                    ) { document ->
+                        val typedItem =
+                            listContent.firstOrNull { item ->
+                                when (item) {
+                                    is BacklogItemContent.NoteDocumentItem -> item.document.id == document.id
+                                    else -> false
+                                }
+                            }
+                        val kind = "Document"
+
+                        ListItem(
+                            headlineContent = {
+                                Text(document.name.ifBlank { "Untitled document" })
+                            },
+                            supportingContent = {
+                                Text(kind)
+                            },
+                            modifier =
+                                Modifier.clickable {
+                                    onOpenDocument(typedItem, document)
+                                },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+    )
+}
+
+@Composable
 private fun ProjectBottomBar(
     viewModel: ContextScreenViewModel,
     navController: NavController,
     uiState: ContextUiState,
+    listContent: List<BacklogItemContent>,
     autocompleteSuggestions: List<String>,
     isCurrentContextFocused: Boolean,
     sessionState: com.romankozak.forwardappmobile.core.context.ContextSessionState,
@@ -483,6 +512,7 @@ private fun ProjectBottomBar(
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
     var showContextPicker by remember { mutableStateOf(false) }
+    var showDocumentsDialog by remember { mutableStateOf(false) }
     val capabilityViewActions =
         remember(sessionState.currentView, sessionState.enabledCapabilities) {
             viewModel.getAvailableCapabilityViewActions(
@@ -576,7 +606,6 @@ private fun ProjectBottomBar(
                 experimentalCapabilityIds = uiState.experimentalCapabilityIds,
                 enableInbox = uiState.enableInbox,
                 enableLog = uiState.enableLog,
-                enableArtifact = uiState.enableArtifact,
                 enableBacklog = uiState.enableBacklog,
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
@@ -592,10 +621,32 @@ private fun ProjectBottomBar(
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                onShowDocuments = { showDocumentsDialog = true },
                 capabilityViewActions = capabilityViewActions,
                 onCapabilityViewActionClick = viewModel::onCapabilityViewActionClick,
             )
         }
+    }
+
+    if (showDocumentsDialog) {
+        ContextDocumentsDialog(
+            documents = uiState.noteDocuments,
+            listContent = listContent,
+            onDismiss = { showDocumentsDialog = false },
+            onOpenDocument = { typedItem, document ->
+                showDocumentsDialog = false
+                if (typedItem != null) {
+                    viewModel.itemActionHandler.onItemClick(typedItem)
+                } else {
+                    navigationManager.navigate(
+                        target = NavTarget.NoteDocument(
+                            id = document.id,
+                            startEdit = false,
+                        ),
+                    )
+                }
+            },
+        )
     }
 
     if (showContextPicker) {

@@ -255,7 +255,6 @@ private fun String.toTargetKind(): WorkspaceBacklogTargetKind? =
         "LINK_ITEM" -> WorkspaceBacklogTargetKind.LINK_ITEM
         "NOTE" -> WorkspaceBacklogTargetKind.LEGACY_NOTE
         "NOTE_DOCUMENT" -> WorkspaceBacklogTargetKind.NOTE_DOCUMENT
-        "JOURNAL_DOCUMENT" -> WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT
         "CHECKLIST" -> WorkspaceBacklogTargetKind.CHECKLIST
         "MUSIC_NOTE" -> WorkspaceBacklogTargetKind.MUSIC_NOTE
         else -> null

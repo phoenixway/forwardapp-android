@@ -48,7 +48,6 @@ object BacklogItemTypeValues {
     const val LINK_ITEM = "LINK_ITEM"
     const val NOTE = "NOTE"
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
-    const val JOURNAL_DOCUMENT = "JOURNAL_DOCUMENT"
     const val CHECKLIST = "CHECKLIST"
     const val MUSIC_NOTE = "MUSIC_NOTE"
     const val SCRIPT = "SCRIPT"
@@ -70,8 +69,6 @@ enum class ContextViewMode {
     DASHBOARD,
     DIRECTION,
     LOG,
-    JOURNAL_LOG,
-    ARTIFACT,
     KEY_PROBLEMS,
     NOTES,
     VET_CASE,
@@ -80,7 +77,6 @@ enum class ContextViewMode {
 enum class LinkType {
     CONTEXT,
     NOTE_DOCUMENT,
-    JOURNAL_DOCUMENT,
     CHECKLIST,
     MUSIC_NOTE,
     URL,

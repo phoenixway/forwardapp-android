@@ -197,11 +197,6 @@ fun AttachmentsLibraryScreen(
                                             navController = navController,
                                             target = NavTarget.NoteDocument(id = item.entityId),
                                         )
-                                    AttachmentLibraryType.JOURNAL_DOCUMENT ->
-                                        navigationManager.navigateOrFallback(
-                                            navController = navController,
-                                            target = NavTarget.JournalDocument(id = item.entityId),
-                                        )
                                     AttachmentLibraryType.MUSIC_NOTE ->
                                         navigationManager.navigateOrFallback(
                                             navController = navController,
@@ -226,11 +221,6 @@ fun AttachmentsLibraryScreen(
                                                     navigationManager.navigateOrFallback(
                                                         navController = navController,
                                                         target = NavTarget.NoteDocument(id = linkData.target, startEdit = false),
-                                                    )
-                                                LinkType.JOURNAL_DOCUMENT ->
-                                                    navigationManager.navigateOrFallback(
-                                                        navController = navController,
-                                                        target = NavTarget.JournalDocument(id = linkData.target, startEdit = false),
                                                     )
                                                 LinkType.CHECKLIST ->
                                                     navigationManager.navigateOrFallback(
@@ -382,7 +372,6 @@ private fun AttachmentLibraryFilter.displayName(): String =
 private fun AttachmentLibraryType.label(): String =
     when (this) {
         AttachmentLibraryType.NOTE_DOCUMENT -> "Нотатка"
-        AttachmentLibraryType.JOURNAL_DOCUMENT -> "Журнал"
         AttachmentLibraryType.MUSIC_NOTE -> "Ноти"
         AttachmentLibraryType.CHECKLIST -> "Чекліст"
         AttachmentLibraryType.LINK -> "Посилання"

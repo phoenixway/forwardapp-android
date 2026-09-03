@@ -30,7 +30,6 @@ data class ContextConfiguration(
     
     @ColumnInfo(name = "enable_inbox") val enableInbox: Boolean? = null,
     @ColumnInfo(name = "enable_log") val enableLog: Boolean? = null,
-    @ColumnInfo(name = "enable_artifact") val enableArtifact: Boolean? = null,
     @ColumnInfo(name = "enable_advanced") val enableAdvanced: Boolean? = null,
     @ColumnInfo(name = "enable_dashboard") val enableDashboard: Boolean? = null,
     @ColumnInfo(name = "enable_backlog") val enableBacklog: Boolean? = null,

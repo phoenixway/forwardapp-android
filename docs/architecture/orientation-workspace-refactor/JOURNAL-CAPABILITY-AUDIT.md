@@ -1,12 +1,14 @@
 # Context JOURNAL capability audit
 
-Status: DECIDED RETIREMENT / SOURCE AUDIT COMPLETE / IMPLEMENTATION BLOCKED ON CANONICAL DOCUMENT REACHABILITY
+Status: DECIDED RETIREMENT / STAGE A PRESERVATION CURRENT + VERIFIED / STAGE B PENDING
 
-This document concerns only the legacy Context journal_log capability.
+This document concerns only the legacy Context `journal_log` capability.
 
-Life Journal activity data and EXECUTION_LOG are separate supported concepts and are outside this retirement.
+Life Journal activity data and EXECUTION_LOG are separate supported concepts and
+are outside this retirement.
 
-It does not authorize a runtime, Room, transport, or UI cutover.
+Stage A Room preservation was subsequently implemented at schema 164. Stage B
+runtime/UI retirement remains governed by the constraints recorded here.
 
 ## Accepted direction
 
@@ -90,21 +92,28 @@ JOURNAL retirement therefore depends on canonical document reachability through 
 
 Do not create a second Workspace-to-document relationship solely for Journal retirement.
 
-## Deletion hazard
+## Former deletion hazard — resolved prerequisite
 
-Current legacy attachment/backlog deletion behavior can delete a NoteDocument itself rather than only unlinking one Context placement.
+The production attachment/document path now has the lifecycle distinction
+required by this audit.
 
-That behavior must not define the future canonical lifecycle.
+Removing a NOTE_DOCUMENT/JOURNAL_DOCUMENT presentation from one Context routes
+through canonical WorkspaceConnection unlink/tombstone semantics and does not
+delete the NoteDocument. Explicit `NoteDocumentRepository.deleteDocument()` is
+a separate destructive content operation.
 
-Before JOURNAL retirement:
+Context deletion tombstones owned canonical Connections and first attempts to
+rebind shared attachment-backed document ownership to another surviving live
+Context placement. Ordinary Context document projection already reads through
+`AttachmentEntity -> WorkspaceConnection -> Workspace`.
 
-- placement unlink must be placement-only;
-- document deletion must be an explicit destructive content command;
-- migration must prove that removing the special journal capability cannot make the preserved document unreachable.
+The lifecycle/reachability prerequisite is therefore satisfied. The retirement
+migration must still prove that the deterministic journal document has or gains
+a valid canonical placement before the special journal wrapper is removed.
 
 ## Migration accounting requirements
 
-A future retirement migration must explicitly account for:
+The Stage A retirement migration was required to explicitly account for:
 
 - every Context for which the deterministic journal document exists;
 - missing documents despite enabled legacy journal capability;
@@ -120,8 +129,20 @@ No per-line canonical migration is required or permitted by current source seman
 
 ## Safe-lane conclusion
 
-The JOURNAL domain decision is complete.
+The JOURNAL domain decision and source audit are complete.
 
-The remaining work is retirement plumbing after canonical CONNECTIONS/document reachability is ready.
+Stage A preservation is complete and host-verified at schema 164. Migration
+`163 -> 164` retains the existing deterministic NoteDocument and complete text,
+repairs/creates ordinary `JOURNAL_DOCUMENT` AttachmentEntity plus canonical
+WorkspaceConnection reachability, and preserves placement even when the
+CONNECTIONS capability instance is `DISABLED`. Future legacy journal
+create/update paths also ensure ordinary attachment placement, so they no
+longer create detached journal documents.
 
-No new canonical JOURNAL model or source foundation should be implemented.
+The dedicated `journal_log` runtime/UI wrapper remains intentionally available
+during Stage B. The next work is to prove durable user-visible discoverability
+through ordinary document surfaces and then remove dependence on the special
+`journal_log` capability/runtime wrapper.
+
+No new canonical JOURNAL model, row-per-line event model, or separate
+Workspace-to-document relationship is authorized.

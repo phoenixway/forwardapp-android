@@ -313,8 +313,11 @@ After authority cutover:
 - live legacy import is ignored;
 - an old full-backup fallback is allowed only when the canonical collection is
   absent and must pass the same frozen migration planner;
-- selective import waits for Workspace-aware canonical selection rather than
-  becoming a second legacy mutation path;
+- selective import presents canonical placements by
+  `WorkspaceBacklogEntry.id`; a selected placement closes over its owning
+  Workspace/BACKLOG capability and its live typed target dependencies. No
+  selection keeps `workspaceBacklogEntries` absent, while a selection emits a
+  non-empty placement list. Legacy BACKLOG rows remain excluded;
 - Sync v1 and migrated-capability Desktop compatibility remain retired.
 
 `SnapshotBundle.workspaceBacklogEntries` is the typed transport contract;
@@ -328,10 +331,11 @@ accounting rolls back the restore. Live legacy imports are ignored.
 
 Canonical Wi-Fi deltas include Workspace/capability ownership and the required
 typed target closure for documents, legacy notes, checklists and their items,
-music notes, LinkItems, Workspaces, and Orientations. Selective import keeps the
-canonical field absent until its selection contract becomes Workspace-aware.
-Focused SnapshotBundle presence, Room sync-store/fallback, and Wi-Fi
-dependency/ACK tests are green.
+music notes, LinkItems, Workspaces, and Orientations. Workspace-aware selective
+import reuses the same typed-target classification, selects exact placement
+ids, validates the canonical graph, and preserves absent-vs-non-empty merge
+semantics. Focused SnapshotBundle presence, Room sync-store/fallback, Wi-Fi,
+and selective dependency tests are green.
 
 ## Stage 8 — cleanup and completion gate
 

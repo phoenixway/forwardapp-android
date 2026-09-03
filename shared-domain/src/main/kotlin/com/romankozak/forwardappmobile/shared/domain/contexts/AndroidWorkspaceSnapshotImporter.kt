@@ -717,7 +717,6 @@ private fun JsonObject.enabledLegacyCapabilityIds(): List<String> =
     buildList {
         addIfTrue("inbox", boolean("enableInbox"))
         addIfTrue("log", boolean("enableLog"))
-        addIfTrue("artifact", boolean("enableArtifact"))
         addIfTrue("dashboard", boolean("enableDashboard"))
         addIfTrue("backlog", boolean("enableBacklog"))
         if (boolean("enableAttachments") == true) {
@@ -790,8 +789,6 @@ private fun String?.toSharedContextView(): SharedContextView =
         "DASHBOARD" -> SharedContextView.Dashboard
         "DIRECTION" -> SharedContextView.Direction
         "LOG" -> SharedContextView.Log
-        "JOURNAL_LOG" -> SharedContextView.JournalLog
-        "ARTIFACT" -> SharedContextView.Artifact
         "KEY_PROBLEMS" -> SharedContextView.KeyProblems
         else -> SharedContextView.Backlog
     }

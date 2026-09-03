@@ -27,7 +27,7 @@ interface NoteDocumentDao {
         SELECT nd.*
         FROM note_documents AS nd
         INNER JOIN attachments AS a
-            ON a.entity_id = nd.id AND a.attachment_type IN ('NOTE_DOCUMENT', 'JOURNAL_DOCUMENT')
+            ON a.entity_id = nd.id AND a.attachment_type = 'NOTE_DOCUMENT'
         INNER JOIN workspace_connections AS link
             ON link.attachmentId = a.id AND link.isDeleted = 0
         INNER JOIN workspaces AS w

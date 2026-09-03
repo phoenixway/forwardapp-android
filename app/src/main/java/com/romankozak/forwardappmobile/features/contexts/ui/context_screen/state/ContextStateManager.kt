@@ -112,9 +112,6 @@ class ContextStateManager(
         _uiState.update { it.copy(goalToEditInline = goal) }
     }
 
-    fun setArtifactToEdit(artifact: ContextArtifact?) {
-        _uiState.update { it.copy(artifactToEdit = artifact) }
-    }
 
     fun updateState(transform: (ContextUiState) -> ContextUiState) {
         _uiState.update(transform)
@@ -206,7 +203,6 @@ data class ContextUiState(
     // UI State - Edit Modes
     val goalToEditInline: Goal? = null,
     val logEntryToEdit: ContextLog? = null,
-    val artifactToEdit: ContextArtifact? = null,
     val itemForRemindersDialog: BacklogItemContent? = null,
     val remindersForDialog: List<Reminder> = emptyList(),
     val recordForReminderDialog: ActivityRecord? = null,
@@ -229,7 +225,6 @@ data class ContextUiState(
     val showCheckboxes: Boolean = false,
     val enableInbox: Boolean = true,
     val enableLog: Boolean = true,
-    val enableArtifact: Boolean = true,
     val isProjectManagementEnabled: Boolean = false,
     val enableBacklog: Boolean = true,
     val enableDashboard: Boolean = true,

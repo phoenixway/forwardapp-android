@@ -85,7 +85,6 @@ fun BacklogListScreen(
                 is BacklogItemContent.LinkItem -> selectedItem.link.linkData.displayName ?: selectedItem.link.linkData.target
                 is BacklogItemContent.NoteItem -> selectedItem.note.title.ifBlank { selectedItem.note.content.take(48) }
                 is BacklogItemContent.NoteDocumentItem -> selectedItem.document.name
-                is BacklogItemContent.JournalDocumentItem -> selectedItem.document.name
                 is BacklogItemContent.MusicNoteItem -> selectedItem.musicNote.name
                 is BacklogItemContent.ChecklistItem -> selectedItem.checklist.name
             }

@@ -50,6 +50,16 @@ fail-closed migration acceptance coverage. The earlier
 
 `DIRECTION` is `CURRENT / VERIFIED` on Android at Room schema 156.
 
+Desktop canonical convergence is also `CURRENT / VERIFIED`. Context-backed
+Direction UI commands resolve a live Workspace and ACTIVE DIRECTION capability,
+author semantic content as `ManagedSubject` + `Orientation(kind=DIRECTION)` and
+author navigation/order as exact-version `WorkspaceDirectionEntry` mutations.
+The dedicated peer stream reconciles before push and clears pending versions
+only after Android export confirms the same or stronger winner. A newly-created
+semantic Direction sends its validated Orientation dependency closure and
+placement in one SnapshotBundle. Legacy `directionItems` remain local/file UI
+compatibility only and have no live Android push authority.
+
 Migration `155 -> 156` accounts for every live and tombstoned legacy
 `direction_items` row before dropping the table. Unlinked rows become canonical
 `Orientation(kind=DIRECTION)` plus `WorkspaceDirectionEntry`; linked rows
@@ -119,24 +129,47 @@ Host verification is green for the shared-domain capability tests,
 `CanonicalWorkspaceProblemSyncStoreRoomTest`, and
 `CanonicalKeyProblemsWifiPushPlanTest`. `git diff --check` is clean.
 
+Desktop KEY_PROBLEMS read-side convergence is also `CURRENT / VERIFIED`.
+Desktop persists the Android-authoritative three-field canonical SnapshotBundle
+triplet, rejects partial presence, merges all three streams atomically by
+version, timestamp, then tombstone freshness, and validates the resulting
+graph through the shared KEY_PROBLEMS contract before committing it. Canonical
+Context-backed read-only views require exact `CONTEXT_BACKED.sourceContextId`
+ownership and one active shared-valid `KEY_PROBLEMS/default` capability before
+projecting `WorkspaceProblem` rows and live typed relations; invalid established
+canonical metadata fails closed. An explicitly present empty triplet remains
+canonical empty and cannot resurrect legacy `payloadJson` rows. The legacy blob
+is retained only for noncanonical/historical local-file fallback. Desktop creates no canonical
+Problem writer, pending state, ACK path, or outbound peer payload, and strips
+the stored shadow from Android-bound serialization.
+
 ### INBOX hard cutover
 
-`INBOX` is `CURRENT / VERIFIED` on Android at schema 158. Legacy
-`inbox_records` is retired; `WorkspaceInboxRecord` plus an active INBOX
-capability instance is the sole persisted content authority. `InboxRecord`
-remains a compatibility DTO projected from canonical rows so existing UI
-behavior is preserved.
+`INBOX` is `CURRENT / VERIFIED` on Android at schema 158 and canonical-converged
+on Desktop. Legacy Android `inbox_records` is retired; `WorkspaceInboxRecord`
+plus an active shared-valid logical `INBOX/default` capability instance is the sole live content authority.
+Android `InboxRecord` and Desktop `inboxRecords` remain compatibility-only
+projections/persistence for legacy callers and noncanonical local/file data.
 
 Typed INBOX config v1 owns owner visibility. `InboxRecordLink` remains an
 Android-local rebuildable hashtag projection, not content or sync authority.
 Full backup/restore, merge ingress, changed-since delta, Wi-Fi dirty push,
 dependency closure, and exact-version ACK use
-`CanonicalWorkspaceInboxSyncStore`. Selective import omits canonical Inbox until
-Workspace-aware selection exists.
+`CanonicalWorkspaceInboxSyncStore`. Desktop canonical Context-backed create,
+edit, delete, order compaction, and projection prove Context ownership only by
+exact `CONTEXT_BACKED.sourceContextId`, then use `workspaceInboxRecords` and
+the shared Inbox association/owner-visibility policy through the typed codec.
+Desktop sends only exact
+locally-authored pending versions through a dedicated peer delta, reconciles
+Android before emission, and requires post-import export confirmation; generic
+canonical shadow serialization and legacy Inbox live push remain suppressed.
+Selective import omits canonical Inbox until Workspace-aware selection exists.
 
 Host verification is green for `Migration157To158InboxCutoverRoomAcceptanceTest`,
 `CanonicalInboxRepositoryRoomTest`, `CanonicalWorkspaceInboxSyncStoreRoomTest`,
-and `InboxCanonicalDeltaTest`.
+and `InboxCanonicalDeltaTest`, plus the focused Desktop canonical command,
+projection, validation, peer-reconciliation, production-hook, legacy-retirement,
+and cross-capability regression suites.
 
 ### INBOX_SORTING canonical hard cutover
 
@@ -158,7 +191,8 @@ guarded pre-cutover full-backup fallback. No UI behavior was changed.
 
 ### CONNECTIONS hard cutover
 
-`CONNECTIONS` is hard-cut over on Android at schema 159.
+`CONNECTIONS` is hard-cut over on Android at schema 159 and canonical-converged
+on Desktop.
 
 `WorkspaceConnection` is the canonical ordered placement shape for one existing
 reusable Attachment inside one CONNECTIONS capability instance. Attachment
@@ -174,6 +208,21 @@ changed-since delta, Wi-Fi dirty push, Attachment dependency closure, and
 exact-version ACK use `CanonicalWorkspaceConnectionSyncStore`. Legacy
 `SnapshotBundle.crossRefs` export/delta is empty and import is ignored.
 
+Desktop normal Context-backed CONNECTIONS UI now proves one live Workspace by
+exact `CONTEXT_BACKED.sourceContextId`, requires one active shared-valid
+`CONNECTIONS/default` capability, projects explicit linked placements from
+`workspaceConnections`, and routes link/unlink/reorder through canonical
+commands. New content still creates and syncs its independently owned
+`AttachmentEntity`; unlink tombstones only the placement. Directly owned
+Attachments remain visible through their separate Attachment ownership.
+
+Desktop sends only exact locally-authored pending placement versions through a
+dedicated peer stream. It reconciles Android before selection, accepts the same
+version or a stronger canonical winner only after post-import export, and sends
+a new Attachment plus its dependent connection in one SnapshotBundle. Android
+stores Attachments before validating/merging Connections. Generic canonical
+shadow serialization and legacy cross-ref live push/ACK are suppressed.
+
 Capability lifecycle preserves placements and Attachment content. Unlink
 tombstones only the placement. Context/Workspace deletion tombstones live owned
 placements without deleting referenced Attachments. Selective import omits
@@ -181,7 +230,9 @@ canonical Connections until Workspace-aware selection exists.
 
 Host verification is green for the CONNECTIONS migration/repository/sync-store
 tests, `ConnectionsCanonicalDeltaTest`, and migration chain regressions through
-schema 159.
+schema 159, plus focused Desktop command, projection, validation,
+peer-reconciliation, production-hook, dependency-closure, lost-ACK, policy, and
+legacy-retirement regressions.
 
 ### BACKLOG canonical program current / verified
 
@@ -313,30 +364,180 @@ The Android BACKLOG canonical migration program is complete. Physical evidence
 tables may be dropped only together with an explicit decision to retire the
 pre-cutover full-backup fallback.
 
-### ARTIFACT and Context JOURNAL retirement readiness
+Workspace-aware canonical BACKLOG selective import is now **CURRENT / VERIFIED**.
+The preview selects `WorkspaceBacklogEntry.id`, validates the source Workspace
+and BACKLOG capability owner, and filters exact placement rows. Selected live
+placements close over the minimum typed target graph; ORIENTATION targets carry
+their ManagedSubject, Orientation, current assessment, named revision, and
+matching legacy mapping inside the complete canonical structural envelope.
+Selected tombstones retain identity/version/deletion state without requiring a
+live target. No selection emits `workspaceBacklogEntries = null`; a selection
+emits a non-empty list, never authoritative `[]`. Legacy `backlogItems` and
+`backlogOrders` remain excluded, and the historical full-backup fallback is
+unchanged.
 
-Focused source audits confirm the already accepted retirement direction for
-legacy ARTIFACT and Context `JOURNAL` / `journal_log`.
+Desktop canonical BACKLOG peer transport and the first read projection are
+now implemented and verified. Desktop retains `workspaceBacklogEntries` as
+canonical placement state and exposes it to Android only through a dedicated
+exact-version peer delta; generic Context/full-shadow serialization continues
+to suppress the persisted canonical shadow.
 
-ARTIFACT remains a live legacy `ContextArtifact` persistence/UI surface, but no
-canonical Artifact entity, repository, binding, or capability is to be built.
-Each non-empty legacy row must eventually survive as ordinary note/document
-content reachable from the owning Workspace, preserving multiple rows
-individually when present.
+Peer push performs a full Android preflight export, absorbs an already-newer
+Android winner, sends only exact pending versions, and performs a full
+post-import export before resolving convergence. HTTP 200 alone is not an
+entity ACK. Confirmation clears a pending version only when the observed
+Android canonical row is the same state or a stronger freshness winner.
+Explicit SnapshotBundle BACKLOG presence is required; normalized database
+emptiness cannot impersonate wire authority. Complete canonical
+Workspace/capability dependencies are applied before BACKLOG validation.
 
-Context JOURNAL is already physically a deterministic `NoteDocument` with id
-`system_journal_log_<contextId>`. Its UI treats document lines as entries, but
-those lines have no independent ids, timestamps, versions, tombstones, or sync
-lifecycle. Retirement therefore preserves the existing document as ordinary
-reachable content and must not manufacture a row-per-line canonical journal
-model.
+Context-backed reads project valid canonical placements into the existing
+Backlog row contract and omit missing/deleted targets without legacy fallback.
+The existing Desktop `backlogItems`/`listItems`/`backlogOrders` mutation surface
+remains compatibility code and does not double-write canonical placements.
 
-Both retirements are implementation-blocked on the canonical
-CONNECTIONS/document reachability path. Current legacy Context/Backlog deletion
-paths can still delete document content where canonical CONNECTIONS semantics
-must unlink placement only. Retirement must wait until placement-only lifecycle
-and explicit destructive content deletion are separated and reachability is
-proven.
+Desktop canonical BACKLOG REORDER is `CURRENT / VERIFIED` as the first
+canonical mutation slice. Reorder is enabled only for an `ACTIVE` BACKLOG
+capability whose complete live placement set is projectable on Desktop. It
+matches Android full-set semantics: dense `0..N-1` order, stable placement
+identity, no target-content mutation, and `version`/`updatedAt` bumps only on
+placements whose order actually changes. Rejected canonical reorder never
+falls back to legacy mutation.
+
+Desktop canonical BACKLOG REMOVE is also `CURRENT / VERIFIED`. Delete of a
+visible canonical row tombstones only its canonical placement and never deletes
+the referenced typed target content. It requires the owning live `ACTIVE`
+BACKLOG capability, then mirrors Android tombstone-plus-compaction semantics:
+the removed placement bumps `version`/`updatedAt`, every surviving live
+placement in the Workspace is compacted to dense `0..N-1`, and only survivors
+whose order changes are bumped. Compaction uses the complete canonical live set,
+so hidden or currently unprojectable targets do not block safe removal.
+
+Desktop canonical BACKLOG Context-link ADD is also `CURRENT / VERIFIED`.
+For a canonical-backed Context, `Add link` resolves the selected target Context
+through its single live `CONTEXT_BACKED` Workspace and adds a typed `WORKSPACE`
+placement only. It requires the owning BACKLOG capability to be `ACTIVE`,
+rejects structural direct-child projections and unresolved/ambiguous target
+Workspace identity, and never creates or mutates target content or legacy
+`backlogItems` / `listItems` / `backlogOrders`. Its multi-select picker reverses
+the synchronous prepend calls so selected items retain Android's visible input
+order.
+
+ADD mirrors Android `addEntryAtStart` semantics. An existing live logical
+placement is a no-op; a tombstoned logical placement is resurrected with the
+same stable placement id and a bumped version; otherwise a new placement is
+created at `min(live order) - 1`. Canonical order is therefore allowed to be
+sparse and negative after prepend. Live order uniqueness, not non-negativity, is
+the storage invariant. Explicit REORDER and REMOVE compaction still normalize
+their affected live sets to dense `0..N-1`.
+
+Desktop canonical BACKLOG RESTORE / UNDO is `CURRENT / VERIFIED`. It keeps a
+non-persisted undo token for the latest canonical placement removal, validates
+the live owner and typed target, resurrects the same placement identity, and
+reconstructs the previous presentation order using Android's old-order/id
+comparator. Restore follows Android's two-phase mutation semantics: resurrection
+bumps the tombstone once, and a subsequent reorder bumps that same row again
+when its final order changes. It updates only canonical placement rows and
+exact pending versions; legacy Backlog collections and target content are
+untouched.
+
+Canonical placement identity is now unified across Android and Desktop:
+`workspaceId`, `capabilityInstanceId`, `targetKind`, `targetId`, and `createdAt`
+are immutable for one `WorkspaceBacklogEntry.id`. Android cross-Workspace MOVE
+uses source tombstone plus a separate destination placement identity; canonical
+sync rejects same-id owner movement. Typed target content remains external to
+BACKLOG ownership.
+
+Desktop canonical BACKLOG cross-Workspace MOVE is `CURRENT / VERIFIED`
+end-to-end for the focused single-row user flow. The Backlog row action opens
+the existing single-select Context picker, then the canonical command tombstones
+source placement and creates or resurrects a separate destination placement,
+preserving immutable owner/target identity per placement id. Source and
+destination ordering are deterministic; final exact versions feed the existing
+peer pending map. Legacy Backlog writers remain untouched.
+
+All canonical mutation slices record every exact changed `id/version` in the
+dedicated canonical BACKLOG pending map. A separate observable dirty version
+feeds the existing 650 ms debounced auto-sync effect, after which the verified
+peer preflight/import/observed-confirmation transport resolves convergence. A
+canonical placement id is never routed through the legacy destructive delete
+writer; legacy fallback is allowed only when canonical ownership is absent.
+
+Desktop legacy `backlogItems`, `listItems`, and `backlogOrders` are now
+quarantined local/file/historical compatibility state. They retain no live
+Android Context-push authority and receive no Context-sync acknowledgement;
+Android-bound Desktop payloads emit these legacy placement collections empty.
+`workspaceBacklogEntries` is the exclusive live Desktop BACKLOG peer authority.
+
+Desktop canonical `New backlog item` is `CURRENT / VERIFIED`. It composes the
+shared Goal-like target factory with canonical BACKLOG ADD in one local-first
+state transition. The placement targets `ORIENTATION/<subjectId>` and writes no
+legacy placement/order rows. Generic target EDIT and completion mutation remain
+fenced as separate ownership-sensitive slices.
+Explicit RESTORE / UNDO remains a separate user-facing behavior even though the
+low-level canonical ADD path already supports resurrection of a tombstoned
+logical placement.
+
+Android Goal creation is `CURRENT / VERIFIED`: it composes the compatibility
+Goal with a canonical `ManagedSubject`/`Orientation`, a live `GOAL -> subjectId`
+`CUT_OVER` mapping, and the canonical `ORIENTATION` BACKLOG placement in one
+Room transaction. Real Room success, rollback, resolver, projection, unsynced
+export visibility, and placement-only deletion tests pass. The shared pure
+factory now defines the canonical Goal-like subject graph; Android remains the
+persistence/transaction owner. Subject content is not cascaded by placement
+deletion.
+
+Desktop canonical Orientation target peer transport is `CURRENT / VERIFIED`.
+Desktop-created exact versions remain the only peer-authoritative records;
+generic Android-derived Orientation shadow remains read-only for outbound sync.
+After Android preflight reconciliation Desktop validates the complete retained
+canonical family through the shared reference contract, emits only unresolved
+exact versions, and clears pending only after observation. Invalid mixed
+families fail closed before import; lost-ACK retry converges without a second
+Orientation import. A newly-authored target and its dependent placement share
+one SnapshotBundle import; Android stores the Orientation family before merging
+canonical BACKLOG, while later target/placement retries remain independently
+versioned.
+
+### ARTIFACT and Context JOURNAL retirement
+
+Retirement is **CURRENT / VERIFIED on Android at schema 165**.
+
+The final accepted model is hard removal without compatibility or payload
+preservation:
+
+- schema `163 -> 164` is a structural no-op bridge;
+- schema `164 -> 165` physically removes `context_artifacts`,
+  `structure_presets.enable_artifact`, and
+  `context_structures.enable_artifact`;
+- persisted retired `ARTIFACT`, `JOURNAL`, and `JOURNAL_LOG` capability
+  instances are removed;
+- `JOURNAL_DOCUMENT`, `system_journal_log_*`, retired Artifact document/
+  attachment representations, their WorkspaceConnections, and their canonical
+  BACKLOG placements are removed;
+- active runtime, UI, navigation, configuration, repository, snapshot, sync,
+  backup-ingress, and compatibility surfaces for Context Artifact and Context
+  Journal are removed;
+- old Artifact/Context-Journal backups are intentionally unsupported.
+
+Ordinary unrelated `NOTE_DOCUMENT` content remains outside this destructive
+retirement. The Room acceptance suite verifies preservation of an ordinary
+NoteDocument -> AttachmentEntity -> WorkspaceConnection graph while retired
+Artifact/Journal data is deleted.
+
+Direct `164 -> 165` and chained `163 -> 164 -> 165` Room acceptance are green,
+including Room schema validation, non-retired configuration-field preservation,
+foreign-key checks, and SQLite integrity checks. Android compile and the
+targeted migration test are host-verified green.
+
+Two similarly named features are explicitly preserved because they are
+different domain concepts:
+
+- Strategic Arc's `ARTIFACT` tab/panel remains an ordinary `NOTE_DOCUMENT`
+  identified by `roleCode = "strategic_arc_artifact"`;
+- Life Journal / `DayManagementTab.JOURNAL` remains ActivityRecord-based
+  day/execution UI and is unrelated to retired Context `JOURNAL`,
+  `journal_log`, or `JOURNAL_DOCUMENT`.
 
 ### Life Journal time reflection
 
@@ -496,10 +697,10 @@ domain behavior.
 
 The canonical inputs are:
 
-- `InboxRecord`, especially its text and owner context;
-- `Context.tags`;
-- `ContextConfiguration`, including
-  `removeInboxEntryAfterTagAutocopy`.
+- `WorkspaceInboxRecord`, especially its text and proven owner Workspace;
+- Context/Workspace tags;
+- typed INBOX capability configuration with `KEEP_VISIBLE` or
+  `HIDE_WHEN_ASSOCIATED`.
 
 The shared implementation lives in `shared-core-domain` and owns hashtag
 normalization/matching plus owner-visibility policy.
@@ -662,7 +863,15 @@ uses version, then `updatedAt`, then tombstone preference on an exact tie.
 Wi-Fi push, changed-since delta, dependency closure, and exact-version ACK use
 the canonical collection. Desktop stores canonical execution logs as
 Android-read-only state and strips them from Android-bound payloads so Desktop
-cannot regain Android write authority.
+cannot regain Android write authority. Desktop read-side convergence is
+`CURRENT / VERIFIED`: ingress accepts the same live `CANONICAL_ONLY` and proven
+`CONTEXT_BACKED` Workspace owners as Android, preserves absent-versus-empty
+canonical presence, and projects Context Log rows only under one live active
+default EXECUTION_LOG capability with shared-valid configuration. Canonical
+empty, malformed ownership, or disabled capability remains empty and never
+supplements legacy Context logs. Legacy `contextLogs`/`projectExecutionLogs`
+are historical/noncanonical presentation fallback only; Desktop does not
+author, ACK, or peer-push canonical execution logs.
 
 Selective import is also cut over. Canonical Workspace-owned rows are projected
 into the existing Context-shaped preview only for live, proven
@@ -721,6 +930,36 @@ overwrite or resurrect canonical Dashboard state. Context session/runtime
 gating, shared Workspace projection, and settings commands consume the typed
 canonical boundary. This required no Dashboard content table, schema bump, or
 UI redesign.
+
+Desktop DASHBOARD metadata read convergence is `CURRENT / VERIFIED` for the
+readonly Features drawer. A proven Context-backed Workspace resolves exactly
+one canonical `DASHBOARD/default` instance: only `ACTIVE` with shared-valid v1
+configuration is shown enabled; disabled, archived, deleted, ambiguous, or
+malformed canonical state fails closed. Legacy `enableDashboard` remains a
+historical/bootstrap fallback only when canonical Dashboard metadata is
+genuinely unavailable. Desktop Dashboard lifecycle authoring, transport, and
+tab availability were not changed.
+
+Desktop readonly Features-status convergence is now `CURRENT / VERIFIED` across
+the already-converged capability set. In addition to Dashboard, the drawer uses
+canonical Workspace capability metadata for `BACKLOG`, `CONNECTIONS`,
+`DIRECTION`, `INBOX`, `EXECUTION_LOG`, and `KEY_PROBLEMS`, always resolving the
+Context owner by exact `CONTEXT_BACKED.sourceContextId`. Established canonical
+absence, ambiguity, duplicate logical instances, non-ACTIVE/deleted state, or
+invalid configuration fails closed. `CONNECTIONS` status is canonical
+CONNECTIONS authority rather than the historical `enableAttachments` alias.
+Reserved, non-cut-over surfaces such as `DOCUMENTS`, `NOTES`, and `ATTACHMENTS`
+remain outside this canonical status set. Retired `ARTIFACT` has no legacy
+presentation-status fallback. Navigation/tab gating and capability lifecycle
+authoring were deliberately left unchanged.
+
+Focused Desktop verification is green: 49 canonical status/Inbox/Connections/
+Execution-Log/Key-Problems tests pass, `tsc --noEmit` passes,
+`electron-vite build` produces the production Desktop bundle, and
+`git diff --check` is clean. The wrapper `npm run build` could not repeat the
+unchanged shared KMP build inside the Bridge sandbox because Java/JAVA_HOME is
+unavailable there; the already-built shared JS artifact was used for the
+successful Desktop typecheck, tests, and production bundle.
 
 Targeted host verification is green for the Dashboard repository lifecycle,
 Context-backed bootstrap including disabled-state anti-resurrection, Context

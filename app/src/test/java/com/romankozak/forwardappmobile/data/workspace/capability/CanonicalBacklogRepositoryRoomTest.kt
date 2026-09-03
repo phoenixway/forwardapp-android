@@ -83,7 +83,7 @@ class CanonicalBacklogRepositoryRoomTest {
     }
 
     @Test
-    fun `move preserves placement id and owner tombstone bypasses disabled capability`() = runBlocking {
+    fun `cross-workspace move tombstones source and creates a new destination placement`() = runBlocking {
         val database = database()
         try {
             seedWorkspace(database, "source", withCapability = true)
@@ -94,15 +94,162 @@ class CanonicalBacklogRepositoryRoomTest {
 
             assertEquals(1, repository.moveEntries(listOf(id), "destination", now = 20L))
             assertTrue(repository.getEntries("source").isEmpty())
-            assertEquals(id, repository.getEntries("destination").single().id)
+            val destination = repository.getEntries("destination").single()
+            assertTrue(destination.id != id)
+            assertEquals("destination", destination.workspaceId)
+            assertEquals("backlog-destination", destination.capabilityInstanceId)
+            assertEquals(WorkspaceBacklogTargetKind.WORKSPACE.name, destination.targetKind)
+            assertEquals("target", destination.targetId)
+            assertEquals(1L, destination.version)
+            val source = requireNotNull(repository.getEntry(id))
+            assertTrue(source.isDeleted)
+            assertEquals("source", source.workspaceId)
+            assertEquals("backlog-source", source.capabilityInstanceId)
+            assertEquals(2L, source.version)
 
             repository.disable("destination", now = 30L)
             assertEquals(
                 1,
                 repository.tombstoneOwnedContentForWorkspaces(listOf("destination"), now = 40L),
             )
-            assertTrue(requireNotNull(repository.getEntry(id)).isDeleted)
+            assertTrue(requireNotNull(repository.getEntry(destination.id)).isDeleted)
             assertFalse(requireNotNull(database.workspaceDao().getById("target")).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `cross-workspace move resurrects destination tombstone and preserves input order`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "source", withCapability = true)
+            seedWorkspace(database, "destination", withCapability = true)
+            seedWorkspace(database, "target-a")
+            seedWorkspace(database, "target-b")
+            val repository = repository(database)
+            val historicalId = repository.addEntry("destination", workspaceTarget("target-a"), now = 5L)
+            repository.tombstoneEntry(historicalId, now = 6L)
+            val sourceA = repository.addEntry("source", workspaceTarget("target-a"), now = 10L)
+            val sourceB = repository.addEntry("source", workspaceTarget("target-b"), now = 11L)
+
+            repository.moveEntries(listOf(sourceB, sourceA), "destination", now = 20L)
+            val destinationEntries = repository.getEntries("destination")
+            assertEquals(listOf("target-b", "target-a"), destinationEntries.map { it.targetId })
+            assertEquals(historicalId, destinationEntries.last().id)
+            assertEquals(3L, requireNotNull(repository.getEntry(historicalId)).version)
+            assertTrue(requireNotNull(repository.getEntry(sourceA)).isDeleted)
+            assertTrue(requireNotNull(repository.getEntry(sourceB)).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `live destination duplicate rejects the whole cross-workspace move atomically`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "source", withCapability = true)
+            seedWorkspace(database, "destination", withCapability = true)
+            seedWorkspace(database, "target-a")
+            seedWorkspace(database, "target-b")
+            val repository = repository(database)
+            val sourceA = repository.addEntry("source", workspaceTarget("target-a"), now = 10L)
+            val sourceB = repository.addEntry("source", workspaceTarget("target-b"), now = 11L)
+            repository.addEntry("destination", workspaceTarget("target-a"), now = 12L)
+
+            assertTrue(runCatching { repository.moveEntries(listOf(sourceB, sourceA), "destination", now = 20L) }.isFailure)
+            assertEquals(2, repository.getEntries("source").size)
+            assertTrue(repository.getEntry(sourceA)?.isDeleted == false)
+            assertTrue(repository.getEntry(sourceB)?.isDeleted == false)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `cross-workspace move compacts each source and fails before writes for invalid target`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "source-a", withCapability = true)
+            seedWorkspace(database, "source-b", withCapability = true)
+            seedWorkspace(database, "destination", withCapability = true)
+            seedWorkspace(database, "target-a")
+            seedWorkspace(database, "target-b")
+            seedWorkspace(database, "target-c")
+            val repository = repository(database)
+            val retained = repository.addEntry("source-a", workspaceTarget("target-a"), now = 1L)
+            val moved = repository.addEntry("source-a", workspaceTarget("target-b"), now = 2L)
+            val invalid = repository.addEntry("source-b", workspaceTarget("target-c"), now = 3L)
+
+            assertTrue(runCatching { repository.moveEntries(listOf(moved, invalid), "destination", now = 10L) }.isSuccess)
+            assertEquals(0L, requireNotNull(repository.getEntry(retained)).entryOrder)
+            assertTrue(requireNotNull(repository.getEntry(moved)).isDeleted)
+            assertTrue(requireNotNull(repository.getEntry(invalid)).isDeleted)
+
+            val secondInvalid = repository.addEntry("source-a", workspaceTarget("target-b"), now = 11L)
+            database.workspaceDao().upsert(
+                listOf(
+                    WorkspaceEntity(
+                        id = "target-b",
+                        nameOverride = "target-b",
+                        descriptionOverride = null,
+                        parentWorkspaceId = null,
+                        roleCode = null,
+                        workspaceOrder = 0L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = 2L,
+                        provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                        sourceContextId = null,
+                    ),
+                ),
+            )
+            assertTrue(runCatching { repository.moveEntries(listOf(secondInvalid), "destination", now = 12L) }.isFailure)
+            assertFalse(requireNotNull(repository.getEntry(secondInvalid)).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `same-owner move preserves placement identities and existing append semantics`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            seedWorkspace(database, "target-a")
+            seedWorkspace(database, "target-b")
+            val repository = repository(database)
+            val first = repository.addEntry("owner", workspaceTarget("target-a"), now = 10L)
+            val second = repository.addEntry("owner", workspaceTarget("target-b"), now = 11L)
+
+            repository.moveEntries(listOf(first), "owner", now = 20L)
+            assertEquals(listOf(second, first), repository.getEntries("owner").map { it.id })
+            assertEquals(first, repository.getEntry(first)?.id)
+            assertFalse(requireNotNull(repository.getEntry(first)).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `cross-workspace move requires active source and destination capabilities`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "source", withCapability = true)
+            seedWorkspace(database, "destination", withCapability = true)
+            seedWorkspace(database, "target")
+            val repository = repository(database)
+            val id = repository.addEntry("source", workspaceTarget("target"), now = 1L)
+            repository.disable("source", now = 2L)
+            assertTrue(runCatching { repository.moveEntries(listOf(id), "destination", now = 3L) }.isFailure)
+            assertFalse(requireNotNull(repository.getEntry(id)).isDeleted)
+            repository.enable("source", now = 4L)
+            repository.disable("destination", now = 5L)
+            assertTrue(runCatching { repository.moveEntries(listOf(id), "destination", now = 6L) }.isFailure)
+            assertFalse(requireNotNull(repository.getEntry(id)).isDeleted)
         } finally {
             database.close()
         }

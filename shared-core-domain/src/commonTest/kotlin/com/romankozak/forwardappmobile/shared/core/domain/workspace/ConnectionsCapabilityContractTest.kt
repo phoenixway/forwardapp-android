@@ -27,6 +27,13 @@ class ConnectionsCapabilityContractTest {
     }
 
     @Test
+    fun `js wire facade keeps configuration validation shared-owned`() {
+        assertTrue(validateConnectionsCapabilityConfigurationWire(1, "{}").isEmpty())
+        assertTrue(validateConnectionsCapabilityConfigurationWire(2, "{}").isNotEmpty())
+        assertTrue(validateConnectionsCapabilityConfigurationWire(1, "{\"x\":1}").isNotEmpty())
+    }
+
+    @Test
     fun `planner preserves visible order and never invents legacy creation time`() {
         val plan =
             ConnectionsMigrationPlanner.plan(

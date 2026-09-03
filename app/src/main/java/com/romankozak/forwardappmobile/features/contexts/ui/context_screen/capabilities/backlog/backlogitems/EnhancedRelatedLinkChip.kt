@@ -93,7 +93,6 @@ private fun resolveRelatedLinkChipColors(link: RelatedLink): RelatedLinkChipColo
             backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
             contentColor = MaterialTheme.colorScheme.secondary,
         )
-    } else if (link.type == LinkType.NOTE_DOCUMENT || link.type == LinkType.JOURNAL_DOCUMENT || link.type == LinkType.CHECKLIST || link.type == LinkType.MUSIC_NOTE) {
         RelatedLinkChipColors(
             backgroundColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.75f),
             contentColor = MaterialTheme.colorScheme.tertiary,
@@ -121,7 +120,6 @@ private fun EnhancedRelatedLinkChipContent(
                 when (link.type) {
                     LinkType.CONTEXT -> Icons.Default.AccountTree
                     LinkType.NOTE_DOCUMENT -> Icons.Default.Book
-                    LinkType.JOURNAL_DOCUMENT -> Icons.Default.Book
                     LinkType.CHECKLIST -> Icons.Default.Link
                     LinkType.MUSIC_NOTE -> Icons.Default.Book
                     LinkType.URL -> Icons.Default.Link

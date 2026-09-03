@@ -6,6 +6,18 @@ import kotlin.test.assertFailsWith
 
 class ExecutionLogCapabilityContractTest {
     @Test
+    fun `wire validator preserves execution log configuration contract`() {
+        assertEquals(
+            emptyArray<String>().toList(),
+            validateExecutionLogCapabilityConfigurationWire(1, "{}").toList(),
+        )
+        assertEquals(
+            listOf("Invalid EXECUTION_LOG configuration v1"),
+            validateExecutionLogCapabilityConfigurationWire(1, "{\"unexpected\":true}").toList(),
+        )
+    }
+
+    @Test
     fun `v1 codec round trips canonical empty configuration`() {
         val encoded = ExecutionLogCapabilityConfigurationCodec.encode()
 

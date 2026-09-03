@@ -148,7 +148,6 @@ internal fun InputTextField(
                                         InputMode.AddIssue -> "Додати issue"
                                         InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
-                                        InputMode.AddJournalLogEntry -> "Додати рядок у journal"
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                         InputMode.AddProjectLog -> "Додати запис у лог"
                                         InputMode.AddMilestone -> "Додати віху"
@@ -200,17 +199,15 @@ internal fun ModeSelectorButton(
                     ContextViewMode.DIRECTION -> InputMode.AddDirection
                     ContextViewMode.INBOX -> InputMode.AddQuickRecord
                     ContextViewMode.LOG -> InputMode.AddProjectLog
-                    ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
                     ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
                     else -> InputMode.AddGoal
                 },
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
                 if (currentView == ContextViewMode.LOG) InputMode.AddMilestone else null,
-                if (currentView != ContextViewMode.LOG && currentView != ContextViewMode.JOURNAL_LOG) InputMode.AddQuickRecord else null,
+                if (currentView != ContextViewMode.LOG) InputMode.AddQuickRecord else null,
                 if (
                     isProjectManagementEnabled &&
-                    currentView != ContextViewMode.LOG &&
-                    currentView != ContextViewMode.JOURNAL_LOG
+                    currentView != ContextViewMode.LOG
                 ) {
                     InputMode.AddProjectLog
                 } else {
@@ -246,7 +243,6 @@ internal fun ModeSelectorButton(
                         InputMode.AddIssue -> Icons.Outlined.Description
                         InputMode.AddConnectionNote -> Icons.Outlined.Description
                         InputMode.AddDirection -> Icons.Outlined.Explore
-                        InputMode.AddJournalLogEntry -> Icons.Outlined.MenuBook
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
                         InputMode.AddMilestone -> Icons.Outlined.Flag
                         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore

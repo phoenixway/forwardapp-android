@@ -154,9 +154,6 @@ private fun WorkspaceBacklogEntryEntity.toCompatibilityItem(
             WorkspaceBacklogTargetKind.NOTE_DOCUMENT ->
                 BacklogItemTypeValues.NOTE_DOCUMENT to targetId
 
-            WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT ->
-                BacklogItemTypeValues.JOURNAL_DOCUMENT to targetId
-
             WorkspaceBacklogTargetKind.CHECKLIST ->
                 BacklogItemTypeValues.CHECKLIST to targetId
 

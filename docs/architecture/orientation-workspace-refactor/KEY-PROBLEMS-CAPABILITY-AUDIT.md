@@ -1,10 +1,12 @@
 # KEY_PROBLEMS Capability Audit and Source Contract
 
-Status: `CURRENT / VERIFIED` for the Android hard cutover at Room schema 157.
+Status: `CURRENT / VERIFIED` for the Android hard cutover at Room schema 157
+and Desktop Android-authoritative read-side convergence.
 
 DIRECTION remains current at schema 156. KEY_PROBLEMS completed the next
-Android-first authority cutover at schema 157. Desktop parity was intentionally
-not a completion gate.
+Android-first authority cutover at schema 157. Desktop now consumes the typed
+canonical graph read-only; Desktop authoring remains a separate, unaccepted
+boundary.
 
 ## Historical legacy boundary
 
@@ -66,6 +68,24 @@ The parser never uses current wall-clock time. Missing legacy item timestamps
 fall back deterministically to the container `updatedAt`. The old description
 shape preserves its current stable `legacy-<contextId>` issue identity but does
 not copy the former read-time synthetic `dateTime`.
+
+## Desktop read-side convergence
+
+Desktop stores `workspaceProblems`, `workspaceProblemWorkspaceRefs`, and
+`workspaceProblemAttachmentRefs` as one Android-owned graph. Snapshot presence
+is all-or-none: absent retains the existing shadow, present empty is canonical
+empty, and partial presence fails closed. Each stream uses Android freshness
+(version, then `updatedAt`, then tombstone on an exact tie); the complete merged
+graph passes the shared KMP KEY_PROBLEMS contract and Desktop owner checks before
+it replaces persisted state.
+
+Canonical Context-backed read-only projection uses the typed Problem/ref graph.
+It does not supplement an available canonical graph with legacy `payloadJson`,
+including when the canonical graph is present-empty. The legacy parser remains
+only for historical/noncanonical local-file state where canonical ownership or
+payload is genuinely unavailable. Desktop has no KEY_PROBLEMS authoring,
+pending-version, ACK, outbound transport, migration, or selective-import
+authority; generic Android-bound serialization strips this read shadow.
 
 ## Current Android hard cutover
 

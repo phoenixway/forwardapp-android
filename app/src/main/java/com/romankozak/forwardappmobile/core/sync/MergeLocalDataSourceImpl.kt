@@ -84,7 +84,6 @@ class MergeLocalDataSourceImpl
         private val conversationFolderDao: ConversationFolderDao,
         private val canonicalRecurringSeriesDao: CanonicalRecurringSeriesDao,
         private val legacyNoteDao: LegacyNoteDao,
-        private val contextArtifactDao: ContextArtifactDao,
         private val scriptDao: ScriptDao,
         private val contextManagementDao: ContextManagementDao,
         private val systemAppDao: SystemAppDao,
@@ -463,7 +462,6 @@ class MergeLocalDataSourceImpl
                     )
                 }
                 checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
-                contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
 
                 if (bundle.logs.isNotEmpty()) {
@@ -515,7 +513,6 @@ class MergeLocalDataSourceImpl
                             applyMode = snapshot.applyMode,
                             enableInbox = snapshot.enableInbox,
                             enableLog = snapshot.enableLog,
-                            enableArtifact = snapshot.enableArtifact,
                             enableAdvanced = snapshot.enableAdvanced,
                             enableDashboard = snapshot.enableDashboard,
                             enableBacklog = snapshot.enableBacklog,

@@ -10,8 +10,6 @@ private const val INBOX_PRIORITY = 2
 private const val CONNECTIONS_PRIORITY = 3
 private const val DIRECTION_PRIORITY = 4
 private const val LOG_PRIORITY = 5
-private const val JOURNAL_LOG_PRIORITY = 6
-private const val ARTIFACT_PRIORITY = 7
 private const val KEY_PROBLEMS_PRIORITY = 8
 
 private val removedViews =
@@ -53,8 +51,6 @@ object ContextViewPolicy {
             ContextViewMode.CONNECTIONS -> CONNECTIONS_PRIORITY
             ContextViewMode.DIRECTION -> DIRECTION_PRIORITY
             ContextViewMode.LOG -> LOG_PRIORITY
-            ContextViewMode.JOURNAL_LOG -> JOURNAL_LOG_PRIORITY
-            ContextViewMode.ARTIFACT -> ARTIFACT_PRIORITY
             ContextViewMode.KEY_PROBLEMS -> KEY_PROBLEMS_PRIORITY
             ContextViewMode.ADVANCED,
             ContextViewMode.NOTES,

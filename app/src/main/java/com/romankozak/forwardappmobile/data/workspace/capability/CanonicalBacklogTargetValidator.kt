@@ -37,7 +37,6 @@ class CanonicalBacklogTargetValidator
                     require(!note.isDeleted) { "Backlog target legacy Note is deleted" }
                 }
                 WorkspaceBacklogTargetKind.NOTE_DOCUMENT,
-                WorkspaceBacklogTargetKind.JOURNAL_DOCUMENT,
                 -> {
                     val document = requireNotNull(database.noteDocumentDao().getDocumentById(target.id)) {
                         "Backlog target document does not exist"

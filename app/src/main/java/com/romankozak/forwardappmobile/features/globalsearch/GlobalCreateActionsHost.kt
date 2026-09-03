@@ -157,7 +157,6 @@ fun GlobalCreateActionsHost(
 private fun CreateConnectionType.toGlobalCreatePickerAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
-        CreateConnectionType.JOURNAL_DOCUMENT -> PickerCreateAction.JOURNAL_DOCUMENT
         CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK

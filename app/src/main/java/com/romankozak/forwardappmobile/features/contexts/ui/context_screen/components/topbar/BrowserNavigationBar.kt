@@ -214,8 +214,6 @@ private fun RightButtons(
                                     ContextViewMode.DASHBOARD -> Icons.Default.Home
                                     ContextViewMode.DIRECTION -> Icons.Outlined.Explore
                                     ContextViewMode.LOG -> Icons.Outlined.History
-                                    ContextViewMode.JOURNAL_LOG -> Icons.Outlined.MenuBook
-                                    ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
                                     ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
                                     else -> Icons.Outlined.Description
                                 },

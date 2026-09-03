@@ -973,12 +973,6 @@ private fun MainScreenPagerContent(
                                     navController = navController,
                                     target = NavTarget.NoteDocument(id = attachment.entityId),
                                 )
-                            attachment.attachmentType == "JOURNAL_DOCUMENT" &&
-                                !attachment.entityId.isNullOrBlank() ->
-                                navigationManager.navigateOrFallback(
-                                    navController = navController,
-                                    target = NavTarget.JournalDocument(id = attachment.entityId),
-                                )
                             attachment.attachmentType == "MUSIC_NOTE" &&
                                 !attachment.entityId.isNullOrBlank() ->
                                 navigationManager.navigateOrFallback(

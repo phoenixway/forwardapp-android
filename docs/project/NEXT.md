@@ -8,8 +8,10 @@
 - KEY_PROBLEMS hard cutover is `CURRENT / VERIFIED` at schema 157. Legacy
   `context_key_problems` runtime persistence and `SnapshotBundle.contextKeyProblems`
   authority are retired; typed Workspace Problem/ref rows plus the canonical
-  SnapshotBundle triplet are the sole Android authority. Desktop parity was not
-  a completion gate.
+  SnapshotBundle triplet are the sole Android authority. Desktop read-side
+  convergence is `CURRENT / VERIFIED`: it stores, atomically validates and
+  projects the Android-authoritative canonical graph without authoring or
+  re-emitting it.
 
 - INBOX hard cutover is `CURRENT / VERIFIED` at schema 158. Legacy
   `inbox_records` persistence and legacy `SnapshotBundle.inbox` authority are
@@ -31,40 +33,55 @@
   backup/restore, live sync, and selective import now use Workspace-owned
   authority. Legacy `enableLog` and `SnapshotBundle.logs` remain only explicit
   compatibility/pre-cutover import surfaces.
+  Desktop canonical read-side convergence is also `CURRENT / VERIFIED`:
+  Desktop accepts Android-valid canonical Workspace provenance, retains the
+  Android-owned shadow, and projects Context Log rows through the active
+  default typed capability/configuration gate without authoring or re-emitting
+  canonical logs.
+
+- Workspace-aware canonical BACKLOG selective import is `CURRENT / VERIFIED`.
+  It selects placement ids, includes the minimal Workspace/BACKLOG capability
+  and typed-target closure, preserves tombstones, and emits no canonical
+  BACKLOG field when no placement is selected. Legacy placement rows remain
+  excluded and the guarded historical full-backup fallback is unchanged.
 
 - The source-only safe-pass over the remaining capability classes is complete:
   BACKLOG has completed verified Stages 1-8 through schema 162;
   INBOX_SORTING is hard-cut over and verified on Android at schema 163;
   DASHBOARD and EXECUTION_LOG have completed Android authority. ARTIFACT and
-  Context JOURNAL have focused retirement audits; DOCUMENTS, NOTES, and
-  ATTACHMENTS remain RESERVED.
+  Context JOURNAL are hard-retired and verified at schema 165; DOCUMENTS,
+  NOTES, and ATTACHMENTS remain RESERVED.
 
-### PROPOSED preliminary capability sequence
+### HISTORICAL preliminary capability sequence — SUPERSEDED
 
-This is a planning hypothesis only, not authorization to start the next
-capability. Re-evaluate it before each cutover and require explicit user
-approval before beginning that capability.
+This planning sequence is `HISTORICAL / SUPERSEDED`.
 
-Current proposed Android finishing order:
+It predates completion of Desktop canonical BACKLOG work, Android BACKLOG
+Stages 1-8, INBOX_SORTING, and Workspace-aware canonical BACKLOG selective
+import. It is retained only as historical context and is not an active execution
+order.
 
-1. finish the Android capability documentation/reachability closure;
-2. switch to Desktop work and implement canonical `BACKLOG` there first
+The previous immediate continuation, Workspace-aware canonical INBOX selective
+import, is now `DEFERRED / EDGE CLOSURE`.
 
-Rationale: `BACKLOG` is the most important and broadest remaining capability,
-so leave it until the Android capability machinery and migration patterns are
-well proven, then carry its freshly stabilized canonical contract directly into
-the first major Desktop capability implementation. `INBOX_SORTING` follows
-BACKLOG because its policy must delegate ordering to canonical target owners
-rather than own a parallel ordering model.
+The active phase is Desktop canonical capability convergence, beginning with
+Desktop DIRECTION.
 
 `INBOX_SORTING` is now complete because its policy delegates ordering to
 canonical target owners rather than owning a parallel ordering model.
 
-`ARTIFACT` and Context `JOURNAL` are retirement work, not canonical capability
-cutovers. Their focused source audits are complete and both retirements wait on
-canonical CONNECTIONS/document reachability. `DOCUMENTS`, `NOTES`, and
-`ATTACHMENTS` remain `RESERVED / DEFERRED` and are not part of this proposed
-finishing sequence.
+`ARTIFACT` and Context `JOURNAL` retirement is `CURRENT / VERIFIED` at schema
+165. The earlier schema-164 preservation stage was superseded by the accepted
+hard-delete decision: no Artifact/Context-Journal compatibility boundary or
+payload-preservation requirement remains. `context_artifacts`,
+`JOURNAL_DOCUMENT`, the special Context Journal document role, retired
+capability/configuration/runtime/UI paths, and their active sync mappings are
+removed.
+
+`DOCUMENTS`, `NOTES`, and `ATTACHMENTS` remain `RESERVED / DEFERRED`; this
+retirement did not activate those reserved capability types or introduce
+another document-placement authority. Ordinary unrelated `NOTE_DOCUMENT`
+content remains unchanged.
 
 `BACKLOG` Stages 1-8 are implemented and host-verified through schema 162.
 The schema-160 canonical placement foundation, schema-161 projection separation,
@@ -92,16 +109,144 @@ obsolete mixed-attachments ViewModels are removed. Physical `list_items` and
 `backlog_orders` remain only for historical migrations and the guarded
 pre-cutover full-backup planner fallback; this does not constitute authority.
 
-The immediate next implementation is Desktop `BACKLOG`, after the Android
-documentation and final reachability census are confirmed. Do not reintroduce
-legacy Android sorting authority or a parallel ordering model.
+Desktop canonical BACKLOG peer transport and the first read projection slice
+are now closed and verified. Desktop keeps the persisted canonical shadow out
+of generic Context/full-shadow pushes, selects only exact pending placement
+versions for its dedicated peer path, reconciles Android state before push, and
+requires an observed post-import Android canonical winner before clearing
+pending state. Explicit SnapshotBundle BACKLOG presence and complete canonical
+Workspace/capability dependencies are fail-closed requirements.
+
+Desktop canonical BACKLOG REORDER, REMOVE, and existing-Context link ADD are
+now `CURRENT / VERIFIED`.
+
+REORDER is intentionally full-set and fail-closed: drag is enabled only for an
+`ACTIVE` BACKLOG capability when Desktop can project the complete live placement
+set. It normalizes canonical order, preserves placement identity and target
+content, records exact changed `id/version` pairs, and wakes the existing
+auto-sync path.
+
+REMOVE is placement-only. A visible canonical row may be removed when its owning
+BACKLOG capability is `ACTIVE`; the placement is tombstoned, target content is
+preserved, and every surviving live canonical placement is compacted using the
+complete Workspace set even when some targets are hidden from Desktop
+projection. Tombstone and changed compaction rows all enter the exact-version
+pending map. Canonical placement ids never fall through to the legacy
+destructive delete writer.
+
+Existing-Context link ADD resolves the selected Context to its proven live
+`CONTEXT_BACKED` Workspace and writes only a canonical `WORKSPACE` placement.
+It mirrors Android `addEntryAtStart`: live duplicate is a no-op, a tombstone is
+resurrected with the same stable id and bumped version, and a new placement is
+prepended at `min(live order) - 1` without rewriting existing rows. Sparse
+negative canonical order is valid; live order uniqueness remains enforced.
+The multi-select picker dispatches in reverse before repeated prepend, matching
+Android batch ADD order.
+
+Legacy writers remain compatibility code and do not double-write canonical
+placements. Canonical `New backlog item` is now local-first and verified; generic
+target EDIT and completion mutation remain fenced.
+
+Explicit Desktop BACKLOG RESTORE / UNDO is now implemented as a placement-only
+inverse mutation over the canonical collection. It restores the saved order
+with Android's two-phase version semantics and registers the final versions for
+peer sync.
+
+The MOVE contract audit is closed: placement identity is owner-scoped and
+immutable. Desktop canonical cross-Workspace MOVE is now `CURRENT / VERIFIED`
+end-to-end for the focused single-row Context-picker flow, using source
+tombstone plus destination create/resurrection and exact peer pending versions.
+Generic target EDIT and completion remain separate ownership-sensitive
+decisions.
+
+Android Goal-like creation, Desktop dependency-closed canonical Orientation
+target peer transport, Desktop canonical `New backlog item` composition, and
+Workspace-aware canonical BACKLOG selective import are `CURRENT / VERIFIED`.
+
+### ACTIVE phase — Desktop canonical capability convergence
+
+The highest-leverage next work is to converge Desktop onto the canonical
+Workspace capability contracts already stabilized on Android.
+
+Desktop DIRECTION convergence is `CURRENT / VERIFIED`: the existing UI now
+projects and mutates canonical Orientation/WorkspaceDirectionEntry state,
+legacy `directionItems` have no live push authority, and exact-version peer
+transport covers preflight, combined dependency delivery, confirmation, and
+lost-ack retry.
+
+Desktop INBOX convergence is `CURRENT / VERIFIED`: canonical Context-backed UI
+commands and projection use exact `CONTEXT_BACKED.sourceContextId` ownership,
+one active shared-valid `INBOX/default` capability, shared Inbox association
+and visibility policy, and a dedicated exact-version peer stream. Legacy
+`inboxRecords` remain only a noncanonical local/file fallback and have no live
+Android push or acknowledgement authority.
+
+Desktop CONNECTIONS convergence is `CURRENT / VERIFIED`: normal canonical
+Context-backed UI uses exact `CONTEXT_BACKED.sourceContextId` ownership plus
+one active shared-valid `CONNECTIONS/default` capability, then
+`WorkspaceConnection` for ordered placement while
+Attachment remains independent reusable content. Exact-version peer transport
+supports preflight, same-import Attachment dependency delivery, post-export
+confirmation, and lost-ACK convergence. Legacy cross-refs and Strategic Arc's
+`sys_strategic` compatibility refs have no live Android authority.
+
+Desktop EXECUTION_LOG read-side convergence is `CURRENT / VERIFIED`:
+canonical ingress accepts both Android-authorized Workspace provenances and the
+readonly Context Log view uses `canonicalExecutionLogs` only under the active
+default typed capability/configuration gate. Legacy Context logs are solely
+historical/noncanonical fallback; Desktop EXECUTION_LOG authoring and peer push
+remain out of scope.
+
+Current sequence:
+
+Desktop KEY_PROBLEMS remains Android-authoritative read-only. Its canonical
+read-side convergence is complete: normal Context projection requires exact
+`CONTEXT_BACKED.sourceContextId` ownership and one active shared-valid
+`KEY_PROBLEMS/default` capability. Desktop authoring and exact-version peer
+transport require a separate future authorization tied to an actual product
+writer.
+
+Desktop readonly Features-status convergence is `CURRENT / VERIFIED`.
+For proven Context-backed owners, the Features drawer now resolves canonical
+status for `DASHBOARD`, `BACKLOG`, `CONNECTIONS`, `DIRECTION`, `INBOX`,
+`EXECUTION_LOG`, and `KEY_PROBLEMS` from exact
+`CONTEXT_BACKED.sourceContextId` ownership plus the corresponding canonical
+capability instance/configuration contract. Established missing, duplicate,
+deleted, disabled, archived, or malformed canonical state fails closed instead
+of resurrecting legacy flags. Legacy status remains only for genuinely
+noncanonical ownership and reserved surfaces such as `DOCUMENTS`, `NOTES`, and
+`ATTACHMENTS`.
+This change is presentation-only: existing tab/navigation gating, lifecycle
+authoring, persistence, and peer transport were not changed.
+
+ARTIFACT / Context JOURNAL retirement is closed at schema 165. There is no
+remaining Stage A/Stage B continuation: retired payload and old-backup
+compatibility were deliberately dropped, and the special
+capability/runtime/persistence surfaces are gone. An unrelated ordinary
+`NOTE_DOCUMENT` graph remains preserved by the migration.
+
+Strategic Arc's product-level Artifact panel remains an ordinary
+`NOTE_DOCUMENT` with `roleCode = "strategic_arc_artifact"`. Life Journal /
+`DayManagementTab.JOURNAL` also remains and is unrelated to the retired Context
+Journal capability.
+
+Workspace-aware canonical INBOX selective import remains
+`DEFERRED / EDGE CLOSURE`; it is valuable but does not currently outrank
+cross-client canonical convergence.
+
+Workspace-aware canonical CONNECTIONS selective import also remains
+`DEFERRED / EDGE CLOSURE`.
 
 
-Continue the non-UI compatibility boundary of Phase 6 after the canonical
-Workspace persistence foundation recorded in
-`PHASE6-FOUNDATION-IMPLEMENTATION.md`.
+### REFERENCE capability constraints — NOT ACTIVE NEXT
 
-The next focused implementation should:
+The following constraints remain valid reference boundaries for future
+capability work, but they are **not** the active execution queue.
+
+The completed Desktop DIRECTION convergence is recorded above; it is no longer
+part of the active queue.
+
+For future capability work:
 
 - use `CAPABILITY-OWNERSHIP.md` as the current ownership boundary for all
   capability work;
@@ -110,6 +255,10 @@ The next focused implementation should:
   canonical capability instance. The first compatibility bootstrap materializes
   `ACTIVE` or `DISABLED`; legacy `ContextConfiguration.enableDashboard`,
   role, and default resolution cannot later overwrite or resurrect it;
+  Desktop readonly Features metadata now also consumes the proven canonical
+  default instance for Context-backed owners. This is read convergence only:
+  no Desktop Dashboard lifecycle authoring, transport, or navigation-gating
+  decision has been added;
 - treat `EXECUTION_LOG` as complete/current on Android. Preserve the
   schema-153/154 ownership bridge, canonical lifecycle/runtime/UI authority,
   canonical user/system authoring, owner-deletion semantics,
@@ -146,6 +295,8 @@ The next focused implementation should:
   `CAPABILITY-OWNERSHIP.md`, including BACKLOG;
 - do not restore a generic graph-level capability writer.
 
-The unfinished user-facing portion of Phase 5 remains deferred: do not add
+### CURRENT deferred UI boundary
+
+The unfinished user-facing portion of Phase 5 remains `DEFERRED`: do not add
 Aspect screens, pickers, filters, navigation, classification review UI, or any
 other user-facing change without explicit authorization for that exact scope.

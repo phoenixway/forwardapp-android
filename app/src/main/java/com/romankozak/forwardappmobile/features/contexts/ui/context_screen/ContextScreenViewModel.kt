@@ -70,7 +70,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.ArtifactHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.BacklogMarkdownHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.BacklogMarkdownHandlerResultListener
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.LogActivityHandler
@@ -142,7 +141,6 @@ class ContextScreenViewModel
         private val noteRepository: LegacyNoteRepository,
         private val inboxRepository: InboxRepository,
         private val contextStructureRepository: ContextStructureRepository,
-        private val contextArtifactRepository: ContextArtifactRepository,
         private val contextKeyProblemsRepository: ContextKeyProblemsRepository,
         private val focusContextRepository: FocusContextRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
@@ -399,26 +397,6 @@ class ContextScreenViewModel
             _allProjects
                 .map { allProjects -> allProjects.groupBy { it.parentId } }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-        val contextArtifact: StateFlow<ContextArtifact?> =
-            contextIdFlow
-                .flatMapLatest { contextId ->
-                    if (contextId.isBlank()) {
-                        flowOf(null)
-                    } else {
-                        contextArtifactRepository.getContextArtifactStream(contextId)
-                    }
-                }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-        val journalLogDocument: StateFlow<NoteDocumentEntity?> =
-            contextIdFlow
-                .flatMapLatest { contextId ->
-                    if (contextId.isBlank()) {
-                        flowOf(null)
-                    } else {
-                        noteDocumentRepository.getDocumentByIdFlow(journalLogDocumentId(contextId))
-                    }
-                }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         val contextTimeMetrics: StateFlow<ContextTimeMetrics?> =
             contextIdFlow
                 .flatMapLatest { contextId ->
@@ -534,13 +512,6 @@ class ContextScreenViewModel
                     tags = allTags,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-        internal val artifactHandler by lazy {
-            ArtifactHandler(
-                contextRepository,
-                stateManager,
-                viewModelScope,
-            )
-        }
         internal val logHandler by lazy {
             LogActivityHandler(
                 contextLogRepository,
@@ -872,121 +843,13 @@ class ContextScreenViewModel
 
         private fun capabilityForView(viewMode: ContextViewMode): CapabilityId = CapabilityId(viewMode.name.lowercase())
 
-        fun saveJournalLogDocument(
-            title: String,
-            content: String,
-            cursorPosition: Int,
-        ) {
-            val contextId = contextIdFlow.value
-            if (contextId.isBlank()) return
-            val normalizedTitle = title.trim().ifBlank { defaultJournalLogTitle(project.value?.name) }
-            val documentId = journalLogDocumentId(contextId)
 
-            viewModelScope.launch(ioDispatcher) {
-                val existing = noteDocumentRepository.getDocumentById(documentId)
-                if (existing == null) {
-                    noteDocumentRepository.createDetachedDocument(
-                        id = documentId,
-                        name = normalizedTitle,
-                        contextId = contextId,
-                        content = content,
-                        lastCursorPosition = cursorPosition,
-                    )
-                } else {
-                    noteDocumentRepository.updateDocument(
-                        existing.copy(
-                            name = normalizedTitle,
-                            content = content,
-                            updatedAt = System.currentTimeMillis(),
-                            lastCursorPosition = cursorPosition,
-                        ),
-                    )
-                }
-            }
-        }
 
-        private fun journalLogDocumentId(contextId: String): String = "system_journal_log_$contextId"
 
-        private fun defaultJournalLogTitle(contextName: String?): String =
-            contextName?.trim()
-                ?.takeIf { it.isNotEmpty() }
-                ?.let { "$it Journal" }
-                ?: "Journal Log"
 
-        private fun appendJournalLogEntry(text: String) {
-            val contextId = contextIdFlow.value
-            if (contextId.isBlank()) return
-            val documentId = journalLogDocumentId(contextId)
-            val normalizedTitle = defaultJournalLogTitle(project.value?.name)
 
-            viewModelScope.launch(ioDispatcher) {
-                val existing = noteDocumentRepository.getDocumentById(documentId)
-                val appendedContent =
-                    existing?.content
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { "$it\n$text" }
-                        ?: text
 
-                if (existing == null) {
-                    noteDocumentRepository.createDetachedDocument(
-                        id = documentId,
-                        name = normalizedTitle,
-                        contextId = contextId,
-                        content = appendedContent,
-                        lastCursorPosition = appendedContent.length,
-                    )
-                } else {
-                    noteDocumentRepository.updateDocument(
-                        existing.copy(
-                            content = appendedContent,
-                            updatedAt = System.currentTimeMillis(),
-                            lastCursorPosition = appendedContent.length,
-                        ),
-                    )
-                }
-            }
-        }
 
-        fun updateJournalLogLine(lineIndex: Int, updatedText: String) {
-            mutateJournalLogDocument { lines ->
-                val safeIndex = lineIndex.takeIf { it in lines.indices } ?: return@mutateJournalLogDocument lines
-                lines.toMutableList().apply { this[safeIndex] = updatedText }
-            }
-        }
-
-        fun deleteJournalLogLine(lineIndex: Int) {
-            mutateJournalLogDocument { lines ->
-                val safeIndex = lineIndex.takeIf { it in lines.indices } ?: return@mutateJournalLogDocument lines
-                lines.toMutableList().apply { removeAt(safeIndex) }
-            }
-        }
-
-        fun replaceJournalLogLines(updatedLines: List<String>) {
-            mutateJournalLogDocument { updatedLines }
-        }
-
-        private fun mutateJournalLogDocument(transform: (List<String>) -> List<String>) {
-            val contextId = contextIdFlow.value
-            if (contextId.isBlank()) return
-            val documentId = journalLogDocumentId(contextId)
-            val normalizedTitle = defaultJournalLogTitle(project.value?.name)
-
-            viewModelScope.launch(ioDispatcher) {
-                val existing = noteDocumentRepository.getDocumentById(documentId) ?: return@launch
-                val currentLines = existing.content.orEmpty().lines()
-                val updatedLines = transform(currentLines)
-                val updatedContent = updatedLines.joinToString(separator = "\n")
-
-                noteDocumentRepository.updateDocument(
-                    existing.copy(
-                        name = normalizedTitle,
-                        content = updatedContent,
-                        updatedAt = System.currentTimeMillis(),
-                        lastCursorPosition = updatedContent.length,
-                    ),
-                )
-            }
-        }
 
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
 
@@ -1057,7 +920,6 @@ class ContextScreenViewModel
 
         override fun addMilestone(text: String) = logHandler.addMilestone(text, contextIdFlow.value)
 
-        override fun addJournalLogEntry(text: String) = appendJournalLogEntry(text)
 
         override fun createObsidianNote(
             noteName: String,
@@ -1184,16 +1046,6 @@ class ContextScreenViewModel
 
         override fun updateSelectionState(selectedIds: Set<String>) = stateManager.updateState { it.copy(selectedItemIds = selectedIds) }
 
-        fun onSaveArtifact(content: String) = onSaveArtifact(contextIdFlow.value, content)
-
-        fun onSaveArtifact(
-            projectId: String,
-            content: String,
-        ) = artifactHandler.onSaveArtifact(projectId, content)
-
-        fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
-
-        fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
 
         fun onDismissNoteDocumentEditor() = noteDocumentHandler.onDismissNoteDocumentEditor()
         fun onDismissGoalInlineEditor() = stateManager.setGoalToEditInline(null)
@@ -1206,6 +1058,7 @@ class ContextScreenViewModel
                 stateManager.setGoalToEditInline(null)
             }
         }
+
         fun openGoalProperties(item: BacklogItemContent) {
             val goal = (item as? BacklogItemContent.GoalItem)?.goal ?: return
             requestNavigation("goal_settings_screen/${goal.id}")
@@ -1228,7 +1081,6 @@ class ContextScreenViewModel
 
         fun onDeleteLogEntry(log: ContextLog) = logHandler.onDeleteLogEntry(log)
 
-        fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
 
         fun onCopyToClipboardRequest() = markdownActions.onCopyBacklogToClipboardRequest(listContent.value)
 
@@ -1815,14 +1667,6 @@ class ContextScreenViewModel
                         now = now,
                     )
 
-                is BacklogItemContent.JournalDocumentItem ->
-                    createTacticalMission(
-                        title = document.name.trim(),
-                        description = null,
-                        projectId = fallbackContextId,
-                        linkedProjectIds = listOfNotNull(fallbackContextId),
-                        now = now,
-                    )
 
                 is BacklogItemContent.ChecklistItem ->
                     createTacticalMission(

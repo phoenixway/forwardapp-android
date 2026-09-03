@@ -184,11 +184,14 @@ private fun WorkspaceSelectiveImportSelection.withItemSelection(
     when (kind) {
         WorkspaceImportPreviewSectionKind.Contexts -> copy(selectedContextIds = selectedContextIds.withItem(itemId, isSelected))
         WorkspaceImportPreviewSectionKind.Goals -> copy(selectedGoalIds = selectedGoalIds.withItem(itemId, isSelected))
+        WorkspaceImportPreviewSectionKind.Backlog ->
+            copy(
+                selectedWorkspaceBacklogEntryIds =
+                    selectedWorkspaceBacklogEntryIds.withItem(itemId, isSelected),
+            )
         WorkspaceImportPreviewSectionKind.LegacyNotes -> this
         WorkspaceImportPreviewSectionKind.ActivityRecords ->
             copy(selectedActivityRecordIds = selectedActivityRecordIds.withItem(itemId, isSelected))
-        WorkspaceImportPreviewSectionKind.BacklogItems ->
-            copy(selectedBacklogItemIds = selectedBacklogItemIds.withItem(itemId, isSelected))
         WorkspaceImportPreviewSectionKind.Documents ->
             copy(selectedDocumentIds = selectedDocumentIds.withItem(itemId, isSelected))
         WorkspaceImportPreviewSectionKind.Checklists ->
@@ -213,11 +216,14 @@ private fun WorkspaceSelectiveImportSelection.withSectionSelection(
     when (kind) {
         WorkspaceImportPreviewSectionKind.Contexts -> copy(selectedContextIds = selectedContextIds.withItems(itemIds, isSelected))
         WorkspaceImportPreviewSectionKind.Goals -> copy(selectedGoalIds = selectedGoalIds.withItems(itemIds, isSelected))
+        WorkspaceImportPreviewSectionKind.Backlog ->
+            copy(
+                selectedWorkspaceBacklogEntryIds =
+                    selectedWorkspaceBacklogEntryIds.withItems(itemIds, isSelected),
+            )
         WorkspaceImportPreviewSectionKind.LegacyNotes -> this
         WorkspaceImportPreviewSectionKind.ActivityRecords ->
             copy(selectedActivityRecordIds = selectedActivityRecordIds.withItems(itemIds, isSelected))
-        WorkspaceImportPreviewSectionKind.BacklogItems ->
-            copy(selectedBacklogItemIds = selectedBacklogItemIds.withItems(itemIds, isSelected))
         WorkspaceImportPreviewSectionKind.Documents ->
             copy(selectedDocumentIds = selectedDocumentIds.withItems(itemIds, isSelected))
         WorkspaceImportPreviewSectionKind.Checklists ->

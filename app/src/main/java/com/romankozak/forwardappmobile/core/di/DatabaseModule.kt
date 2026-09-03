@@ -20,7 +20,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDa
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
@@ -173,10 +172,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideChecklistDao(appDatabase: AppDatabase): ChecklistDao = appDatabase.checklistDao()
-
-    @Provides
-    @Singleton
-    fun provideContextArtifactDao(appDatabase: AppDatabase): ContextArtifactDao = appDatabase.contextArtifactDao()
 
     @Provides
     @Singleton

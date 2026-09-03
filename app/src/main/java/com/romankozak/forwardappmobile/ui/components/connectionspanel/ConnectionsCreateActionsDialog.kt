@@ -182,12 +182,6 @@ private fun createConnectionItems(): List<ConnectionCreateItem> =
             CreateConnectionType.NOTE_DOCUMENT,
         ),
         ConnectionCreateItem(
-            "Journal log",
-            Icons.Outlined.Description,
-            MaterialTheme.colorScheme.tertiary,
-            CreateConnectionType.JOURNAL_DOCUMENT,
-        ),
-        ConnectionCreateItem(
             "Ноти",
             Icons.Outlined.MusicNote,
             MaterialTheme.colorScheme.primary,

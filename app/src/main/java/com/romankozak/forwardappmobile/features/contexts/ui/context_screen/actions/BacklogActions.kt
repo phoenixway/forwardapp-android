@@ -75,7 +75,6 @@ class BacklogActions(
 
                     is BacklogItemContent.NoteItem -> "- [Н] ${item.note.title}"
                     is BacklogItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-                    is BacklogItemContent.JournalDocumentItem -> "- [Ж] ${item.document.name}"
                     is BacklogItemContent.MusicNoteItem -> "- [М] ${item.musicNote.name}"
                     is BacklogItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
                 }

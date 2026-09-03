@@ -37,7 +37,7 @@ data class WorkspaceImportDescriptor(
 data class WorkspaceSelectiveImportSelection(
     val selectedContextIds: Set<String> = emptySet(),
     val selectedGoalIds: Set<String> = emptySet(),
-    val selectedBacklogItemIds: Set<String> = emptySet(),
+    val selectedWorkspaceBacklogEntryIds: Set<String> = emptySet(),
     val selectedDocumentIds: Set<String> = emptySet(),
     val selectedChecklistIds: Set<String> = emptySet(),
     val selectedLinkItemIds: Set<String> = emptySet(),
@@ -54,9 +54,9 @@ enum class WorkspaceImportPreviewSectionKind(
 ) {
     Contexts("Contexts"),
     Goals("Goals"),
+    Backlog("Backlog"),
     LegacyNotes("Legacy Notes"),
     ActivityRecords("Activity Records"),
-    BacklogItems("Backlog Items"),
     Documents("Documents"),
     Checklists("Checklists"),
     LinkItems("Link Items"),

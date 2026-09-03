@@ -499,7 +499,6 @@ class GlobalSearchViewModel
             val target =
                 when (searchResult.attachmentType) {
                     BacklogItemTypeValues.NOTE_DOCUMENT -> NavTarget.NoteDocument(id = searchResult.entityId)
-                    BacklogItemTypeValues.JOURNAL_DOCUMENT -> NavTarget.JournalDocument(id = searchResult.entityId)
                     BacklogItemTypeValues.CHECKLIST -> NavTarget.Checklist(id = searchResult.entityId)
                     BacklogItemTypeValues.MUSIC_NOTE -> NavTarget.MusicNote(id = searchResult.entityId)
                     BacklogItemTypeValues.SCRIPT ->
@@ -565,15 +564,6 @@ class GlobalSearchViewModel
                             contextId = inboxContextId,
                         )
                     contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
-                }
-                is NewDocumentDraft.JournalDocument -> {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = request.name.ifBlank { "New journal" },
-                            contextId = inboxContextId,
-                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
-                        )
-                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)
                 }
                 is NewDocumentDraft.MusicNote -> {
                     val musicNoteId =

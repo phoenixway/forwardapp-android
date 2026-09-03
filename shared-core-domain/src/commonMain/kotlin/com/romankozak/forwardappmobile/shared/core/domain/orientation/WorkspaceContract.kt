@@ -18,9 +18,7 @@ val orientationCapabilityRegistry: List<WorkspaceCapabilityDefinition> =
                 WorkspaceCapabilityType.INBOX_SORTING -> listOf("inbox_sorting")
                 WorkspaceCapabilityType.KEY_PROBLEMS -> listOf("key_problems")
                 WorkspaceCapabilityType.DIRECTION -> listOf("direction")
-                WorkspaceCapabilityType.ARTIFACT -> listOf("artifact")
                 WorkspaceCapabilityType.DASHBOARD -> listOf("dashboard")
-                WorkspaceCapabilityType.JOURNAL -> listOf("journal_log")
                 WorkspaceCapabilityType.EXECUTION_LOG -> listOf("log")
                 WorkspaceCapabilityType.CONNECTIONS -> listOf("connections", "attachments")
                 WorkspaceCapabilityType.DOCUMENTS,
@@ -55,16 +53,10 @@ private fun capabilityArchetype(type: WorkspaceCapabilityType): WorkspaceCapabil
         WorkspaceCapabilityType.NOTES,
         WorkspaceCapabilityType.ATTACHMENTS,
         -> WorkspaceCapabilityArchetype.CONTENT_HOST
-        WorkspaceCapabilityType.ARTIFACT,
-        WorkspaceCapabilityType.JOURNAL,
-        -> WorkspaceCapabilityArchetype.RETIRED_LEGACY
     }
 
 private fun capabilityAvailability(type: WorkspaceCapabilityType): WorkspaceCapabilityAvailability =
     when (type) {
-        WorkspaceCapabilityType.ARTIFACT,
-        WorkspaceCapabilityType.JOURNAL,
-        -> WorkspaceCapabilityAvailability.RETIRED
         WorkspaceCapabilityType.DOCUMENTS,
         WorkspaceCapabilityType.NOTES,
         WorkspaceCapabilityType.ATTACHMENTS,

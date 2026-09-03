@@ -76,9 +76,6 @@ class BacklogMarkdownHandler
                         is BacklogItemContent.NoteDocumentItem -> {
                             "- [D] ${item.document.name}"
                         }
-                        is BacklogItemContent.JournalDocumentItem -> {
-                            "- [J] ${item.document.name}"
-                        }
                         is BacklogItemContent.MusicNoteItem -> {
                             "- [M] ${item.musicNote.name}"
                         }
@@ -184,9 +181,6 @@ class BacklogMarkdownHandler
                 }
                 is BacklogItemContent.NoteDocumentItem -> {
                     "- [D] ${item.document.name}"
-                }
-                is BacklogItemContent.JournalDocumentItem -> {
-                    "- [J] ${item.document.name}"
                 }
                 is BacklogItemContent.MusicNoteItem -> {
                     "- [M] ${item.musicNote.name}"

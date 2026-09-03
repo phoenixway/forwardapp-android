@@ -31,9 +31,6 @@ fun handleRelatedLinkClick(
             -> {
                 navController.navigate(NavigationRoutes.noteDocument(link.target, false))
             }
-            LinkType.JOURNAL_DOCUMENT -> {
-                navController.navigate(NavigationRoutes.journalDocument(link.target, false))
-            }
             LinkType.CHECKLIST -> {
                 navController.navigate("checklist_screen?checklistId=${link.target}")
             }

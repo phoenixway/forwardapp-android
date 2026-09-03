@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.LegacyBackupDiff
@@ -32,26 +31,11 @@ fun LegacyBackupDiff.toSelectable(): SelectableDatabaseContent {
         return newItems + updatedItems + deletedItems
     }
 
-    fun mapListItemDiff(diff: DiffResult<BacklogItem>): List<SelectableDiffItem<BacklogItem>> {
-        return mapDiff(diff) { updated ->
-            val oldOrder = updated.local.order
-            val newOrder = updated.incoming.order
-            val orderChanged = oldOrder != newOrder
-            val onlyOrderChanged = updated.local.copy(order = newOrder) == updated.incoming
-            when {
-                orderChanged && onlyOrderChanged -> "Порядок: $oldOrder → $newOrder"
-                orderChanged -> "Порядок: $oldOrder → $newOrder, інші зміни"
-                else -> null
-            }
-        }
-    }
-
     return SelectableDatabaseContent(
         projects = mapDiff(this.projects),
         goals = mapDiff(this.goals),
         legacyNotes = mapDiff(this.legacyNotes),
         activityRecords = mapDiff(this.activityRecords),
-        backlogItems = mapListItemDiff(this.backlogItems),
         documents = mapDiff(this.documents),
         checklists = mapDiff(this.checklists),
         checklistItems = mapDiff(this.checklistItems),
@@ -60,7 +44,6 @@ fun LegacyBackupDiff.toSelectable(): SelectableDatabaseContent {
         contextLogs = mapDiff(this.contextLogs),
         scripts = mapDiff(this.scripts),
         attachments = mapDiff(this.attachments),
-        backlogOrders = mapDiff(this.backlogOrders),
         allContextAttachmentCrossRefs = this.contextAttachmentCrossRefs.added + this.contextAttachmentCrossRefs.updated.map { it.incoming },
     )
 }

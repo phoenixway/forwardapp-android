@@ -15,7 +15,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEn
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
@@ -98,7 +97,6 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
@@ -177,7 +175,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ConversationFolderEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity::class,
         Reminder::class,
-        ContextArtifact::class,
         SystemAppEntity::class,
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
@@ -215,7 +212,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 163,
+    version = 165,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -282,7 +279,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun legacyNoteDao(): LegacyNoteDao
 
-    abstract fun contextArtifactDao(): ContextArtifactDao
 
     abstract fun recentItemDao(): RecentItemDao
 

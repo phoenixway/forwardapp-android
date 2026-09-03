@@ -405,15 +405,6 @@ class GoalSettingsViewModel
                     val documentId = noteDocumentRepository.createDocument(name = request.name.ifBlank { "Нова нотатка" }, contextId = contextId)
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
                 }
-                is NewDocumentDraft.JournalDocument -> {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = request.name.ifBlank { "Новий журнал" },
-                            contextId = contextId,
-                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
-                        )
-                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)?.id
-                }
                 is NewDocumentDraft.MusicNote -> {
                     val musicNoteId = musicNoteRepository.create(name = request.name.ifBlank { "Нові ноти" }, contextId = contextId)
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
@@ -511,8 +502,6 @@ class GoalSettingsViewModel
                     RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name, vault = vault)
                 attachmentType == BacklogItemTypeValues.NOTE_DOCUMENT && !entityId.isNullOrBlank() ->
                     RelatedLink(type = LinkType.NOTE_DOCUMENT, target = entityId, displayName = name)
-                attachmentType == BacklogItemTypeValues.JOURNAL_DOCUMENT && !entityId.isNullOrBlank() ->
-                    RelatedLink(type = LinkType.JOURNAL_DOCUMENT, target = entityId, displayName = name)
                 attachmentType == BacklogItemTypeValues.CHECKLIST && !entityId.isNullOrBlank() ->
                     RelatedLink(type = LinkType.CHECKLIST, target = entityId, displayName = name)
                 attachmentType == BacklogItemTypeValues.MUSIC_NOTE && !entityId.isNullOrBlank() ->
