@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
@@ -67,6 +68,7 @@ class ProjectHierarchyScreenStateUseCase
         private val recentItemsRepository: RecentItemsRepository,
         private val mainBeaconRepository: MainBeaconRepository,
         private val contextParentLinkDao: ContextParentLinkDao,
+        private val workspaceDao: WorkspaceDao,
         private val orientationHierarchyBuilder: OrientationHierarchyBuilder,
     ) {
         data class NavigationSnapshot(
@@ -110,6 +112,14 @@ class ProjectHierarchyScreenStateUseCase
                         scope = scope,
                         filterStates = planningUseCase.filterStateFlow,
                     )
+            val hierarchyProjectionFlow =
+                combine(
+                    hierarchyState,
+                    workspaceDao.observeAll(),
+                ) { hierarchy, workspaces ->
+                    hierarchy to workspaces
+                }
+
             val mainBeaconDetailsFlow =
                 mainBeaconRepository
                     .observeMainBeaconDetails()
@@ -188,10 +198,12 @@ class ProjectHierarchyScreenStateUseCase
                 combine(
                     searchUseCase.subStateStack,
                     searchUseCase.searchQuery,
-                    hierarchyState,
+                    hierarchyProjectionFlow,
                     orientationHierarchyInputsFlow,
                     searchUseCase.currentBreadcrumbs,
-                ) { subStateStack, searchQuery, hierarchy, orientationHierarchyInputs, breadcrumbs ->
+                ) { subStateStack, searchQuery, hierarchyProjection, orientationHierarchyInputs, breadcrumbs ->
+                    val hierarchy = hierarchyProjection.first
+                    val workspaces = hierarchyProjection.second
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
@@ -203,6 +215,7 @@ class ProjectHierarchyScreenStateUseCase
                                 groups = orientationHierarchyInputs.groups,
                                 parentLinks = orientationHierarchyInputs.parentLinks,
                                 beaconParentLinks = orientationHierarchyInputs.beaconParentLinks,
+                                workspaces = workspaces,
                             ),
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,

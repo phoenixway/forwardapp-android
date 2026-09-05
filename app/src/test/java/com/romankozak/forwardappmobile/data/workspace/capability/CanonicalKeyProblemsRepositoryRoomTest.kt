@@ -111,6 +111,50 @@ class CanonicalKeyProblemsRepositoryRoomTest {
     }
 
     @Test
+    fun `dateTime round trips and dateTime only update bumps Problem`() = runBlocking {
+        val database = database()
+        try {
+            seedOwner(database)
+            val repository = repository(database)
+
+            val problemId =
+                repository.createProblem(
+                    workspaceId = "owner",
+                    title = "Dated problem",
+                    now = 10L,
+                    dateTime = 1_234L,
+                )
+
+            var persisted = requireNotNull(database.workspaceProblemDao().getProblem(problemId))
+            assertEquals(1_234L, persisted.dateTime)
+            assertEquals(1L, persisted.version)
+            assertEquals(10L, persisted.updatedAt)
+            assertEquals(1_234L, repository.getItems("owner").single().problem.dateTime)
+
+            repository.updateProblem(
+                workspaceId = "owner",
+                problemId = problemId,
+                title = "Dated problem",
+                description = "",
+                status = WorkspaceProblemStatus.OPEN,
+                relatedWorkspaceIds = emptyList(),
+                relatedAttachmentIds = emptyList(),
+                now = 20L,
+                dateTime = 5_678L,
+            )
+
+            persisted = requireNotNull(database.workspaceProblemDao().getProblem(problemId))
+            assertEquals(5_678L, persisted.dateTime)
+            assertEquals(2L, persisted.version)
+            assertEquals(20L, persisted.updatedAt)
+            assertNull(persisted.syncedAt)
+            assertEquals(5_678L, repository.getItems("owner").single().problem.dateTime)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `delete tombstones owned refs and compacts remaining order`() = runBlocking {
         val database = database()
         try {

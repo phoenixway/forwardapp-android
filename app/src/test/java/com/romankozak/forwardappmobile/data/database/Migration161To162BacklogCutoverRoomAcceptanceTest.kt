@@ -23,6 +23,15 @@ import org.robolectric.RobolectricTestRunner
 class Migration161To162BacklogCutoverRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    private val migrations161To166 =
+        arrayOf(
+            MIGRATION_161_162,
+            MIGRATION_162_163,
+            MIGRATION_163_164,
+            MIGRATION_164_165,
+            MIGRATION_165_166,
+        )
+
     @Test
     fun `161 to 162 atomically materializes canonical Backlog and preserves legacy evidence`() {
         val dbName = "migration_161_162_backlog_cutover_success"
@@ -35,14 +44,14 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_161_162)
+                .addMigrations(*migrations161To166)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(162L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
 
             assertEquals(
                 1L,
@@ -141,6 +150,427 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
     }
 
     @Test
+    fun `161 to 166 cuts over materialized Goal identity required by Backlog`() {
+        val dbName = "migration_161_166_backlog_materialized_goal"
+        createFixture(
+            dbName = dbName,
+            itemType = "GOAL",
+            entityId = "goal-1",
+            withChecklistTarget = false,
+        )
+
+        val subjectId = stableLegacyGoalSubjectId("goal-1")
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+
+            insertSchemaAwareRow(
+                db,
+                "goals",
+                mapOf(
+                    "id" to "goal-1",
+                    "text" to "Historical Goal",
+                    "completed" to 0L,
+                    "goal_status" to "ACTIVE",
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "is_deleted" to 0L,
+                    "version" to 7L,
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "managed_subjects",
+                mapOf(
+                    "id" to subjectId,
+                    "subjectType" to "ORIENTATION",
+                    "title" to "Historical Goal",
+                    "description" to null,
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "syncedAt" to 19L,
+                    "isDeleted" to 0L,
+                    "version" to 7L,
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "orientations",
+                mapOf(
+                    "subjectId" to subjectId,
+                    "kind" to "GOAL",
+                    "lifecycle" to "ACTIVE",
+                    "lifecycleOrigin" to "UNSET",
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "legacy_subject_mappings",
+                mapOf(
+                    "id" to subjectId,
+                    "sourceType" to "GOAL",
+                    "sourceId" to "goal-1",
+                    "subjectId" to subjectId,
+                    "migrationVersion" to 3L,
+                    "state" to "MATERIALIZED",
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "syncedAt" to 19L,
+                    "isDeleted" to 0L,
+                    "version" to 7L,
+                ),
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            db.query(
+                """
+                SELECT subjectId, state, migrationVersion, updatedAt, syncedAt, version
+                FROM legacy_subject_mappings
+                WHERE sourceType='GOAL' AND sourceId='goal-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(subjectId, cursor.getString(0))
+                assertEquals("CUT_OVER", cursor.getString(1))
+                assertEquals(3, cursor.getInt(2))
+                assertTrue(cursor.getLong(3) > 20L)
+                assertTrue(cursor.isNull(4))
+                assertEquals(8L, cursor.getLong(5))
+            }
+
+            db.query(
+                """
+                SELECT targetKind, targetId, isDeleted
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ORIENTATION", cursor.getString(0))
+                assertEquals(subjectId, cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM managed_subjects WHERE id='${subjectId}'",
+                ),
+            )
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `161 to 166 reconstructs missing Goal identity required by Backlog`() {
+        val dbName = "migration_161_166_backlog_missing_goal_identity"
+        createFixture(
+            dbName = dbName,
+            itemType = "GOAL",
+            entityId = "goal-missing-graph",
+            withChecklistTarget = false,
+        )
+
+        val subjectId = stableLegacyGoalSubjectId("goal-missing-graph")
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+
+            insertSchemaAwareRow(
+                db,
+                "goals",
+                mapOf(
+                    "id" to "goal-missing-graph",
+                    "text" to "Historical Goal Without Graph",
+                    "description" to "Preserve me",
+                    "completed" to 0L,
+                    "goal_status" to "ACTIVE",
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "synced_at" to 19L,
+                    "is_deleted" to 0L,
+                    "version" to 7L,
+                    "scoring_status" to "NOT_ASSESSED",
+                    "valueImportance" to 0.0,
+                    "valueImpact" to 0.0,
+                ),
+            )
+
+            assertEquals(
+                0L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM legacy_subject_mappings " +
+                        "WHERE sourceType='GOAL' AND sourceId='goal-missing-graph'",
+                ),
+            )
+            assertEquals(
+                0L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM managed_subjects WHERE id='$subjectId'",
+                ),
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            db.query(
+                """
+                SELECT
+                    subjectId,
+                    state,
+                    migrationVersion,
+                    isDeleted,
+                    updatedAt,
+                    syncedAt,
+                    version
+                FROM legacy_subject_mappings
+                WHERE sourceType='GOAL'
+                  AND sourceId='goal-missing-graph'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(subjectId, cursor.getString(0))
+                assertEquals("CUT_OVER", cursor.getString(1))
+                assertEquals(3, cursor.getInt(2))
+                assertEquals(0, cursor.getInt(3))
+                assertTrue(cursor.getLong(4) > 20L)
+                assertTrue(cursor.isNull(5))
+                assertEquals(8L, cursor.getLong(6))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT
+                    subjectType,
+                    title,
+                    description,
+                    isDeleted,
+                    version
+                FROM managed_subjects
+                WHERE id=?
+                """.trimIndent(),
+                arrayOf(subjectId),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ORIENTATION", cursor.getString(0))
+                assertEquals("Historical Goal Without Graph", cursor.getString(1))
+                assertEquals("Preserve me", cursor.getString(2))
+                assertEquals(0, cursor.getInt(3))
+                assertEquals(7L, cursor.getLong(4))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT kind, lifecycle
+                FROM orientations
+                WHERE subjectId=?
+                """.trimIndent(),
+                arrayOf(subjectId),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("GOAL", cursor.getString(0))
+                assertEquals("READY", cursor.getString(1))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM orientation_assessments " +
+                        "WHERE orientationId='$subjectId'",
+                ),
+            )
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM orientation_assessment_revisions " +
+                        "WHERE orientationId='$subjectId'",
+                ),
+            )
+
+            db.query(
+                """
+                SELECT targetKind, targetId, isDeleted
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ORIENTATION", cursor.getString(0))
+                assertEquals(subjectId, cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `161 to 166 tombstones live Goal placement targeting deleted historical Goal`() {
+        val dbName = "migration_161_166_backlog_deleted_goal_target"
+        createFixture(
+            dbName = dbName,
+            itemType = "GOAL",
+            entityId = "deleted-goal",
+            withChecklistTarget = false,
+        )
+
+        val subjectId = stableLegacyGoalSubjectId("deleted-goal")
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+
+            insertSchemaAwareRow(
+                db,
+                "goals",
+                mapOf(
+                    "id" to "deleted-goal",
+                    "text" to "Deleted Historical Goal",
+                    "completed" to 0L,
+                    "goal_status" to "ACTIVE",
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "is_deleted" to 1L,
+                    "version" to 7L,
+                    "scoring_status" to "NOT_ASSESSED",
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "managed_subjects",
+                mapOf(
+                    "id" to subjectId,
+                    "subjectType" to "ORIENTATION",
+                    "title" to "Deleted Historical Goal",
+                    "description" to null,
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "syncedAt" to 19L,
+                    "isDeleted" to 1L,
+                    "version" to 7L,
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "orientations",
+                mapOf(
+                    "subjectId" to subjectId,
+                    "kind" to "GOAL",
+                    "lifecycle" to "ACTIVE",
+                    "lifecycleOrigin" to "UNSET",
+                ),
+            )
+            insertSchemaAwareRow(
+                db,
+                "legacy_subject_mappings",
+                mapOf(
+                    "id" to subjectId,
+                    "sourceType" to "GOAL",
+                    "sourceId" to "deleted-goal",
+                    "subjectId" to subjectId,
+                    "migrationVersion" to 3L,
+                    "state" to "MATERIALIZED",
+                    "createdAt" to 10L,
+                    "updatedAt" to 20L,
+                    "syncedAt" to 19L,
+                    "isDeleted" to 1L,
+                    "version" to 7L,
+                ),
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            db.query(
+                """
+                SELECT subjectId, state, isDeleted, version, syncedAt
+                FROM legacy_subject_mappings
+                WHERE sourceType='GOAL' AND sourceId='deleted-goal'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(subjectId, cursor.getString(0))
+                assertEquals("CUT_OVER", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertEquals(8L, cursor.getLong(3))
+                assertTrue(cursor.isNull(4))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT targetKind, targetId, isDeleted, version, updatedAt, syncedAt
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ORIENTATION", cursor.getString(0))
+                assertEquals(subjectId, cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertEquals(8L, cursor.getLong(3))
+                assertTrue(cursor.getLong(4) > 30L)
+                assertTrue(cursor.isNull(5))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM managed_subjects " +
+                        "WHERE id='$subjectId' AND isDeleted=1",
+                ),
+            )
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
     fun `161 to 162 preserves legacy Note as a distinct canonical target`() {
         val dbName = "migration_161_162_legacy_note"
         createFixture(
@@ -153,13 +583,13 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_161_162)
+                .addMigrations(*migrations161To166)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(162L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
             assertEquals(
                 "LEGACY_NOTE",
                 scalarString(
@@ -181,6 +611,289 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
     }
 
     @Test
+    fun `161 to 166 materializes missing deleted Backlog owner Workspace`() {
+        val dbName = "migration_161_166_backlog_missing_deleted_owner"
+        createFixture(
+            dbName = dbName,
+            itemType = "CHECKLIST",
+            entityId = "checklist-1",
+            withChecklistTarget = true,
+        )
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+            db.execSQL("DELETE FROM workspaces WHERE id = 'owner'")
+            db.execSQL("UPDATE contexts SET is_deleted = 1 WHERE id = 'owner'")
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            db.query(
+                """
+                SELECT
+                    nameOverride,
+                    isDeleted,
+                    provenance,
+                    sourceContextId
+                FROM workspaces
+                WHERE id='owner'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Owner", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals("CONTEXT_BACKED", cursor.getString(2))
+                assertEquals("owner", cursor.getString(3))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT isDeleted, version, syncedAt
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals(8L, cursor.getLong(1))
+                assertTrue(cursor.isNull(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `161 to 166 tombstones live Backlog placement and capability for deleted owner Workspace`() {
+        val dbName = "migration_161_166_backlog_deleted_owner"
+        createFixture(
+            dbName = dbName,
+            itemType = "CHECKLIST",
+            entityId = "checklist-1",
+            withChecklistTarget = true,
+        )
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+            db.execSQL("UPDATE contexts SET is_deleted = 1 WHERE id = 'owner'")
+            db.execSQL("UPDATE workspaces SET isDeleted = 1 WHERE id = 'owner'")
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM workspaces WHERE id='owner' AND isDeleted=1",
+                ),
+            )
+
+            db.query(
+                """
+                SELECT isDeleted, version, updatedAt, syncedAt
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals(8L, cursor.getLong(1))
+                assertTrue(cursor.getLong(2) > 30L)
+                assertTrue(cursor.isNull(3))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT
+                    state,
+                    configurationVersion,
+                    configuration,
+                    isDeleted,
+                    version
+                FROM workspace_capability_instances
+                WHERE workspaceId='owner'
+                  AND capabilityType='BACKLOG'
+                  AND instanceKey='default'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("DISABLED", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals("{}", cursor.getString(2))
+                assertEquals(1, cursor.getInt(3))
+                assertEquals(1L, cursor.getLong(4))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `161 to 166 materializes missing Workspace target for PROJECT placement`() {
+        val dbName = "migration_161_166_backlog_missing_project_target"
+        createFixture(
+            dbName = dbName,
+            itemType = "PROJECT",
+            entityId = "target-context",
+            withChecklistTarget = false,
+        )
+
+        openExisting161(dbName).use { helper ->
+            val db = helper.writableDatabase
+            insertSchemaAwareRow(
+                db,
+                "contexts",
+                mapOf(
+                    "id" to "target-context",
+                    "name" to "Target Context",
+                    "createdAt" to 3L,
+                    "updatedAt" to 3L,
+                    "is_deleted" to 0L,
+                    "version" to 1L,
+                ),
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM workspaces
+                    WHERE id='target-context'
+                      AND provenance='CONTEXT_BACKED'
+                      AND sourceContextId='target-context'
+                      AND isDeleted=0
+                    """.trimIndent(),
+                ),
+            )
+
+            db.query(
+                """
+                SELECT targetKind, targetId, isDeleted
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("WORKSPACE", cursor.getString(0))
+                assertEquals("target-context", cursor.getString(1))
+                assertEquals(0, cursor.getInt(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `161 to 166 preserves physically missing PROJECT target as canonical tombstone`() {
+        val dbName = "migration_161_166_backlog_physical_missing_project_target"
+        createFixture(
+            dbName = dbName,
+            itemType = "PROJECT",
+            entityId = "missing-target-context",
+            withChecklistTarget = false,
+        )
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations161To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(
+                0L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM contexts WHERE id='missing-target-context'",
+                ),
+            )
+            assertEquals(
+                0L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM workspaces WHERE id='missing-target-context'",
+                ),
+            )
+
+            db.query(
+                """
+                SELECT targetKind, targetId, isDeleted, version, updatedAt, syncedAt
+                FROM workspace_backlog_entries
+                WHERE id='placement-1'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("WORKSPACE", cursor.getString(0))
+                assertEquals("missing-target-context", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertEquals(8L, cursor.getLong(3))
+                assertTrue(cursor.getLong(4) > 30L)
+                assertTrue(cursor.isNull(5))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
     fun `161 to 162 unsupported legacy placement fails before canonical mutation and rolls back`() {
         val dbName = "migration_161_162_backlog_cutover_fail_closed"
         createFixture(
@@ -192,7 +905,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_161_162)
+                .addMigrations(*migrations161To166)
                 .allowMainThreadQueries()
                 .build()
 
@@ -376,6 +1089,15 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
             ),
         )
     }
+
+    private fun stableLegacyGoalSubjectId(goalId: String): String =
+        com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
+            .uuidV5(
+                java.util.UUID.fromString(
+                    com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid.NAMESPACE_UUID,
+                ),
+                "GOAL:$goalId",
+            ).toString()
 
     private fun openExisting161(dbName: String): SupportSQLiteOpenHelper {
         val configuration =

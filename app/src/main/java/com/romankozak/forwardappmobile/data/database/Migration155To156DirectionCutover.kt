@@ -28,6 +28,45 @@ val MIGRATION_155_156 =
             val cycleContextIds = cycleMembers(contexts.mapValues { it.value.parentId })
             val legacyRows = loadLegacyDirectionRows(db)
 
+            // A linked Context can have been legitimately soft-deleted before this
+            // cutover while the historical Direction row remained live. Preserve
+            // that row as a canonical tombstone instead of resurrecting its target
+            // or treating the database as corrupt. Truly missing targets still fail.
+            val cutoverRows =
+                legacyRows.map { row ->
+                    val owner =
+                        requireNotNull(contexts[row.contextId]) {
+                            "DIRECTION cutover blocked for ${row.id}: missing owner Context ${row.contextId}"
+                        }
+
+                    if (!row.isDeleted) {
+                        check(!owner.isDeleted) {
+                            "DIRECTION cutover blocked for ${row.id}: live row belongs to deleted Context ${owner.id}"
+                        }
+                    }
+
+                    val linkedContextId = row.linkedContextId?.trim()?.takeIf { it.isNotEmpty() }
+                    if (linkedContextId == null) {
+                        row
+                    } else {
+                        val target =
+                            requireNotNull(contexts[linkedContextId]) {
+                                "DIRECTION cutover blocked for ${row.id}: missing target Context $linkedContextId"
+                            }
+
+                        if (!row.isDeleted && target.isDeleted) {
+                            row.copy(
+                                updatedAt = now,
+                                syncedAt = null,
+                                isDeleted = true,
+                                version = row.version + 1L,
+                            )
+                        } else {
+                            row
+                        }
+                    }
+                }
+
             // Schema 156 makes canonical DIRECTION runtime authority immediately.
             // Provision every live legacy Context before direction_items disappears,
             // including Contexts that never had a Direction row. Otherwise their
@@ -51,17 +90,11 @@ val MIGRATION_155_156 =
                     )
                 }
 
-            legacyRows.forEach { row ->
+            cutoverRows.forEach { row ->
                 val owner =
                     requireNotNull(contexts[row.contextId]) {
                         "DIRECTION cutover blocked for ${row.id}: missing owner Context ${row.contextId}"
                     }
-
-                if (!row.isDeleted) {
-                    check(!owner.isDeleted) {
-                        "DIRECTION cutover blocked for ${row.id}: live row belongs to deleted Context ${owner.id}"
-                    }
-                }
 
                 ensureContextBackedWorkspace(
                     db = db,
@@ -98,12 +131,6 @@ val MIGRATION_155_156 =
                                 "DIRECTION cutover blocked for ${row.id}: missing target Context $linkedContextId"
                             }
 
-                        if (!row.isDeleted) {
-                            check(!target.isDeleted) {
-                                "DIRECTION cutover blocked for ${row.id}: live row targets deleted Context $linkedContextId"
-                            }
-                        }
-
                         ensureContextBackedWorkspace(
                             db = db,
                             context = target,
@@ -128,7 +155,7 @@ val MIGRATION_155_156 =
                 sourceIds = legacyRows.mapTo(hashSetOf()) { it.id },
             )
 
-            legacyRows.forEach { row ->
+            cutoverRows.forEach { row ->
                 verifyLegacyDirectionAccounted(
                     db = db,
                     row = row,

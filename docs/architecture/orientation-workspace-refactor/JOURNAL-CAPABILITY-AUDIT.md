@@ -1,16 +1,20 @@
 # Context JOURNAL capability audit
 
-Status: DECIDED RETIREMENT / STAGE A PRESERVATION CURRENT + VERIFIED / STAGE B PENDING
+Status: HISTORICAL / SUPERSEDED BY 2026-09-03 SCHEMA-165 HARD REMOVAL
 
-This document concerns only the legacy Context `journal_log` capability.
+This document preserves the pre-hard-removal audit of the legacy Context
+`journal_log` capability and its schema-164 Stage A preservation design.
 
 Life Journal activity data and EXECUTION_LOG are separate supported concepts and
-are outside this retirement.
+remain outside this retirement.
 
-Stage A Room preservation was subsequently implemented at schema 164. Stage B
-runtime/UI retirement remains governed by the constraints recorded here.
+The preservation, compatibility, reachability, special `JOURNAL_DOCUMENT`, and
+Stage B requirements below are historical. They were explicitly superseded by
+the 2026-09-03 hard-removal decision. Schema 165 deletes the retired Context
+Journal representation rather than preserving it as an ordinary document.
+See `docs/project/STATE.md` and `docs/project/DECISIONS.md` for current truth.
 
-## Accepted direction
+## Historical accepted direction
 
 Context JOURNAL is a retired legacy capability.
 
@@ -25,7 +29,7 @@ The existing NoteDocument is the content that must survive.
 
 The shared capability registry already classifies JOURNAL as RETIRED_LEGACY with RETIRED availability.
 
-## Current implementation
+## Historical implementation at time of audit
 
 Current Android stores the Context journal as a deterministic NoteDocument.
 
@@ -68,7 +72,7 @@ Therefore migration must not manufacture a canonical row-per-line event model fr
 
 Doing so would invent history and lifecycle semantics that do not exist in the source.
 
-## Canonical preservation target
+## Historical preservation target - superseded
 
 Retirement preserves the existing NoteDocument itself as ordinary document content.
 
@@ -82,7 +86,7 @@ The future cutover must:
 
 The document does not need to be copied into a new journal-specific content model.
 
-## CONNECTIONS dependency
+## Historical CONNECTIONS dependency
 
 NOTE_DOCUMENT and JOURNAL_DOCUMENT already participate in the ordinary legacy AttachmentEntity plus ContextAttachmentCrossRef placement path.
 
@@ -111,7 +115,7 @@ The lifecycle/reachability prerequisite is therefore satisfied. The retirement
 migration must still prove that the deterministic journal document has or gains
 a valid canonical placement before the special journal wrapper is removed.
 
-## Migration accounting requirements
+## Historical Stage A migration accounting requirements
 
 The Stage A retirement migration was required to explicitly account for:
 
@@ -127,7 +131,7 @@ The Stage A retirement migration was required to explicitly account for:
 
 No per-line canonical migration is required or permitted by current source semantics.
 
-## Safe-lane conclusion
+## Historical Stage A conclusion
 
 The JOURNAL domain decision and source audit are complete.
 

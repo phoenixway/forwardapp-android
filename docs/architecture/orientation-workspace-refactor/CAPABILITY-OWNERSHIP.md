@@ -1,9 +1,10 @@
 # Workspace capability ownership inventory
 
-Status: CURRENT inventory for the Phase 6 compatibility boundary.
+Status: CURRENT ownership inventory as of 2026-09-03.
 
-This document records current ownership before any capability-specific authority
-cutover. It does not itself move data or authorize UI changes.
+This document records current ownership across the compatibility foundation and
+the capability-specific authority cutovers completed since Phase 6. It does not
+itself move data or authorize UI changes.
 
 ## Cross-cutting ownership
 
@@ -54,9 +55,7 @@ backup, and sync rules.
 | `INBOX_SORTING` | Schema 163 canonical `INBOX_SORTING` instance/config is Android authority; legacy role/experimental state is migration/bootstrap input only | Policy owns typed rules only; it owns no target content or order rows | Applies conditionally to Backlog, Inbox, or Connections. The registry has no unconditional Inbox dependency; runtime validates the selected target capability and delegates to its canonical order owner | Capability lifecycle preserves target state. Legacy settings rows are cleared after atomic migration and retained only as historical/fallback evidence | Canonical capability configuration is used by Android backup/restore, merge and delta; legacy live export/delta is empty and legacy merge is ignored. Guarded pre-cutover full-backup fallback uses the frozen planner | HARD CUTOVER CURRENT / VERIFIED AT SCHEMA 163 |
 | `KEY_PROBLEMS` | Schema 157 canonical KEY_PROBLEMS instance/config; role/experimental enablement is resolved during the frozen `156 -> 157` cutover and canonical lifecycle continues through `CanonicalCapabilityInstanceStore` | `WorkspaceProblem` plus typed Workspace/Attachment ref rows; `ContextKeyProblemsRepository` is compatibility API only and delegates canonical storage/authoring | Unordered `WorkspaceProblemWorkspaceRef` and `WorkspaceProblemAttachmentRef` rows own relation identity/history; live new refs require existing non-deleted targets | Problem deletion tombstones the Problem and its live refs transactionally; `RESOLVED`/`CLOSED` remain live statuses; update never creates; capability lifecycle preserves content | The canonical three-field triplet is sole Android authority. Desktop persists/merges it as one validated read-only graph and projects normal Context rows only through exact `CONTEXT_BACKED.sourceContextId` ownership plus one active shared-valid `KEY_PROBLEMS/default`; invalid established metadata fails closed, while storage/history remains valid independently. Legacy `payloadJson` is only noncanonical/historical fallback. Desktop authoring, peer push and selective import remain deferred | ANDROID HARD CUTOVER + DESKTOP READ CONVERGENCE CURRENT / VERIFIED |
 | `DIRECTION` | Schema 156 canonical DIRECTION instance/config | Semantic Direction = `Orientation(kind=DIRECTION)`; placement/navigation = `WorkspaceDirectionEntry`; `DirectionItemEntity` is compatibility DTO only | Entry owns order/label and exactly one target; owner, capability, target, provenance and createdAt are immutable | Canonical capability lifecycle; legacy Direction persistence retired | Android and Desktop use dedicated exact-version `workspaceDirectionEntries` peer transport; Desktop Context ownership is proven only by exact `CONTEXT_BACKED.sourceContextId` (Workspace id coincidence has no authority); Desktop combines new semantic dependencies with placement, while generic shadow serialization and legacy `directionItems` push remain suppressed | ANDROID SCHEMA 156 + DESKTOP CONVERGENCE CURRENT / VERIFIED |
-| `ARTIFACT` | `ContextConfiguration.enableArtifact`, role defaults, resolver | `ContextArtifact` / `ContextArtifactRepository` | Context-scoped legacy ownership | Artifact deletion/content lifecycle remains its current repository; capability disable does not own it | Android -> Desktop live merge handles artifacts; focused baseline classifies these as Android-owned/readable rather than a canonical Workspace collection | NOT CUT OVER |
 | `DASHBOARD` | Canonical default `WorkspaceCapabilityInstance` is the Android runtime/settings/shared-projection authority for canonical-only and Context-backed Workspaces. First compatibility bootstrap materializes `ACTIVE` or `DISABLED`; later legacy `ContextConfiguration.enableDashboard`, role, or default changes cannot overwrite or resurrect canonical state | No dedicated persisted Dashboard content collection was found | Presentation/runtime composition over other owned data | Canonical lifecycle mutates instance metadata only; disable preserves data, archive requires explicit restore, restore returns to `DISABLED`, delete tombstones only the instance. Context/Workspace owner deletion tombstones the metadata row | No dedicated Dashboard content snapshot collection; canonical instance metadata travels in the atomic canonical Workspace payload | HARD CUTOVER CURRENT / VERIFIED END-TO-END ON ANDROID |
-| `JOURNAL` | Non-legacy `journal_log` capability from role/experimental capability ids | A deterministic `NoteDocument` (`system_journal_log_<contextId>`) via `NoteDocumentRepository` | The journal document remains Context-associated document data | Journal line/document mutation is document-repository behavior; disabling capability must not delete the document unless separately decided | Documents are bidirectional with Context-scoped Desktop push | NOT CUT OVER |
 | `EXECUTION_LOG` | Canonical default `WorkspaceCapabilityInstance` is the Android runtime/UI authority after cutover for authorized live Workspaces, including proven Context-backed owners. `ContextConfiguration.enableLog` is bootstrap/import compatibility input only. Typed v1 config is `{}` and unknown versions fail closed | `context_execution_logs` remains the physical collection, while canonical authority uses `contextId=null, workspaceId!=null`. `CanonicalExecutionLogRepository` owns authoring/lifecycle and `CanonicalExecutionLogSyncStore` owns canonical transport/merge invariants | Workspace ownership is the content boundary. Legacy Context rows are materialized only through proven live `CONTEXT_BACKED` provenance; unresolved/collision rows never gain authority | Explicit log deletion tombstones the row. Capability disable/archive/delete preserve content. Owner deletion tombstones live owned rows. Legacy newest-40 retention is not inherited by canonical runtime | `canonicalExecutionLogs` is the sole current Android live transport with backup/restore, merge, changed-since, Wi-Fi push, dependency closure and exact-version ACK. Legacy `SnapshotBundle.logs` export/delta is empty and live merge ignores it; old full-backup fallback is allowed only when the canonical field is absent. Desktop read-side convergence retains/validates the Android shadow, projects one proven Context-backed owner only through one active default shared-valid capability, and never emits the shadow. Legacy Desktop logs are historical/noncanonical fallback only | HARD CUTOVER CURRENT / VERIFIED ON ANDROID + DESKTOP READ CONVERGENCE CURRENT / VERIFIED; PERSISTENCE BRIDGE INTRODUCED AT SCHEMAS 153-154 |
 | `CONNECTIONS` | Schema 159 canonical CONNECTIONS instance/config; typed v1 config is `{}` | `AttachmentEntity` remains the global reusable attachment identity/content reference; CONNECTIONS owns no attachment content | `WorkspaceConnection` is the Android and Desktop ordered placement authority. `ContextAttachmentCrossRef` is compatibility-only | Unlink tombstones placement only. Capability disable/archive/delete preserve placements and Attachment content. Context/Workspace deletion tombstones live owned placements without deleting Attachments | Android and Desktop use dedicated exact-version `workspaceConnections` peer transport with Attachment dependency closure and post-export ACK. Desktop Context authoring/projection require exact `CONTEXT_BACKED.sourceContextId` ownership plus one active shared-valid `CONNECTIONS/default`; this runtime gate does not invalidate stored history. New Attachment + placement may share one SnapshotBundle because Android inserts Attachments before Connection merge. Generic canonical shadow and legacy cross-ref live transport are suppressed. Selective import waits for Workspace-aware selection | ANDROID SCHEMA 159 + DESKTOP CONVERGENCE CURRENT / VERIFIED |
 | `DOCUMENTS` | Reserved canonical type; no automatic legacy activation | Existing `NoteDocument` data remains in `NoteDocumentRepository` | Existing Context/document attachment placement remains legacy | Reserved capability has no accepted enable/disable/delete semantics yet | Existing documents are bidirectional, but the `DOCUMENTS` capability itself is not activated/migrated | RESERVED / DEFERRED |
@@ -78,11 +77,11 @@ canonical ownership is genuinely unavailable or the capability is not cut over.
 This presentation convergence does not change Desktop tab/navigation gating,
 lifecycle authoring, or peer transport.
 
-ARTIFACT and Context JOURNAL remain `NOT CUT OVER` because their accepted end
-state is retirement rather than canonical capability implementation. Their
-former CONNECTIONS/document-reachability prerequisite is now satisfied; the
-remaining work is their explicit retirement migration and legacy-surface
-removal.
+ARTIFACT and Context JOURNAL are no longer capability rows. Their retirement is
+`CURRENT / VERIFIED` at schema 165: the legacy capability/runtime/persistence/
+sync surfaces and retired payload are hard-removed rather than canonicalized.
+Strategic Arc's Artifact panel and Life Journal are separate product concepts
+and are not represented by those retired capability types.
 
 ## Sync ownership notes
 
@@ -92,10 +91,11 @@ baseline records:
 - goals, documents, and attachments as bidirectional with Context-scoped push;
   legacy backlog, Direction, and Inbox rows are local/file compatibility only;
 - Context configuration, Context parents, and key problems as Android read-only;
-- Context role profiles/items, structure items, and inbox sorting as Android
-  opaque;
-- Android -> Desktop live merge explicitly handles direction items, logs,
-  artifacts, and key problems.
+- Context role profiles/items and structure items as Android opaque;
+- canonical INBOX_SORTING configuration is Android-owned after schema 163;
+- current Android -> Desktop flows use the capability-specific canonical
+  boundaries recorded in the matrix; retired Artifact transport no longer
+  exists.
 
 Canonical Workspace state is a separate Android-owned atomic canonical payload.
 Desktop stores the Workspace collection as Android read-only canonical state and
@@ -132,9 +132,10 @@ capability lifecycle cannot delete shared Attachment content.
 BACKLOG explicit placement authority is hard-cut over on Android at schema 162.
 `workspace_backlog_entries` are the sole runtime explicit-placement authority
 for authorized Workspaces. Hashtag and structural appearances remain local
-non-authoritative projections. Legacy `list_items` and `backlog_orders` are
-retained only for pending Stage-7 transport compatibility and Stage-8 cleanup;
-runtime commands and readers must not restore their authority.
+non-authoritative projections. Stages 7 and 8 are complete; legacy `list_items`
+and `backlog_orders` remain only as historical migration evidence and for the
+guarded pre-cutover full-backup planner fallback. Runtime commands, readers,
+and live transport must not restore their authority.
 
 Other capability content not explicitly described above as canonical remains on
 its recorded legacy or partial ownership boundary.

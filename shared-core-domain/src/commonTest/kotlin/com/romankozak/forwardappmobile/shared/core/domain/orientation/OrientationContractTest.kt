@@ -110,4 +110,65 @@ class OrientationContractTest {
             diagnostics = emptyList(),
         )
     }
+
+
+    @Test
+    fun `initial assessment honors special Orientation kind applicability`() {
+        val ongoing =
+            initialOrientationAssessment(
+                com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.ONGOING_STANDARD,
+            )
+
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ExpectedSpanValue.ONGOING.name,
+            ongoing.expectedSpan.valueCode,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.DERIVED,
+            ongoing.expectedSpan.origin,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.NOT_APPLICABLE,
+            ongoing.targetWindow.origin,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.UNSET,
+            ongoing.importance.origin,
+        )
+        kotlin.test.assertTrue(
+            validateOrientationAssessment(
+                com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.ONGOING_STANDARD,
+                ongoing,
+            ).isEmpty(),
+        )
+
+        val dayTheme =
+            initialOrientationAssessment(
+                com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.DAY_THEME,
+            )
+
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.NOT_APPLICABLE,
+            dayTheme.expectedSpan.origin,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.NOT_APPLICABLE,
+            dayTheme.targetWindow.origin,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.NOT_APPLICABLE,
+            dayTheme.attentionTier.origin,
+        )
+        kotlin.test.assertEquals(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin.UNSET,
+            dayTheme.importance.origin,
+        )
+        kotlin.test.assertTrue(
+            validateOrientationAssessment(
+                com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.DAY_THEME,
+                dayTheme,
+            ).isEmpty(),
+        )
+    }
+
 }

@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.GoalOrientationBridge
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
@@ -56,6 +57,7 @@ class GoalRepository
         private val database: AppDatabase,
         private val orientationDao: OrientationDao,
         private val canonicalOrientationRepository: CanonicalOrientationRepository,
+        private val goalOrientationBridge: GoalOrientationBridge,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -174,7 +176,7 @@ class GoalRepository
         ) {
             val now = System.currentTimeMillis()
             val updatedGoal = normalizeGoalState(goal).bumpSync(now)
-            goalDao.updateGoal(updatedGoal)
+            goalOrientationBridge.updateGoal(updatedGoal)
             val resolvedSourceContextId =
                 sourceContextId?.takeIf { it.isNotBlank() }
                     ?: backlogPlacementCommands.findFirstContextBackedWorkspaceId(
@@ -195,7 +197,9 @@ class GoalRepository
         suspend fun updateGoals(goals: List<Goal>) {
             if (goals.isNotEmpty()) {
                 val now = System.currentTimeMillis()
-                goalDao.updateGoals(goals.map { normalizeGoalState(it).bumpSync(now) })
+                goalOrientationBridge.updateGoals(
+                    goals.map { normalizeGoalState(it).bumpSync(now) },
+                )
             }
         }
 
@@ -223,7 +227,13 @@ class GoalRepository
             }
 
             if (newText != goal.text) {
-                goalDao.updateGoal(goal.copy(text = newText, updatedAt = System.currentTimeMillis()))
+                val now = System.currentTimeMillis()
+                goalOrientationBridge.updateGoal(
+                    goal.copy(
+                        text = newText,
+                        updatedAt = now,
+                    ).bumpSync(now),
+                )
             }
         }
 
@@ -262,6 +272,8 @@ class GoalRepository
                         if (existingLinks.any { it.type == LinkType.CONTEXT && it.target == sourceContextLink.target }) {
                             return@forEach
                         }
+                        // relatedLinks is Goal-only compatibility state and is
+                        // intentionally not a canonical Orientation mutation.
                         goalDao.updateGoal(
                             goal.copy(
                                 relatedLinks = existingLinks + sourceContextLink,
@@ -281,29 +293,55 @@ class GoalRepository
             val originalGoals = goalDao.getGoalsByIdsSuspend(goalIds)
             val now = System.currentTimeMillis()
 
-            originalGoals.forEach { original ->
-                val newGoal = original.copy(id = UUID.randomUUID().toString(), createdAt = now, updatedAt = now, syncedAt = null)
-                goalDao.insertGoal(newGoal)
+            database.withTransaction {
+                originalGoals.forEach { original ->
+                    val newGoal =
+                        original.copy(
+                            id = UUID.randomUUID().toString(),
+                            createdAt = now,
+                            updatedAt = now,
+                            syncedAt = null,
+                        )
+                    goalDao.insertGoal(newGoal)
+                    createCanonicalGoalSubject(newGoal)
 
-                backlogPlacementCommands.addToContextBacked(
-                    contextId = targetContextId,
-                    itemType = BacklogItemTypeValues.GOAL,
-                    entityId = newGoal.id,
-                )
+                    backlogPlacementCommands.addToContextBacked(
+                        contextId = targetContextId,
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = newGoal.id,
+                    )
+                }
             }
         }
 
         suspend fun deleteGoal(goalId: String) {
             val now = System.currentTimeMillis()
-            goalDao.getGoalById(goalId)?.let { goal ->
-                goalDao.insertGoal(goal.softDelete(now))
+            database.withTransaction {
+                goalDao.getGoalById(goalId)?.let { goal ->
+                    if (!goal.isDeleted) {
+                        goalDao.insertGoal(goal.softDelete(now))
+                    }
+                }
+
+                // Resolve/tombstone canonical BACKLOG placement while the live
+                // GOAL mapping still identifies its Orientation target. A retry
+                // after canonical identity tombstone must not re-enter the
+                // resolver through an already-deleted mapping.
+                val mapping =
+                    orientationDao.getLegacyMapping(
+                        BacklogItemTypeValues.GOAL,
+                        goalId,
+                    )
+                if (mapping?.isDeleted != true) {
+                    backlogPlacementCommands.tombstoneContextBackedTarget(
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = goalId,
+                        now = now,
+                    )
+                }
+                goalOrientationBridge.tombstoneCanonicalIfCutOver(goalId, now)
             }
             tagAssociationHandler.removeGoalAssociations(goalId)
-            backlogPlacementCommands.tombstoneContextBackedTarget(
-                itemType = BacklogItemTypeValues.GOAL,
-                entityId = goalId,
-                now = now,
-            )
         }
 
         suspend fun findContextIdForGoal(goalId: String): String? =

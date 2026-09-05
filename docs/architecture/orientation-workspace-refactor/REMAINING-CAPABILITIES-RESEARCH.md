@@ -20,7 +20,7 @@ repository. Their current semantics fall into different architectural classes:
 | Policy/configuration | `INBOX_SORTING` | Configure and invoke behavior over other capabilities; own no target content |
 | Presentation | `DASHBOARD` | Compose other state; currently owns metadata only |
 | Reserved content surfaces | `DOCUMENTS`, `NOTES`, `ATTACHMENTS` | Require explicit product semantics before activation |
-| Retired legacy wrappers | `ARTIFACT`, context `JOURNAL` | Preserve text as ordinary documents/notes; create no canonical capability |
+| Hard-retired legacy wrappers | `ARTIFACT`, context `JOURNAL` | Removed at schema 165; no payload-preservation or compatibility requirement; create no canonical capability |
 
 The implemented capabilities provide strong reusable invariants, but their
 repositories must not become templates by copy-and-paste. `DASHBOARD` proves a
@@ -385,49 +385,49 @@ Room/runtime/apply authority remains blocked until canonical ordering exists
 for every allowed target. The implemented source foundation does not mutate
 legacy settings or target collections.
 
-### ARTIFACT: retire the capability and preserve its text
+### ARTIFACT: hard-retired at schema 165
 
-#### Current facts
+#### Historical source facts
 
-`ContextArtifact` contains id, Context id, content, and timestamps, but no
-version, sync acknowledgement, or tombstone. DAO/API behavior expects one
-artifact per Context, while the database does not enforce uniqueness. Draft id
-creation is inconsistent between call sites.
+Before hard removal, `ContextArtifact` contained id, Context id, content, and
+timestamps but had no canonical version, sync acknowledgement, or tombstone
+semantics. DAO/API behavior expected one Artifact per Context although database
+uniqueness did not enforce that assumption.
 
-#### Accepted target
+#### Current outcome
 
-Do not create canonical Artifact content, binding, repository, or capability.
-The concept predates general notes/documents and Connections and no longer owns
-distinct semantics.
+Do not create canonical Artifact content, binding, repository, capability, or
+compatibility materialization.
 
-For each non-empty legacy row, create the simplest ordinary note/document with
-a deterministic migration identity and associate it with the owning Workspace
-through the normal connection/placement model. Preserve multiple rows
-individually when present; do not collapse them into one merely because current
-code expected singleton behavior.
+Schema 165 intentionally removes `context_artifacts`, Artifact enablement
+configuration, retired capability instances, and recognizable retired Artifact
+document/attachment representations. Legacy Artifact payload preservation is
+not required and old Artifact backup compatibility is intentionally unsupported.
 
-Migration must account for blank rows, multiple rows, missing owners, stable
-document identity, and post-migration reachability before removing Artifact
-configuration and persistence.
+Strategic Arc's Artifact panel is unrelated. It remains ordinary
+`NOTE_DOCUMENT` content with `roleCode = "strategic_arc_artifact"`.
 
-### Context JOURNAL: retire the capability, retain the document
+### Context JOURNAL: hard-retired at schema 165
 
-#### Current facts
+#### Historical source facts
 
-The capability currently binds a deterministic `NoteDocument` named
-`system_journal_log_<contextId>`. UI operations treat lines as entries, but
-persistence replaces/reorders the whole document. Lines have no stable ids,
-timestamps, versions, or tombstones of their own.
+Before hard removal, the capability bound a deterministic `NoteDocument` named
+`system_journal_log_<contextId>`. UI operations treated lines as entries, while
+persistence replaced/reordered the whole document. Those lines had no stable
+ids, timestamps, versions, or tombstones of their own.
 
-#### Accepted target
+#### Current outcome
 
-Do not build `WorkspaceJournalEntry`, a document binding, or another canonical
-JOURNAL capability. Preserve the existing `NoteDocument` as ordinary reachable
-note/document content, remove its special `system_journal_log` role and
-capability activation, and retire legacy runtime paths after accounting.
+Do not build `WorkspaceJournalEntry`, a document binding, another canonical
+JOURNAL capability, or compatibility materialization.
 
-This decision concerns only the Context `journal_log` capability. Life Journal
-activity records and EXECUTION_LOG remain distinct supported concepts.
+Schema 165 intentionally removes the special `system_journal_log_*` content,
+the `JOURNAL_DOCUMENT` semantic role, retired capability instances, related
+placements, and runtime/navigation paths rather than preserving that document.
+
+This retirement concerns only the former Context `journal_log` concept.
+Life Journal / `DayManagementTab.JOURNAL` and EXECUTION_LOG remain distinct
+supported concepts.
 
 ### DOCUMENTS, NOTES, and ATTACHMENTS: keep reserved
 
@@ -499,9 +499,9 @@ For every capability, produce a focused cutover audit containing:
 | BACKLOG has two order authorities | Reorder/sync can diverge | One canonical placement row owns order | `large` as part of cutover |
 | Hashtag backlog rows mix cache and authority | Rebuildable state can delete or duplicate explicit state | Separate derived projection from explicit placement | `medium` within Backlog work |
 | INBOX_SORTING legacy dependency model was false | It could mutate capabilities it did not declare | Typed policy, conditional target validation, canonical delegation, and schema-163 cutover are implemented | `medium`; Android authority current/verified |
-| ARTIFACT singleton is not constrained | Multiple rows lead to arbitrary reads/data loss on migration | Preserve every non-empty row as ordinary connected document; retire capability | `small` to `medium` |
+| ARTIFACT singleton was not constrained | Historical source could contain multiple rows | Resolved by schema-165 hard removal; no payload-preservation requirement | `resolved` |
 | CONNECTIONS uses physical deletes | Stale remote rows can resurrect and shared content may be destroyed | Tombstone placement; explicit content deletion | `medium` |
-| Context JOURNAL duplicates documents | Canonicalizing it would create a second weak log/document concept | Preserve its NoteDocument and retire capability wrapper | `small` |
+| Context JOURNAL duplicated documents | Canonicalizing it would have created a second weak log/document concept | Resolved by schema-165 hard removal; Life Journal remains separate | `resolved` |
 | Canonical docs conflict on Desktop parity | Agents can implement obsolete compatibility work | Record global superseding decision and update plan/rules | `tiny` |
 
 None of these findings blocks completion of the DIRECTION agent's current

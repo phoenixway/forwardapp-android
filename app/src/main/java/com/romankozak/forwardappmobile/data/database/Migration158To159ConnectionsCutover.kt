@@ -9,6 +9,7 @@ import java.util.UUID
 val MIGRATION_158_159 =
     object : Migration(158, 159) {
         override fun migrate(db: SupportSQLiteDatabase) {
+            val now = System.currentTimeMillis()
             createWorkspaceConnectionsTable(db)
             check(scalarLong159(db, "SELECT COUNT(*) FROM workspace_connections") == 0L) {
                 "CONNECTIONS cutover blocked: canonical table already contains data"
@@ -16,7 +17,8 @@ val MIGRATION_158_159 =
 
             val diagnostics = mutableListOf<String>()
             validateLegacyConnections(db, diagnostics)
-            ensureTypedConnectionsCapabilities(db)
+            ensureConnectionsOwnerWorkspaces(db, diagnostics)
+            ensureTypedConnectionsCapabilities(db, now)
             validateResolvedOwners(db, diagnostics)
             validateResolvedCapabilities(db, diagnostics)
             validateResolvedAttachments(db, diagnostics)
@@ -24,7 +26,7 @@ val MIGRATION_158_159 =
                 "CONNECTIONS cutover blocked:\n${diagnostics.distinct().joinToString("\n")}"
             }
 
-            insertCanonicalConnections(db)
+            insertCanonicalConnections(db, now)
             check(
                 scalarLong159(db, "SELECT COUNT(*) FROM workspace_connections") ==
                     scalarLong159(db, "SELECT COUNT(*) FROM context_attachment_cross_ref"),
@@ -102,24 +104,264 @@ private fun validateLegacyConnections(
     }
 }
 
-private fun ensureTypedConnectionsCapabilities(db: SupportSQLiteDatabase) {
+private data class ConnectionsContext159(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val parentId: String?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val isDeleted: Boolean,
+    val version: Long,
+    val order: Long,
+    val roleCode: String?,
+)
+
+private fun ensureConnectionsOwnerWorkspaces(
+    db: SupportSQLiteDatabase,
+    diagnostics: MutableList<String>,
+) {
+    val contexts = loadConnectionsContexts159(db)
+    val cycleContextIds = cycleMembers159(contexts.mapValues { it.value.parentId })
+
+    val ownerContextIds =
+        db.query(
+            """
+            SELECT DISTINCT context_id
+            FROM context_attachment_cross_ref
+            ORDER BY context_id
+            """.trimIndent(),
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0))
+            }
+        }
+
+    ownerContextIds.forEach { contextId ->
+        val context = contexts[contextId]
+        if (context == null) {
+            diagnostics += "UNRESOLVED_OWNER_CONTEXT: Context $contextId does not exist"
+            return@forEach
+        }
+
+        ensureConnectionsContextWorkspace159(
+            db = db,
+            context = context,
+            contexts = contexts,
+            cycleContextIds = cycleContextIds,
+            diagnostics = diagnostics,
+        )
+    }
+}
+
+private fun ensureConnectionsContextWorkspace159(
+    db: SupportSQLiteDatabase,
+    context: ConnectionsContext159,
+    contexts: Map<String, ConnectionsContext159>,
+    cycleContextIds: Set<String>,
+    diagnostics: MutableList<String>,
+) {
+    val resolvedWorkspaceIds =
+        db.query(
+            """
+            SELECT id
+            FROM workspaces
+            WHERE sourceContextId = ?
+              AND provenance = 'CONTEXT_BACKED'
+            ORDER BY id
+            """.trimIndent(),
+            arrayOf<Any?>(context.id),
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0))
+            }
+        }
+
+    // Existing canonical ownership is authoritative at schema 158. Do not
+    // re-project an already materialized Workspace from legacy Context data.
+    if (resolvedWorkspaceIds.isNotEmpty()) return
+
+    val parentContextId =
+        context.parentId
+            ?.takeIf { it in contexts }
+            ?.takeUnless { context.id in cycleContextIds }
+
+    if (parentContextId != null) {
+        ensureConnectionsContextWorkspace159(
+            db = db,
+            context = requireNotNull(contexts[parentContextId]),
+            contexts = contexts,
+            cycleContextIds = cycleContextIds,
+            diagnostics = diagnostics,
+        )
+
+        val parentExists =
+            scalarLong159(
+                db,
+                "SELECT COUNT(*) FROM workspaces " +
+                    "WHERE id = '${sqlLiteral159(parentContextId)}' " +
+                    "AND provenance = 'CONTEXT_BACKED' " +
+                    "AND sourceContextId = '${sqlLiteral159(parentContextId)}'",
+            ) == 1L
+
+        if (!parentExists) {
+            diagnostics +=
+                "UNRESOLVED_PARENT_WORKSPACE: Context ${context.id} parent $parentContextId " +
+                    "has no canonical CONTEXT_BACKED Workspace"
+            return
+        }
+    }
+
+    val collision =
+        db.query(
+            """
+            SELECT provenance, sourceContextId
+            FROM workspaces
+            WHERE id = ?
+            LIMIT 1
+            """.trimIndent(),
+            arrayOf<Any?>(context.id),
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) {
+                null
+            } else {
+                val provenance = cursor.getString(0)
+                val sourceContextId = if (cursor.isNull(1)) null else cursor.getString(1)
+                provenance to sourceContextId
+            }
+        }
+
+    if (collision != null) {
+        diagnostics +=
+            "OWNER_WORKSPACE_ID_COLLISION: Context ${context.id} collides with " +
+                "${collision.first} Workspace sourceContextId=${collision.second}"
+        return
+    }
+
+    db.execSQL(
+        """
+        INSERT INTO workspaces (
+            id,
+            nameOverride,
+            descriptionOverride,
+            parentWorkspaceId,
+            roleCode,
+            workspaceOrder,
+            createdAt,
+            updatedAt,
+            syncedAt,
+            isDeleted,
+            version,
+            provenance,
+            sourceContextId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'CONTEXT_BACKED', ?)
+        """.trimIndent(),
+        arrayOf<Any?>(
+            context.id,
+            context.name,
+            context.description,
+            parentContextId,
+            context.roleCode,
+            context.order,
+            context.createdAt,
+            context.updatedAt ?: context.createdAt,
+            if (context.isDeleted) 1 else 0,
+            context.version.coerceAtLeast(1L),
+            context.id,
+        ),
+    )
+}
+
+private fun loadConnectionsContexts159(
+    db: SupportSQLiteDatabase,
+): Map<String, ConnectionsContext159> =
+    db.query(
+        """
+        SELECT
+            id,
+            name,
+            description,
+            parentId,
+            createdAt,
+            updatedAt,
+            is_deleted,
+            version,
+            goal_order,
+            role_code
+        FROM contexts
+        """.trimIndent(),
+    ).use { cursor ->
+        buildMap {
+            while (cursor.moveToNext()) {
+                val row =
+                    ConnectionsContext159(
+                        id = cursor.getString(0),
+                        name = cursor.getString(1),
+                        description = if (cursor.isNull(2)) null else cursor.getString(2),
+                        parentId = if (cursor.isNull(3)) null else cursor.getString(3),
+                        createdAt = cursor.getLong(4),
+                        updatedAt = if (cursor.isNull(5)) null else cursor.getLong(5),
+                        isDeleted = cursor.getInt(6) != 0,
+                        version = cursor.getLong(7),
+                        order = cursor.getLong(8),
+                        roleCode = if (cursor.isNull(9)) null else cursor.getString(9),
+                    )
+                put(row.id, row)
+            }
+        }
+    }
+
+private fun cycleMembers159(parentById: Map<String, String?>): Set<String> {
+    val result = mutableSetOf<String>()
+
+    parentById.keys.forEach { start ->
+        val path = mutableListOf<String>()
+        val indexById = mutableMapOf<String, Int>()
+        var current: String? = start
+
+        while (current != null && current in parentById && current !in result) {
+            val repeatedAt = indexById[current]
+            if (repeatedAt != null) {
+                result += path.drop(repeatedAt)
+                break
+            }
+            indexById[current] = path.size
+            path += current
+            current = parentById[current]
+        }
+    }
+
+    return result
+}
+
+private fun ensureTypedConnectionsCapabilities(
+    db: SupportSQLiteDatabase,
+    now: Long,
+) {
     val owners =
         db.query(
             """
-            SELECT DISTINCT w.id, w.createdAt
+            SELECT DISTINCT w.id, w.createdAt, w.isDeleted
             FROM context_attachment_cross_ref ref
             JOIN workspaces w
               ON w.sourceContextId = ref.context_id
              AND w.provenance = 'CONTEXT_BACKED'
-             AND w.isDeleted = 0
             """.trimIndent(),
         ).use { cursor ->
             buildList {
-                while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getLong(1))
+                while (cursor.moveToNext()) {
+                    add(
+                        Triple(
+                            cursor.getString(0),
+                            cursor.getLong(1),
+                            cursor.getInt(2) != 0,
+                        ),
+                    )
+                }
             }
         }
 
-    owners.forEach { (workspaceId, createdAt) ->
+    owners.forEach { (workspaceId, createdAt, ownerDeleted) ->
         val existing =
             db.query(
                 """
@@ -139,6 +381,8 @@ private fun ensureTypedConnectionsCapabilities(db: SupportSQLiteDatabase) {
                     "SELECT COALESCE(MAX(capabilityOrder), -1) + 1 FROM workspace_capability_instances " +
                         "WHERE workspaceId = '${sqlLiteral159(workspaceId)}'",
                 )
+            val canonicalUpdatedAt = if (ownerDeleted) now else createdAt
+            val canonicalDeleted = if (ownerDeleted) 1 else 0
             db.execSQL(
                 """
                 INSERT INTO workspace_capability_instances (
@@ -147,9 +391,30 @@ private fun ensureTypedConnectionsCapabilities(db: SupportSQLiteDatabase) {
                     syncedAt, isDeleted, version
                 ) VALUES (
                     '${sqlLiteral159(id)}', '${sqlLiteral159(workspaceId)}', 'CONNECTIONS',
-                    'default', $order, 'ACTIVE', 1, '{}', $createdAt, $createdAt,
-                    NULL, 0, 1
+                    'default', $order, 'ACTIVE', 1, '{}', $createdAt, $canonicalUpdatedAt,
+                    NULL, $canonicalDeleted, 1
                 )
+                """.trimIndent(),
+            )
+        } else if (ownerDeleted) {
+            // Capability deletion preserves lifecycle state. A historical
+            // placement under an already-deleted owner therefore needs a
+            // tombstoned capability anchor, not capability resurrection.
+            db.execSQL(
+                """
+                UPDATE workspace_capability_instances
+                SET configurationVersion = 1,
+                    configuration = '{}',
+                    updatedAt = $now,
+                    syncedAt = NULL,
+                    isDeleted = 1,
+                    version = version + 1
+                WHERE id = '${sqlLiteral159(existing)}'
+                  AND (
+                      isDeleted = 0 OR
+                      configurationVersion != 1 OR
+                      configuration != '{}'
+                  )
                 """.trimIndent(),
             )
         } else {
@@ -180,7 +445,6 @@ private fun validateResolvedOwners(
         LEFT JOIN workspaces w
           ON w.sourceContextId = ref.context_id
          AND w.provenance = 'CONTEXT_BACKED'
-         AND w.isDeleted = 0
         GROUP BY ref.context_id
         HAVING COUNT(DISTINCT w.id) != 1
         """.trimIndent(),
@@ -202,12 +466,10 @@ private fun validateResolvedCapabilities(
         JOIN workspaces w
           ON w.sourceContextId = ref.context_id
          AND w.provenance = 'CONTEXT_BACKED'
-         AND w.isDeleted = 0
         LEFT JOIN workspace_capability_instances cap
           ON cap.workspaceId = w.id
          AND cap.capabilityType = 'CONNECTIONS'
          AND cap.instanceKey = 'default'
-         AND cap.isDeleted = 0
         GROUP BY ref.context_id
         HAVING COUNT(DISTINCT cap.id) != 1
         """.trimIndent(),
@@ -234,21 +496,12 @@ private fun validateResolvedAttachments(
             diagnostics += "UNRESOLVED_ATTACHMENT: ${cursor.getString(0)} / ${cursor.getString(1)}"
         }
     }
-    db.query(
-        """
-        SELECT ref.context_id, ref.attachment_id
-        FROM context_attachment_cross_ref ref
-        JOIN attachments a ON a.id = ref.attachment_id
-        WHERE ref.isDeleted = 0 AND a.isDeleted = 1
-        """.trimIndent(),
-    ).use { cursor ->
-        while (cursor.moveToNext()) {
-            diagnostics += "LIVE_PLACEMENT_TARGETS_DELETED_ATTACHMENT: ${cursor.getString(0)} / ${cursor.getString(1)}"
-        }
-    }
 }
 
-private fun insertCanonicalConnections(db: SupportSQLiteDatabase) {
+private fun insertCanonicalConnections(
+    db: SupportSQLiteDatabase,
+    now: Long,
+) {
     db.execSQL(
         """
         INSERT INTO workspace_connections (
@@ -263,10 +516,26 @@ private fun insertCanonicalConnections(db: SupportSQLiteDatabase) {
             ranked.attachment_id,
             ranked.canonicalOrder,
             0,
-            COALESCE(ranked.updatedAt, 0),
+            CASE
+                WHEN ranked.isDeleted = 0 AND
+                     (ranked.attachmentIsDeleted = 1 OR ranked.workspaceIsDeleted = 1)
+                    THEN $now
+                ELSE COALESCE(ranked.updatedAt, 0)
+            END,
             NULL,
-            ranked.isDeleted,
-            ranked.version
+            CASE
+                WHEN ranked.isDeleted != 0 OR
+                     ranked.attachmentIsDeleted != 0 OR
+                     ranked.workspaceIsDeleted != 0
+                    THEN 1
+                ELSE 0
+            END,
+            CASE
+                WHEN ranked.isDeleted = 0 AND
+                     (ranked.attachmentIsDeleted = 1 OR ranked.workspaceIsDeleted = 1)
+                    THEN ranked.version + 1
+                ELSE ranked.version
+            END
         FROM (
             SELECT ref.*,
                    w.id AS workspaceId,
@@ -274,21 +543,27 @@ private fun insertCanonicalConnections(db: SupportSQLiteDatabase) {
                    ROW_NUMBER() OVER (
                        PARTITION BY cap.id
                        ORDER BY
-                           CASE WHEN ref.isDeleted = 0 THEN 0 ELSE 1 END,
+                           CASE
+                               WHEN ref.isDeleted = 0 AND
+                                    a.isDeleted = 0 AND
+                                    w.isDeleted = 0
+                                   THEN 0
+                               ELSE 1
+                           END,
                            ref.attachment_order ASC,
                            a.createdAt DESC,
                            ref.attachment_id ASC
-                   ) - 1 AS canonicalOrder
+                   ) - 1 AS canonicalOrder,
+                   a.isDeleted AS attachmentIsDeleted,
+                   w.isDeleted AS workspaceIsDeleted
             FROM context_attachment_cross_ref ref
             JOIN workspaces w
               ON w.sourceContextId = ref.context_id
              AND w.provenance = 'CONTEXT_BACKED'
-             AND w.isDeleted = 0
             JOIN workspace_capability_instances cap
               ON cap.workspaceId = w.id
              AND cap.capabilityType = 'CONNECTIONS'
              AND cap.instanceKey = 'default'
-             AND cap.isDeleted = 0
             JOIN attachments a ON a.id = ref.attachment_id
         ) ranked
         JOIN workspace_capability_instances cap ON cap.id = ranked.capabilityInstanceId

@@ -117,6 +117,75 @@ class MainBeaconOrientationCutoverTest {
         assertEquals(3L, restored.version)
     }
 
+
+    @Test
+    fun `legacy import can materialize membership for already cut over mappings`() {
+        val fixture = fixture()
+        val first = cutOver(fixture)
+        val cutOverMappings =
+            fixture.rows.map { row -> first.mappings.first { it.id == row.mapping.id } }
+
+        val restored =
+            planMainBeaconCutover(
+                projections = fixture.projections,
+                mappings = cutOverMappings,
+                subjects = fixture.rows.map { it.subject },
+                orientations = fixture.rows.map { it.orientation },
+                legacyMembers =
+                    listOf(
+                        MainBeaconGroupMember(
+                            groupId = group.id,
+                            beaconId = beacon.id,
+                            order = 11L,
+                        ),
+                    ),
+                existingRelations = emptyList(),
+                now = 300L,
+                migrationVersion = 2,
+                ingestLegacyMembershipsForExistingCutOver = true,
+            )
+
+        assertTrue(restored.mappings.isEmpty())
+        assertEquals(1, restored.relationChanges.size)
+        with(restored.relationChanges.single()) {
+            assertEquals(fixture.rows[0].subject.id, fromOrientationId)
+            assertEquals(fixture.rows[1].subject.id, toOrientationId)
+            assertEquals("PART_OF", relationType)
+            assertEquals(11L, relationOrder)
+            assertFalse(isDeleted)
+        }
+    }
+
+    @Test
+    fun `ordinary bootstrap does not ingest legacy membership for already cut over mappings`() {
+        val fixture = fixture()
+        val first = cutOver(fixture)
+        val cutOverMappings =
+            fixture.rows.map { row -> first.mappings.first { it.id == row.mapping.id } }
+
+        val ordinary =
+            planMainBeaconCutover(
+                projections = fixture.projections,
+                mappings = cutOverMappings,
+                subjects = fixture.rows.map { it.subject },
+                orientations = fixture.rows.map { it.orientation },
+                legacyMembers =
+                    listOf(
+                        MainBeaconGroupMember(
+                            groupId = group.id,
+                            beaconId = beacon.id,
+                            order = 11L,
+                        ),
+                    ),
+                existingRelations = emptyList(),
+                now = 300L,
+                migrationVersion = 2,
+            )
+
+        assertTrue(ordinary.mappings.isEmpty())
+        assertTrue(ordinary.relationChanges.isEmpty())
+    }
+
     private fun cutOver(fixture: Fixture) =
         planMainBeaconCutover(
             projections = fixture.projections,

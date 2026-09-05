@@ -150,5 +150,5 @@ private val operationalWorkspaceRoles =
         ContextRoleRegistry.ROLE_DEFAULT,
     )
 
-private fun stableContextSubjectId(contextId: String): String =
+internal fun stableContextSubjectId(contextId: String): String =
     LegacySubjectUuid.resolve(LegacySubjectRef(LegacyOrientationSourceType.CONTEXT, contextId))

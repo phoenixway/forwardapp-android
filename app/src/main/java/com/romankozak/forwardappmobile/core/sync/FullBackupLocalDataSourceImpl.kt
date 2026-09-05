@@ -832,6 +832,7 @@ class FullBackupLocalDataSourceImpl
             db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
             if (legacyBacklogFallback != null) {
                 canonicalOrientationBootstrapper.ensureBootstrapped()
+                canonicalWorkspaceBootstrapper.ensureBootstrapped()
                 backlogMigrationDryRunAdapter.materializeLegacyFullBackup()
             }
             if (legacyInboxSortingFallback) {

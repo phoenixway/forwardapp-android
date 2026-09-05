@@ -21,6 +21,19 @@ import org.robolectric.RobolectricTestRunner
 class Migration157To158InboxCutoverRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    private val migrations157To166 =
+        arrayOf(
+            MIGRATION_157_158,
+            MIGRATION_158_159,
+            MIGRATION_159_160,
+            MIGRATION_160_161,
+            MIGRATION_161_162,
+            MIGRATION_162_163,
+            MIGRATION_163_164,
+            MIGRATION_164_165,
+            MIGRATION_165_166,
+        )
+
     @Test
     fun `157 to 158 moves Inbox content config and cache to canonical ownership`() {
         val dbName = "migration_157_158_inbox_cutover"
@@ -38,12 +51,12 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_157_158, MIGRATION_158_159)
+                .addMigrations(*migrations157To166)
                 .allowMainThreadQueries()
                 .build()
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(159L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "inbox_records"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_inbox_records"))
             assertEquals(
@@ -71,25 +84,65 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `157 to 158 fails closed on live legacy hide flag`() {
-        val dbName = "migration_157_158_inbox_hide_flag"
+    fun `157 to 166 ignores derived legacy hide flag and preserves canonical visibility inputs`() {
+        val dbName = "migration_157_166_inbox_derived_hide"
         createFixture(dbName) { db ->
             insertContext(db, "owner")
+            insertContext(db, "tagged")
             insertWorkspace(db, "owner")
+            insertWorkspace(db, "tagged")
             insertCapability(db, "inbox-cap", "owner")
-            insertInbox(db, "hidden", "owner", "Hidden", 10L, -10L, hide = true)
+            insertConfiguration(db, "owner", hideWhenAssociated = true)
+            insertInbox(
+                db,
+                "hidden",
+                "owner",
+                "Hidden #tag",
+                10L,
+                -10L,
+                hide = true,
+            )
+            insertLink(db, "hidden", "tagged", "owner")
         }
 
-        val failure =
-            runCatching {
-                Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                    .addMigrations(MIGRATION_157_158)
-                    .allowMainThreadQueries()
-                    .build()
-                    .openHelper.writableDatabase
-            }.exceptionOrNull()
-        assertTrue(failure != null)
-        context.deleteDatabase(dbName)
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations157To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "inbox_records"))
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM workspace_inbox_records WHERE id = 'hidden'",
+                ),
+            )
+            assertEquals(
+                "{\"ownerVisibility\":\"HIDE_WHEN_ASSOCIATED\"}",
+                scalarString(
+                    db,
+                    "SELECT configuration FROM workspace_capability_instances WHERE id = 'inbox-cap'",
+                ),
+            )
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM inbox_record_links WHERE record_id = 'hidden'",
+                ),
+            )
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
     }
 
     private fun createFixture(

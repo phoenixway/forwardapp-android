@@ -3,6 +3,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import android.net.Uri
 import android.os.Parcelable
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.orientation.ContextClassificationPreview
+import com.romankozak.forwardappmobile.data.orientation.ContextMigrationCandidate
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -39,6 +42,20 @@ sealed class DialogState {
         val canPasteContextLinks: Boolean = false,
     ) : DialogState()
 
+    data class ContextMigration(
+        val context: Context,
+        val preview: ContextClassificationPreview,
+        val aspectCandidates: List<ContextMigrationCandidate>,
+        val orientationCandidates: List<ContextMigrationCandidate>,
+        val selectedChoice: ContextMigrationChoice? = null,
+        val selectedOrientationKind: OrientationKind? = null,
+        val selectedExistingAspectId: String? = null,
+        val selectedExistingOrientationId: String? = null,
+        val confirmationRequested: Boolean = false,
+        val isExecuting: Boolean = false,
+        val errorMessage: String? = null,
+    ) : DialogState()
+
     data class ConfirmDelete(val project: Context) : DialogState()
 
     data class EditProject(val project: Context) : DialogState()
@@ -54,6 +71,14 @@ sealed class DialogState {
     data class WifiImport(val currentAddress: String) : DialogState()
 
     data object ExportChoiceDialog : DialogState()
+}
+
+enum class ContextMigrationChoice {
+    NEW_ASPECT,
+    EXISTING_ASPECT,
+    NEW_ORIENTATION,
+    EXISTING_ORIENTATION,
+    WORKSPACE_ONLY,
 }
 
 typealias ProjectHierarchyScreenDialogState = DialogState

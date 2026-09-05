@@ -34,6 +34,7 @@ data class WorkspaceProblemEntity(
     val syncedAt: Long?,
     val isDeleted: Boolean,
     val version: Long,
+    val dateTime: Long? = null,
 )
 
 @Entity(

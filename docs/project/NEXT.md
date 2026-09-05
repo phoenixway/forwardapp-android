@@ -1,302 +1,315 @@
 # Next
 
-- DIRECTION hard cutover is `CURRENT / VERIFIED` at schema 156. Legacy
-  `direction_items`, runtime shadow materialization and
-  `SnapshotBundle.directionItems` are retired; canonical Orientation plus
-  `WorkspaceDirectionEntry` is the sole Android authority.
+Status: CANONICAL
 
-- KEY_PROBLEMS hard cutover is `CURRENT / VERIFIED` at schema 157. Legacy
-  `context_key_problems` runtime persistence and `SnapshotBundle.contextKeyProblems`
-  authority are retired; typed Workspace Problem/ref rows plus the canonical
-  SnapshotBundle triplet are the sole Android authority. Desktop read-side
-  convergence is `CURRENT / VERIFIED`: it stores, atomically validates and
-  projects the Android-authoritative canonical graph without authoring or
-  re-emitting it.
+This file contains only the immediate continuation state.
 
-- INBOX hard cutover is `CURRENT / VERIFIED` at schema 158. Legacy
-  `inbox_records` persistence and legacy `SnapshotBundle.inbox` authority are
-  retired; canonical `workspaceInboxRecords` plus typed INBOX capability config
-  are the Android authority. Selective import still waits for Workspace-aware
-  selection.
+## Current checkpoint
 
-- CONNECTIONS hard cutover is `CURRENT / VERIFIED` at schema 159. Legacy
-  `context_attachment_cross_ref` persistence and legacy
-  `SnapshotBundle.crossRefs` authority are retired; canonical
-  `workspaceConnections` owns ordered Attachment placement. Attachment content
-  remains outside CONNECTIONS ownership. Selective import still waits for
-  Workspace-aware selection.
+The Workspace capability-convergence sequence is closed for its accepted
+Android/Desktop boundaries. ARTIFACT and Context JOURNAL are hard-retired at
+schema 165. DOCUMENTS, NOTES and ATTACHMENTS remain RESERVED / DEFERRED.
 
-- EXECUTION_LOG Android hard cutover is `CURRENT / VERIFIED` end-to-end.
-  Schemas 153-154 introduced the same-table Workspace ownership bridge; no
-  later EXECUTION_LOG schema bump was required. Canonical lifecycle,
-  Context-session/runtime gating, UI commands, authoring, owner deletion,
-  backup/restore, live sync, and selective import now use Workspace-owned
-  authority. Legacy `enableLog` and `SnapshotBundle.logs` remain only explicit
-  compatibility/pre-cutover import surfaces.
-  Desktop canonical read-side convergence is also `CURRENT / VERIFIED`:
-  Desktop accepts Android-valid canonical Workspace provenance, retains the
-  Android-owned shadow, and projects Context Log rows through the active
-  default typed capability/configuration gate without authoring or re-emitting
-  canonical logs.
+The next architecture frontier is incremental migration of legacy Contexts into
+the canonical Orientation / Aspect / Workspace model.
 
-- Workspace-aware canonical BACKLOG selective import is `CURRENT / VERIFIED`.
-  It selects placement ids, includes the minimal Workspace/BACKLOG capability
-  and typed-target closure, preserves tombstones, and emits no canonical
-  BACKLOG field when no placement is selected. Legacy placement rows remain
-  excluded and the guarded historical full-backup fallback is unchanged.
+## VERIFIED CHECKPOINT - explicit leaf-Context semantic cutovers
 
-- The source-only safe-pass over the remaining capability classes is complete:
-  BACKLOG has completed verified Stages 1-8 through schema 162;
-  INBOX_SORTING is hard-cut over and verified on Android at schema 163;
-  DASHBOARD and EXECUTION_LOG have completed Android authority. ARTIFACT and
-  Context JOURNAL are hard-retired and verified at schema 165; DOCUMENTS,
-  NOTES, and ATTACHMENTS remain RESERVED.
+The non-UI migration command is implemented around explicit caller-selected
+targets. The initial verified semantic cutover shapes were:
 
-### HISTORICAL preliminary capability sequence — SUPERSEDED
+- `Context -> new Aspect + existing Workspace`;
+- `Context -> existing otherwise-unowned Aspect + existing Workspace`;
+- `Context -> new Orientation(kind) + existing Workspace`.
 
-This planning sequence is `HISTORICAL / SUPERSEDED`.
+For these verified targets, the command:
 
-It predates completion of Desktop canonical BACKLOG work, Android BACKLOG
-Stages 1-8, INBOX_SORTING, and Workspace-aware canonical BACKLOG selective
-import. It is retained only as historical context and is not an active execution
-order.
+1. consumes caller-selected intent rather than classifier output;
+2. preserves the existing operational Workspace id and capability-owned state;
+3. creates a primary `EMBODIES` binding to the selected canonical subject;
+4. promotes the Workspace from `CONTEXT_BACKED` to `CANONICAL_ONLY` and clears
+   `sourceContextId`;
+5. writes a durable `CONTEXT -> subjectId` `CUT_OVER` mapping;
+6. tombstones the legacy Context;
+7. lets Workspace bootstrap reconcile without resurrecting the Context-backed
+   shadow or deleting the promoted Workspace/capabilities.
 
-The previous immediate continuation, Workspace-aware canonical INBOX selective
-import, is now `DEFERRED / EDGE CLOSURE`.
+For the new-Orientation target, `OrientationKind` is explicit caller-selected
+intent. `CanonicalOrientationRepository` owns complete aggregate creation and
+kind-aware initial assessment. The canonical graph owner binds the existing
+Workspace without displacing any competing live embodiment.
 
-The active phase is Desktop canonical capability convergence, beginning with
-Desktop DIRECTION.
+The existing-Aspect target resolves the canonical-identity question without
+changing mapping cardinality. `LegacySubjectMapping` remains a one-source
+<-> one-subject identity/provenance bridge with unique canonical `subjectId`
+ownership.
 
-`INBOX_SORTING` is now complete because its policy delegates ordering to
-canonical target owners rather than owning a parallel ordering model.
+An existing Aspect may be adopted only when:
 
-`ARTIFACT` and Context `JOURNAL` retirement is `CURRENT / VERIFIED` at schema
-165. The earlier schema-164 preservation stage was superseded by the accepted
-hard-delete decision: no Artifact/Context-Journal compatibility boundary or
-payload-preservation requirement remains. `context_artifacts`,
-`JOURNAL_DOCUMENT`, the special Context Journal document role, retired
-capability/configuration/runtime/UI paths, and their active sync mappings are
-removed.
+- it is live and canonical;
+- no legacy mapping, including a tombstoned mapping, reserves its `subjectId`;
+- it is not embodied by another live Workspace;
+- the Context Workspace does not embody a conflicting canonical subject.
 
-`DOCUMENTS`, `NOTES`, and `ATTACHMENTS` remain `RESERVED / DEFERRED`; this
-retirement did not activate those reserved capability types or introduce
-another document-placement authority. Ordinary unrelated `NOTE_DOCUMENT`
-content remains unchanged.
+This is adoption, not merge. The existing Aspect subject/node is not rewritten.
+No secondary redirect or retirement-mapping source of truth is introduced.
 
-`BACKLOG` Stages 1-8 are implemented and host-verified through schema 162.
-The schema-160 canonical placement foundation, schema-161 projection separation,
-frozen Stage-4 migration planner, and schema-162 atomic Context-backed authority
-cutover are current. Canonical `workspace_backlog_entries` now own Android
-runtime explicit placement for authorized Workspaces, compatibility reads project
-from canonical state, `BacklogOrder` has no runtime authority, and active
-Context-backed placement mutations no longer write `list_items`.
+Verified invariants include:
 
-Stage 6 runtime compatibility is closed and verified. Its focused repairs cover
-canonical-only startup cleanup, projection-safe movement/reorder, typed
-duplicate detection, delete/undo ownership, Legacy Note presentation,
-Goal/LinkItem runtime queries, structural children, stable tactical/restoration
-identity, and auto-hidden Goal recovery. Retained `list_items` and
-`backlog_orders` remain non-authoritative.
+- same Workspace identity survives;
+- canonical capability instances/data remain attached to that Workspace;
+- identical retry is idempotent;
+- conflicting retry fails closed;
+- existing Aspect identity/content remains unchanged;
+- legacy provenance reservation fails closed;
+- existing Workspace embodiment is never displaced;
+- a Context with live legacy children fails closed with no partial mutation;
+- unrelated Contexts and Workspaces are unchanged;
+- classifier preview remains read-only and recommendation-only;
+- Workspace bootstrap honors `CONTEXT/CUT_OVER` anti-resurrection evidence;
+- `CanonicalContextMigrationRepositoryRoomTest` is green 26/26 on host Gradle;
+- `git diff --check` is clean.
 
-Stage 7 canonical transport is closed and verified. Typed
-`workspaceBacklogEntries` now owns full backup/restore, merge ingress,
-changed-since delta, Wi-Fi push, exact-version acknowledgement, and typed-target
-dependency closure. Legacy export/delta is empty, live legacy import is ignored,
-and old full backups cross only the frozen planner fallback.
+## VERIFIED CHECKPOINT — bottom-up Context-tree retirement
 
-Stage 8 cleanup is closed. Dead legacy mutation/order/merge/sync utilities and
-obsolete mixed-attachments ViewModels are removed. Physical `list_items` and
-`backlog_orders` remain only for historical migrations and the guarded
-pre-cutover full-backup planner fallback; this does not constitute authority.
+Mixed legacy/canonical Workspace hierarchy is resolved for the current Context
+cutover model.
 
-Desktop canonical BACKLOG peer transport and the first read projection slice
-are now closed and verified. Desktop keeps the persisted canonical shadow out
-of generic Context/full-shadow pushes, selects only exact pending placement
-versions for its dedicated peer path, reconciles Android state before push, and
-requires an observed post-import Android canonical winner before clearing
-pending state. Explicit SnapshotBundle BACKLOG presence and complete canonical
-Workspace/capability dependencies are fail-closed requirements.
+Context retirement proceeds bottom-up:
 
-Desktop canonical BACKLOG REORDER, REMOVE, and existing-Context link ADD are
-now `CURRENT / VERIFIED`.
+1. migrate active legacy leaf Contexts first;
+2. preserve each cut-over Workspace id and `parentWorkspaceId`;
+3. allow a `CANONICAL_ONLY` child Workspace to remain under its parent's still
+   `CONTEXT_BACKED` Workspace;
+4. once all active child Contexts are tombstoned, the parent naturally becomes
+   a legacy leaf;
+5. migrate that parent without rewriting the existing Workspace hierarchy edge.
 
-REORDER is intentionally full-set and fail-closed: drag is enabled only for an
-`ACTIVE` BACKLOG capability when Desktop can project the complete live placement
-set. It normalizes canonical order, preserves placement identity and target
-content, records exact changed `id/version` pairs, and wakes the existing
-auto-sync path.
+The leaf-only gate is therefore intentional and remains in production. It is the
+migration-order invariant, not temporary technical debt.
 
-REMOVE is placement-only. A visible canonical row may be removed when its owning
-BACKLOG capability is `ACTIVE`; the placement is tombstoned, target content is
-preserved, and every surviving live canonical placement is compacted using the
-complete Workspace set even when some targets are hidden from Desktop
-projection. Tombstone and changed compaction rows all enter the exact-version
-pending map. Canonical placement ids never fall through to the legacy
-destructive delete writer.
+Parent-first retirement remains unsupported and fail-closed. Bootstrap already
+quarantines the inverse mixed state where a live legacy child would attach
+through a colliding `CANONICAL_ONLY` parent Workspace.
 
-Existing-Context link ADD resolves the selected Context to its proven live
-`CONTEXT_BACKED` Workspace and writes only a canonical `WORKSPACE` placement.
-It mirrors Android `addEntryAtStart`: live duplicate is a no-op, a tombstone is
-resurrected with the same stable id and bumped version, and a new placement is
-prepended at `min(live order) - 1` without rewriting existing rows. Sparse
-negative canonical order is valid; live order uniqueness remains enforced.
-The multi-select picker dispatches in reverse before repeated prepend, matching
-Android batch ADD order.
+Workspace and Aspect hierarchy remain independent. `Context.parentId` is not
+translated into `Aspect.parentAspectId`.
 
-Legacy writers remain compatibility code and do not double-write canonical
-placements. Canonical `New backlog item` is now local-first and verified; generic
-target EDIT and completion mutation remain fenced.
+`CanonicalContextMigrationRepositoryRoomTest` is green 26/26 on host Gradle,
+including the full child-then-parent sequence and bootstrap checks before and
+after both cutovers.
 
-Explicit Desktop BACKLOG RESTORE / UNDO is now implemented as a placement-only
-inverse mutation over the canonical collection. It restores the saved order
-with Android's two-phase version semantics and registers the final versions for
-peer sync.
+## VERIFIED CHECKPOINT - Context migration command vocabulary complete
 
-The MOVE contract audit is closed: placement identity is owner-scoped and
-immutable. Desktop canonical cross-Workspace MOVE is now `CURRENT / VERIFIED`
-end-to-end for the focused single-row Context-picker flow, using source
-tombstone plus destination create/resurrection and exact peer pending versions.
-Generic target EDIT and completion remain separate ownership-sensitive
-decisions.
+Keep `migrateContext(contextId, userChosenTarget)` as the canonical command
+boundary. The accepted atomic target vocabulary is now complete for the current
+architecture; no additional target shape is required.
 
-Android Goal-like creation, Desktop dependency-closed canonical Orientation
-target peer transport, Desktop canonical `New backlog item` composition, and
-Workspace-aware canonical BACKLOG selective import are `CURRENT / VERIFIED`.
+Already verified:
 
-### ACTIVE phase — Desktop canonical capability convergence
+- new Aspect + existing Workspace;
+- existing otherwise-unowned Aspect + existing Workspace;
+- new Orientation + existing Workspace with explicit user-selected
+  `OrientationKind`;
+- existing otherwise-unowned complete Orientation + existing Workspace;
+- Workspace-only retirement preserving the existing operational Workspace;
+- bottom-up Context-tree retirement for the current cutover model;
+- reserved system Context rejection before target dispatch, with no mutation.
 
-The highest-leverage next work is to converge Desktop onto the canonical
-Workspace capability contracts already stabilized on Android.
+The final migration-boundary rules are:
 
-Desktop DIRECTION convergence is `CURRENT / VERIFIED`: the existing UI now
-projects and mutates canonical Orientation/WorkspaceDirectionEntry state,
-legacy `directionItems` have no live push authority, and exact-version peer
-transport covers preflight, combined dependency delivery, confirmation, and
-lost-ack retry.
+- reserved `SystemContexts` identities are never migrated by this command;
+- `SYSTEM_OR_COMPATIBILITY_WORKSPACE` is a classifier state, not a target;
+- `REVIEW_REQUIRED` is a classifier state, not a target and not write authority;
+- an ambiguous non-system Context stays compatible until explicit review, then
+  may use one of the proven user-selected targets.
 
-Desktop INBOX convergence is `CURRENT / VERIFIED`: canonical Context-backed UI
-commands and projection use exact `CONTEXT_BACKED.sourceContextId` ownership,
-one active shared-valid `INBOX/default` capability, shared Inbox association
-and visibility policy, and a dedicated exact-version peer stream. Legacy
-`inboxRecords` remain only a noncanonical local/file fallback and have no live
-Android push or acknowledgement authority.
+`WORKSPACE_WITH_RELATIONS` is intentionally not another
+`ContextMigrationTarget`. It describes a composition of independently owned
+states: explicit Context retirement plus explicit canonical Workspace bindings.
+`EMBODIES`, `REALIZES`, `SUPPORTS`, and `MONITORS` remain graph/binding
+operations rather than migration side effects.
 
-Desktop CONNECTIONS convergence is `CURRENT / VERIFIED`: normal canonical
-Context-backed UI uses exact `CONTEXT_BACKED.sourceContextId` ownership plus
-one active shared-valid `CONNECTIONS/default` capability, then
-`WorkspaceConnection` for ordered placement while
-Attachment remains independent reusable content. Exact-version peer transport
-supports preflight, same-import Attachment dependency delivery, post-export
-confirmation, and lost-ACK convergence. Legacy cross-refs and Strategic Arc's
-`sys_strategic` compatibility refs have no live Android authority.
+`Aspect-only` is intentionally not a Context migration target. Canonical Aspects
+may exist without any Workspace, but every migrated legacy Context already has
+an operational Workspace with independent lifecycle and capability-owned state.
+Context semantic migration therefore does not implicitly delete that Workspace.
+If the Workspace is no longer wanted after semantic cutover, its explicit
+canonical lifecycle command owns that destructive operation separately.
 
-Desktop EXECUTION_LOG read-side convergence is `CURRENT / VERIFIED`:
-canonical ingress accepts both Android-authorized Workspace provenances and the
-readonly Context Log view uses `canonicalExecutionLogs` only under the active
-default typed capability/configuration gate. Legacy Context logs are solely
-historical/noncanonical fallback; Desktop EXECUTION_LOG authoring and peer push
-remain out of scope.
+No additional target should be introduced merely to encode classifier output,
+Workspace graph relations, compatibility state, or destructive Workspace
+lifecycle. Those concepts retain their existing canonical owners.
 
-Current sequence:
+Classification may recommend or preselect a target in UI, but only the user's
+explicit selection reaches the migration command.
 
-Desktop KEY_PROBLEMS remains Android-authoritative read-only. Its canonical
-read-side convergence is complete: normal Context projection requires exact
-`CONTEXT_BACKED.sourceContextId` ownership and one active shared-valid
-`KEY_PROBLEMS/default` capability. Desktop authoring and exact-version peer
-transport require a separate future authorization tied to an actual product
-writer.
+Do not bulk-migrate Contexts, permit parent-first Context retirement, or activate
+RESERVED DOCUMENTS/NOTES/ATTACHMENTS as part of this work.
 
-Desktop readonly Features-status convergence is `CURRENT / VERIFIED`.
-For proven Context-backed owners, the Features drawer now resolves canonical
-status for `DASHBOARD`, `BACKLOG`, `CONNECTIONS`, `DIRECTION`, `INBOX`,
-`EXECUTION_LOG`, and `KEY_PROBLEMS` from exact
-`CONTEXT_BACKED.sourceContextId` ownership plus the corresponding canonical
-capability instance/configuration contract. Established missing, duplicate,
-deleted, disabled, archived, or malformed canonical state fails closed instead
-of resurrecting legacy flags. Legacy status remains only for genuinely
-noncanonical ownership and reserved surfaces such as `DOCUMENTS`, `NOTES`, and
-`ATTACHMENTS`.
-This change is presentation-only: existing tab/navigation gating, lifecycle
-authoring, persistence, and peer transport were not changed.
+## VERIFIED CHECKPOINT - Context migration workflow exposure
 
-ARTIFACT / Context JOURNAL retirement is closed at schema 165. There is no
-remaining Stage A/Stage B continuation: retired payload and old-backup
-compatibility were deliberately dropped, and the special
-capability/runtime/persistence surfaces are gone. An unrelated ordinary
-`NOTE_DOCUMENT` graph remains preserved by the migration.
+The first Context-tree migration vertical slice is implemented and host-verified.
 
-Strategic Arc's product-level Artifact panel remains an ordinary
-`NOTE_DOCUMENT` with `roleCode = "strategic_arc_artifact"`. Life Journal /
-`DayManagementTab.JOURNAL` also remains and is unrelated to the retired Context
-Journal capability.
+`Context > Мігрувати...` is available only for non-system Contexts. The dialog
+shows classifier outcome, confidence and reasons as recommendation evidence, but
+does not preselect an executable target. The user explicitly chooses one of the
+five accepted target shapes; new Orientation additionally requires explicit
+`OrientationKind`, and existing semantic targets require explicit candidate
+selection.
 
-Workspace-aware canonical INBOX selective import remains
-`DEFERRED / EDGE CLOSURE`; it is valuable but does not currently outrank
-cross-client canonical convergence.
+Candidate lists are read-only projections. Final eligibility remains owned by
+`CanonicalContextMigrationRepository.migrateContext()`. The workflow has an
+explicit continue/confirmation gate, and the coordinator is the only production
+feature-layer caller of the canonical migration command.
 
-Workspace-aware canonical CONNECTIONS selective import also remains
-`DEFERRED / EDGE CLOSURE`.
+Host verification:
 
+- `ContextMigrationWorkflowTest` green 7/7;
+- `CanonicalContextMigrationRepositoryRoomTest` green 26/26;
+- classifier recommendation cannot become executable selection without an
+  explicit user choice;
+- system Contexts cannot enter the workflow;
+- `WORKSPACE_WITH_RELATIONS` still cannot materialize a synthetic migration
+  target.
 
-### REFERENCE capability constraints — NOT ACTIVE NEXT
+## VERIFIED CHECKPOINT - first live Workspace-only retirement
 
-The following constraints remain valid reference boundaries for future
-capability work, but they are **not** the active execution queue.
+The first production-data migration case is closed.
 
-The completed Desktop DIRECTION convergence is recorded above; it is no longer
-part of the active queue.
+A normal leaf Context (`agent-007`) was retired through the real UI workflow
+using `WorkspaceOnly`. Live verification confirmed the persisted cutover shape,
+preservation of the same Workspace hierarchy and capability-owned state,
+operational hierarchy visibility, explicit reveal, parent/Back navigation, and
+re-entry into the canonical child from its parent.
 
-For future capability work:
+The hierarchy now exposes `CAN` / `LEG` badges as a presentation-only migration
+visibility aid for subsequent live validation.
 
-- use `CAPABILITY-OWNERSHIP.md` as the current ownership boundary for all
-  capability work;
-- treat `DASHBOARD` as `CURRENT / VERIFIED` end-to-end on Android.
-  Context-backed runtime, shared projection, and settings commands use the
-  canonical capability instance. The first compatibility bootstrap materializes
-  `ACTIVE` or `DISABLED`; legacy `ContextConfiguration.enableDashboard`,
-  role, and default resolution cannot later overwrite or resurrect it;
-  Desktop readonly Features metadata now also consumes the proven canonical
-  default instance for Context-backed owners. This is read convergence only:
-  no Desktop Dashboard lifecycle authoring, transport, or navigation-gating
-  decision has been added;
-- treat `EXECUTION_LOG` as complete/current on Android. Preserve the
-  schema-153/154 ownership bridge, canonical lifecycle/runtime/UI authority,
-  canonical user/system authoring, owner-deletion semantics,
-  `canonicalExecutionLogs` live transport, and canonical selective-import
-  filtering. Legacy `enableLog` and `SnapshotBundle.logs` must not regain
-  runtime or live-sync authority. Keep the targeted green
-  lifecycle/runtime/content/sync/selective-import coverage as its regression
-  boundary;
-- do not create metadata-only facades for content-bearing capabilities.
-  Every future content migration must establish explicit canonical content
-  ownership, lifecycle, transport, and fail-closed migration accounting;
-- keep safe physical garbage collection of acknowledged `ContextLog`
-  tombstones as separate deferred work; do not reintroduce physical retention
-  deletion merely to bound table size;
-- treat `KEY_PROBLEMS` as complete/current on Android at schema 157; preserve its
-  frozen `156 -> 157` migration and canonical repository/sync ownership;
-- treat `INBOX` as complete/current on Android at schema 158; preserve its
-  frozen `157 -> 158` migration and canonical repository/sync ownership;
-- treat `CONNECTIONS` as complete/current on Android at schema 159; preserve
-  its frozen `158 -> 159` migration and canonical repository/sync ownership;
-- treat `BACKLOG` Stages 1-8 as complete/current on Android through schema
-  162. Preserve canonical runtime placement authority, the schema-162
-  fail-closed cutover, and the rule that legacy `list_items` / `backlog_orders`
-  cannot regain runtime authority. Retain the physical evidence tables only
-  while the old-full-backup planner fallback remains accepted;
-- treat INBOX_SORTING as CURRENT / VERIFIED at schema 163; preserve its typed
-  canonical policy, command-scoped target dependencies, and guarded legacy
-  full-backup fallback;
-- allow Desktop DIRECTION authoring to lag temporarily. Old Desktop
-  `directionItems` writes must not regain Android authority after the cutover;
-- keep Context as runtime authority only for Context-backed capabilities that
-  have not completed a separately reviewed canonical cutover; do not use that
-  legacy rule to override any capability already marked hard-cut-over in
-  `CAPABILITY-OWNERSHIP.md`, including BACKLOG;
-- do not restore a generic graph-level capability writer.
+This closes the Workspace-only representative case and its post-cutover
+navigation/capability-preservation validation. Semantic Aspect and Orientation
+live cutovers are covered by the later verified checkpoints.
 
-### CURRENT deferred UI boundary
+## VERIFIED CHECKPOINT - first live new-Aspect migration
 
-The unfinished user-facing portion of Phase 5 remains `DEFERRED`: do not add
-Aspect screens, pickers, filters, navigation, classification review UI, or any
-other user-facing change without explicit authorization for that exact scope.
+The first production-data semantic Context migration is closed.
+
+Legacy leaf `запити` was migrated through the real UI workflow using
+`NewAspectWithExistingWorkspace`.
+
+Live verification confirmed:
+
+- same operational Workspace id and parent survive;
+- Workspace becomes `CANONICAL_ONLY`;
+- canonical Aspect ManagedSubject/node are created;
+- `CONTEXT/CUT_OVER` mapping is persisted;
+- one primary `EMBODIES` binding is persisted;
+- legacy Context is tombstoned;
+- all six pre-existing capability instances remain unchanged;
+- operational opening/parent navigation remains usable;
+- no Workspace-owned Inbox/Backlog/Direction/Connections/Problems/Execution-log
+  content was lost: all such representative tables were already empty before
+  cutover and remain empty afterward.
+
+The new Aspect intentionally has no inferred `parentAspectId`; operational
+Workspace hierarchy and semantic Aspect hierarchy remain independent.
+
+## VERIFIED CHECKPOINT - first live new-Orientation migration
+
+The first production-data Context cutover to a newly-created Orientation is
+closed.
+
+Legacy leaf `learning-from-past-clinical-cases` was migrated through the real
+UI workflow using `NewOrientationWithExistingWorkspace` with explicitly
+selected kind `ONGOING_STANDARD`.
+
+Live verification confirmed:
+
+- same operational Workspace id, parent and order survive;
+- Workspace becomes `CANONICAL_ONLY`;
+- canonical Orientation ManagedSubject/node are created;
+- kind is exactly `ONGOING_STANDARD`;
+- lifecycle starts unset;
+- the current assessment matches the kind-specific domain contract;
+- exactly one `MIGRATION` assessment revision exists;
+- `CONTEXT/CUT_OVER` mapping is persisted;
+- one primary `EMBODIES` binding is persisted;
+- legacy Context is tombstoned;
+- all five pre-existing capability instances remain unchanged;
+- other Workspace-owned content remains unchanged;
+- `CAN` hierarchy presentation, opening, parent/Back navigation, re-entry and
+  capability access remain usable.
+
+## VERIFIED CHECKPOINT - live existing-Aspect adoption and non-leaf rejection
+
+The representative existing-Aspect adoption case is closed.
+
+Legacy leaf `dosages` was migrated through the production UI using
+`ExistingAspectWithExistingWorkspace` into independently-created canonical
+Aspect `dosages [standalone Aspect]`.
+
+Live verification confirmed:
+
+- the existing ManagedSubject and Aspect node remain exactly unchanged;
+- the target's independent title is preserved rather than rewritten from the
+  legacy Context;
+- the same operational Workspace id, parent edge and order survive;
+- Workspace ownership becomes `CANONICAL_ONLY` and `sourceContextId` is cleared;
+- all four pre-existing capability rows remain exactly unchanged;
+- exactly one `CONTEXT/CUT_OVER` mapping points to the adopted Aspect;
+- exactly one live primary `EMBODIES` binding connects the preserved Workspace
+  to that Aspect;
+- the legacy Context is tombstoned;
+- no duplicate semantic subject or accidental Orientation row is created;
+- database integrity and foreign keys remain clean;
+- the production UI/hierarchy/capability path passed manual acceptance.
+
+The representative non-leaf rejection case is also closed. A migration attempt
+for parent Context `medical-models` while it still had seven active direct
+legacy children failed at the canonical leaf guard. Exact live before/after
+comparison showed no mutation to the Context, Workspace or capabilities and no
+mapping or binding creation.
+
+These live cases verify both adoption-without-merge ownership and the bottom-up
+migration-order invariant.
+
+## ACTIVE NEXT - live existing-Orientation adoption
+
+The remaining high-value representative Context migration case is explicit
+adoption of a real legacy leaf into an already-existing complete canonical
+Orientation while preserving the Context's existing operational Workspace.
+
+Validate:
+
+- the user explicitly selects the existing canonical Orientation;
+- the selected Orientation aggregate is complete, live and independently owned;
+- no legacy mapping, including a tombstone, reserves its subject id;
+- no other live Workspace already embodies it;
+- the Context Workspace does not embody another canonical subject;
+- the existing ManagedSubject, Orientation node, current assessment and
+  immutable revision history remain unchanged;
+- no duplicate Orientation or revision is created;
+- the same Workspace id, operational parent edge, order and capability-owned
+  state survive;
+- exactly one primary `EMBODIES` binding joins the preserved Workspace to the
+  selected Orientation;
+- durable `CONTEXT -> existing Orientation` `CUT_OVER` mapping is persisted;
+- the legacy Context is tombstoned without bootstrap resurrection;
+- post-cutover hierarchy/navigation and capability access remain usable.
+
+Do not broaden `ContextMigrationTarget` vocabulary in response to UI friction.
+Fix defects at the owning lifecycle, graph, projection, or presentation
+boundary.
+
+The eventual separate architectural milestone remains Context compatibility
+extinction after the live legacy Context population reaches zero.
+
+## Explicitly not next
+
+- automatic bulk Context semantic migration;
+- Workspace-aware selective-import edge closure;
+- Desktop KEY_PROBLEMS authoring;
+- Desktop EXECUTION_LOG authoring;
+- Desktop Dashboard lifecycle authoring;
+- activation of DOCUMENTS, NOTES or ATTACHMENTS;
+- full Aspect/Orientation explorer redesign.

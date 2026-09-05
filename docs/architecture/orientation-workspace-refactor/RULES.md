@@ -232,19 +232,30 @@ universal polymorphic capability graph are prohibited.
    authorization. Architecture and data work preserve the existing UI through
    adapters until such authorization is given.
 
-## 13. Existing Context classification
+## 13. Existing Context migration
 
-1. Existing Contexts are classified rather than converted by one destructive
-   heuristic.
-2. Supported outcomes include Aspect, Workspace, Aspect plus Workspace,
-   Orientation plus Workspace, mixed relations, and system/compatibility
-   Workspace.
-3. Ambiguous classification requires review or remains on the compatibility
-   path.
-4. Migration provides preview, stable mapping, diagnostics, and a rollback path
-   before ownership cutover.
-5. Classification must preserve every capability-owned record and current
-   navigation target.
+1. Existing Contexts are never semantically converted automatically by a
+   classification heuristic.
+2. Classification is advisory. It may provide a recommended canonical shape,
+   confidence, evidence and stable proposed identities, but it has no mutation
+   authority.
+3. Supported user-selected migration outcomes include Workspace, Aspect,
+   Aspect plus Workspace, Orientation plus Workspace, mixed explicit relations,
+   and system/compatibility handling where still required.
+4. One Context is migrated only after explicit user action and explicit
+   selection or confirmation of its canonical target shape.
+5. Migration provides preview, stable mapping, diagnostics, idempotency and a
+   rollback/fail-closed boundary before ownership cutover.
+6. The migration transaction must preserve every capability-owned record and
+   valid navigation target while moving authority to existing canonical owners.
+7. After successful individual cutover, the migrated Context must not remain a
+   permanent parallel semantic/configuration owner. A minimal migration record
+   or redirect may remain only where required for idempotency, diagnostics or
+   explicitly supported old references.
+8. Unmigrated Contexts continue to operate through the compatibility path.
+9. Final Context compatibility infrastructure may be removed only after no live
+   legacy Context remains and a separately verified extinction cutover is
+   performed.
 
 ## 14. Sync, persistence, and deletion
 

@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLi
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import javax.inject.Inject
@@ -30,10 +32,27 @@ class OrientationHierarchyBuilder
             groups: List<MainBeaconGroup> = emptyList(),
             parentLinks: List<ContextParentLink> = emptyList(),
             beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
+            workspaces: List<WorkspaceEntity> = emptyList(),
         ): List<OrientationHierarchyItem> {
-            if (hierarchy.allProjects.isEmpty() && beacons.isEmpty()) return emptyList()
+            val liveWorkspacesById =
+                workspaces
+                    .asSequence()
+                    .filterNot { it.isDeleted }
+                    .associateBy { it.id }
+            val canonicalWorkspacesById =
+                liveWorkspacesById.filterValues {
+                    it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name
+                }
+            val liveContextsById = hierarchy.allProjects.associateBy { it.id }
+            val displayHierarchy =
+                buildOperationalHierarchyProjection(
+                    hierarchy = hierarchy,
+                    workspaces = liveWorkspacesById.values,
+                )
 
-            val contextsById = hierarchy.allProjects.associateBy { it.id }
+            if (displayHierarchy.allProjects.isEmpty() && beacons.isEmpty()) return emptyList()
+
+            val contextsById = displayHierarchy.allProjects.associateBy { it.id }
             val additionalChildrenByParentId = buildAdditionalChildrenByParentId(parentLinks, contextsById)
             val additionalParentsByChildId = buildAdditionalParentsByChildId(parentLinks, contextsById)
             val beaconIdsByContextId = buildBeaconIdsByContextId(beacons)
@@ -89,7 +108,7 @@ class OrientationHierarchyBuilder
                             additionalChildrenByParentId = additionalChildrenByParentId,
                             additionalParentsByChildId = additionalParentsByChildId,
                             beaconIdsByContextId = beaconIdsByContextId,
-                            hierarchy = hierarchy,
+                            hierarchy = displayHierarchy,
                             result = result,
                             visitedBeaconIds = linkedSetOf(),
                         )
@@ -118,7 +137,7 @@ class OrientationHierarchyBuilder
                         additionalChildrenByParentId = additionalChildrenByParentId,
                         additionalParentsByChildId = additionalParentsByChildId,
                         beaconIdsByContextId = beaconIdsByContextId,
-                        hierarchy = hierarchy,
+                        hierarchy = displayHierarchy,
                         result = result,
                         visitedBeaconIds = linkedSetOf(),
                     )
@@ -126,7 +145,7 @@ class OrientationHierarchyBuilder
             }
 
             val noBeaconRoots =
-                hierarchy.topLevelProjects
+                displayHierarchy.topLevelProjects
                     .filter { it.id !in linkedContextIds }
                     .sortedWith(contextSort())
 
@@ -140,7 +159,7 @@ class OrientationHierarchyBuilder
                     appendContextSubtree(
                         context = context,
                         level = 1,
-                        hierarchy = hierarchy,
+                        hierarchy = displayHierarchy,
                         additionalChildrenByParentId = additionalChildrenByParentId,
                         beaconIdsByContextId = beaconIdsByContextId,
                         result = result,
@@ -151,7 +170,102 @@ class OrientationHierarchyBuilder
                 }
             }
 
-            return result
+            return result.map { item ->
+                val contextNode = item.node as? OrientationHierarchyNode.ContextNode
+                    ?: return@map item
+
+                val canonicalWorkspace = canonicalWorkspacesById[contextNode.context.id]
+                if (canonicalWorkspace != null) {
+                    return@map item.copy(
+                        node =
+                            OrientationHierarchyNode.WorkspaceNode(
+                                workspace = canonicalWorkspace,
+                                linkedBeaconIds = contextNode.linkedBeaconIds,
+                                isLinkedAppearance = contextNode.isLinkedAppearance,
+                            ),
+                    )
+                }
+
+                val originalContext = liveContextsById[contextNode.context.id]
+                    ?: return@map item
+                item.copy(
+                    node =
+                        contextNode.copy(
+                            context = originalContext,
+                        ),
+                )
+            }
+        }
+
+        private fun buildOperationalHierarchyProjection(
+            hierarchy: ContextHierarchyData,
+            workspaces: Collection<WorkspaceEntity>,
+        ): ContextHierarchyData {
+            if (workspaces.isEmpty()) return hierarchy
+
+            val workspacesById = workspaces.associateBy { it.id }
+            val liveContextsById = hierarchy.allProjects.associateBy { it.id }
+
+            val projectedContexts =
+                hierarchy.allProjects.map { context ->
+                    val workspace = workspacesById[context.id]
+                    if (workspace == null) {
+                        context
+                    } else {
+                        context.copy(
+                            parentId = workspace.parentWorkspaceId,
+                            order = workspace.workspaceOrder,
+                        )
+                    }
+                }
+
+            val canonicalWorkspaceContexts =
+                workspaces
+                    .asSequence()
+                    .filter { it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name }
+                    .filterNot { it.id in liveContextsById }
+                    .map { workspace ->
+                        Context(
+                            id = workspace.id,
+                            name =
+                                workspace.nameOverride
+                                    ?.trim()
+                                    ?.takeIf { it.isNotEmpty() }
+                                    ?: workspace.id,
+                            description = workspace.descriptionOverride,
+                            parentId = workspace.parentWorkspaceId,
+                            createdAt = workspace.createdAt,
+                            updatedAt = workspace.updatedAt,
+                            order = workspace.workspaceOrder,
+                        )
+                    }
+                    .toList()
+
+            val allProjects = projectedContexts + canonicalWorkspaceContexts
+            val projectsById = allProjects.associateBy { it.id }
+            val topLevelProjects =
+                allProjects
+                    .filter { project ->
+                        project.parentId == null || project.parentId !in projectsById
+                    }
+                    .sortedWith(contextSort())
+            val childMap =
+                allProjects
+                    .mapNotNull { project ->
+                        project.parentId
+                            ?.takeIf { it in projectsById }
+                            ?.let { parentId -> parentId to project }
+                    }
+                    .groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
+
+            return ContextHierarchyData(
+                allProjects = allProjects,
+                topLevelProjects = topLevelProjects,
+                childMap = childMap,
+            )
         }
 
         private fun appendBeaconSubtree(

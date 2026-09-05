@@ -96,6 +96,7 @@ fun ContextMenuDialog(
     onAddContextAppearanceRequest: (Context) -> Unit,
     onAddNoteDocumentRequest: (Context) -> Unit,
     onAddChecklistRequest: (Context) -> Unit,
+    onMigrateRequest: (Context) -> Unit,
     canPasteContextLinks: Boolean,
 ) {
     var showAddActionsDialog by remember { mutableStateOf(false) }
@@ -146,6 +147,17 @@ fun ContextMenuDialog(
                                 icon = Icons.Default.FolderOpen,
                                 tint = colorScheme.secondary,
                                 onClick = { onMoveRequest(project) },
+                            ),
+                        )
+                    }
+                    if (!isSystemContext) {
+                        add(
+                            ContextActionItem(
+                                title = "Мігрувати...",
+                                subtitle = "Явно вибрати канонічну ціль",
+                                icon = Icons.Outlined.AccountTree,
+                                tint = colorScheme.primary,
+                                onClick = { onMigrateRequest(project) },
                             ),
                         )
                     }

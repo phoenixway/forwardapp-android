@@ -29,7 +29,9 @@ data class CanonicalWorkspaceProblemItem(
 /**
  * Canonical Android authoring boundary for KEY_PROBLEMS.
  *
- * WorkspaceProblem owns text, status, ordering, and capability ownership.
+ * WorkspaceProblem owns text, status, ordering, generic dateTime data,
+ * and capability ownership. dateTime is preserved as an opaque datum; this
+ * repository does not infer deadline, reminder, or scheduling semantics.
  * Typed ref rows own relation identity. Capability metadata lifecycle remains
  * owned by CanonicalCapabilityInstanceStore.
  */
@@ -139,6 +141,7 @@ class CanonicalKeyProblemsRepository
             relatedWorkspaceIds: List<String> = emptyList(),
             relatedAttachmentIds: List<String> = emptyList(),
             now: Long = System.currentTimeMillis(),
+            dateTime: Long? = null,
         ): String =
             database.withTransaction {
                 val capability = instanceStore.requireActiveInstance(SPEC, workspaceId)
@@ -170,6 +173,7 @@ class CanonicalKeyProblemsRepository
                         syncedAt = null,
                         isDeleted = false,
                         version = 1L,
+                        dateTime = dateTime,
                     )
 
                 problemDao.upsertProblems(listOf(problem))
@@ -193,6 +197,7 @@ class CanonicalKeyProblemsRepository
             relatedWorkspaceIds: List<String>,
             relatedAttachmentIds: List<String>,
             now: Long = System.currentTimeMillis(),
+            dateTime: Long? = null,
         ) {
             database.withTransaction {
                 val capability = instanceStore.requireActiveInstance(SPEC, workspaceId)
@@ -213,7 +218,8 @@ class CanonicalKeyProblemsRepository
                 val changedProblem =
                     current.title != normalizedTitle ||
                         current.description != normalizedDescription ||
-                        current.status != status.name
+                        current.status != status.name ||
+                        current.dateTime != dateTime
 
                 if (changedProblem) {
                     problemDao.upsertProblems(
@@ -222,6 +228,7 @@ class CanonicalKeyProblemsRepository
                                 title = normalizedTitle,
                                 description = normalizedDescription,
                                 status = status.name,
+                                dateTime = dateTime,
                             ),
                         ),
                     )
@@ -600,6 +607,7 @@ private fun WorkspaceProblemEntity.toModel() =
         description = description,
         status = WorkspaceProblemStatus.valueOf(status),
         order = problemOrder,
+        dateTime = dateTime,
     )
 
 private fun WorkspaceProblemWorkspaceRefEntity.toModel() =

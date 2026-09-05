@@ -98,6 +98,7 @@ fun ProjectHierarchyView(
             FocusedProjectView(
                 focusedProjectId = focusedProjectId,
                 hierarchy = hierarchy,
+                orientationHierarchy = orientationHierarchy,
                 displayChildMap = displayChildMap,
                 directChildrenByNodeId = directChildrenByNodeId,
                 breadcrumbs = breadcrumbs,
@@ -240,13 +241,14 @@ fun ProjectHierarchyView(
                                     childCount = rootChildCounts[node.id] ?: 0,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            is OrientationHierarchyNode.ContextNode ->
+                            is OrientationHierarchyNode.ProjectLike ->
                                 HierarchyListItem(
                                     item =
                                         FlatHierarchyItem(
-                                            project = node.context,
+                                            project = node.contextProjection,
                                             level = item.level,
                                             isLinkedAppearance = node.isLinkedAppearance,
+                                            isCanonicalWorkspace = node.isCanonicalWorkspace,
                                         ),
                                     childMap = displayChildMap,
                                     dragAndDropState = dragAndDropState,
@@ -269,6 +271,7 @@ fun ProjectHierarchyView(
                                     onEditProject = onEditProject,
                                     sharedTransitionScope = sharedTransitionScope,
                                     animatedVisibilityScope = animatedVisibilityScope,
+                                    legacyContextActionsEnabled = !node.isCanonicalWorkspace,
                                 )
                         }
                     }

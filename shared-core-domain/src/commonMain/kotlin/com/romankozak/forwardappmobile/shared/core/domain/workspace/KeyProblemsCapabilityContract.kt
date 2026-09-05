@@ -122,6 +122,7 @@ fun validateKeyProblemsContractWire(rawGraph: String): Array<String> {
                 description = row.string("description"),
                 status = WorkspaceProblemStatus.valueOf(row.string("status")),
                 order = row.long("order"),
+                dateTime = row.nullableLong("dateTime"),
             )
         },
         workspaceRefs = root.rows("workspaceProblemWorkspaceRefs").map { row ->

@@ -37,7 +37,9 @@ class CanonicalOrientationBootstrapper
         private val mutex = Mutex()
         private val gson = Gson()
 
-        suspend fun ensureBootstrapped(): OrientationBootstrapReport =
+        suspend fun ensureBootstrapped(
+            ingestLegacyMainBeaconMemberships: Boolean = false,
+        ): OrientationBootstrapReport =
             mutex.withLock {
                 canonicalDayThemeBootstrapper.ensureBootstrapped()
                 database.withTransaction {
@@ -66,6 +68,8 @@ class CanonicalOrientationBootstrapper
                             existingRelations = orientationDao.getAllOrientationRelations(),
                             now = now,
                             migrationVersion = CURRENT_BOOTSTRAP_VERSION,
+                            ingestLegacyMembershipsForExistingCutOver =
+                                ingestLegacyMainBeaconMemberships,
                         )
                     if (cutover.mappings.isNotEmpty()) orientationDao.upsertLegacyMappings(cutover.mappings)
                     if (cutover.relationChanges.isNotEmpty()) {
@@ -232,15 +236,42 @@ private suspend fun repairMainBeaconCompatibilityProjections(
         }
     }
 
-    val canonicalMembers =
-        projectCanonicalMainBeaconMemberships(
-            mappings = mappings,
-            relations = orientationDao.getAllOrientationRelations(),
-        )
-    val legacyMembers = mainBeaconDao.getAllGroupMembersSync()
-    if (canonicalMembers != legacyMembers) {
-        mainBeaconDao.deleteAllGroupMembers()
-        if (canonicalMembers.isNotEmpty()) mainBeaconDao.insertGroupMembers(canonicalMembers)
+    // Main Beacon group membership is a full-set compatibility projection.
+    // An empty canonical relation set is authoritative only after every live
+    // Main Beacon and Main Beacon Group has completed ownership cutover.
+    // Otherwise MATERIALIZED / blocked rows still leave legacy membership
+    // authoritative, and replacing it from the partial canonical projection
+    // would destroy valid legacy relations.
+    val activeMappingBySource =
+        mappings
+            .asSequence()
+            .filterNot { it.isDeleted }
+            .associateBy { it.sourceType to it.sourceId }
+    val liveBeaconIds = mainBeaconDao.getAllBeaconsSync().mapTo(hashSetOf()) { it.id }
+    val liveGroupIds = mainBeaconDao.getAllGroupsSync().mapTo(hashSetOf()) { it.id }
+    val membershipCutoverComplete =
+        liveBeaconIds.all { beaconId ->
+            activeMappingBySource[
+                LegacyOrientationSourceType.MAIN_BEACON.name to beaconId
+            ]?.state == LegacySubjectMappingState.CUT_OVER.name
+        } &&
+            liveGroupIds.all { groupId ->
+                activeMappingBySource[
+                    LegacyOrientationSourceType.MAIN_BEACON_GROUP.name to groupId
+                ]?.state == LegacySubjectMappingState.CUT_OVER.name
+            }
+
+    if (membershipCutoverComplete) {
+        val canonicalMembers =
+            projectCanonicalMainBeaconMemberships(
+                mappings = mappings,
+                relations = orientationDao.getAllOrientationRelations(),
+            )
+        val legacyMembers = mainBeaconDao.getAllGroupMembersSync()
+        if (canonicalMembers != legacyMembers) {
+            mainBeaconDao.deleteAllGroupMembers()
+            if (canonicalMembers.isNotEmpty()) mainBeaconDao.insertGroupMembers(canonicalMembers)
+        }
     }
 }
 

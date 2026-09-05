@@ -21,6 +21,20 @@ import java.io.File
 class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    private val migrations156To166 =
+        arrayOf(
+            MIGRATION_156_157,
+            MIGRATION_157_158,
+            MIGRATION_158_159,
+            MIGRATION_159_160,
+            MIGRATION_160_161,
+            MIGRATION_161_162,
+            MIGRATION_162_163,
+            MIGRATION_163_164,
+            MIGRATION_164_165,
+            MIGRATION_165_166,
+        )
+
     @Test
     fun `156 to 157 migrates legacy and tracker problems into typed canonical rows`() {
         val dbName = "migration_156_157_key_problems_cutover"
@@ -48,7 +62,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
                           "id": "later",
                           "title": " Later ",
                           "description": " Details ",
-                          "dateTime": null,
+                          "dateTime": 4321,
                           "status": "BLOCKED",
                           "relatedContextIds": ["related", "related"],
                           "relatedAttachmentIds": ["attachment", "attachment"],
@@ -71,14 +85,14 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157, MIGRATION_157_158, MIGRATION_158_159)
+                .addMigrations(*migrations156To166)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(159L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
 
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_problems"))
@@ -109,7 +123,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
             db.query(
                 """
-                SELECT title, description, status, createdAt, updatedAt, syncedAt, isDeleted, version
+                SELECT title, description, status, createdAt, updatedAt, syncedAt, isDeleted, version, dateTime
                 FROM workspace_problems
                 WHERE id = 'later'
                 """.trimIndent(),
@@ -123,6 +137,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
                 assertTrue(cursor.isNull(5))
                 assertEquals(0, cursor.getInt(6))
                 assertEquals(1L, cursor.getLong(7))
+                assertEquals(4321L, cursor.getLong(8))
             }
 
             assertEquals(
@@ -203,7 +218,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157, MIGRATION_157_158, MIGRATION_158_159)
+                .addMigrations(*migrations156To166)
                 .allowMainThreadQueries()
                 .build()
 
@@ -212,7 +227,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
             db.query(
                 """
-                SELECT id, title, description, createdAt, updatedAt
+                SELECT id, title, description, createdAt, updatedAt, dateTime
                 FROM workspace_problems
                 """.trimIndent(),
             ).use { cursor ->
@@ -222,6 +237,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
                 assertEquals("Broken pump\nNeeds inspection", cursor.getString(2))
                 assertEquals(100L, cursor.getLong(3))
                 assertEquals(100L, cursor.getLong(4))
+                assertTrue(cursor.isNull(5))
                 assertFalse(cursor.moveToNext())
             }
 
@@ -244,8 +260,8 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `156 to 157 rolls back when legacy dateTime has real value`() {
-        val dbName = "migration_156_157_key_problems_datetime_fail"
+    fun `156 to 166 preserves persisted generic dateTime losslessly`() {
+        val dbName = "migration_156_166_key_problems_datetime"
         createFixtureDatabase(dbName) { db ->
             insertContext(db, id = "owner", roleCode = "crisis_case")
             insertLegacyPayload(
@@ -256,10 +272,33 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             )
         }
 
-        assertMigrationFailsClosed(
-            dbName = dbName,
-            expectedLegacyContextId = "owner",
-        )
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations156To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "context_key_problems"))
+
+            db.query(
+                """
+                SELECT dateTime
+                FROM workspace_problems
+                WHERE id = 'dated'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1234L, cursor.getLong(0))
+                assertFalse(cursor.moveToNext())
+            }
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
     }
 
     @Test
@@ -292,7 +331,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
     ) {
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157, MIGRATION_157_158)
+                .addMigrations(*migrations156To166)
                 .allowMainThreadQueries()
                 .build()
 

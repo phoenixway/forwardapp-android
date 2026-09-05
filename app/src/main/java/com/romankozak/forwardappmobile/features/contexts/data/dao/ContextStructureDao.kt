@@ -20,6 +20,9 @@ interface ContextStructureDao {
     @Query("SELECT * FROM context_structures WHERE contextId = :contextId LIMIT 1")
     suspend fun getStructureByContext(contextId: String): ContextConfiguration?
 
+    @Query("SELECT * FROM context_structures WHERE id = :structureId LIMIT 1")
+    suspend fun getStructureById(structureId: String): ContextConfiguration?
+
     @Query("SELECT * FROM context_structures WHERE contextId = :contextId LIMIT 1")
     fun observeStructureByContext(contextId: String): Flow<ContextConfiguration?>
 

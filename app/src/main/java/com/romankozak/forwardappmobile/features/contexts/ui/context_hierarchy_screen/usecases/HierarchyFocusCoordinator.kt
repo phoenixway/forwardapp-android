@@ -60,6 +60,7 @@ class HierarchyFocusCoordinator
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
             enterFocus: Boolean,
+            replaceFocusPath: Boolean = false,
         ) {
             val orientationBreadcrumbs =
                 buildOrientationBreadcrumbsToContext(
@@ -84,7 +85,14 @@ class HierarchyFocusCoordinator
                 )
             }
             if (enterFocus) {
-                searchUseCase.enterProjectFocus(context.id)
+                if (replaceFocusPath && orientationBreadcrumbs.isNotEmpty()) {
+                    searchUseCase.enterProjectFocusPath(
+                        projectId = context.id,
+                        breadcrumbs = orientationBreadcrumbs,
+                    )
+                } else {
+                    searchUseCase.enterProjectFocus(context.id)
+                }
             }
         }
 

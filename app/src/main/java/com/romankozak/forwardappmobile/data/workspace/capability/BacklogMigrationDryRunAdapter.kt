@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
+import com.romankozak.forwardappmobile.data.database.repairRequiredGoalIdentities161
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogMigrationBindings
@@ -66,6 +67,28 @@ class BacklogMigrationDryRunAdapter
          */
         suspend fun materializeLegacyFullBackup(): BacklogMigrationDryRunReport =
             database.withTransaction {
+                val goalRepairNow = System.currentTimeMillis()
+                val requiredGoalIds =
+                    database.listItemDao().getAllRaw()
+                        .asSequence()
+                        .filter { it.itemType == GOAL_SOURCE_TYPE }
+                        .map { it.entityId }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+                val goalRepairDiagnostics = mutableListOf<String>()
+                repairRequiredGoalIdentities161(
+                    db = database.openHelper.writableDatabase,
+                    now = goalRepairNow,
+                    requiredGoalIds = requiredGoalIds,
+                    diagnostics = goalRepairDiagnostics,
+                )
+                require(goalRepairDiagnostics.isEmpty()) {
+                    buildString {
+                        append("Legacy BACKLOG Goal identity repair was rejected")
+                        goalRepairDiagnostics.distinct().forEach { append("\n$it") }
+                    }
+                }
+
                 val report = dryRun()
                 require(report.canApply && report.isFullyAccounted) {
                     buildString {
@@ -84,8 +107,52 @@ class BacklogMigrationDryRunAdapter
                                 it.instanceKey == DEFAULT_INSTANCE_KEY
                         }
                         .associateBy { it.workspaceId }
+                val legacyItems = database.listItemDao().getAllRaw()
+                val legacyItemsById = legacyItems.associateBy { it.id }
+                val historicalDeletedGoalIds =
+                    database.goalDao().getAllRaw()
+                        .asSequence()
+                        .filter { it.isDeleted }
+                        .mapTo(hashSetOf()) { it.id }
+                val contextIds = database.contextDao().getAll().mapTo(hashSetOf()) { it.id }
+                val historicalMissingWorkspaceTargetContextIds =
+                    legacyItems
+                        .asSequence()
+                        .filter { it.itemType == "PROJECT" || it.itemType == "SUBLIST" }
+                        .map { it.entityId }
+                        .filter { it.isNotBlank() && it !in contextIds }
+                        .toSet()
+
                 val fallbackOrder = (capabilities.maxOfOrNull { it.capabilityOrder } ?: -1L) + 1L
                 val now = System.currentTimeMillis()
+
+                val existingCapabilityTombstones =
+                    report.expectedCapabilityInstanceIdByWorkspaceId.keys.mapNotNull { workspaceId ->
+                        val workspace = workspaces[workspaceId] ?: return@mapNotNull null
+                        val capability = existingLogical[workspaceId] ?: return@mapNotNull null
+                        if (!workspace.isDeleted || capability.isDeleted) return@mapNotNull null
+
+                        capability.copy(
+                            updatedAt =
+                                if (capability.updatedAt == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    maxOf(now, capability.updatedAt + 1L)
+                                },
+                            syncedAt = null,
+                            isDeleted = true,
+                            version =
+                                if (capability.version == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    capability.version + 1L
+                                },
+                        )
+                    }
+                if (existingCapabilityTombstones.isNotEmpty()) {
+                    database.orientationDao().upsertWorkspaceCapabilities(existingCapabilityTombstones)
+                }
+
                 val missingCapabilities =
                     report.expectedCapabilityInstanceIdByWorkspaceId.mapNotNull { (workspaceId, id) ->
                         if (existingLogical[workspaceId] != null) return@mapNotNull null
@@ -104,7 +171,7 @@ class BacklogMigrationDryRunAdapter
                             createdAt = workspace.createdAt,
                             updatedAt = now,
                             syncedAt = null,
-                            isDeleted = false,
+                            isDeleted = workspace.isDeleted,
                             version = 1L,
                         )
                     }
@@ -114,6 +181,28 @@ class BacklogMigrationDryRunAdapter
 
                 database.workspaceBacklogEntryDao().upsert(
                     report.plan.entries.map { entry ->
+                        val source =
+                            requireNotNull(legacyItemsById[entry.id]) {
+                                "Legacy BACKLOG fallback lost source ${entry.id}"
+                            }
+                        val ownerDeleted = workspaces[entry.workspaceId]?.isDeleted == true
+                        val tombstonedByOwner =
+                            !source.isDeleted && ownerDeleted && entry.isDeleted
+                        val tombstonedByMissingWorkspaceTarget =
+                            !source.isDeleted &&
+                                entry.isDeleted &&
+                                (source.itemType == "PROJECT" || source.itemType == "SUBLIST") &&
+                                source.entityId in historicalMissingWorkspaceTargetContextIds
+                        val tombstonedByDeletedGoalTarget =
+                            !source.isDeleted &&
+                                entry.isDeleted &&
+                                source.itemType == GOAL_SOURCE_TYPE &&
+                                source.entityId in historicalDeletedGoalIds
+                        val tombstonedByLifecycle =
+                            tombstonedByOwner ||
+                                tombstonedByMissingWorkspaceTarget ||
+                                tombstonedByDeletedGoalTarget
+
                         WorkspaceBacklogEntryEntity(
                             id = entry.id,
                             workspaceId = entry.workspaceId,
@@ -122,10 +211,24 @@ class BacklogMigrationDryRunAdapter
                             targetId = entry.target.id,
                             entryOrder = entry.order,
                             createdAt = entry.createdAt,
-                            updatedAt = entry.updatedAt,
+                            updatedAt =
+                                if (!tombstonedByLifecycle) {
+                                    entry.updatedAt
+                                } else if (entry.updatedAt == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    maxOf(now, entry.updatedAt + 1L)
+                                },
                             syncedAt = null,
                             isDeleted = entry.isDeleted,
-                            version = entry.version,
+                            version =
+                                if (!tombstonedByLifecycle) {
+                                    entry.version
+                                } else if (entry.version == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    entry.version + 1L
+                                },
                         )
                     },
                 )
@@ -136,6 +239,12 @@ class BacklogMigrationDryRunAdapter
             database.withTransaction {
                 val legacyItems = database.listItemDao().getAllRaw()
                 val legacyOrders = database.backlogOrderDao().getAllRaw()
+                val contexts = database.contextDao().getAll()
+                val historicalDeletedGoalIds =
+                    database.goalDao().getAllRaw()
+                        .asSequence()
+                        .filter { it.isDeleted }
+                        .mapTo(hashSetOf()) { it.id }
 
                 val workspaces = database.workspaceDao().getAll()
                 val capabilities = database.orientationDao().getAllWorkspaceCapabilities()
@@ -171,6 +280,20 @@ class BacklogMigrationDryRunAdapter
                             )
                     }
 
+                val contextIds = contexts.mapTo(hashSetOf()) { it.id }
+                val historicalMissingWorkspaceTargetContextIds =
+                    legacyItems
+                        .asSequence()
+                        .filter { it.itemType == "PROJECT" || it.itemType == "SUBLIST" }
+                        .map { it.entityId }
+                        .filter { it.isNotBlank() && it !in contextIds }
+                        .toSet()
+                val legacyOwnerWorkspaceIds =
+                    legacyItems
+                        .asSequence()
+                        .mapNotNull { workspaceIdByContextId[it.contextId] }
+                        .toSet()
+
                 val preflightIssues = mutableListOf<BacklogMigrationDryRunIssue>()
 
                 val expectedCapabilityIds =
@@ -178,7 +301,9 @@ class BacklogMigrationDryRunAdapter
                         workspaceIds =
                             provenContextBacked
                                 .asSequence()
-                                .filterNot { it.isDeleted }
+                                .filter { workspace ->
+                                    !workspace.isDeleted || workspace.id in legacyOwnerWorkspaceIds
+                                }
                                 .map { it.id }
                                 .toList(),
                         capabilities = capabilities,
@@ -209,7 +334,6 @@ class BacklogMigrationDryRunAdapter
                         .asSequence()
                         .filter { mapping ->
                             mapping.sourceType == GOAL_SOURCE_TYPE &&
-                                !mapping.isDeleted &&
                                 mapping.state == CUT_OVER_MAPPING_STATE
                         }
                         .associate { mapping ->
@@ -236,6 +360,9 @@ class BacklogMigrationDryRunAdapter
                         capabilityInstanceIdByWorkspaceId = expectedCapabilityIds,
                         orientationIdByGoalId = orientationIdByGoalId,
                         targetStateByRef = targetStateByRef,
+                        historicalMissingWorkspaceTargetContextIds =
+                            historicalMissingWorkspaceTargetContextIds,
+                        historicalDeletedGoalIds = historicalDeletedGoalIds,
                         parentWorkspaceIdByWorkspaceId =
                             workspaces.associate { workspace ->
                                 workspace.id to workspace.parentWorkspaceId
@@ -458,6 +585,13 @@ class BacklogMigrationDryRunAdapter
 
             return result
         }
+
+        private fun stableLegacyGoalSubjectId(goalId: String): String =
+            LegacySubjectUuid
+                .uuidV5(
+                    UUID.fromString(LegacySubjectUuid.NAMESPACE_UUID),
+                    "$GOAL_SOURCE_TYPE:$goalId",
+                ).toString()
 
         private fun stableBacklogCapabilityId(workspaceId: String): String =
             LegacySubjectUuid

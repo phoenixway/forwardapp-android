@@ -49,6 +49,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 fun FocusedProjectView(
     focusedProjectId: String,
     hierarchy: ContextHierarchyData,
+    orientationHierarchy: List<OrientationHierarchyItem>,
     displayChildMap: Map<String, List<Context>>,
     directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
     breadcrumbs: List<BreadcrumbItem>,
@@ -77,16 +78,44 @@ fun FocusedProjectView(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
+    // Focus is an operational-hierarchy concern. After Context retirement the
+    // stable id may belong to a CANONICAL_ONLY WorkspaceNode rather than to a
+    // live legacy Context, so resolve the already-built ProjectLike projection
+    // before falling back to the legacy Context hierarchy.
+    val focusedProjectNode =
+        remember(orientationHierarchy, focusedProjectId) {
+            orientationHierarchy
+                .firstOrNull { item -> item.node.id == focusedProjectId }
+                ?.node as? OrientationHierarchyNode.ProjectLike
+        }
+    val focusedProject =
+        focusedProjectNode?.contextProjection
+            ?: hierarchy.allProjects.find { it.id == focusedProjectId }
+    val focusedProjectIsCanonicalWorkspace =
+        focusedProjectNode?.isCanonicalWorkspace == true
     val canPasteIntoFocusedProject =
-        clipboardContextIds.isNotEmpty() && focusedProjectId !in clipboardContextIds
+        !focusedProjectIsCanonicalWorkspace &&
+            clipboardContextIds.isNotEmpty() &&
+            focusedProjectId !in clipboardContextIds
     val children =
         remember(directChildrenByNodeId, focusedProjectId, displayChildMap) {
             directChildrenByNodeId[focusedProjectId].orEmpty()
-                .mapNotNull { item -> (item.node as? OrientationHierarchyNode.ContextNode)?.context }
-                .ifEmpty { displayChildMap[focusedProjectId].orEmpty() }
-                .distinctBy { it.id }
-                .map { child -> FlatHierarchyItem(project = child, level = 0) }
+                .mapNotNull { item ->
+                    (item.node as? OrientationHierarchyNode.ProjectLike)?.let { node ->
+                        FlatHierarchyItem(
+                            project = node.contextProjection,
+                            level = 0,
+                            isLinkedAppearance = node.isLinkedAppearance,
+                            isCanonicalWorkspace = node.isCanonicalWorkspace,
+                        )
+                    }
+                }
+                .ifEmpty {
+                    displayChildMap[focusedProjectId]
+                        .orEmpty()
+                        .map { child -> FlatHierarchyItem(project = child, level = 0) }
+                }
+                .distinctBy { it.project.id }
         }
 
     if (focusedProject != null) {
@@ -106,7 +135,11 @@ fun FocusedProjectView(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     FocusedProjectHeader(
                         project = focusedProject,
-                        onMoreActionsClick = { onMenuRequested(focusedProject) },
+                        onMoreActionsClick = {
+                            if (!focusedProjectIsCanonicalWorkspace) {
+                                onMenuRequested(focusedProject)
+                            }
+                        },
                         onProjectClick = { onProjectClick(focusedProject.id) },
                     )
                 }
@@ -244,11 +277,12 @@ fun FocusedOrientationNodeView(
     val childItems =
         remember(directChildren) {
             directChildren.mapNotNull { item ->
-                (item.node as? OrientationHierarchyNode.ContextNode)?.let { node ->
+                (item.node as? OrientationHierarchyNode.ProjectLike)?.let { node ->
                     FlatHierarchyItem(
-                        project = node.context,
+                        project = node.contextProjection,
                         level = 0,
                         isLinkedAppearance = node.isLinkedAppearance,
+                        isCanonicalWorkspace = node.isCanonicalWorkspace,
                     )
                 }
             }.distinctBy { it.project.id }
@@ -257,7 +291,9 @@ fun FocusedOrientationNodeView(
         (
             focusedRoot.node is OrientationHierarchyNode.NoBeacon ||
                 focusedRoot.node is OrientationHierarchyNode.Beacon
-        ) && childItems.size > 1
+        ) &&
+            childItems.size > 1 &&
+            childItems.none { it.isCanonicalWorkspace }
     val beaconChildren =
         directChildren
             .filter { it.node is OrientationHierarchyNode.Beacon }
@@ -311,7 +347,7 @@ fun FocusedOrientationNodeView(
                             level = 0,
                             childCount = directChildren.size,
                         )
-                    is OrientationHierarchyNode.ContextNode -> Unit
+                    is OrientationHierarchyNode.ProjectLike -> Unit
                 }
             }
         }
@@ -323,11 +359,12 @@ fun FocusedOrientationNodeView(
                 val beaconContextChildren =
                     directChildrenByNodeId[node.id].orEmpty()
                         .mapNotNull { childItem ->
-                            (childItem.node as? OrientationHierarchyNode.ContextNode)?.let { contextNode ->
+                            (childItem.node as? OrientationHierarchyNode.ProjectLike)?.let { contextNode ->
                                 FlatHierarchyItem(
-                                    project = contextNode.context,
+                                    project = contextNode.contextProjection,
                                     level = 1,
                                     isLinkedAppearance = contextNode.isLinkedAppearance,
+                                    isCanonicalWorkspace = contextNode.isCanonicalWorkspace,
                                 )
                             }
                         }
@@ -505,9 +542,10 @@ private fun ReorderableContextRow(
             onEditProject = onEditProject,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
+            legacyContextActionsEnabled = !item.isCanonicalWorkspace,
             modifier = Modifier.weight(1f),
         )
-        if (isSiblingReorderMode) {
+        if (isSiblingReorderMode && !item.isCanonicalWorkspace) {
             ReorderControls(
                 canMoveUp = index > 0,
                 canMoveDown = index < siblings.lastIndex,

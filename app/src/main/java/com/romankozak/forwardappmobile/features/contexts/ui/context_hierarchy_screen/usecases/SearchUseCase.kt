@@ -333,6 +333,40 @@ class SearchUseCase
             }
         }
 
+        /**
+         * Replaces focus navigation with the already-resolved operational
+         * breadcrumb path. Used for an explicit external reveal such as
+         * "Show in hierarchy", where Back should walk to the displayed
+         * operational parent rather than fall straight to hierarchy root.
+         */
+        fun enterProjectFocusPath(
+            projectId: String,
+            breadcrumbs: List<BreadcrumbItem>,
+        ) {
+            val breadcrumbStates =
+                breadcrumbs.mapNotNull { breadcrumb ->
+                    when (breadcrumb.target) {
+                        BreadcrumbTarget.OrientationNode ->
+                            ProjectHierarchyScreenSubState.OrientationFocused(breadcrumb.id)
+                        BreadcrumbTarget.Context ->
+                            ProjectHierarchyScreenSubState.ProjectFocused(breadcrumb.id)
+                    }
+                }
+
+            val targetState = ProjectHierarchyScreenSubState.ProjectFocused(projectId)
+            val normalizedStates =
+                buildList {
+                    breadcrumbStates.forEach { state ->
+                        if (lastOrNull() != state) add(state)
+                    }
+                    if (lastOrNull() != targetState) add(targetState)
+                }
+
+            _subStateStack.value =
+                listOf(ProjectHierarchyScreenSubState.Hierarchy) + normalizedStates
+            focusedProjectId.value = projectId
+        }
+
         fun enterProjectFocus(projectId: String) {
             val targetState = ProjectHierarchyScreenSubState.ProjectFocused(projectId)
             when (val currentState = _subStateStack.value.lastOrNull()) {

@@ -160,6 +160,7 @@ val MIGRATION_156_157 =
                                 problemOrder = canonicalOrder.toLong(),
                                 createdAt = problem.createdAt,
                                 updatedAt = problem.updatedAt,
+                                dateTime = problem.dateTime,
                             )
 
                         problem.relatedContextIds.forEach { relatedContextId ->
@@ -258,6 +259,7 @@ private fun createCanonicalTables(db: SupportSQLiteDatabase) {
             syncedAt INTEGER,
             isDeleted INTEGER NOT NULL,
             version INTEGER NOT NULL,
+            dateTime INTEGER,
             PRIMARY KEY(id)
         )
         """.trimIndent(),
@@ -577,17 +579,22 @@ private fun parseTracker(
                 item.optionalLong("updatedAt", source.updatedAt, source, id, diagnostics)
                     ?: return@forEachIndexed
 
-            val dateTime = item.get("dateTime")
-            if (dateTime != null && dateTime !is JsonNull && !dateTime.isJsonNull) {
-                val value = dateTime.longOrNull()
-                if (value == null) {
-                    diagnostics +=
-                        "INVALID_ISSUE: Context ${source.contextId} issue $id dateTime must be an integer or null"
+            val dateTimeElement = item.get("dateTime")
+            val dateTime =
+                if (
+                    dateTimeElement == null ||
+                    dateTimeElement is JsonNull ||
+                    dateTimeElement.isJsonNull
+                ) {
+                    null
                 } else {
-                    diagnostics +=
-                        "DATE_TIME_REQUIRES_DECISION: Context ${source.contextId} issue $id has dateTime=$value"
+                    dateTimeElement.longOrNull()
+                        ?: run {
+                            diagnostics +=
+                                "INVALID_ISSUE: Context ${source.contextId} issue $id dateTime must be an integer or null"
+                            return@forEachIndexed
+                        }
                 }
-            }
 
             val normalizedTitle = title.trim()
             val normalizedDescription = description.trim()
@@ -616,6 +623,7 @@ private fun parseTracker(
                     sourceIndex = index,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
+                    dateTime = dateTime,
                 ),
             )
         }
@@ -662,6 +670,7 @@ private fun parseLegacy(
             sourceIndex = 0,
             createdAt = source.updatedAt,
             updatedAt = source.updatedAt,
+            dateTime = null,
         ),
     )
 }
@@ -1061,8 +1070,9 @@ private fun insertProblems(
                 updatedAt,
                 syncedAt,
                 isDeleted,
-                version
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 1)
+                version,
+                dateTime
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 1, ?)
             """.trimIndent(),
             arrayOf<Any?>(
                 row.id,
@@ -1074,6 +1084,7 @@ private fun insertProblems(
                 row.problemOrder,
                 row.createdAt,
                 row.updatedAt,
+                row.dateTime,
             ),
         )
     }
@@ -1209,6 +1220,7 @@ private data class ParsedProblem156(
     val sourceIndex: Int,
     val createdAt: Long,
     val updatedAt: Long,
+    val dateTime: Long?,
 )
 
 private data class Context156(
@@ -1266,6 +1278,7 @@ private data class Problem157(
     val problemOrder: Long,
     val createdAt: Long,
     val updatedAt: Long,
+    val dateTime: Long?,
 )
 
 private data class WorkspaceRef157(

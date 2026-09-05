@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import java.util.UUID
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
@@ -66,6 +68,102 @@ class CanonicalOrientationGraphRepository
                 dao.upsertWorkspaceBindings(changes.map { it.toEntity() })
             }
         }
+
+        /**
+         * Makes one already-existing live Workspace the primary EMBODIES host
+         * for one already-existing live ManagedSubject.
+         *
+         * This command never displaces another embodiment. Exact existing
+         * ownership is idempotent; any competing EMBODIES edge fails closed.
+         */
+        suspend fun bindExistingPrimaryEmbodiment(
+            subjectId: String,
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): String =
+            database.withTransaction {
+                val subject =
+                    requireNotNull(dao.getManagedSubject(subjectId)) {
+                        "ManagedSubject does not exist"
+                    }
+                require(!subject.isDeleted) {
+                    "ManagedSubject is deleted"
+                }
+
+                val workspace =
+                    requireNotNull(workspaceDao.getById(workspaceId)) {
+                        "Workspace does not exist"
+                    }
+                require(!workspace.isDeleted) {
+                    "Workspace is deleted"
+                }
+
+                val all = dao.getAllWorkspaceBindings().map { it.toModel() }
+                val liveEmbodies =
+                    all.filter {
+                        !it.isDeleted &&
+                            it.bindingType == WorkspaceBindingType.EMBODIES
+                    }
+
+                val exact =
+                    liveEmbodies.filter {
+                        it.subjectId == subjectId &&
+                            it.workspaceId == workspaceId
+                    }
+                require(exact.size <= 1) {
+                    "Exact EMBODIES binding is duplicated"
+                }
+
+                val existing = exact.singleOrNull()
+                val conflicts =
+                    liveEmbodies.filter {
+                        it.id != existing?.id &&
+                            (
+                                it.subjectId == subjectId ||
+                                    it.workspaceId == workspaceId
+                            )
+                    }
+                require(conflicts.isEmpty()) {
+                    "EMBODIES ownership conflicts with an existing binding"
+                }
+
+                existing?.let {
+                    require(it.isPrimary) {
+                        "Existing EMBODIES binding is not primary"
+                    }
+                    return@withTransaction it.id
+                }
+
+                val binding =
+                    WorkspaceBinding(
+                        id = UUID.randomUUID().toString(),
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                        workspaceId = workspaceId,
+                        subjectId = subjectId,
+                        bindingType = WorkspaceBindingType.EMBODIES,
+                        isPrimary = true,
+                        order = 0L,
+                    )
+
+                val final =
+                    mergeById(
+                        existing = all,
+                        changes = listOf(binding),
+                        id = { it.id },
+                    )
+                require(validateWorkspaceBindings(final).isEmpty()) {
+                    "Workspace bindings violate DOMAIN-CONTRACT v1"
+                }
+
+                dao.upsertWorkspaceBindings(
+                    listOf(binding.toEntity()),
+                )
+                binding.id
+            }
 
     }
 

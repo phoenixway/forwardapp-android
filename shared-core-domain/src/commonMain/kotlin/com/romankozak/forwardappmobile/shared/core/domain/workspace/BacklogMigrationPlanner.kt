@@ -90,11 +90,6 @@ private fun diagnoseItemShape(
                     BacklogMigrationIssueCode.UNRESOLVED_OWNER_WORKSPACE_STATE,
                     "Owner Workspace lifecycle state is unavailable",
                 )
-            } else if (ownerState.isDeleted) {
-                reject(
-                    BacklogMigrationIssueCode.DELETED_OWNER_WORKSPACE,
-                    "Owner Workspace is deleted",
-                )
             }
         }
     }
@@ -135,6 +130,7 @@ private fun resolveItem(
     }
 
     val workspaceId = bindings.workspaceIdByContextId.getValue(source.contextId)
+    val ownerDeleted = bindings.ownerWorkspaceStateById.getValue(workspaceId).isDeleted
     val capabilityId = bindings.capabilityInstanceIdByWorkspaceId[workspaceId]
     if (capabilityId == null) {
         issues += issue(source.id, BacklogMigrationIssueCode.UNRESOLVED_CAPABILITY_INSTANCE, "No BACKLOG capability instance")
@@ -147,6 +143,11 @@ private fun resolveItem(
         return ItemOutcome(source, LegacyBacklogSourceDisposition.QUARANTINED)
     }
 
+    val historicalMissingWorkspaceTarget =
+        target.kind == WorkspaceBacklogTargetKind.WORKSPACE &&
+            source.entityId in bindings.historicalMissingWorkspaceTargetContextIds &&
+            target.id == source.entityId
+
     if (
         target.kind == WorkspaceBacklogTargetKind.WORKSPACE &&
         bindings.parentWorkspaceIdByWorkspaceId[target.id] == workspaceId
@@ -155,11 +156,24 @@ private fun resolveItem(
     }
 
     val targetState = bindings.targetStateByRef[target]
-    if (targetState == null) {
+    if (targetState == null && !historicalMissingWorkspaceTarget) {
         issues += issue(source.id, BacklogMigrationIssueCode.UNRESOLVED_TARGET, "Target state is unavailable for $target")
         return ItemOutcome(source, LegacyBacklogSourceDisposition.QUARANTINED)
     }
-    if (!source.isDeleted && targetState.isDeleted) {
+
+    val historicalDeletedGoalTarget =
+        source.itemType == "GOAL" &&
+            source.entityId in bindings.historicalDeletedGoalIds &&
+            target.kind == WorkspaceBacklogTargetKind.ORIENTATION &&
+            targetState?.isDeleted == true
+
+    if (
+        !source.isDeleted &&
+        !ownerDeleted &&
+        !historicalMissingWorkspaceTarget &&
+        !historicalDeletedGoalTarget &&
+        targetState?.isDeleted == true
+    ) {
         issues +=
             issue(
                 source.id,
@@ -176,7 +190,16 @@ private fun resolveItem(
     return ItemOutcome(
         source = source,
         disposition = LegacyBacklogSourceDisposition.MIGRATED_EXPLICIT,
-        resolved = ResolvedBacklogItem(source, workspaceId, capabilityId, target),
+        resolved =
+            ResolvedBacklogItem(
+                source = source,
+                workspaceId = workspaceId,
+                capabilityInstanceId = capabilityId,
+                target = target,
+                ownerDeleted = ownerDeleted,
+                historicalMissingWorkspaceTarget = historicalMissingWorkspaceTarget,
+                historicalDeletedGoalTarget = historicalDeletedGoalTarget,
+            ),
     )
 }
 
@@ -184,7 +207,7 @@ private fun quarantineDuplicateLiveTargets(
     outcomes: MutableList<ItemOutcome>,
     issues: MutableList<BacklogMigrationIssue>,
 ) {
-    outcomes.withIndex().filter { it.value.resolved?.source?.isDeleted == false }
+    outcomes.withIndex().filter { it.value.resolved?.isDeleted == false }
         .groupBy { indexed ->
             indexed.value.resolved!!.let { it.capabilityInstanceId to it.target }
         }.filterValues { it.size > 1 }.values.flatten().forEach { indexed ->
@@ -203,7 +226,7 @@ private fun materializeCanonical(resolved: List<ResolvedBacklogItem>): List<Work
     resolved.groupBy { it.capabilityInstanceId }.values.flatMap { owned ->
         val sorted =
             owned.sortedWith(
-                compareBy<ResolvedBacklogItem> { it.source.isDeleted }
+                compareBy<ResolvedBacklogItem> { it.isDeleted }
                     .thenBy { it.source.order }
                     .thenBy { it.source.id },
             )
@@ -221,14 +244,24 @@ private data class ResolvedBacklogItem(
     val workspaceId: String,
     val capabilityInstanceId: String,
     val target: WorkspaceBacklogTargetRef,
+    val ownerDeleted: Boolean,
+    val historicalMissingWorkspaceTarget: Boolean,
+    val historicalDeletedGoalTarget: Boolean,
 ) {
+    val isDeleted: Boolean
+        get() =
+            source.isDeleted ||
+                ownerDeleted ||
+                historicalMissingWorkspaceTarget ||
+                historicalDeletedGoalTarget
+
     fun toCanonical(canonicalOrder: Long): WorkspaceBacklogEntry =
         WorkspaceBacklogEntry(
             id = source.id,
             createdAt = UNKNOWN_LEGACY_BACKLOG_TIMESTAMP,
             updatedAt = source.updatedAt ?: UNKNOWN_LEGACY_BACKLOG_TIMESTAMP,
             syncedAt = null,
-            isDeleted = source.isDeleted,
+            isDeleted = isDeleted,
             version = source.version,
             workspaceId = workspaceId,
             capabilityInstanceId = capabilityInstanceId,
@@ -242,7 +275,11 @@ private fun LegacyBacklogItemSource.resolveTarget(bindings: BacklogMigrationBind
     val targetId =
         when (kind) {
             WorkspaceBacklogTargetKind.ORIENTATION -> bindings.orientationIdByGoalId[entityId]
-            WorkspaceBacklogTargetKind.WORKSPACE -> bindings.workspaceIdByContextId[entityId]
+            WorkspaceBacklogTargetKind.WORKSPACE ->
+                bindings.workspaceIdByContextId[entityId]
+                    ?: entityId.takeIf {
+                        it in bindings.historicalMissingWorkspaceTargetContextIds
+                    }
             else -> entityId
         } ?: return null
     return WorkspaceBacklogTargetRef(kind, targetId)

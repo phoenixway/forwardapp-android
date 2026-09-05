@@ -47,12 +47,62 @@ class CanonicalAspectRepository
             parentAspectId: String? = null,
             now: Long = System.currentTimeMillis(),
         ): String =
+            createWithId(
+                id = UUID.randomUUID().toString(),
+                title = title,
+                description = description,
+                parentAspectId = parentAspectId,
+                now = now,
+            )
+
+        /**
+         * Deterministic identity path for explicit legacy cutovers.
+         *
+         * The caller owns the source-to-subject identity decision. This method
+         * still owns all Aspect validation and fails closed if the requested id
+         * is already occupied by a different canonical subject/shape.
+         */
+        internal suspend fun createWithId(
+            id: String,
+            title: String,
+            description: String? = null,
+            parentAspectId: String? = null,
+            now: Long = System.currentTimeMillis(),
+        ): String =
             database.withTransaction {
+                require(id.isNotBlank()) { "Aspect id must not be blank" }
                 val normalizedTitle = title.trim()
                 require(normalizedTitle.isNotEmpty()) { "Aspect title must not be blank" }
+                val normalizedDescription = description?.trim()?.ifEmpty { null }
+
+                val existingSubject = dao.getManagedSubject(id)
+                val existingNode = dao.getAspect(id)
+                if (existingSubject != null || existingNode != null) {
+                    require(existingSubject != null && existingNode != null) {
+                        "Aspect identity is only partially materialized"
+                    }
+                    require(
+                        existingSubject.subjectType == ManagedSubjectType.ASPECT.name &&
+                            !existingSubject.isDeleted
+                    ) {
+                        "Aspect identity is occupied by a different or deleted subject"
+                    }
+                    require(existingSubject.title == normalizedTitle) {
+                        "Aspect identity already exists with a different title"
+                    }
+                    require(existingSubject.description == normalizedDescription) {
+                        "Aspect identity already exists with a different description"
+                    }
+                    require(existingNode.parentAspectId == parentAspectId) {
+                        "Aspect identity already exists under a different parent"
+                    }
+                    return@withTransaction id
+                }
+
                 val live = loadLiveAspects()
-                require(parentAspectId == null || parentAspectId in live) { "Aspect parent must be active" }
-                val id = UUID.randomUUID().toString()
+                require(parentAspectId == null || parentAspectId in live) {
+                    "Aspect parent must be active"
+                }
                 val node =
                     AspectEntity(
                         subjectId = id,
@@ -67,7 +117,7 @@ class CanonicalAspectRepository
                             id = id,
                             subjectType = ManagedSubjectType.ASPECT.name,
                             title = normalizedTitle,
-                            description = description?.trim()?.ifEmpty { null },
+                            description = normalizedDescription,
                             createdAt = now,
                             updatedAt = now,
                             syncedAt = null,

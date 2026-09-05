@@ -9,6 +9,7 @@ import androidx.room.Query
 import androidx.room.Relation
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
@@ -112,16 +113,16 @@ interface MainBeaconDao {
     @Query("SELECT * FROM main_beacon_level_statuses ORDER BY main_beacon_id ASC, level_type ASC")
     suspend fun getAllLevelStatusesSync(): List<MainBeaconLevelStatus>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertBeacon(beacon: MainBeacon)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertBeacons(beacons: List<MainBeacon>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertGroup(group: MainBeaconGroup)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertGroups(groups: List<MainBeaconGroup>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

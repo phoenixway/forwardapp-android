@@ -32,14 +32,26 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_155_156, MIGRATION_156_157, MIGRATION_157_158, MIGRATION_158_159)
+                .addMigrations(
+                    MIGRATION_155_156,
+                    MIGRATION_156_157,
+                    MIGRATION_157_158,
+                    MIGRATION_158_159,
+                    MIGRATION_159_160,
+                    MIGRATION_160_161,
+                    MIGRATION_161_162,
+                    MIGRATION_162_163,
+                    MIGRATION_163_164,
+                    MIGRATION_164_165,
+                    MIGRATION_165_166,
+                )
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(159L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "direction_items"))
 
             // One canonical placement exists for every legacy Direction row,
@@ -143,6 +155,91 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
                     cursor.getString(1),
                 )
             }
+
+            db.query("PRAGMA foreign_key_check").use {
+                assertEquals(0, it.count)
+            }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `155 to 156 tombstones live Direction when linked target Context is already deleted`() {
+        val dbName = "migration_155_156_direction_deleted_target"
+        createFixtureDatabase(
+            dbName = dbName,
+            brokenLinkedTarget = false,
+            deletedLinkedTarget = true,
+        )
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(
+                    MIGRATION_155_156,
+                    MIGRATION_156_157,
+                    MIGRATION_157_158,
+                    MIGRATION_158_159,
+                    MIGRATION_159_160,
+                    MIGRATION_160_161,
+                    MIGRATION_161_162,
+                    MIGRATION_162_163,
+                    MIGRATION_163_164,
+                    MIGRATION_164_165,
+                    MIGRATION_165_166,
+                )
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "direction_items"))
+
+            db.query(
+                """
+                SELECT targetWorkspaceId, isDeleted, version, syncedAt
+                FROM workspace_direction_entries
+                WHERE id = 'workspace-link'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("target", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals(9L, cursor.getLong(2))
+                assertTrue(cursor.isNull(3))
+            }
+
+            // Repair must not resurrect the deleted target Workspace.
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    """
+                    SELECT isDeleted
+                    FROM workspaces
+                    WHERE id = 'target'
+                    """.trimIndent(),
+                ),
+            )
+
+            // Linked navigation rows do not acquire semantic mappings when
+            // no legacy semantic shadow existed before cutover.
+            assertEquals(
+                0L,
+                scalarLong(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM legacy_subject_mappings
+                    WHERE sourceType = 'DIRECTION'
+                      AND sourceId = 'workspace-link'
+                    """.trimIndent(),
+                ),
+            )
 
             db.query("PRAGMA foreign_key_check").use {
                 assertEquals(0, it.count)
@@ -343,6 +440,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
     private fun createFixtureDatabase(
         dbName: String,
         brokenLinkedTarget: Boolean,
+        deletedLinkedTarget: Boolean = false,
     ) {
         context.deleteDatabase(dbName)
 
@@ -357,7 +455,12 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
 
                             insertContext(db, "owner", "Owner")
                             if (!brokenLinkedTarget) {
-                                insertContext(db, "target", "Target")
+                                insertContext(
+                                    db = db,
+                                    id = "target",
+                                    name = "Target",
+                                    isDeleted = deletedLinkedTarget,
+                                )
                                 insertContext(db, "empty-owner", "Empty owner")
                             }
 
@@ -430,6 +533,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
         db: SupportSQLiteDatabase,
         id: String,
         name: String,
+        isDeleted: Boolean = false,
     ) {
         insertMinimalRow(
             db,
@@ -439,7 +543,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
                 "name" to name,
                 "createdAt" to 10L,
                 "updatedAt" to 20L,
-                "is_deleted" to false,
+                "is_deleted" to isDeleted,
                 "version" to 3L,
                 "scoring_status" to "UNSET",
             ),
@@ -661,7 +765,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
     private fun schemaFile(version: Int): File {
         val relative =
             "schemas/com.romankozak.forwardappmobile.database.AppDatabase/$version.json"
-        val userDir = File(System.getProperty("user.dir"))
+        val userDir = File(System.getProperty("user.dir") ?: ".")
 
         return listOf(
             File(relative),

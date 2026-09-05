@@ -264,17 +264,20 @@ class ContextRepository
             contextToMove: Context,
             newParentId: String?,
         ) {
-            val oldParentId = contextToMove.parentId
+            val persisted =
+                contextDao.getContextById(contextToMove.id)?.takeUnless { it.isDeleted }
+                    ?: return
+            val oldParentId = persisted.parentId
             if (oldParentId == newParentId) return
 
             // Hierarchy ownership lives only on Context.parentId/Context.order.
             // Backlog SUBLIST is reserved for explicit user-created context references.
             // Оновлюємо сам об'єкт контексту.
             val updatedContext =
-                contextToMove.copy(
+                persisted.copy(
                     parentId = newParentId,
                     updatedAt = System.currentTimeMillis(),
-                    version = contextToMove.version + 1,
+                    version = persisted.version + 1,
                     syncedAt = null,
                 )
             workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
@@ -283,8 +286,8 @@ class ContextRepository
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = oldParentId,
                 newParentId = newParentId,
-                childId = contextToMove.id,
-                childName = contextToMove.name,
+                childId = persisted.id,
+                childName = persisted.name,
             )
         }
 
@@ -379,9 +382,10 @@ class ContextRepository
         suspend fun toggleContextManagement(
             id: String,
             enabled: Boolean,
-        ) = contextLogRepository.addToggleContextManagementLog(id, enabled).also {
-            val context = getContextById(id) ?: return@also
+        ) {
+            val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
             updateContext(context.copy(isContextManagementEnabled = enabled))
+            contextLogRepository.addToggleContextManagementLog(id, enabled)
         }
 
         suspend fun updateContextStatus(
@@ -389,13 +393,15 @@ class ContextRepository
             status: String,
             text: String?,
         ) {
-            val context = getContextById(id) ?: return
+            val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
             updateContext(context.copy(contextStatus = status, contextStatusText = text))
             contextLogRepository.addUpdateContextStatusLog(id, status, text)
         }
 
         suspend fun updateContext(context: Context) {
-            val previous = contextDao.getContextById(context.id)
+            val previous = contextDao.getContextById(context.id) ?: return
+            if (previous.isDeleted) return
+
             val now = System.currentTimeMillis()
             // bumpSync повертає копію об'єкта з новою версією та скинутим syncedAt
             val bumped = context.bumpSync(now)
@@ -419,9 +425,19 @@ class ContextRepository
          */
         suspend fun updateContexts(contexts: List<Context>): Int {
             if (contexts.isEmpty()) return 0
-            val previousById = contextDao.getContextsByIds(contexts.map { it.id }.distinct()).associateBy { it.id }
+
+            val previousById =
+                contextDao
+                    .getContextsByIds(contexts.map { it.id }.distinct())
+                    .associateBy { it.id }
+            val writableContexts =
+                contexts.filter { context ->
+                    previousById[context.id]?.isDeleted == false
+                }
+            if (writableContexts.isEmpty()) return 0
+
             val now = System.currentTimeMillis()
-            val bumpedList = contexts.map { it.bumpSync(now) }
+            val bumpedList = writableContexts.map { it.bumpSync(now) }
             val updated = workspaceWriteThrough.mutate(now) { contextDao.update(bumpedList) }
             bumpedList.forEach { bumped ->
                 ensureDirectionFrontLinkForParentChangeIfNeeded(
@@ -443,13 +459,26 @@ class ContextRepository
             id: String,
             mode: ContextViewMode,
         ) {
-            val context = contextDao.getContextById(id) ?: return
+            val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
             updateContext(context.copy(defaultViewModeName = mode.name))
         }
 
         suspend fun deleteContextsAndSubContexts(contexts: List<Context>) {
-            // Відфільтровуємо системні контексти, щоб їх не можна було видалити
-            val contextsToDelete = contexts.filterNot { SystemContexts.isSystem(ContextId(it.id)) }
+            // A retired Context remains readable as a compatibility shell, but
+            // legacy lifecycle commands must not mutate it after canonical cutover.
+            val candidateIds =
+                contexts
+                    .asSequence()
+                    .map { it.id }
+                    .distinct()
+                    .filterNot { SystemContexts.isSystem(ContextId(it)) }
+                    .toList()
+            if (candidateIds.isEmpty()) return
+
+            val contextsToDelete =
+                contextDao
+                    .getContextsByIds(candidateIds)
+                    .filterNot { it.isDeleted }
             if (contextsToDelete.isEmpty()) return
 
             val ids = contextsToDelete.map { it.id }
@@ -778,17 +807,20 @@ class ContextRepository
             if (isSystem && !allowSystemMoves) return
             if (SystemContexts.isPinnedRoot(ContextId(contextToMove.id)) && newParentId != null) return
 
-            val oldParentId = contextToMove.parentId
+            val persisted =
+                contextDao.getContextById(contextToMove.id)?.takeUnless { it.isDeleted }
+                    ?: return
+            val oldParentId = persisted.parentId
             if (oldParentId == newParentId) return
 
             // Hierarchy ownership lives only on Context.parentId/Context.order.
             // Backlog SUBLIST is reserved for explicit user-created context references.
             // Оновлюємо запис самого контексту в базі.
             val updatedContext =
-                contextToMove.copy(
+                persisted.copy(
                     parentId = newParentId,
                     updatedAt = System.currentTimeMillis(),
-                    version = contextToMove.version + 1,
+                    version = persisted.version + 1,
                     syncedAt = null, // Скидаємо для синхронізації
                 )
             workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
@@ -797,8 +829,8 @@ class ContextRepository
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = oldParentId,
                 newParentId = newParentId,
-                childId = contextToMove.id,
-                childName = contextToMove.name,
+                childId = persisted.id,
+                childName = persisted.name,
             )
         }
 

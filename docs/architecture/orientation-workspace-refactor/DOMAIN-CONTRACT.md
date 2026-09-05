@@ -221,6 +221,13 @@ lifecycle/configuration metadata
 Workspace hierarchy is one-parent and acyclic in v1. It does not mirror Aspect
 or Orientation hierarchy.
 
+Legacy Context semantic retirement preserves the existing Workspace hierarchy
+rather than translating `Context.parentId` into Aspect hierarchy. Context-tree
+cutover is bottom-up: active descendants retire before their parent Context.
+A canonical child Workspace may therefore remain under a still
+`CONTEXT_BACKED` parent Workspace; later parent cutover preserves that same
+Workspace id and hierarchy edge. Parent-first cutover is not supported.
+
 Bindings are:
 
 ```text
@@ -567,13 +574,139 @@ not destructive automatic classification. In particular:
 - role `aspect` suggests `ASPECT_AND_WORKSPACE`;
 - role `main-beacon` plus an explicit Beacon link suggests an embodied Beacon
   Workspace;
+
+
+`WORKSPACE_WITH_RELATIONS` is a classification/composition outcome, not an
+atomic migration target. It means that the operational Workspace and its
+semantic graph relations require separate explicit decisions. Context
+retirement does not author arbitrary Workspace bindings as a side effect.
+
+For a `main-beacon` Context, the role alone is insufficient to select a
+canonical subject. An explicit Beacon link is required before embodiment. Main
+Beacon semantic identity and Beacon-group `PART_OF` relations remain owned by
+the Main Beacon Orientation bridge/cutover path. Workspace bindings remain
+owned by the canonical Workspace-binding graph contract.
 - project/direction roles or assessed Context values suggest possible
   `ORIENTATION_AND_WORKSPACE`;
-- system, archive, capture, and technical contexts suggest Workspace-only.
+- reserved system Context identities produce
+  `SYSTEM_OR_COMPATIBILITY_WORKSPACE` and are not eligible for Context
+  migration;
+- non-system archive, capture, and technical operational roles may suggest
+  `WORKSPACE_ONLY`;
 
 Migration preview records the reason and confidence for every suggestion.
 Unreviewed or ambiguous Contexts remain Workspaces using compatibility
 adapters. Capabilities and navigation do not wait for semantic classification.
+
+
+`SYSTEM_OR_COMPATIBILITY_WORKSPACE` and `REVIEW_REQUIRED` are classifier states,
+not `ContextMigrationTarget` variants.
+
+Reserved identities defined by `SystemContexts` are outside Context retirement.
+The canonical migration command rejects them before target-specific work,
+regardless of which target a caller supplies. System lifecycle policy therefore
+cannot be bypassed through direct migration invocation.
+
+`REVIEW_REQUIRED` is not a permanent intrinsic Context type. It means available
+evidence is insufficient for automatic semantic interpretation. A non-system
+Context remains a compatibility Workspace until explicit review. Once the user
+chooses one of the accepted canonical targets, the classifier result imposes no
+additional write restriction.
+
+The accepted atomic migration vocabulary is complete for this contract:
+new/existing Aspect with the existing Workspace, new/existing Orientation with
+the existing Workspace, and Workspace-only retirement. Relation composition,
+system compatibility, review state, and destructive Workspace lifecycle are not
+additional migration targets.
+
+The user-facing migration workflow is an orchestration surface over this
+contract, not another authority. `classificationPreview()` may be displayed as
+recommendation evidence, but it must not initialize an executable target
+selection. The explicit migration choice starts unset and is written only by
+the user's selection. New Orientation additionally requires explicit
+`OrientationKind`; adoption requires an explicitly selected existing subject.
+
+Read-only candidate projection may assist pickers, but final eligibility belongs
+to the canonical migration command. UI confirmation does not weaken any
+repository precondition, provenance rule, embodiment constraint, bottom-up
+ordering rule, or system-Context exclusion.
+
+
+There is intentionally no `ASPECT_ONLY` Context-classification or migration
+outcome. An Aspect itself may exist without any Workspace, but legacy Context
+migration begins with an already-existing operational Workspace. That Workspace
+owns an independent lifecycle, hierarchy position, capability instances, and
+capability-owned state.
+
+Therefore Context-to-Aspect semantic retirement preserves the existing
+Workspace rather than deleting it as part of migration. Removing the Workspace
+after cutover, when explicitly desired, is a separate canonical Workspace
+lifecycle action with its own destructive semantics. Aspect identity survives
+that later Workspace deletion. Context migration must not infer Workspace
+deletion from the user's semantic classification choice.
+
+A reviewed `ORIENTATION_AND_WORKSPACE` Context may be explicitly cut over into
+a **new** canonical Orientation while preserving its existing operational
+Workspace. The caller explicitly selects `OrientationKind`; classifier output
+is recommendation evidence only and never migration write authority.
+
+The canonical Orientation owner creates the complete aggregate using the
+deterministic Context semantic subject id and a kind-valid initial assessment.
+Applicable axes begin `UNSET`; axes unavailable for that kind begin
+`NOT_APPLICABLE`; `ONGOING_STANDARD` receives
+`ExpectedSpan=ONGOING / DERIVED`.
+
+The existing Context-backed Workspace keeps its id, operational parent edge and
+capability-owned state. The canonical graph owner creates the single primary
+`EMBODIES` binding and fails closed rather than displacing another live
+embodiment. Workspace provenance becomes `CANONICAL_ONLY`, `sourceContextId`
+is cleared, a durable live `CONTEXT -> subjectId` `LegacySubjectMapping` in
+`CUT_OVER` state records semantic retirement, and the legacy Context is
+tombstoned.
+
+This target follows the same bottom-up leaf-only retirement invariant.
+Identical retry is idempotent; conflicting semantic shape fails closed.
+An already-existing canonical Orientation may also explicitly adopt one
+otherwise-unowned legacy Context Workspace. This is adoption, not merge: the
+existing ManagedSubject, Orientation node, lifecycle, current assessment and
+revision history are not rewritten. Adoption requires a complete active
+Orientation aggregate, no prior `LegacySubjectMapping` reservation including
+tombstones, and no conflicting live `EMBODIES` edge. The existing Context
+Workspace must not embody another subject. The canonical graph owner creates or
+reuses the exact primary embodiment without displacement; Workspace promotion,
+`CONTEXT/CUT_OVER` provenance and Context tombstoning follow the same bottom-up
+retirement contract.
+
+
+`WORKSPACE_ONLY` is a non-semantic retirement target. It preserves the existing
+Context-backed Workspace as the canonical operational identity and creates no
+ManagedSubject, Orientation, Aspect, `LegacySubjectMapping`, or
+`WorkspaceBinding`.
+
+Fresh cutover requires a live leaf Context and the same live Workspace in exact
+`CONTEXT_BACKED` provenance with `sourceContextId` equal to the Context id. Any
+existing CONTEXT legacy-subject mapping or live `EMBODIES` binding fails closed.
+The Workspace keeps its id, operational parent edge, capability instances and
+capability-owned state; provenance becomes `CANONICAL_ONLY`,
+`sourceContextId` is cleared, and the Context is tombstoned.
+
+No separate retirement ledger is required. The durable completed-state evidence
+is the combined persisted shape: tombstoned Context, same live
+`CANONICAL_ONLY` Workspace with no `sourceContextId`, and no CONTEXT
+`LegacySubjectMapping`.
+
+A live `EMBODIES` edge is a **fresh-cutover precondition**, not permanent
+retirement evidence. Workspace-only cutover rejects a pre-existing embodiment
+because migration must not silently reinterpret semantic ownership. After
+cutover, the canonical Workspace may independently acquire `EMBODIES`,
+`REALIZES`, `SUPPORTS`, or `MONITORS` bindings. Such later graph evolution does
+not invalidate the already-completed Context retirement.
+
+Workspace bootstrap cannot reverse this ownership transition: a legacy Context
+projection may only propose `CONTEXT_BACKED`, and an existing canonical-only
+Workspace is quarantined as an id collision rather than overwritten. Exact
+Workspace-only retry is idempotent; semantic cutovers are not eligible because
+they retain their CONTEXT-to-subject CUT_OVER mapping.
 
 ## 13. Theme ownership and daily overrides
 

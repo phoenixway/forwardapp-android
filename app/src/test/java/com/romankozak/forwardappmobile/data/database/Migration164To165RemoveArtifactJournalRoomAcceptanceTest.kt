@@ -27,7 +27,7 @@ class Migration164To165RemoveArtifactJournalRoomAcceptanceTest {
         runAcceptance(
             dbName = "migration_164_165_remove_artifact_journal",
             startVersion = 164,
-            migrations = arrayOf(MIGRATION_164_165),
+            migrations = arrayOf(MIGRATION_164_165, MIGRATION_165_166),
         )
     }
 
@@ -36,7 +36,7 @@ class Migration164To165RemoveArtifactJournalRoomAcceptanceTest {
         runAcceptance(
             dbName = "migration_163_165_remove_artifact_journal_chain",
             startVersion = 163,
-            migrations = arrayOf(MIGRATION_163_164, MIGRATION_164_165),
+            migrations = arrayOf(MIGRATION_163_164, MIGRATION_164_165, MIGRATION_165_166),
         )
     }
 
@@ -56,9 +56,10 @@ class Migration164To165RemoveArtifactJournalRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(165L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
 
-            // Room opened successfully, so schema 165 validation passed.
+            // Room opened successfully, so current-schema validation passed.
+            assertTrue(columnExists(db, "workspace_problems", "dateTime"))
             assertFalse(tableExists(db, "context_artifacts"))
             assertFalse(columnExists(db, "structure_presets", "enable_artifact"))
             assertFalse(columnExists(db, "context_structures", "enable_artifact"))

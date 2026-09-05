@@ -83,6 +83,51 @@ fun axisApplicability(
         else -> AxisApplicability.APPLICABLE
     }
 
+/**
+ * Canonical empty assessment for a newly-created Orientation.
+ *
+ * Applicable axes start UNSET. Axes that do not belong to the selected kind
+ * start NOT_APPLICABLE. ONGOING_STANDARD owns the one derived default required
+ * by the domain contract: Expected span = ONGOING.
+ */
+fun initialOrientationAssessment(kind: OrientationKind): OrientationAssessment =
+    OrientationAssessment(
+        importance = initialAxisAssessment(kind, OrientationAxis.IMPORTANCE),
+        impact = initialAxisAssessment(kind, OrientationAxis.IMPACT),
+        breadth = initialAxisAssessment(kind, OrientationAxis.BREADTH),
+        expectedSpan = initialAxisAssessment(kind, OrientationAxis.EXPECTED_SPAN),
+        targetWindow = initialAxisAssessment(kind, OrientationAxis.TARGET_WINDOW),
+        attentionTier = initialAxisAssessment(kind, OrientationAxis.ATTENTION_TIER),
+        commitment = initialAxisAssessment(kind, OrientationAxis.COMMITMENT),
+        confidence = initialAxisAssessment(kind, OrientationAxis.CONFIDENCE),
+    )
+
+private fun initialAxisAssessment(
+    kind: OrientationKind,
+    axis: OrientationAxis,
+): AxisAssessment =
+    when (axisApplicability(kind, axis)) {
+        AxisApplicability.APPLICABLE ->
+            AxisAssessment(
+                valueCode = null,
+                origin = ValueOrigin.UNSET,
+            )
+
+        AxisApplicability.DERIVED_ONGOING ->
+            AxisAssessment(
+                valueCode = ExpectedSpanValue.ONGOING.name,
+                origin = ValueOrigin.DERIVED,
+            )
+
+        AxisApplicability.NOT_APPLICABLE,
+        AxisApplicability.DAILY_ASSIGNMENT_ONLY,
+        ->
+            AxisAssessment(
+                valueCode = null,
+                origin = ValueOrigin.NOT_APPLICABLE,
+            )
+    }
+
 fun validateOrientationAssessment(
     kind: OrientationKind,
     assessment: OrientationAssessment,

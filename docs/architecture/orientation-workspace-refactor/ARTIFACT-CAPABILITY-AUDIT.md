@@ -1,14 +1,17 @@
 # ARTIFACT capability audit
 
-Status: DECIDED RETIREMENT / STAGE A PRESERVATION CURRENT + VERIFIED / STAGE B PENDING
+Status: HISTORICAL / SUPERSEDED BY 2026-09-03 SCHEMA-165 HARD REMOVAL
 
-This document records the focused Android source audit and accepted retirement
-contract for the legacy ARTIFACT capability.
+This document preserves the pre-hard-removal ARTIFACT source audit and the
+schema-164 Stage A preservation design as implementation history.
 
-Stage A Room/transport preservation was subsequently implemented at schema 164.
-Stage B runtime/UI retirement remains governed by the constraints recorded here.
+Its preservation, compatibility, reachability, and Stage B requirements are
+not current requirements. They were explicitly superseded by the 2026-09-03
+hard-removal decision. Current schema 165 deletes the retired Artifact payload
+and compatibility surfaces instead of materializing them as ordinary documents.
+See `docs/project/STATE.md` and `docs/project/DECISIONS.md` for current truth.
 
-## Accepted direction
+## Historical accepted direction
 
 ARTIFACT is a retired legacy capability.
 
@@ -24,7 +27,7 @@ The legacy text must survive as ordinary note/document content reachable from th
 
 The shared capability registry already classifies ARTIFACT as RETIRED_LEGACY with RETIRED availability.
 
-## Current legacy surface
+## Historical legacy surface at time of audit
 
 Current Android still has a live ContextArtifact persistence and UI surface.
 
@@ -48,7 +51,7 @@ The accepted architecture research records that ContextArtifact itself has no ca
 
 Therefore migration must not assume that one Context has at most one historical Artifact row.
 
-## Canonical preservation target
+## Historical preservation target - superseded
 
 For every non-empty legacy Artifact row:
 
@@ -62,7 +65,7 @@ ARTIFACT must not remain a distinct content owner after retirement.
 
 Blank legacy rows still require explicit migration accounting so that source-row accounting is complete.
 
-## CONNECTIONS dependency
+## Historical CONNECTIONS dependency
 
 Ordinary document reachability already exists in the legacy model through:
 
@@ -98,7 +101,7 @@ rebound to another surviving live Context placement where available.
 The accepted placement-only CONNECTIONS lifecycle prerequisite for ARTIFACT
 retirement is therefore satisfied.
 
-## Migration accounting requirements
+## Historical Stage A migration accounting requirements
 
 The Stage A retirement migration was required to fail closed or explicitly account for:
 
@@ -116,7 +119,7 @@ The Stage A retirement migration was required to fail closed or explicitly accou
 
 Only after one-to-one accounting and reachability are proven may legacy Artifact configuration, runtime paths, transport fields, and persistence be removed.
 
-## Safe-lane conclusion
+## Historical Stage A conclusion
 
 The architectural decision and source audit are complete.
 

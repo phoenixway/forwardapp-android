@@ -361,13 +361,39 @@ Aspect + related Orientations + bound Workspace
 System/compatibility Workspace
 ```
 
-The initial migration should not guess ambiguous cases destructively. It may
-create suggested classifications for explicit review while legacy behavior
-continues.
+Context semantic migration is explicitly user-directed. The classifier may
+create suggested classifications, confidence and evidence, but it never applies
+a semantic conversion automatically.
 
-The classification mechanism must support preview, stable mappings,
-diagnostics, and rollback before ownership cutover. Its user-facing review UI
-requires explicit authorization before implementation.
+Each Context remains on the compatibility path until the user invokes migration
+for that Context and selects or confirms its canonical target shape.
+
+The first non-UI command slice is implemented and verified for a live leaf
+Context migrating to a new Aspect while retaining its existing operational
+Workspace. The same Workspace id is promoted from `CONTEXT_BACKED` to
+`CANONICAL_ONLY`, its `sourceContextId` is cleared, capability-owned state stays
+in place, a durable `CONTEXT/CUT_OVER` mapping records retirement, and the
+legacy Context becomes a tombstone. Workspace bootstrap treats that mapping as
+an anti-resurrection/retirement signal.
+
+Same-target retry is idempotent; conflicting retry and live-child hierarchy
+fail closed transactionally. The leaf-only restriction remains until mixed
+legacy/canonical hierarchy semantics are explicitly resolved.
+
+The remaining target vocabulary must still be added incrementally. In
+particular, migration into an existing Aspect/Orientation must first resolve the
+current unique `legacy_subject_mappings.subjectId` ownership constraint rather
+than weakening it implicitly.
+
+After each individual cutover succeeds, that Context's legacy representation is
+retired rather than retained as a permanent second owner. Unmigrated Contexts
+remain fully usable. The legacy Context universe can therefore shrink
+incrementally; complete Context infrastructure retirement occurs only after no
+live Context remains.
+
+The user-facing migration action and review dialog require explicit UI scope.
+Classifier output may recommend a target but never invokes the migration
+command.
 
 ### Verification
 

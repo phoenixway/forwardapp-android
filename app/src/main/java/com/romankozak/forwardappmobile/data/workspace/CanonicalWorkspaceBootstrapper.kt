@@ -25,6 +25,8 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxOwnerVi
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSortingCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import java.util.Locale
 import java.util.UUID
@@ -88,7 +90,17 @@ class CanonicalWorkspaceBootstrapper
             val contexts = contextDao.getAll()
             val configurations = contextStructureDao.getAllSync().associateBy { it.contextId }
             val issues = mutableListOf<WorkspaceBootstrapIssueEntity>()
-            val desiredWorkspaces = projectWorkspaces(contexts, issues, now)
+            val cutOverContextIds =
+                orientationDao.getAllLegacyMappings()
+                    .asSequence()
+                    .filter {
+                        !it.isDeleted &&
+                            it.sourceType == LegacyOrientationSourceType.CONTEXT.name &&
+                            it.state == LegacySubjectMappingState.CUT_OVER.name
+                    }
+                    .mapTo(hashSetOf()) { it.sourceId }
+            val compatibilityContexts = contexts.filterNot { it.id in cutOverContextIds }
+            val desiredWorkspaces = projectWorkspaces(compatibilityContexts, issues, now)
             val existingWorkspaces = workspaceDao.getAll()
             val desiredWorkspaceIds = desiredWorkspaces.mapTo(hashSetOf()) { it.id }
             val blockedContextIds =
@@ -118,15 +130,25 @@ class CanonicalWorkspaceBootstrapper
                         projected
                     }
                 }
-            val workspaceChanges = mergeWorkspaceProjection(existingWorkspaces, safeDesiredWorkspaces, issues, now)
+            val workspaceChanges =
+                mergeWorkspaceProjection(
+                    existing = existingWorkspaces,
+                    desired = safeDesiredWorkspaces,
+                    issues = issues,
+                    now = now,
+                    protectedContextBackedIds = cutOverContextIds,
+                )
             val contextBackedWorkspaceIds =
                 existingWorkspaces
-                    .filter { it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name }
+                    .filter {
+                        it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
+                            it.id !in cutOverContextIds
+                    }
                     .mapTo(hashSetOf()) { it.id } +
                     desiredWorkspaceIds.filterNot { it in blockedContextIds }
             val capabilityChanges =
                 projectCapabilityChanges(
-                    contexts = contexts,
+                    contexts = compatibilityContexts,
                     configurations = configurations,
                     existing = orientationDao.getAllWorkspaceCapabilities(),
                     contextBackedWorkspaceIds = contextBackedWorkspaceIds,
@@ -197,6 +219,7 @@ class CanonicalWorkspaceBootstrapper
             desired: List<WorkspaceEntity>,
             issues: MutableList<WorkspaceBootstrapIssueEntity>,
             now: Long,
+            protectedContextBackedIds: Set<String> = emptySet(),
         ): List<WorkspaceEntity> {
             val existingById = existing.associateBy { it.id }
             val desiredIds = desired.mapTo(hashSetOf()) { it.id }
@@ -224,7 +247,8 @@ class CanonicalWorkspaceBootstrapper
             existing.filter {
                 !it.isDeleted &&
                     it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                    it.id !in desiredIds
+                    it.id !in desiredIds &&
+                    it.id !in protectedContextBackedIds
             }.forEach {
                 changes += it.copy(
                     updatedAt = now,

@@ -39,6 +39,20 @@ class DialogStateManager
             _dialogState.value = DialogState.ConfirmDelete(project)
         }
 
+        fun showContextMigration(state: DialogState.ContextMigration) {
+            _dialogState.value = state
+        }
+
+        fun currentContextMigration(): DialogState.ContextMigration? =
+            _dialogState.value as? DialogState.ContextMigration
+
+        fun updateContextMigration(
+            update: (DialogState.ContextMigration) -> DialogState.ContextMigration,
+        ) {
+            val current = _dialogState.value as? DialogState.ContextMigration ?: return
+            _dialogState.value = update(current)
+        }
+
         fun onShowAboutDialog() {
             _dialogState.value = DialogState.About
         }

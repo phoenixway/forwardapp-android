@@ -7,6 +7,9 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -127,4 +130,221 @@ class MainBeaconOrientationBridgeRoomTest {
             database.close()
         }
     }
+    @Test
+    fun `blocked main beacon cutover preserves legacy group membership`() = runBlocking {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        try {
+            val beacon =
+                MainBeacon(
+                    id = "beacon-blocked",
+                    title = "Legacy beacon",
+                    createdAt = 10L,
+                    updatedAt = 20L,
+                )
+            val group =
+                MainBeaconGroup(
+                    id = "group-blocked",
+                    title = "Legacy group",
+                    createdAt = 11L,
+                    updatedAt = 21L,
+                )
+            val member =
+                MainBeaconGroupMember(
+                    groupId = group.id,
+                    beaconId = beacon.id,
+                    order = 7L,
+                )
+
+            database.mainBeaconDao().insertBeacon(beacon)
+            database.mainBeaconDao().insertGroup(group)
+            database.mainBeaconDao().insertGroupMembers(listOf(member))
+
+            val beaconRows =
+                beacon
+                    .toEffectiveOrientation(LegacySubjectUuid)
+                    .toCanonicalRows(Gson(), migrationVersion = 1)
+            val groupRows =
+                group
+                    .toEffectiveOrientation(LegacySubjectUuid)
+                    .toCanonicalRows(Gson(), migrationVersion = 1)
+
+            database.orientationDao().upsertManagedSubjects(
+                listOf(
+                    beaconRows.subject.copy(title = "Canonical drift"),
+                    groupRows.subject,
+                ),
+            )
+            database.orientationDao().upsertOrientations(
+                listOf(beaconRows.orientation, groupRows.orientation),
+            )
+            database.orientationDao().upsertAssessmentRevisions(
+                listOf(beaconRows.revision, groupRows.revision),
+            )
+            database.orientationDao().upsertAssessments(
+                listOf(beaconRows.assessment, groupRows.assessment),
+            )
+            database.orientationDao().upsertLegacyMappings(
+                listOf(beaconRows.mapping, groupRows.mapping),
+            )
+
+            val dayThemeBootstrapper =
+                CanonicalDayThemeBootstrapper(
+                    database = database,
+                    legacyDao = database.dayThemeDocumentDao(),
+                    canonicalDao = database.canonicalDayThemeDao(),
+                )
+            val bootstrapper =
+                CanonicalOrientationBootstrapper(
+                    database = database,
+                    orientationDao = database.orientationDao(),
+                    goalDao = database.goalDao(),
+                    mainBeaconDao = database.mainBeaconDao(),
+                    arcQuestDao = database.arcQuestDao(),
+                    canonicalDayThemeDao = database.canonicalDayThemeDao(),
+                    canonicalDayThemeBootstrapper = dayThemeBootstrapper,
+                )
+
+            val report = bootstrapper.ensureBootstrapped()
+
+            assertTrue(
+                report.issues.any { issue ->
+                    issue.code == "CUTOVER_SHADOW_DIVERGENCE"
+                },
+            )
+            assertTrue(
+                database.orientationDao()
+                    .getAllLegacyMappings()
+                    .filter { it.sourceId == beacon.id || it.sourceId == group.id }
+                    .all { it.state == LegacySubjectMappingState.MATERIALIZED.name },
+            )
+            assertEquals(
+                listOf(member),
+                database.mainBeaconDao().getAllGroupMembersSync(),
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `upserting beacon and group preserves dependent relation rows`() = runBlocking {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        try {
+            val parent =
+                MainBeacon(
+                    id = "beacon-parent",
+                    title = "Parent",
+                    createdAt = 10L,
+                    updatedAt = 20L,
+                )
+            val child =
+                MainBeacon(
+                    id = "beacon-child",
+                    title = "Child",
+                    createdAt = 11L,
+                    updatedAt = 21L,
+                )
+            val group =
+                MainBeaconGroup(
+                    id = "group-1",
+                    title = "Group",
+                    createdAt = 12L,
+                    updatedAt = 22L,
+                )
+
+            database.mainBeaconDao().insertBeacons(listOf(parent, child))
+            database.mainBeaconDao().insertGroup(group)
+            database.mainBeaconDao().insertGroupMembers(
+                listOf(
+                    MainBeaconGroupMember(
+                        groupId = group.id,
+                        beaconId = child.id,
+                        order = 3L,
+                    ),
+                ),
+            )
+            database.mainBeaconDao().insertParentLinks(
+                listOf(
+                    MainBeaconParentLink(
+                        parentBeaconId = parent.id,
+                        childBeaconId = child.id,
+                        order = 4L,
+                        createdAt = 30L,
+                        updatedAt = 30L,
+                    ),
+                ),
+            )
+            database.mainBeaconDao().insertLevelStatuses(
+                listOf(
+                    MainBeaconLevelStatus(
+                        id = "level-status-1",
+                        mainBeaconId = child.id,
+                        levelType = MainBeaconLevelType.DAY,
+                        updatedAt = 31L,
+                    ),
+                ),
+            )
+
+            database.mainBeaconDao().insertBeacons(
+                listOf(
+                    parent.copy(title = "Parent updated", updatedAt = 40L),
+                    child.copy(title = "Child updated", updatedAt = 41L),
+                ),
+            )
+            database.mainBeaconDao().insertGroup(
+                group.copy(title = "Group updated", updatedAt = 42L),
+            )
+
+            assertEquals(
+                listOf(
+                    MainBeaconGroupMember(
+                        groupId = group.id,
+                        beaconId = child.id,
+                        order = 3L,
+                    ),
+                ),
+                database.mainBeaconDao().getAllGroupMembersSync(),
+            )
+            assertEquals(
+                listOf(
+                    MainBeaconParentLink(
+                        parentBeaconId = parent.id,
+                        childBeaconId = child.id,
+                        order = 4L,
+                        createdAt = 30L,
+                        updatedAt = 30L,
+                    ),
+                ),
+                database.mainBeaconDao().getAllParentLinksSync(),
+            )
+
+            val statuses = database.mainBeaconDao().getAllLevelStatusesSync()
+            assertEquals(1, statuses.size)
+            assertEquals("level-status-1", statuses.single().id)
+            assertEquals(child.id, statuses.single().mainBeaconId)
+
+            assertEquals(
+                "Parent updated",
+                database.mainBeaconDao().getBeaconById(parent.id)?.title,
+            )
+            assertEquals(
+                "Child updated",
+                database.mainBeaconDao().getBeaconById(child.id)?.title,
+            )
+            assertEquals(
+                "Group updated",
+                database.mainBeaconDao().getAllGroupsSync().single().title,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+
 }

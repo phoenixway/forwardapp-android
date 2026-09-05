@@ -13,9 +13,9 @@ import kotlinx.coroutines.flow.map
  * Context-backed Workspace ids equal their source Context ids after the
  * Workspace cutover, so no secondary ownership mapping is introduced here.
  *
- * dateTime remains only as a temporary UI DTO field for source compatibility.
- * Canonical KEY_PROBLEMS v1 has no dateTime meaning: reads always return null
- * and writes with a value fail instead of silently discarding data.
+ * dateTime is preserved losslessly through the canonical Problem contract as
+ * an opaque generic datum. No deadline, reminder, scheduling, urgency, or
+ * recurrence semantics are inferred by this compatibility facade.
  */
 @Singleton
 class ContextKeyProblemsRepository
@@ -56,11 +56,13 @@ class ContextKeyProblemsRepository
         suspend fun addIssue(
             contextId: String,
             title: String,
+            dateTime: Long? = null,
         ): IssueItem {
             val id =
                 canonicalRepository.createProblem(
                     workspaceId = contextId,
                     title = title,
+                    dateTime = dateTime,
                 )
             return requireNotNull(
                 canonicalRepository.getItems(contextId)
@@ -74,9 +76,6 @@ class ContextKeyProblemsRepository
             contextId: String,
             issue: IssueItem,
         ) {
-            require(issue.dateTime == null) {
-                "KEY_PROBLEMS canonical v1 does not support dateTime"
-            }
             canonicalRepository.updateProblem(
                 workspaceId = contextId,
                 problemId = issue.id,
@@ -85,6 +84,7 @@ class ContextKeyProblemsRepository
                 status = issue.status.toCanonical(),
                 relatedWorkspaceIds = issue.relatedContextIds,
                 relatedAttachmentIds = issue.relatedAttachmentIds,
+                dateTime = issue.dateTime,
             )
         }
 
@@ -162,7 +162,7 @@ class ContextKeyProblemsRepository
                 id = problem.id,
                 title = problem.title,
                 description = problem.description,
-                dateTime = null,
+                dateTime = problem.dateTime,
                 status = problem.status.toCompatibility(),
                 relatedContextIds = relatedWorkspaceIds,
                 relatedAttachmentIds = relatedAttachmentIds,

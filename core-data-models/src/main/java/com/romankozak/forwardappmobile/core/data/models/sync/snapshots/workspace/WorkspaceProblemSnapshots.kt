@@ -19,6 +19,7 @@ data class WorkspaceProblemSnapshot(
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("version") val version: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
+    @SerializedName("dateTime") val dateTime: Long? = null,
 )
 
 data class WorkspaceProblemWorkspaceRefSnapshot(

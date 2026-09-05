@@ -424,6 +424,7 @@ fun ProjectRow(
     hasChildren: Boolean,
     childCount: Int,
     isLinkedAppearance: Boolean = false,
+    isCanonicalWorkspace: Boolean = false,
     onProjectClick: (String) -> Unit,
     onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
@@ -543,6 +544,8 @@ fun ProjectRow(
                     LinkAppearanceBadge()
                     Spacer(modifier = Modifier.width(6.dp))
                 }
+                HierarchyOriginBadge(isCanonicalWorkspace = isCanonicalWorkspace)
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = displayName ?: AnnotatedString(project.name),
                     modifier = Modifier.padding(start = 2.dp),
@@ -583,6 +586,7 @@ fun SwipeableProjectRow(
     hasChildren: Boolean,
     childCount: Int,
     isLinkedAppearance: Boolean = false,
+    isCanonicalWorkspace: Boolean = false,
     onProjectClick: (String) -> Unit,
     onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
@@ -747,6 +751,7 @@ fun SwipeableProjectRow(
             hasChildren = hasChildren,
             childCount = childCount,
             isLinkedAppearance = isLinkedAppearance,
+            isCanonicalWorkspace = isCanonicalWorkspace,
             onProjectClick = onProjectClick,
             onProjectFocus = onProjectFocus,
             isCurrentlyDragging = isCurrentlyDragging,
@@ -761,6 +766,36 @@ fun SwipeableProjectRow(
             isSelected = isSelected,
             onToggleSelection = onToggleSelection,
             onStartSelection = onStartSelection,
+        )
+    }
+}
+
+@Composable
+private fun HierarchyOriginBadge(isCanonicalWorkspace: Boolean) {
+    val label = if (isCanonicalWorkspace) "CAN" else "LEG"
+    val containerColor =
+        if (isCanonicalWorkspace) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
+    val contentColor =
+        if (isCanonicalWorkspace) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = containerColor,
+        tonalElevation = 0.dp,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
         )
     }
 }
@@ -939,6 +974,7 @@ fun HierarchyListItem(
     onEditProject: (Context) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    legacyContextActionsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     @Suppress("UNUSED_VARIABLE")
@@ -961,7 +997,7 @@ fun HierarchyListItem(
         }
 
     val isFocused = project.id == focusedProjectId
-    val isSelected = project.id in selectedContextIds
+    val isSelected = legacyContextActionsEnabled && project.id in selectedContextIds
 
     with(sharedTransitionScope) {
         val isDropAllowed =
@@ -990,7 +1026,12 @@ fun HierarchyListItem(
                 hasChildren = hasChildren,
                 childCount = children.size,
                 isLinkedAppearance = item.isLinkedAppearance,
+                isCanonicalWorkspace = item.isCanonicalWorkspace,
                 onProjectClick = onProjectClick,
+                // Focus/reveal is operational hierarchy navigation, not a
+                // legacy Context mutation. CANONICAL_ONLY WorkspaceNodes must
+                // remain focusable even though legacy edit/delete/reorder
+                // actions stay disabled.
                 onProjectFocus = onFocusProject,
                 isCurrentlyDragging = isCurrentlyDragging,
                 isHovered = isHovered,
@@ -998,7 +1039,7 @@ fun HierarchyListItem(
                 isHighlighted = project.id == highlightedProjectId,
                 displayName = displayName,
                 dragHandle =
-                    if (isSelectionMode) {
+                    if (isSelectionMode || !legacyContextActionsEnabled) {
                         null
                     } else {
                         {
@@ -1021,17 +1062,22 @@ fun HierarchyListItem(
                             }
                         }
                     },
-                onAddSubproject = onAddSubproject,
-                onDelete = onDeleteProject,
-                onEdit = onEditProject,
+                onAddSubproject =
+                    if (legacyContextActionsEnabled) onAddSubproject else { _ -> },
+                onDelete =
+                    if (legacyContextActionsEnabled) onDeleteProject else { _ -> },
+                onEdit =
+                    if (legacyContextActionsEnabled) onEditProject else { _ -> },
                 isFocused = isFocused,
-                isSelectionMode = isSelectionMode,
+                isSelectionMode = isSelectionMode && legacyContextActionsEnabled,
                 isSelected = isSelected,
-                onToggleSelection = onToggleSelection,
-                onStartSelection = onStartSelection,
+                onToggleSelection =
+                    if (legacyContextActionsEnabled) onToggleSelection else { _ -> },
+                onStartSelection =
+                    if (legacyContextActionsEnabled) onStartSelection else { _ -> },
             )
 
-            if (!isCurrentlyDragging && !isSelectionMode) {
+            if (!isCurrentlyDragging && !isSelectionMode && legacyContextActionsEnabled) {
                 Column(modifier = Modifier.matchParentSize()) {
                     val dropModifier = { position: DropPosition ->
                         Modifier

@@ -36,8 +36,39 @@ val MIGRATION_161_162 =
 
             val legacyItems = loadLegacyItems161(db)
             val legacyOrders = loadLegacyOrders161(db)
+            val diagnostics = mutableListOf<String>()
+            val requiredGoalIds =
+                legacyItems
+                    .asSequence()
+                    .filter { it.itemType == GOAL_SOURCE_TYPE }
+                    .map { it.entityId }
+                    .filter { it.isNotBlank() }
+                    .toSet()
+            val historicalDeletedGoalIds =
+                loadDeletedGoalIds161(db).intersect(requiredGoalIds)
+
+            val historicalMissingWorkspaceTargetContextIds =
+                ensureBacklogRequiredWorkspaces161(
+                    db = db,
+                    legacyItems = legacyItems,
+                    diagnostics = diagnostics,
+                )
+
             val workspaces = loadWorkspaces161(db)
             val capabilities = loadCapabilities161(db)
+
+            // Historical bootstrap created deterministic Goal shadows, but later
+            // legacy write paths could also create Goal/ListItem pairs after bootstrap.
+            // Schema 162 requires a durable CUT_OVER Goal identity. Reconstruct only
+            // missing required deterministic projections, validate existing ones, then
+            // promote MATERIALIZED mappings without replacing canonical subjects.
+            repairRequiredGoalIdentities161(
+                db = db,
+                now = now,
+                requiredGoalIds = requiredGoalIds,
+                diagnostics = diagnostics,
+            )
+
             val mappings = loadMappings161(db)
             val existingEntries = loadExistingBacklogEntries161(db)
 
@@ -58,14 +89,17 @@ val MIGRATION_161_162 =
                     workspace.id to BacklogOwnerWorkspaceState(workspace.isDeleted)
                 }
 
-            val diagnostics = mutableListOf<String>()
-
             val expectedCapabilityIds =
                 expectedBacklogCapabilityIds161(
                     workspaceIds =
                         provenContextBacked
                             .asSequence()
-                            .filterNot { it.isDeleted }
+                            .filter { workspace ->
+                                !workspace.isDeleted ||
+                                    legacyItems.any { item ->
+                                        item.contextId == workspace.sourceContextId
+                                    }
+                            }
                             .map { it.id }
                             .toList(),
                     capabilities = capabilities,
@@ -88,7 +122,6 @@ val MIGRATION_161_162 =
                     .asSequence()
                     .filter { mapping ->
                         mapping.sourceType == GOAL_SOURCE_TYPE &&
-                            !mapping.isDeleted &&
                             mapping.state == CUT_OVER_MAPPING_STATE
                     }
                     .associate { mapping -> mapping.sourceId to mapping.subjectId }
@@ -106,6 +139,9 @@ val MIGRATION_161_162 =
                     capabilityInstanceIdByWorkspaceId = expectedCapabilityIds,
                     orientationIdByGoalId = orientationIdByGoalId,
                     targetStateByRef = targetStateByRef,
+                    historicalMissingWorkspaceTargetContextIds =
+                        historicalMissingWorkspaceTargetContextIds,
+                    historicalDeletedGoalIds = historicalDeletedGoalIds,
                     parentWorkspaceIdByWorkspaceId =
                         workspaces.associate { workspace ->
                             workspace.id to workspace.parentWorkspaceId
@@ -120,6 +156,57 @@ val MIGRATION_161_162 =
                     orders = legacyOrders,
                     bindings = bindings,
                 )
+
+            // The shared planner decides when owner lifecycle, a physically
+            // missing Workspace target, or a proven historical deleted Goal makes
+            // the placement a tombstone. This persistence boundary owns freshness:
+            // a live legacy row newly tombstoned by one of those lifecycle
+            // transitions receives exactly one bump.
+            val legacyItemsById = legacyItems.associateBy { it.id }
+            val canonicalEntries =
+                plan.entries.map { entry ->
+                    val source =
+                        requireNotNull(legacyItemsById[entry.id]) {
+                            "BACKLOG cutover blocked: missing legacy source for ${entry.id}"
+                        }
+                    val ownerDeleted =
+                        ownerWorkspaceStateById[entry.workspaceId]?.isDeleted == true
+                    val tombstonedByOwner =
+                        !source.isDeleted && ownerDeleted && entry.isDeleted
+                    val tombstonedByMissingWorkspaceTarget =
+                        !source.isDeleted &&
+                            entry.isDeleted &&
+                            (source.itemType == "PROJECT" || source.itemType == "SUBLIST") &&
+                            source.entityId in historicalMissingWorkspaceTargetContextIds
+                    val tombstonedByDeletedGoalTarget =
+                        !source.isDeleted &&
+                            entry.isDeleted &&
+                            source.itemType == GOAL_SOURCE_TYPE &&
+                            source.entityId in historicalDeletedGoalIds
+                    val tombstonedByLifecycle =
+                        tombstonedByOwner ||
+                            tombstonedByMissingWorkspaceTarget ||
+                            tombstonedByDeletedGoalTarget
+
+                    if (!tombstonedByLifecycle) {
+                        entry
+                    } else {
+                        entry.copy(
+                            updatedAt =
+                                if (entry.updatedAt == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    maxOf(now, entry.updatedAt + 1L)
+                                },
+                            version =
+                                if (entry.version == Long.MAX_VALUE) {
+                                    Long.MAX_VALUE
+                                } else {
+                                    entry.version + 1L
+                                },
+                        )
+                    }
+                }
 
             plan.issues
                 .filter { it.severity == BacklogMigrationIssueSeverity.ERROR }
@@ -147,7 +234,18 @@ val MIGRATION_161_162 =
                 now = now,
             )
 
-            plan.entries.forEach { entry ->
+            tombstoneBacklogCapabilitiesForDeletedOwners161(
+                db = db,
+                workspaceIds =
+                    provenContextBacked
+                        .asSequence()
+                        .filter { it.isDeleted }
+                        .map { it.id }
+                        .toList(),
+                now = now,
+            )
+
+            canonicalEntries.forEach { entry ->
                 db.execSQL(
                     """
                     INSERT INTO workspace_backlog_entries(
@@ -186,12 +284,12 @@ val MIGRATION_161_162 =
                         "WHERE workspaceId IN (" +
                         provenContextBacked.joinToString(",") { "'${sqlLiteral161(it.id)}'" } +
                         ")",
-                ) == plan.entries.size.toLong(),
+                ) == canonicalEntries.size.toLong(),
             ) {
                 "BACKLOG cutover blocked: canonical entry accounting mismatch after insert"
             }
 
-            plan.entries.forEach { entry ->
+            canonicalEntries.forEach { entry ->
                 val row =
                     db.query(
                         """
@@ -276,6 +374,280 @@ private data class CanonicalBacklogCheck161(
     val isDeleted: Boolean,
     val version: Long,
 )
+
+private data class BacklogContext161(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val parentId: String?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val isDeleted: Boolean,
+    val version: Long,
+    val order: Long,
+    val roleCode: String?,
+)
+
+private fun ensureBacklogRequiredWorkspaces161(
+    db: SupportSQLiteDatabase,
+    legacyItems: List<LegacyBacklogItemSource>,
+    diagnostics: MutableList<String>,
+): Set<String> {
+    val contexts = loadBacklogContexts161(db)
+    val cycleContextIds =
+        backlogCycleMembers161(contexts.mapValues { it.value.parentId })
+
+    val ownerContextIds =
+        legacyItems
+            .asSequence()
+            .map { it.contextId }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+            .toList()
+
+    ownerContextIds.forEach { contextId ->
+        val context = contexts[contextId]
+        if (context == null) {
+            diagnostics +=
+                "UNRESOLVED_OWNER_CONTEXT: Context $contextId does not exist"
+            return@forEach
+        }
+
+        ensureBacklogContextWorkspace161(
+            db = db,
+            context = context,
+            contexts = contexts,
+            cycleContextIds = cycleContextIds,
+            diagnostics = diagnostics,
+        )
+    }
+
+    val historicalMissingWorkspaceTargetContextIds = linkedSetOf<String>()
+    val workspaceTargetContextIds =
+        legacyItems
+            .asSequence()
+            .filter { it.itemType == "PROJECT" || it.itemType == "SUBLIST" }
+            .map { it.entityId }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+            .toList()
+
+    workspaceTargetContextIds.forEach { contextId ->
+        val context = contexts[contextId]
+        if (context == null) {
+            historicalMissingWorkspaceTargetContextIds += contextId
+            return@forEach
+        }
+
+        ensureBacklogContextWorkspace161(
+            db = db,
+            context = context,
+            contexts = contexts,
+            cycleContextIds = cycleContextIds,
+            diagnostics = diagnostics,
+        )
+    }
+
+    return historicalMissingWorkspaceTargetContextIds
+}
+
+private fun ensureBacklogContextWorkspace161(
+    db: SupportSQLiteDatabase,
+    context: BacklogContext161,
+    contexts: Map<String, BacklogContext161>,
+    cycleContextIds: Set<String>,
+    diagnostics: MutableList<String>,
+) {
+    val resolvedWorkspaceIds =
+        db.query(
+            """
+            SELECT id
+            FROM workspaces
+            WHERE sourceContextId = ?
+              AND provenance = 'CONTEXT_BACKED'
+            ORDER BY id
+            """.trimIndent(),
+            arrayOf<Any?>(context.id),
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0))
+            }
+        }
+
+    if (resolvedWorkspaceIds.size == 1 && resolvedWorkspaceIds.single() == context.id) {
+        return
+    }
+
+    if (resolvedWorkspaceIds.isNotEmpty()) {
+        diagnostics +=
+            "BACKLOG_WORKSPACE_IDENTITY_MISMATCH: Context ${context.id} resolves to " +
+                resolvedWorkspaceIds.joinToString(",") +
+                " instead of canonical Workspace ${context.id}"
+        return
+    }
+
+    val parentContextId =
+        context.parentId
+            ?.takeIf { it in contexts }
+            ?.takeUnless { context.id in cycleContextIds }
+
+    if (parentContextId != null) {
+        ensureBacklogContextWorkspace161(
+            db = db,
+            context = requireNotNull(contexts[parentContextId]),
+            contexts = contexts,
+            cycleContextIds = cycleContextIds,
+            diagnostics = diagnostics,
+        )
+
+        val parentExists =
+            scalarLong161(
+                db,
+                "SELECT COUNT(*) FROM workspaces " +
+                    "WHERE id = '${sqlLiteral161(parentContextId)}' " +
+                    "AND provenance = 'CONTEXT_BACKED' " +
+                    "AND sourceContextId = '${sqlLiteral161(parentContextId)}'",
+            ) == 1L
+
+        if (!parentExists) {
+            diagnostics +=
+                "UNRESOLVED_BACKLOG_PARENT_WORKSPACE: Context ${context.id} parent " +
+                    "$parentContextId has no canonical CONTEXT_BACKED Workspace"
+            return
+        }
+    }
+
+    val collision =
+        db.query(
+            """
+            SELECT provenance, sourceContextId
+            FROM workspaces
+            WHERE id = ?
+            LIMIT 1
+            """.trimIndent(),
+            arrayOf<Any?>(context.id),
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) {
+                null
+            } else {
+                val provenance = cursor.getString(0)
+                val sourceContextId =
+                    if (cursor.isNull(1)) null else cursor.getString(1)
+                provenance to sourceContextId
+            }
+        }
+
+    if (collision != null) {
+        diagnostics +=
+            "BACKLOG_WORKSPACE_ID_COLLISION: Context ${context.id} collides with " +
+                "${collision.first} Workspace sourceContextId=${collision.second}"
+        return
+    }
+
+    db.execSQL(
+        """
+        INSERT INTO workspaces (
+            id,
+            nameOverride,
+            descriptionOverride,
+            parentWorkspaceId,
+            roleCode,
+            workspaceOrder,
+            createdAt,
+            updatedAt,
+            syncedAt,
+            isDeleted,
+            version,
+            provenance,
+            sourceContextId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'CONTEXT_BACKED', ?)
+        """.trimIndent(),
+        arrayOf<Any?>(
+            context.id,
+            context.name,
+            context.description,
+            parentContextId,
+            context.roleCode,
+            context.order,
+            context.createdAt,
+            context.updatedAt ?: context.createdAt,
+            if (context.isDeleted) 1 else 0,
+            context.version.coerceAtLeast(1L),
+            context.id,
+        ),
+    )
+}
+
+private fun loadBacklogContexts161(
+    db: SupportSQLiteDatabase,
+): Map<String, BacklogContext161> =
+    db.query(
+        """
+        SELECT
+            id,
+            name,
+            description,
+            parentId,
+            createdAt,
+            updatedAt,
+            is_deleted,
+            version,
+            goal_order,
+            role_code
+        FROM contexts
+        """.trimIndent(),
+    ).use { cursor ->
+        buildMap {
+            while (cursor.moveToNext()) {
+                val row =
+                    BacklogContext161(
+                        id = cursor.getString(0),
+                        name = cursor.getString(1),
+                        description =
+                            if (cursor.isNull(2)) null else cursor.getString(2),
+                        parentId =
+                            if (cursor.isNull(3)) null else cursor.getString(3),
+                        createdAt = cursor.getLong(4),
+                        updatedAt =
+                            if (cursor.isNull(5)) null else cursor.getLong(5),
+                        isDeleted = cursor.getInt(6) != 0,
+                        version = cursor.getLong(7),
+                        order = cursor.getLong(8),
+                        roleCode =
+                            if (cursor.isNull(9)) null else cursor.getString(9),
+                    )
+                put(row.id, row)
+            }
+        }
+    }
+
+private fun backlogCycleMembers161(
+    parentById: Map<String, String?>,
+): Set<String> {
+    val result = mutableSetOf<String>()
+
+    parentById.keys.forEach { start ->
+        val path = mutableListOf<String>()
+        val indexById = mutableMapOf<String, Int>()
+        var current: String? = start
+
+        while (current != null && current in parentById && current !in result) {
+            val repeatedAt = indexById[current]
+            if (repeatedAt != null) {
+                result += path.drop(repeatedAt)
+                break
+            }
+
+            indexById[current] = path.size
+            path += current
+            current = parentById[current]
+        }
+    }
+
+    return result
+}
 
 private fun loadLegacyItems161(db: SupportSQLiteDatabase): List<LegacyBacklogItemSource> =
     db.query("SELECT * FROM list_items").use { cursor ->
@@ -407,6 +779,13 @@ private fun loadMappings161(db: SupportSQLiteDatabase): List<BacklogMapping161> 
                     ),
                 )
             }
+        }
+    }
+
+private fun loadDeletedGoalIds161(db: SupportSQLiteDatabase): Set<String> =
+    db.query("SELECT id FROM goals WHERE is_deleted = 1").use { cursor ->
+        buildSet {
+            while (cursor.moveToNext()) add(cursor.getString(0))
         }
     }
 
@@ -621,7 +1000,7 @@ private fun ensureMissingBacklogCapabilities161(
                 syncedAt,
                 isDeleted,
                 version
-            ) VALUES (?, ?, ?, ?, ?, ?, 1, '{}', ?, ?, NULL, 0, 1)
+            ) VALUES (?, ?, ?, ?, ?, ?, 1, '{}', ?, ?, NULL, ?, 1)
             """.trimIndent(),
             arrayOf<Any?>(
                 expectedId,
@@ -632,10 +1011,53 @@ private fun ensureMissingBacklogCapabilities161(
                 DISABLED_CAPABILITY_STATE,
                 workspace.createdAt,
                 now,
+                boolInt161(workspace.isDeleted),
             ),
         )
     }
 }
+
+private fun tombstoneBacklogCapabilitiesForDeletedOwners161(
+    db: SupportSQLiteDatabase,
+    workspaceIds: Collection<String>,
+    now: Long,
+) {
+    val owners =
+        workspaceIds
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+    if (owners.isEmpty()) return
+
+    val ownerSql =
+        owners.joinToString(",") { "'${sqlLiteral161(it)}'" }
+
+    db.execSQL(
+        """
+        UPDATE workspace_capability_instances
+        SET
+            updatedAt = $now,
+            syncedAt = NULL,
+            isDeleted = 1,
+            version =
+                CASE
+                    WHEN version = ${Long.MAX_VALUE} THEN version
+                    ELSE version + 1
+                END
+        WHERE capabilityType = '$BACKLOG_CAPABILITY_TYPE'
+          AND instanceKey = '$DEFAULT_INSTANCE_KEY'
+          AND isDeleted = 0
+          AND workspaceId IN ($ownerSql)
+        """.trimIndent(),
+    )
+}
+
+private fun stableLegacyGoalSubjectId161(goalId: String): String =
+    LegacySubjectUuid
+        .uuidV5(
+            UUID.fromString(LegacySubjectUuid.NAMESPACE_UUID),
+            "$GOAL_SOURCE_TYPE:$goalId",
+        ).toString()
 
 private fun stableBacklogCapabilityId161(workspaceId: String): String =
     LegacySubjectUuid

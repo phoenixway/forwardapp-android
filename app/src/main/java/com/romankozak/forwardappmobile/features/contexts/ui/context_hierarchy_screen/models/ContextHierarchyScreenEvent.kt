@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 
@@ -32,6 +33,20 @@ sealed interface ContextHierarchyScreenEvent {
     data class OrientationNodeClick(val nodeId: String) : ContextHierarchyScreenEvent
 
     data class ContextMenuRequest(val project: Context) : ContextHierarchyScreenEvent
+
+    data class MigrateRequest(val project: Context) : ContextHierarchyScreenEvent
+
+    data class MigrationChoiceSelected(val choice: ContextMigrationChoice) : ContextHierarchyScreenEvent
+
+    data class MigrationOrientationKindSelected(val kind: OrientationKind) : ContextHierarchyScreenEvent
+
+    data class MigrationExistingAspectSelected(val id: String) : ContextHierarchyScreenEvent
+
+    data class MigrationExistingOrientationSelected(val id: String) : ContextHierarchyScreenEvent
+
+    data object MigrationConfirmationRequested : ContextHierarchyScreenEvent
+
+    data object MigrationExecute : ContextHierarchyScreenEvent
 
     data class ContextReorder(
         val fromId: String,

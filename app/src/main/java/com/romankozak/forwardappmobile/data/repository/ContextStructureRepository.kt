@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -21,11 +22,20 @@ import javax.inject.Singleton
 class ContextStructureRepository
     @Inject
     constructor(
+        private val contextDao: ContextDao,
         private val contextStructureDao: ContextStructureDao,
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
     ) {
+        private suspend fun isLiveContext(contextId: String): Boolean =
+            contextDao.getContextById(contextId)?.isDeleted == false
+
+        private suspend fun isLiveStructureOwner(structureId: String): Boolean {
+            val structure = contextStructureDao.getStructureById(structureId) ?: return false
+            return isLiveContext(structure.contextId)
+        }
+
         suspend fun ensureReservedBaseRolePresets() {
             val now = System.currentTimeMillis()
             ContextRoleRegistry.getReservedBaseRoleDefinitions().forEach { definition ->
@@ -60,6 +70,11 @@ class ContextStructureRepository
         ): ContextConfiguration {
             val existing = contextStructureDao.getStructureByContext(contextId)
             if (existing != null) return existing
+
+            check(isLiveContext(contextId)) {
+                "Cannot create Context structure for retired or missing Context: $contextId"
+            }
+
             val structure =
                 ContextConfiguration(
                     id = UUID.randomUUID().toString(),
@@ -86,12 +101,16 @@ class ContextStructureRepository
         fun observeStructureOnly(contextId: String): Flow<ContextConfiguration?> = contextStructureDao.observeStructureByContext(contextId)
 
         suspend fun updateStructure(structure: ContextConfiguration) {
+            if (!isLiveContext(structure.contextId)) return
+
             workspaceWriteThrough.mutate(structure.updatedAt) {
                 contextStructureDao.updateStructure(structure)
             }
         }
 
         suspend fun upsertStructure(structure: ContextConfiguration) {
+            if (!isLiveContext(structure.contextId)) return
+
             workspaceWriteThrough.mutate(structure.updatedAt) {
                 contextStructureDao.insertStructure(structure)
             }
@@ -101,6 +120,8 @@ class ContextStructureRepository
             contextId: String,
             presetCode: String,
         ) {
+            if (!isLiveContext(contextId)) return
+
             ensureReservedBaseRolePresets()
             val preset = structurePresetDao.getByCode(presetCode) ?: return
             val presetCapabilities = ContextRoleRegistry.getCapabilitiesForRole(preset.code)
@@ -144,6 +165,8 @@ class ContextStructureRepository
             structureId: String,
             item: ContextStructureItem,
         ) {
+            if (item.contextStructureId != structureId) return
+            if (!isLiveStructureOwner(structureId)) return
             contextStructureDao.insertItems(listOf(item))
         }
 
@@ -151,6 +174,7 @@ class ContextStructureRepository
             item: ContextStructureItem,
             enabled: Boolean,
         ) {
+            if (!isLiveStructureOwner(item.contextStructureId)) return
             contextStructureDao.updateItem(item.copy(isEnabled = enabled))
         }
 

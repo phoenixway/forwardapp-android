@@ -42,6 +42,8 @@ data class BacklogMigrationBindings(
     val capabilityInstanceIdByWorkspaceId: Map<String, String>,
     val orientationIdByGoalId: Map<String, String>,
     val targetStateByRef: Map<WorkspaceBacklogTargetRef, BacklogTargetState>,
+    val historicalMissingWorkspaceTargetContextIds: Set<String> = emptySet(),
+    val historicalDeletedGoalIds: Set<String> = emptySet(),
     val parentWorkspaceIdByWorkspaceId: Map<String, String?> = emptyMap(),
     val existingCanonicalIds: Set<String> = emptySet(),
 )

@@ -16,9 +16,11 @@ val MIGRATION_157_158 =
 
             val sources = loadInboxSources(db)
             val diagnostics = mutableListOf<String>()
-            sources.filter { !it.isDeleted && it.hideInOwnerInbox }.forEach {
-                diagnostics += "LEGACY_HIDE_FLAG_REQUIRES_REVIEW: ${it.id}"
-            }
+
+            // hide_in_owner_inbox was only a materialized result of the legacy
+            // owner-visibility policy plus association state. Canonical INBOX
+            // preserves those inputs separately, so this residue is not a
+            // migration authority and is intentionally not carried forward.
             sources.filter { it.version < 0L }.forEach {
                 diagnostics += "INVALID_VERSION: ${it.id}"
             }
@@ -99,7 +101,7 @@ private fun loadInboxSources(db: SupportSQLiteDatabase): List<LegacyInbox158> =
     db.query(
         """
         SELECT id, contextId, text, createdAt, item_order, updatedAt,
-               synced_at, is_deleted, hide_in_owner_inbox, version
+               synced_at, is_deleted, version
         FROM inbox_records
         """.trimIndent(),
     ).use { cursor ->
@@ -115,8 +117,7 @@ private fun loadInboxSources(db: SupportSQLiteDatabase): List<LegacyInbox158> =
                         updatedAt = if (cursor.isNull(5)) cursor.getLong(3) else cursor.getLong(5),
                         syncedAt = if (cursor.isNull(6)) null else cursor.getLong(6),
                         isDeleted = cursor.getInt(7) != 0,
-                        hideInOwnerInbox = cursor.getInt(8) != 0,
-                        version = cursor.getLong(9),
+                        version = cursor.getLong(8),
                     ),
                 )
             }
@@ -334,7 +335,6 @@ private data class LegacyInbox158(
     val updatedAt: Long,
     val syncedAt: Long?,
     val isDeleted: Boolean,
-    val hideInOwnerInbox: Boolean,
     val version: Long,
 )
 

@@ -12,6 +12,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.dialogs.ContextMenuDialog
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.dialogs.ContextMigrationDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
@@ -72,7 +73,20 @@ fun HandleProjectHierarchyDialogs(
                 onAddChecklistRequest = { project ->
                     onEvent(ContextHierarchyScreenEvent.AddChecklistToContextRequest(project))
                 },
+                onMigrateRequest = { project -> onEvent(ContextHierarchyScreenEvent.MigrateRequest(project)) },
                 canPasteContextLinks = state.canPasteContextLinks,
+            )
+        }
+        is DialogState.ContextMigration -> {
+            ContextMigrationDialog(
+                state = state,
+                onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
+                onChoice = { onEvent(ContextHierarchyScreenEvent.MigrationChoiceSelected(it)) },
+                onOrientationKind = { onEvent(ContextHierarchyScreenEvent.MigrationOrientationKindSelected(it)) },
+                onExistingAspect = { onEvent(ContextHierarchyScreenEvent.MigrationExistingAspectSelected(it)) },
+                onExistingOrientation = { onEvent(ContextHierarchyScreenEvent.MigrationExistingOrientationSelected(it)) },
+                onRequestConfirmation = { onEvent(ContextHierarchyScreenEvent.MigrationConfirmationRequested) },
+                onExecute = { onEvent(ContextHierarchyScreenEvent.MigrationExecute) },
             )
         }
         is DialogState.ConfirmDelete -> {

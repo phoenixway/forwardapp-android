@@ -42,6 +42,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextClipboardCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextClipboardResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextDialogActionCoordinator
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextMigrationCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextSelectionCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.DialogUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyFocusCoordinator
@@ -102,6 +103,7 @@ class ContextHierarchyScreenViewModel
         private val hierarchyFocusCoordinator: HierarchyFocusCoordinator,
         private val contextSelectionCoordinator: ContextSelectionCoordinator,
         private val contextDialogActionCoordinator: ContextDialogActionCoordinator,
+        private val contextMigrationCoordinator: ContextMigrationCoordinator,
     ) : ViewModel() {
         companion object {
             private const val PROJECT_TO_REVEAL_KEY = "projectIdToReveal"
@@ -294,9 +296,28 @@ class ContextHierarchyScreenViewModel
                         "ProjectRevealDebug",
                         "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}",
                     )
-                    val hierarchyForReveal = awaitHierarchyForProjectPath(result.projectId)
+                    val operationalProject =
+                        uiState.value.orientationHierarchy
+                            .asSequence()
+                            .mapNotNull { item ->
+                                (item.node as? OrientationHierarchyNode.ProjectLike)
+                                    ?.contextProjection
+                            }
+                            .firstOrNull { it.id == result.projectId }
+
+                    // A retired Context may now be represented only by its
+                    // CANONICAL_ONLY WorkspaceNode. Prefer the operational
+                    // projection so ancestry comes from Workspace ownership,
+                    // not from the tombstoned legacy Context row.
+                    val hierarchyForReveal =
+                        if (operationalProject != null) {
+                            uiState.value.projectHierarchy
+                        } else {
+                            awaitHierarchyForProjectPath(result.projectId)
+                        }
                     val contextToReveal =
-                        _allProjectsFlat.value.firstOrNull { it.id == result.projectId }
+                        operationalProject
+                            ?: _allProjectsFlat.value.firstOrNull { it.id == result.projectId }
                             ?: contextRepository.getContextById(result.projectId)
                     if (contextToReveal != null) {
                         Log.d("ProjectRevealDebug", "Calling revealContext for ${result.projectId}")
@@ -307,6 +328,7 @@ class ContextHierarchyScreenViewModel
                             currentBreadcrumbs = uiState.value.currentBreadcrumbs,
                             orientationHierarchy = uiState.value.orientationHierarchy,
                             enterFocus = forceFocusMode || result.shouldFocus,
+                            replaceFocusPath = forceFocusMode,
                         )
                     } else {
                         Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
@@ -457,6 +479,31 @@ class ContextHierarchyScreenViewModel
                             allProjects = _allProjectsFlat.value,
                         )
                     dialogUseCase.onMenuRequested(event.project, canPaste)
+                }
+                is ContextHierarchyScreenEvent.MigrateRequest -> {
+                    viewModelScope.launch {
+                        if (!contextMigrationCoordinator.start(event.project)) {
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Системний контекст не можна мігрувати"))
+                        }
+                    }
+                }
+                is ContextHierarchyScreenEvent.MigrationChoiceSelected ->
+                    contextMigrationCoordinator.selectChoice(event.choice)
+                is ContextHierarchyScreenEvent.MigrationOrientationKindSelected ->
+                    contextMigrationCoordinator.selectOrientationKind(event.kind)
+                is ContextHierarchyScreenEvent.MigrationExistingAspectSelected ->
+                    contextMigrationCoordinator.selectExistingAspect(event.id)
+                is ContextHierarchyScreenEvent.MigrationExistingOrientationSelected ->
+                    contextMigrationCoordinator.selectExistingOrientation(event.id)
+                ContextHierarchyScreenEvent.MigrationConfirmationRequested ->
+                    contextMigrationCoordinator.requestConfirmation()
+                ContextHierarchyScreenEvent.MigrationExecute -> {
+                    viewModelScope.launch {
+                        contextMigrationCoordinator.execute().onSuccess {
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст мігровано"))
+                        }
+                    }
                 }
                 is ContextHierarchyScreenEvent.ContextReorder -> {
                     viewModelScope.launch {
@@ -973,9 +1020,17 @@ class ContextHierarchyScreenViewModel
         private fun onProjectClicked(projectId: String) {
             viewModelScope.launch {
                 val project = _allProjectsFlat.value.find { it.id == projectId }
-                if (project != null) {
-                    recentItemsRepository.logProjectAccess(project)
-                    enhancedNavigationManager?.navigateToProject(projectId, project.name)
+                val canonicalWorkspaceTitle =
+                    uiState.value.orientationHierarchy
+                        .asSequence()
+                        .map { it.node }
+                        .filterIsInstance<OrientationHierarchyNode.WorkspaceNode>()
+                        .firstOrNull { it.id == projectId }
+                        ?.title
+                val title = project?.name ?: canonicalWorkspaceTitle
+                if (title != null) {
+                    project?.let { recentItemsRepository.logProjectAccess(it) }
+                    enhancedNavigationManager?.navigateToProject(projectId, title)
                 }
             }
         }

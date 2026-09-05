@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
@@ -554,7 +555,15 @@ class MergeLocalDataSourceImpl
             // InboxRecordLink is a local materialized cache only.
             // Rebuild it from canonical InboxRecord + Context.tags after import.
             inboxAssociationCache.rebuild()
-            canonicalOrientationBootstrapper.ensureBootstrapped()
+            // A pre-canonical backup carries Main Beacon group membership only
+            // in the legacy full-set collection. If the destination has already
+            // CUT_OVER, ordinary bootstrap intentionally ignores legacy drift.
+            // During this explicit legacy import, however, those rows are the
+            // migration input and must be materialized into canonical PART_OF
+            // relations before compatibility projection runs.
+            canonicalOrientationBootstrapper.ensureBootstrapped(
+                ingestLegacyMainBeaconMemberships = !bundle.hasCanonicalOrientationPayload(),
+            )
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

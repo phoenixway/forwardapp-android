@@ -28,6 +28,7 @@ data class WorkspaceProblem(
     val description: String,
     val status: WorkspaceProblemStatus,
     val order: Long,
+    val dateTime: Long? = null,
 ) : SyncEntityMeta
 
 @JsExport

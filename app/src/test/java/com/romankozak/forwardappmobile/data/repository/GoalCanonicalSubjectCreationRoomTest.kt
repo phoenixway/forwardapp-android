@@ -4,11 +4,15 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.GoalOrientationBridge
+import com.romankozak.forwardappmobile.data.orientation.LegacySubjectIdResolver
+import com.romankozak.forwardappmobile.data.orientation.toEffectiveOrientation
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCanonicalTargetResolver
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogCompatibilityReader
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
@@ -98,6 +102,127 @@ class GoalCanonicalSubjectCreationRoomTest {
     }
 
     @Test
+    fun `editing cut over Goal writes semantic projection through canonical Orientation and ignores Goal-only fields`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedOwner(database, active = true)
+                val repository = goalRepository(database)
+                repository.addGoalToContext("Original", OWNER_ID)
+                val original = database.goalDao().getAll().single()
+                val mapping =
+                    requireNotNull(
+                        database.orientationDao().getLegacyMapping(
+                            LegacyOrientationSourceType.GOAL.name,
+                            original.id,
+                        ),
+                    )
+                val initialCurrent =
+                    database.orientationDao().getAllAssessments()
+                        .single { it.orientationId == mapping.subjectId }
+
+                repository.updateGoal(
+                    original.copy(
+                        text = "Edited",
+                        goalStatus = GoalStatusValues.IN_WORK,
+                    ),
+                )
+
+                val persisted = requireNotNull(database.goalDao().getGoalById(original.id))
+                val projection =
+                    persisted.toEffectiveOrientation(
+                        LegacySubjectIdResolver { mapping.subjectId },
+                    )
+                val subject =
+                    requireNotNull(database.orientationDao().getManagedSubject(mapping.subjectId))
+                val orientation =
+                    database.orientationDao().getAllOrientations()
+                        .single { it.subjectId == mapping.subjectId }
+                val current =
+                    database.orientationDao().getAllAssessments()
+                        .single { it.orientationId == mapping.subjectId }
+
+                assertEquals("Edited", subject.title)
+                assertEquals(projection.orientation.lifecycle?.name, orientation.lifecycle)
+
+                // Title/lifecycle editing must not reinterpret legacy Goal
+                // scoring fields as authority over the canonical assessment.
+                assertEquals(initialCurrent.revisionId, current.revisionId)
+                assertEquals(initialCurrent.importanceValue, current.importanceValue)
+                assertEquals(initialCurrent.impactValue, current.impactValue)
+                assertEquals(initialCurrent.breadthValue, current.breadthValue)
+                assertEquals(initialCurrent.expectedSpanValue, current.expectedSpanValue)
+                assertEquals(initialCurrent.targetWindowValue, current.targetWindowValue)
+                assertEquals(initialCurrent.attentionTierValue, current.attentionTierValue)
+                assertEquals(initialCurrent.commitmentValue, current.commitmentValue)
+                assertEquals(initialCurrent.confidenceValue, current.confidenceValue)
+
+                val subjectVersion = subject.version
+                val revisionCount =
+                    database.orientationDao().getAllAssessmentRevisions()
+                        .count { it.orientationId == mapping.subjectId }
+
+                repository.updateGoal(
+                    persisted.copy(
+                        effort = persisted.effort + 1f,
+                    ),
+                )
+
+                val afterLegacyOnly =
+                    requireNotNull(database.orientationDao().getManagedSubject(mapping.subjectId))
+                val revisionsAfterLegacyOnly =
+                    database.orientationDao().getAllAssessmentRevisions()
+                        .count { it.orientationId == mapping.subjectId }
+
+                assertEquals(subjectVersion, afterLegacyOnly.version)
+                assertEquals(revisionCount, revisionsAfterLegacyOnly)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `deleting cut over Goal tombstones placement subject assessment and mapping`() = runBlocking {
+        val database = database()
+        try {
+            seedOwner(database, active = true)
+            val repository = goalRepository(database)
+            val placementId = repository.addGoalToContext("Delete me", OWNER_ID)
+            val goal = database.goalDao().getAll().single()
+            val mapping =
+                requireNotNull(
+                    database.orientationDao().getLegacyMapping(
+                        LegacyOrientationSourceType.GOAL.name,
+                        goal.id,
+                    ),
+                )
+
+            repository.deleteGoal(goal.id)
+            // Deletion is a lifecycle command and must be retry-safe.
+            repository.deleteGoal(goal.id)
+
+            assertTrue(requireNotNull(database.goalDao().getGoalById(goal.id)).isDeleted)
+            assertTrue(requireNotNull(database.workspaceBacklogEntryDao().getById(placementId)).isDeleted)
+            assertTrue(requireNotNull(database.orientationDao().getManagedSubject(mapping.subjectId)).isDeleted)
+            assertTrue(
+                database.orientationDao().getAllAssessments()
+                    .single { it.orientationId == mapping.subjectId }
+                    .isDeleted,
+            )
+            assertTrue(
+                requireNotNull(
+                    database.orientationDao().getLegacyMapping(
+                        LegacyOrientationSourceType.GOAL.name,
+                        goal.id,
+                    ),
+                ).isDeleted,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `placement validation failure rolls back Goal subject orientation mapping and placement`() = runBlocking {
         val database = database()
         try {
@@ -151,6 +276,7 @@ class GoalCanonicalSubjectCreationRoomTest {
         val associations = mockk<TagAssociationHandler>()
         coEvery { associations.syncGoalAssociations(any(), any()) } returns emptyMap()
         coEvery { associations.findGoalAssociationOwnerContextId(any()) } returns null
+        coEvery { associations.removeGoalAssociations(any()) } returns Unit
         val markerHandler = mockk<ContextMarkerHandler>(relaxed = true)
         val markerProvider = mockk<Provider<ContextMarkerHandler>>()
         every { markerProvider.get() } returns markerHandler
@@ -165,6 +291,12 @@ class GoalCanonicalSubjectCreationRoomTest {
             database = database,
             orientationDao = database.orientationDao(),
             canonicalOrientationRepository = CanonicalOrientationRepository(database, database.orientationDao()),
+            goalOrientationBridge =
+                GoalOrientationBridge(
+                    database = database,
+                    goalDao = database.goalDao(),
+                    orientationDao = database.orientationDao(),
+                ),
         )
     }
 

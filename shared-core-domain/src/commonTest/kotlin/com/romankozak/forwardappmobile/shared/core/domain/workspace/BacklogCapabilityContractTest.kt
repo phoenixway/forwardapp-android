@@ -90,8 +90,8 @@ class BacklogCapabilityContractTest {
     }
 
     @Test
-    fun `deleted owner Workspace blocks migration even when identity is proven`() {
-        val source = item("placement", "NOTE_DOCUMENT", "document")
+    fun `deleted owner Workspace preserves explicit placement as canonical tombstone`() {
+        val source = item("placement", "NOTE_DOCUMENT", "document", version = 7L)
         val target = ref(WorkspaceBacklogTargetKind.NOTE_DOCUMENT, "document")
         val bindings =
             BacklogMigrationBindings(
@@ -105,13 +105,18 @@ class BacklogCapabilityContractTest {
 
         val plan = BacklogMigrationPlanner.plan(listOf(source), emptyList(), bindings)
 
-        assertFalse(plan.canApply)
-        assertFalse(plan.isFullyAccounted)
+        assertTrue(plan.canApply)
+        assertTrue(plan.isFullyAccounted)
         assertEquals(
-            LegacyBacklogSourceDisposition.QUARANTINED,
+            LegacyBacklogSourceDisposition.MIGRATED_EXPLICIT,
             plan.itemAccounting.single().disposition,
         )
-        assertTrue(plan.issues.any { it.code == BacklogMigrationIssueCode.DELETED_OWNER_WORKSPACE })
+        assertEquals(1, plan.entries.size)
+        assertTrue(plan.entries.single().isDeleted)
+
+        // Planner stays clock-free. Persistence applies the lifecycle bump.
+        assertEquals(7L, plan.entries.single().version)
+        assertEquals(50L, plan.entries.single().updatedAt)
     }
 
     @Test
@@ -148,6 +153,52 @@ class BacklogCapabilityContractTest {
         assertEquals(1, plan.entries.size)
         assertTrue(plan.entries.single().isDeleted)
         assertEquals(target, plan.entries.single().target)
+    }
+
+    @Test
+    fun `physically missing Workspace target is preserved only as historical tombstone`() {
+        val source =
+            item(
+                id = "placement",
+                type = "PROJECT",
+                entityId = "missing-context",
+                version = 7L,
+            )
+        val target =
+            ref(
+                WorkspaceBacklogTargetKind.WORKSPACE,
+                "missing-context",
+            )
+        val bindings =
+            BacklogMigrationBindings(
+                workspaceIdByContextId = mapOf("context" to "workspace"),
+                ownerWorkspaceStateById =
+                    mapOf(
+                        "workspace" to BacklogOwnerWorkspaceState(isDeleted = false),
+                    ),
+                capabilityInstanceIdByWorkspaceId =
+                    mapOf("workspace" to "backlog-capability"),
+                orientationIdByGoalId = emptyMap(),
+                targetStateByRef = emptyMap(),
+                historicalMissingWorkspaceTargetContextIds = setOf("missing-context"),
+            )
+
+        val plan =
+            BacklogMigrationPlanner.plan(
+                listOf(source),
+                emptyList(),
+                bindings,
+            )
+
+        assertTrue(plan.canApply)
+        assertTrue(plan.isFullyAccounted)
+        assertEquals(1, plan.entries.size)
+        assertEquals(target, plan.entries.single().target)
+        assertTrue(plan.entries.single().isDeleted)
+
+        // Planner stays clock-free. Persistence owns the lifecycle bump.
+        assertEquals(7L, plan.entries.single().version)
+        assertEquals(50L, plan.entries.single().updatedAt)
     }
 
     @Test
@@ -283,6 +334,37 @@ class BacklogCapabilityContractTest {
         assertTrue(tombstone.canApply)
         assertTrue(tombstone.isFullyAccounted)
         assertTrue(tombstone.entries.single().isDeleted)
+    }
+
+    @Test
+    fun `historical live Goal placement targeting deleted canonical Goal becomes tombstone`() {
+        val target = ref(WorkspaceBacklogTargetKind.ORIENTATION, "goal-orientation")
+        val bindings =
+            bindings(
+                targetStates = emptySet(),
+                explicitTargetStates = mapOf(target to BacklogTargetState(isDeleted = true)),
+            ).copy(
+                orientationIdByGoalId = mapOf("goal" to "goal-orientation"),
+                historicalDeletedGoalIds = setOf("goal"),
+            )
+
+        val plan =
+            BacklogMigrationPlanner.plan(
+                listOf(item("placement", "GOAL", "goal", version = 7L)),
+                emptyList(),
+                bindings,
+            )
+
+        assertTrue(plan.canApply)
+        assertTrue(plan.isFullyAccounted)
+        assertEquals(1, plan.entries.size)
+        assertEquals(target, plan.entries.single().target)
+        assertTrue(plan.entries.single().isDeleted)
+
+        // Planner remains clock-free. Persistence performs the single
+        // lifecycle version/timestamp bump.
+        assertEquals(7L, plan.entries.single().version)
+        assertEquals(50L, plan.entries.single().updatedAt)
     }
 
     @Test

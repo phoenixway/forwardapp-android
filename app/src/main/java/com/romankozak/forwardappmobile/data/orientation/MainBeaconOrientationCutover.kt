@@ -25,6 +25,7 @@ internal fun planMainBeaconCutover(
     existingRelations: List<OrientationRelationEntity>,
     now: Long,
     migrationVersion: Int,
+    ingestLegacyMembershipsForExistingCutOver: Boolean = false,
 ): MainBeaconCutoverPlan {
     val eligible = projections.filter { it.source.sourceType in MAIN_BEACON_SOURCE_TYPES }
     val mappingBySource = mappings.associateBy { it.sourceType to it.sourceId }
@@ -79,7 +80,9 @@ internal fun planMainBeaconCutover(
                 existingRelations = existingRelations,
                 now = now,
             ).filter {
-                it.fromOrientationId in newlyCutOverSubjectIds || it.toOrientationId in newlyCutOverSubjectIds
+                ingestLegacyMembershipsForExistingCutOver ||
+                    it.fromOrientationId in newlyCutOverSubjectIds ||
+                    it.toOrientationId in newlyCutOverSubjectIds
             },
         issues = emptyList(),
     )

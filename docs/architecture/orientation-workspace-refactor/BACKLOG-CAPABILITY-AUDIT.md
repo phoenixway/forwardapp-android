@@ -39,36 +39,18 @@ commands update BacklogItem.order and mirror the same values into BacklogOrder.
 
 ## Runtime-supported legacy target union
 
-BacklogItemTypeValues declares ten constants:
+The pre-schema-165 legacy Backlog model included `JOURNAL_DOCUMENT` both in
+`BacklogItemTypeValues` and in the Context compatibility mapper. That is now
+historical input evidence, not a supported current target kind.
 
-- GOAL;
-- SUBLIST;
-- LINK_ITEM;
-- NOTE;
-- NOTE_DOCUMENT;
-- JOURNAL_DOCUMENT;
-- CHECKLIST;
-- MUSIC_NOTE;
-- SCRIPT;
-- CONTEXT.
+Current production code no longer declares or materializes
+`JOURNAL_DOCUMENT`. Schema 165 hard-retires that semantic role and removes its
+canonical BACKLOG placements.
 
-The active Context screen compatibility mapper materially supports eight
-declared types:
-
-- GOAL;
-- SUBLIST;
-- LINK_ITEM;
-- NOTE as historical read-only content;
-- NOTE_DOCUMENT;
-- JOURNAL_DOCUMENT;
-- CHECKLIST;
-- MUSIC_NOTE.
-
-It also accepts the historical undeclared value PROJECT as a Context reference
-and explicitly ignores the historical value LINK. SCRIPT, CONTEXT, LINK, and
-every unknown type are not materialized by the active mapper. A migration must
-not silently discard such rows. Existing rows of those types require
-fail-closed accounting and an explicit compatibility or retirement decision.
+Other historical Backlog values still require their own explicit accounting.
+In particular, the undeclared historical value PROJECT may represent a Context
+reference, while SCRIPT, CONTEXT, LINK, and unknown values must not be silently
+converted or discarded merely because old storage could contain them.
 
 ## Canonical target direction already supported by evidence
 
@@ -83,14 +65,18 @@ remains owned by Context parent/order state. A future BACKLOG cutover therefore
 targets the provenance-backed canonical Workspace identity rather than
 recreating hierarchy ownership.
 
-LINK_ITEM, NOTE, NOTE_DOCUMENT, JOURNAL_DOCUMENT, CHECKLIST, and MUSIC_NOTE
-retain their typed content identity when they are migrated or deliberately
-retired. In particular, legacy `NOTE` maps to canonical `LEGACY_NOTE`; it is a
-historical read-only content identity, not an alias for `NOTE_DOCUMENT`.
-`NOTE_DOCUMENT` descends from the former `CUSTOM_LIST` model, while
-`JOURNAL_DOCUMENT` is a separate semantic role over document persistence.
-BACKLOG deletion must affect only the appearance unless an explicit destructive
-cross-domain command is invoked.
+LINK_ITEM, NOTE, NOTE_DOCUMENT, CHECKLIST, and MUSIC_NOTE retain their typed
+content identity when they are migrated or deliberately retired. In particular,
+legacy `NOTE` maps to canonical `LEGACY_NOTE`; it is a historical read-only
+content identity, not an alias for `NOTE_DOCUMENT`. `NOTE_DOCUMENT` descends
+from the former `CUSTOM_LIST` model.
+
+`JOURNAL_DOCUMENT` is no longer a current target identity. Schema 165
+hard-retires that semantic role and deletes its canonical BACKLOG placements
+rather than preserving or converting the retired Context Journal content.
+
+BACKLOG deletion for supported live target kinds affects only the appearance
+unless an explicit destructive cross-domain command is invoked.
 
 ## Hashtag-derived Goal appearances
 

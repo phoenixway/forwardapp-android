@@ -489,6 +489,7 @@ private fun WorkspaceProblemEntity.toSnapshot() =
         updatedAt = updatedAt,
         version = version,
         isDeleted = isDeleted,
+        dateTime = dateTime,
     )
 
 private fun WorkspaceProblemWorkspaceRefEntity.toSnapshot() =
@@ -527,6 +528,7 @@ private fun WorkspaceProblemSnapshot.toCanonicalEntity() =
         syncedAt = null,
         isDeleted = isDeleted,
         version = version,
+        dateTime = dateTime,
     )
 
 private fun WorkspaceProblemWorkspaceRefSnapshot.toCanonicalEntity() =
@@ -567,6 +569,7 @@ private fun WorkspaceProblemEntity.toModel() =
         description = description,
         status = WorkspaceProblemStatus.valueOf(status),
         order = problemOrder,
+        dateTime = dateTime,
     )
 
 private fun WorkspaceProblemWorkspaceRefEntity.toModel() =

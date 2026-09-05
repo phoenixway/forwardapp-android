@@ -39,7 +39,7 @@ internal fun buildOrientationBreadcrumbsToContext(
 ): List<BreadcrumbItem> {
     val nodeIndex =
         items.indexOfFirst { item ->
-            (item.node as? OrientationHierarchyNode.ContextNode)?.context?.id == contextId
+            (item.node as? OrientationHierarchyNode.ProjectLike)?.contextProjection?.id == contextId
         }
     if (nodeIndex == -1) return emptyList()
     return buildDisplayedOrientationBreadcrumbs(items, nodeIndex)
@@ -100,12 +100,13 @@ internal fun buildOrientationDisplayChildMap(
 ): Map<String, List<Context>> {
     val result = canonicalChildMap.mapValues { (_, children) -> children.toMutableList() }.toMutableMap()
     orientationHierarchy
-        .filter { it.node is OrientationHierarchyNode.ContextNode }
+        .filter { it.node is OrientationHierarchyNode.ProjectLike }
         .forEach { parentItem ->
-            val parentContext = (parentItem.node as OrientationHierarchyNode.ContextNode).context
+            val parentNode = parentItem.node as OrientationHierarchyNode.ProjectLike
+            val parentContext = parentNode.contextProjection
             val children =
                 directChildrenByNodeId[parentContext.id].orEmpty().mapNotNull { childItem ->
-                    (childItem.node as? OrientationHierarchyNode.ContextNode)?.context
+                    (childItem.node as? OrientationHierarchyNode.ProjectLike)?.contextProjection
                 }
             if (children.isNotEmpty()) {
                 val mutableChildren = result.getOrPut(parentContext.id) { mutableListOf() }

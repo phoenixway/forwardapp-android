@@ -21,6 +21,18 @@ import org.robolectric.RobolectricTestRunner
 class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    private val migrations158To166 =
+        arrayOf(
+            MIGRATION_158_159,
+            MIGRATION_159_160,
+            MIGRATION_160_161,
+            MIGRATION_161_162,
+            MIGRATION_162_163,
+            MIGRATION_163_164,
+            MIGRATION_164_165,
+            MIGRATION_165_166,
+        )
+
     @Test
     fun `158 to 159 moves Context attachment placements to canonical Connections`() {
         val dbName = "migration_158_159_connections_cutover"
@@ -36,12 +48,12 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_158_159)
+                .addMigrations(*migrations158To166)
                 .allowMainThreadQueries()
                 .build()
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(159L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_connections"))
             assertEquals(
@@ -66,8 +78,8 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `158 to 159 fails closed when live placement targets deleted Attachment`() {
-        val dbName = "migration_158_159_connections_deleted_target"
+    fun `158 to 166 tombstones live placement when target Attachment is already deleted`() {
+        val dbName = "migration_158_166_connections_deleted_target"
         createFixture(dbName) { db ->
             insertContext(db, "owner")
             insertWorkspace(db, "owner")
@@ -75,16 +87,245 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             insertLink(db, "owner", "deleted", order = 0L)
         }
 
-        val failure =
-            runCatching {
-                Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                    .addMigrations(MIGRATION_158_159)
-                    .allowMainThreadQueries()
-                    .build()
-                    .openHelper.writableDatabase
-            }.exceptionOrNull()
-        assertTrue(failure != null)
-        context.deleteDatabase(dbName)
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations158To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "context_attachment_cross_ref"))
+
+            db.query(
+                """
+                SELECT isDeleted, version, syncedAt
+                FROM workspace_connections
+                WHERE attachmentId = 'deleted'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals(2L, cursor.getLong(1))
+                assertTrue(cursor.isNull(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM attachments WHERE id = 'deleted' AND isDeleted = 1",
+                ),
+            )
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `158 to 166 tombstones placement and capability when owner Workspace is already deleted`() {
+        val dbName = "migration_158_166_connections_deleted_owner"
+        createFixture(dbName) { db ->
+            insertContext(db, "owner", deleted = true)
+            insertWorkspace(db, "owner", deleted = true)
+            insertAttachment(db, "live-attachment", createdAt = 10L)
+            insertLink(
+                db,
+                "owner",
+                "live-attachment",
+                order = 0L,
+                version = 4L,
+                syncedAt = 100L,
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations158To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "context_attachment_cross_ref"))
+
+            db.query(
+                """
+                SELECT isDeleted, version, syncedAt
+                FROM workspace_connections
+                WHERE attachmentId = 'live-attachment'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals(5L, cursor.getLong(1))
+                assertTrue(cursor.isNull(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM workspaces WHERE id = 'owner' AND isDeleted = 1",
+                ),
+            )
+
+            db.query(
+                """
+                SELECT state, configuration, isDeleted
+                FROM workspace_capability_instances
+                WHERE workspaceId = 'owner'
+                  AND capabilityType = 'CONNECTIONS'
+                  AND instanceKey = 'default'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ACTIVE", cursor.getString(0))
+                assertEquals("{}", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM attachments WHERE id = 'live-attachment' AND isDeleted = 0",
+                ),
+            )
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
+    fun `158 to 166 materializes missing deleted owner Workspace and tombstones its placement`() {
+        val dbName = "migration_158_166_connections_missing_deleted_owner"
+        createFixture(dbName) { db ->
+            insertContext(db, "parent")
+            insertWorkspace(db, "parent")
+
+            insertContext(
+                db = db,
+                id = "owner",
+                deleted = true,
+                name = "Deleted owner",
+                description = "Historical description",
+                parentId = "parent",
+                order = 7L,
+                roleCode = "PROJECT",
+            )
+
+            // This is the historical shape that schema 155 -> 156 could leave:
+            // a deleted Context with attachment placement but no DIRECTION row,
+            // therefore no CONTEXT_BACKED Workspace was provisioned for it.
+            insertAttachment(db, "historical-attachment", createdAt = 10L)
+            insertLink(
+                db,
+                "owner",
+                "historical-attachment",
+                order = 0L,
+                version = 4L,
+                syncedAt = 100L,
+            )
+        }
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*migrations158To166)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
+            val db = room.openHelper.writableDatabase
+
+            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertFalse(tableExists(db, "context_attachment_cross_ref"))
+
+            db.query(
+                """
+                SELECT
+                    nameOverride,
+                    descriptionOverride,
+                    parentWorkspaceId,
+                    roleCode,
+                    workspaceOrder,
+                    isDeleted,
+                    provenance,
+                    sourceContextId
+                FROM workspaces
+                WHERE id = 'owner'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Deleted owner", cursor.getString(0))
+                assertEquals("Historical description", cursor.getString(1))
+                assertEquals("parent", cursor.getString(2))
+                assertEquals("PROJECT", cursor.getString(3))
+                assertEquals(7L, cursor.getLong(4))
+                assertEquals(1, cursor.getInt(5))
+                assertEquals("CONTEXT_BACKED", cursor.getString(6))
+                assertEquals("owner", cursor.getString(7))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT state, configuration, isDeleted
+                FROM workspace_capability_instances
+                WHERE workspaceId = 'owner'
+                  AND capabilityType = 'CONNECTIONS'
+                  AND instanceKey = 'default'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("ACTIVE", cursor.getString(0))
+                assertEquals("{}", cursor.getString(1))
+                assertEquals(1, cursor.getInt(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            db.query(
+                """
+                SELECT isDeleted, version, syncedAt
+                FROM workspace_connections
+                WHERE attachmentId = 'historical-attachment'
+                """.trimIndent(),
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals(5L, cursor.getLong(1))
+                assertTrue(cursor.isNull(2))
+                assertFalse(cursor.moveToNext())
+            }
+
+            assertEquals(
+                1L,
+                scalarLong(
+                    db,
+                    "SELECT COUNT(*) FROM attachments " +
+                        "WHERE id = 'historical-attachment' AND isDeleted = 0",
+                ),
+            )
+
+            db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            room.close()
+            context.deleteDatabase(dbName)
+        }
     }
 
     private fun createFixture(
@@ -108,24 +349,46 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
         FrameworkSQLiteOpenHelperFactory().create(configuration).use { it.writableDatabase }
     }
 
-    private fun insertContext(db: SupportSQLiteDatabase, id: String) {
+    private fun insertContext(
+        db: SupportSQLiteDatabase,
+        id: String,
+        deleted: Boolean = false,
+        name: String = id,
+        description: String? = null,
+        parentId: String? = null,
+        order: Long = 0L,
+        roleCode: String? = null,
+    ) {
         db.insert(
             "contexts",
             0,
             ContentValues().apply {
-                put("id", id); put("name", id); put("createdAt", 10L); put("updatedAt", 10L)
-                put("is_deleted", 0); put("version", 1L); put("scoring_status", "UNASSESSED")
+                put("id", id)
+                put("name", name)
+                if (description == null) putNull("description") else put("description", description)
+                if (parentId == null) putNull("parentId") else put("parentId", parentId)
+                put("createdAt", 10L)
+                put("updatedAt", 10L)
+                put("is_deleted", if (deleted) 1 else 0)
+                put("version", 1L)
+                put("goal_order", order)
+                if (roleCode == null) putNull("role_code") else put("role_code", roleCode)
+                put("scoring_status", "UNASSESSED")
             },
         )
     }
 
-    private fun insertWorkspace(db: SupportSQLiteDatabase, id: String) {
+    private fun insertWorkspace(
+        db: SupportSQLiteDatabase,
+        id: String,
+        deleted: Boolean = false,
+    ) {
         db.insert(
             "workspaces",
             0,
             ContentValues().apply {
                 put("id", id); put("workspaceOrder", 0L); put("createdAt", 10L); put("updatedAt", 10L)
-                put("isDeleted", 0); put("version", 1L); put("provenance", "CONTEXT_BACKED")
+                put("isDeleted", if (deleted) 1 else 0); put("version", 1L); put("provenance", "CONTEXT_BACKED")
                 put("sourceContextId", id)
             },
         )

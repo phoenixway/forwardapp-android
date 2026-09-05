@@ -1,7 +1,10 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
+import android.content.ContentValues
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
@@ -12,7 +15,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogMigrationIssueCode
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import kotlinx.coroutines.runBlocking
@@ -111,6 +113,318 @@ class BacklogMigrationDryRunAdapterRoomTest {
         }
 
     @Test
+    fun `legacy full backup fallback cuts over materialized Goal identity without replacing subject`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedContextBackedWorkspace(database, "owner")
+                val subjectId = stableLegacyGoalSubjectId("goal")
+
+                val db = database.openHelper.writableDatabase
+                insertSchemaAwareRow(
+                    db,
+                    "goals",
+                    mapOf(
+                        "id" to "goal",
+                        "text" to "Historical Goal",
+                        "completed" to 0L,
+                        "goal_status" to "ACTIVE",
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "is_deleted" to 0L,
+                        "version" to 7L,
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "managed_subjects",
+                    mapOf(
+                        "id" to subjectId,
+                        "subjectType" to "ORIENTATION",
+                        "title" to "Historical Goal",
+                        "description" to null,
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "syncedAt" to 19L,
+                        "isDeleted" to 0L,
+                        "version" to 7L,
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "orientations",
+                    mapOf(
+                        "subjectId" to subjectId,
+                        "kind" to "GOAL",
+                        "lifecycle" to "ACTIVE",
+                        "lifecycleOrigin" to "UNSET",
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "legacy_subject_mappings",
+                    mapOf(
+                        "id" to subjectId,
+                        "sourceType" to "GOAL",
+                        "sourceId" to "goal",
+                        "subjectId" to subjectId,
+                        "migrationVersion" to 3L,
+                        "state" to "MATERIALIZED",
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "syncedAt" to 19L,
+                        "isDeleted" to 0L,
+                        "version" to 7L,
+                    ),
+                )
+                seedPlacement(
+                    database = database,
+                    id = "placement",
+                    ownerContextId = "owner",
+                    entityId = "goal",
+                    itemType = "GOAL",
+                )
+
+                val subjectsBefore = database.orientationDao().getAllManagedSubjects().map { it.id }
+
+                val report =
+                    BacklogMigrationDryRunAdapter(database).materializeLegacyFullBackup()
+
+                assertTrue(report.canApply)
+                assertTrue(report.isFullyAccounted)
+
+                val mapping =
+                    requireNotNull(
+                        database.orientationDao().getLegacyMapping("GOAL", "goal"),
+                    )
+                assertEquals(subjectId, mapping.subjectId)
+                assertEquals("CUT_OVER", mapping.state)
+                assertEquals(3, mapping.migrationVersion)
+                assertEquals(8L, mapping.version)
+                assertTrue(mapping.updatedAt > 20L)
+                assertEquals(null, mapping.syncedAt)
+
+                val canonical = database.workspaceBacklogEntryDao().getAll().single()
+                assertEquals("ORIENTATION", canonical.targetKind)
+                assertEquals(subjectId, canonical.targetId)
+                assertFalse(canonical.isDeleted)
+
+                assertEquals(
+                    subjectsBefore,
+                    database.orientationDao().getAllManagedSubjects().map { it.id },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `legacy full backup fallback reconstructs missing Goal identity`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedContextBackedWorkspace(database, "owner")
+                val subjectId = stableLegacyGoalSubjectId("goal-missing-graph")
+                val db = database.openHelper.writableDatabase
+
+                insertSchemaAwareRow(
+                    db,
+                    "goals",
+                    mapOf(
+                        "id" to "goal-missing-graph",
+                        "text" to "Historical Goal Without Graph",
+                        "description" to "Preserve me",
+                        "completed" to 0L,
+                        "goal_status" to "ACTIVE",
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "synced_at" to 19L,
+                        "is_deleted" to 0L,
+                        "version" to 7L,
+                        "scoring_status" to "NOT_ASSESSED",
+                        "valueImportance" to 0.0,
+                        "valueImpact" to 0.0,
+                    ),
+                )
+                seedPlacement(
+                    database = database,
+                    id = "placement",
+                    ownerContextId = "owner",
+                    entityId = "goal-missing-graph",
+                    itemType = "GOAL",
+                )
+
+                assertEquals(
+                    null,
+                    database.orientationDao()
+                        .getLegacyMapping("GOAL", "goal-missing-graph"),
+                )
+                assertEquals(
+                    null,
+                    database.orientationDao().getManagedSubject(subjectId),
+                )
+
+                val report =
+                    BacklogMigrationDryRunAdapter(database).materializeLegacyFullBackup()
+
+                assertTrue(report.canApply)
+                assertTrue(report.isFullyAccounted)
+
+                val mapping =
+                    requireNotNull(
+                        database.orientationDao()
+                            .getLegacyMapping("GOAL", "goal-missing-graph"),
+                    )
+                assertEquals(subjectId, mapping.subjectId)
+                assertEquals("CUT_OVER", mapping.state)
+                assertEquals(3, mapping.migrationVersion)
+                assertFalse(mapping.isDeleted)
+                assertEquals(8L, mapping.version)
+                assertTrue(mapping.updatedAt > 20L)
+                assertEquals(null, mapping.syncedAt)
+
+                val subject =
+                    requireNotNull(
+                        database.orientationDao().getManagedSubject(subjectId),
+                    )
+                assertEquals("ORIENTATION", subject.subjectType)
+                assertEquals("Historical Goal Without Graph", subject.title)
+                assertEquals("Preserve me", subject.description)
+                assertFalse(subject.isDeleted)
+                assertEquals(7L, subject.version)
+
+                val orientation =
+                    database.orientationDao()
+                        .getAllOrientations()
+                        .single { it.subjectId == subjectId }
+                assertEquals("GOAL", orientation.kind)
+                assertEquals("READY", orientation.lifecycle)
+
+                assertEquals(
+                    1,
+                    database.orientationDao()
+                        .getAllAssessments()
+                        .count { it.orientationId == subjectId },
+                )
+                assertEquals(
+                    1,
+                    database.orientationDao()
+                        .getAllAssessmentRevisions()
+                        .count { it.orientationId == subjectId },
+                )
+
+                val canonical =
+                    database.workspaceBacklogEntryDao().getAll().single()
+                assertEquals("ORIENTATION", canonical.targetKind)
+                assertEquals(subjectId, canonical.targetId)
+                assertFalse(canonical.isDeleted)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `legacy full backup fallback tombstones live placement targeting deleted Goal`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedContextBackedWorkspace(database, "owner")
+                val subjectId = stableLegacyGoalSubjectId("deleted-goal")
+                val db = database.openHelper.writableDatabase
+
+                insertSchemaAwareRow(
+                    db,
+                    "goals",
+                    mapOf(
+                        "id" to "deleted-goal",
+                        "text" to "Deleted Historical Goal",
+                        "completed" to 0L,
+                        "goal_status" to "ACTIVE",
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "is_deleted" to 1L,
+                        "version" to 7L,
+                        "scoring_status" to "NOT_ASSESSED",
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "managed_subjects",
+                    mapOf(
+                        "id" to subjectId,
+                        "subjectType" to "ORIENTATION",
+                        "title" to "Deleted Historical Goal",
+                        "description" to null,
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "syncedAt" to 19L,
+                        "isDeleted" to 1L,
+                        "version" to 7L,
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "orientations",
+                    mapOf(
+                        "subjectId" to subjectId,
+                        "kind" to "GOAL",
+                        "lifecycle" to "ACTIVE",
+                        "lifecycleOrigin" to "UNSET",
+                    ),
+                )
+                insertSchemaAwareRow(
+                    db,
+                    "legacy_subject_mappings",
+                    mapOf(
+                        "id" to subjectId,
+                        "sourceType" to "GOAL",
+                        "sourceId" to "deleted-goal",
+                        "subjectId" to subjectId,
+                        "migrationVersion" to 3L,
+                        "state" to "MATERIALIZED",
+                        "createdAt" to 10L,
+                        "updatedAt" to 20L,
+                        "syncedAt" to 19L,
+                        "isDeleted" to 1L,
+                        "version" to 7L,
+                    ),
+                )
+                seedPlacement(
+                    database = database,
+                    id = "placement",
+                    ownerContextId = "owner",
+                    entityId = "deleted-goal",
+                    itemType = "GOAL",
+                )
+
+                val report =
+                    BacklogMigrationDryRunAdapter(database).materializeLegacyFullBackup()
+
+                assertTrue(report.canApply)
+                assertTrue(report.isFullyAccounted)
+
+                val mapping =
+                    requireNotNull(
+                        database.orientationDao().getLegacyMapping("GOAL", "deleted-goal"),
+                    )
+                assertEquals(subjectId, mapping.subjectId)
+                assertEquals("CUT_OVER", mapping.state)
+                assertTrue(mapping.isDeleted)
+                assertEquals(8L, mapping.version)
+
+                val canonical =
+                    database.workspaceBacklogEntryDao().getAll().single()
+                assertEquals("ORIENTATION", canonical.targetKind)
+                assertEquals(subjectId, canonical.targetId)
+                assertTrue(canonical.isDeleted)
+                assertEquals(2L, canonical.version)
+                assertTrue(canonical.updatedAt > 3L)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `existing logical BACKLOG capability id is preserved by dry run`() =
         runBlocking {
             val database = database()
@@ -146,7 +460,7 @@ class BacklogMigrationDryRunAdapterRoomTest {
         }
 
     @Test
-    fun `deleted owner Workspace fails closed`() =
+    fun `deleted owner Workspace is fully accounted and fallback persists tombstones`() =
         runBlocking {
             val database = database()
             try {
@@ -154,19 +468,70 @@ class BacklogMigrationDryRunAdapterRoomTest {
                 seedDocument(database, id = "document", ownerContextId = "owner")
                 seedPlacement(database, "placement", "owner", "document")
 
-                val report = BacklogMigrationDryRunAdapter(database).dryRun()
+                val adapter = BacklogMigrationDryRunAdapter(database)
+                val dryRun = adapter.dryRun()
 
-                assertFalse(report.canApply)
-                assertFalse(report.isFullyAccounted)
-                assertTrue(report.plan.entries.isEmpty())
+                assertTrue(dryRun.canApply)
+                assertTrue(dryRun.isFullyAccounted)
+                assertEquals(1, dryRun.plan.entries.size)
+                assertTrue(dryRun.plan.entries.single().isDeleted)
                 assertTrue(
-                    report.plan.issues.any {
-                        it.code == BacklogMigrationIssueCode.DELETED_OWNER_WORKSPACE
-                    },
+                    dryRun.expectedCapabilityInstanceIdByWorkspaceId.containsKey("owner"),
                 )
-                assertFalse(
-                    report.expectedCapabilityInstanceIdByWorkspaceId.containsKey("owner"),
+
+                adapter.materializeLegacyFullBackup()
+
+                val capability =
+                    database.orientationDao().getAllWorkspaceCapabilities().single {
+                        it.capabilityType == "BACKLOG"
+                    }
+                assertTrue(capability.isDeleted)
+
+                val canonical = database.workspaceBacklogEntryDao().getAll().single()
+                assertTrue(canonical.isDeleted)
+                assertEquals(2L, canonical.version)
+                assertTrue(canonical.updatedAt > 3L)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `physically missing PROJECT target is preserved by fallback as historical tombstone`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedContextBackedWorkspace(database, "owner")
+                seedPlacement(
+                    database = database,
+                    id = "placement",
+                    ownerContextId = "owner",
+                    entityId = "missing-context",
+                    itemType = "PROJECT",
                 )
+
+                val adapter = BacklogMigrationDryRunAdapter(database)
+                val dryRun = adapter.dryRun()
+
+                assertTrue(dryRun.canApply)
+                assertTrue(dryRun.isFullyAccounted)
+                assertEquals(1, dryRun.plan.entries.size)
+                assertTrue(dryRun.plan.entries.single().isDeleted)
+                assertEquals(
+                    WorkspaceBacklogTargetKind.WORKSPACE,
+                    dryRun.plan.entries.single().target.kind,
+                )
+                assertEquals("missing-context", dryRun.plan.entries.single().target.id)
+
+                adapter.materializeLegacyFullBackup()
+
+                assertEquals(null, database.workspaceDao().getById("missing-context"))
+                val canonical = database.workspaceBacklogEntryDao().getAll().single()
+                assertTrue(canonical.isDeleted)
+                assertEquals("WORKSPACE", canonical.targetKind)
+                assertEquals("missing-context", canonical.targetId)
+                assertEquals(2L, canonical.version)
+                assertTrue(canonical.updatedAt > 3L)
             } finally {
                 database.close()
             }
@@ -299,6 +664,66 @@ class BacklogMigrationDryRunAdapterRoomTest {
             }
         }
 
+    private fun stableLegacyGoalSubjectId(goalId: String): String =
+        LegacySubjectUuid
+            .uuidV5(
+                UUID.fromString(LegacySubjectUuid.NAMESPACE_UUID),
+                "GOAL:$goalId",
+            ).toString()
+
+    private fun insertSchemaAwareRow(
+        db: SupportSQLiteDatabase,
+        table: String,
+        overrides: Map<String, Any?>,
+    ) {
+        val values = ContentValues()
+        overrides.forEach { (name, value) -> putSchemaValue(values, name, value) }
+
+        db.query("PRAGMA table_info(`$table`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndexOrThrow("name")
+            val typeIndex = cursor.getColumnIndexOrThrow("type")
+            val notNullIndex = cursor.getColumnIndexOrThrow("notnull")
+            val defaultIndex = cursor.getColumnIndexOrThrow("dflt_value")
+
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(nameIndex)
+                val type = cursor.getString(typeIndex).uppercase()
+                val notNull = cursor.getInt(notNullIndex) != 0
+                val hasDefault = !cursor.isNull(defaultIndex)
+                if (!notNull || hasDefault || values.containsKey(name)) continue
+
+                when {
+                    "INT" in type -> values.put(name, 0L)
+                    "REAL" in type || "FLOA" in type || "DOUB" in type ->
+                        values.put(name, 0.0)
+                    "BLOB" in type -> values.put(name, byteArrayOf())
+                    else -> values.put(name, "")
+                }
+            }
+        }
+
+        val result = db.insert(table, SQLiteDatabase.CONFLICT_ABORT, values)
+        assertTrue("Failed fixture insert into $table", result != -1L)
+    }
+
+    private fun putSchemaValue(
+        values: ContentValues,
+        name: String,
+        value: Any?,
+    ) {
+        when (value) {
+            null -> values.putNull(name)
+            is String -> values.put(name, value)
+            is Long -> values.put(name, value)
+            is Int -> values.put(name, value)
+            is Boolean -> values.put(name, value)
+            is Double -> values.put(name, value)
+            is Float -> values.put(name, value)
+            is ByteArray -> values.put(name, value)
+            else -> error("Unsupported fixture value for $name")
+        }
+    }
+
     private suspend fun seedContextBackedWorkspace(
         database: AppDatabase,
         id: String,
@@ -420,12 +845,13 @@ class BacklogMigrationDryRunAdapterRoomTest {
         entityId: String,
         order: Long = 0L,
         deleted: Boolean = false,
+        itemType: String = "NOTE_DOCUMENT",
     ) {
         database.listItemDao().insertItem(
             BacklogItem(
                 id = id,
                 contextId = ownerContextId,
-                itemType = "NOTE_DOCUMENT",
+                itemType = itemType,
                 entityId = entityId,
                 associationOwnerContextId = null,
                 associationTag = null,
