@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalTaskRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +57,7 @@ class EditTaskViewModel
         private val dayManagementRepository: DayManagementRepository,
         private val canonicalTaskRecurrenceAuthoringAdapter: CanonicalTaskRecurrenceAuthoringAdapter,
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(EditTaskUiState())
@@ -173,10 +176,20 @@ class EditTaskViewModel
             viewModelScope.launch {
                 val currentLinks = _uiState.value.contextLinks
                 if (currentLinks.any { it.id == normalizedId }) return@launch
-                val context = contextRepository.getContextById(normalizedId) ?: return@launch
+                val rawContext = contextRepository.getContextById(normalizedId)
+                val presentation =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = normalizedId,
+                        context = rawContext,
+                    ) ?: return@launch
                 _uiState.value =
                     _uiState.value.copy(
-                        contextLinks = currentLinks + TaskContextLinkUi(id = context.id, name = context.name),
+                        contextLinks =
+                            currentLinks +
+                                TaskContextLinkUi(
+                                    id = presentation.id,
+                                    name = presentation.name,
+                                ),
                     )
             }
         }
@@ -222,7 +235,7 @@ class EditTaskViewModel
                             title = state.title,
                             description = state.description,
                             goalId = originalTask.goalId,
-                            projectId = originalTask.projectId,
+                            projectId = originalTask.logicalProjectId,
                             taskType = originalTask.taskType,
                             linkedProjectIds = state.contextLinks.map { it.id },
                             linkedAttachmentIds = originalTask.linkedAttachmentIds.orEmpty(),
@@ -237,7 +250,7 @@ class EditTaskViewModel
                             title = state.title,
                             description = state.description,
                             goalId = originalTask.goalId,
-                            projectId = originalTask.projectId,
+                            projectId = originalTask.logicalProjectId,
                             taskType = originalTask.taskType,
                             linkedProjectIds = state.contextLinks.map { it.id },
                             linkedAttachmentIds = originalTask.linkedAttachmentIds.orEmpty(),
@@ -259,7 +272,7 @@ class EditTaskViewModel
                     title = state.title,
                     description = state.description,
                     goalId = originalTask.goalId,
-                    projectId = originalTask.projectId,
+                    projectId = originalTask.logicalProjectId,
                     taskType = originalTask.taskType,
                     linkedProjectIds = state.contextLinks.map { it.id },
                     linkedAttachmentIds = originalTask.linkedAttachmentIds.orEmpty(),
@@ -300,7 +313,7 @@ class EditTaskViewModel
                     dueTime = state.dueTime,
                     executionStrictness = state.executionStrictness,
                     points = state.points,
-                    projectId = originalTask.projectId,
+                    projectId = originalTask.logicalProjectId,
                     linkedProjectIds = state.contextLinks.map { it.id },
                     updateContextLinks = true,
                 ),
@@ -313,12 +326,23 @@ class EditTaskViewModel
                 .filter { it.isNotBlank() && it != "root" }
                 .distinct()
 
-        private suspend fun List<String>.resolveContextLinks(): List<TaskContextLinkUi> =
-            mapNotNull { id ->
-                contextRepository.getContextById(id)?.let { context ->
-                    TaskContextLinkUi(id = context.id, name = context.name)
-                }
+        private suspend fun List<String>.resolveContextLinks(): List<TaskContextLinkUi> {
+            val resolved = mutableListOf<TaskContextLinkUi>()
+            for (id in this) {
+                val rawContext = contextRepository.getContextById(id)
+                val presentation =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = id,
+                        context = rawContext,
+                    ) ?: continue
+                resolved +=
+                    TaskContextLinkUi(
+                        id = presentation.id,
+                        name = presentation.name,
+                    )
             }
+            return resolved
+        }
 
         private fun buildRecurrenceRule(state: EditTaskUiState): RecurrenceRule =
             RecurrenceRule(

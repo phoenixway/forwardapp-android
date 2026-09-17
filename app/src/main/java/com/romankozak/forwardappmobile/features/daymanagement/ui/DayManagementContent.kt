@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
@@ -205,7 +206,7 @@ private fun createBacklogNavigator(
 ): (DayTask) -> Unit =
     { task ->
         Log.d(screenLogTag, "2. НАВІГАЦІЯ: Отримано task для переходу в беклог.")
-        task.projectId?.let { projectId ->
+        task.logicalProjectId?.let { projectId ->
             Log.d(
                 screenLogTag,
                 "3. УМОВА ВИКОНАНА: projectId не є null. Значення: $projectId",
@@ -223,7 +224,7 @@ private fun createBacklogNavigator(
             )
         } ?: Log.e(
             screenLogTag,
-            "3. УМОВА НЕ ВИКОНАНА: task.projectId є null! Навігація неможлива.",
+            "3. УМОВА НЕ ВИКОНАНА: task.logicalProjectId є null! Навігація неможлива.",
         )
     }
 

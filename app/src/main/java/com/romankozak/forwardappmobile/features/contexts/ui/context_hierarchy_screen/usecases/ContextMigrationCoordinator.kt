@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.orientation.CanonicalContextMigrationRepository
 import com.romankozak.forwardappmobile.data.orientation.ContextMigrationCandidateReader
 import com.romankozak.forwardappmobile.data.orientation.ContextMigrationTarget
@@ -10,6 +9,7 @@ import com.romankozak.forwardappmobile.data.orientation.classificationPreview
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextMigrationChoice
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
@@ -20,13 +20,16 @@ class ContextMigrationCoordinator
     constructor(
         private val candidateReader: ContextMigrationCandidateReader,
         private val migrationRepository: CanonicalContextMigrationRepository,
+        private val contextRepository: ContextRepository,
         private val dialogStateManager: DialogStateManager,
     ) {
-        suspend fun start(context: Context): Boolean {
-            if (!canStartContextMigrationFromUi(context)) return false
+        suspend fun start(projectId: String): Boolean {
+            if (!canStartContextMigrationFromUi(projectId)) return false
+            val context = contextRepository.getContextById(projectId) ?: return false
             dialogStateManager.showContextMigration(
                 DialogState.ContextMigration(
-                    context = context,
+                    projectId = context.id,
+                    projectName = context.name,
                     preview = context.classificationPreview(),
                     aspectCandidates = candidateReader.existingAspectCandidates(),
                     orientationCandidates = candidateReader.existingOrientationCandidates(),
@@ -71,7 +74,7 @@ class ContextMigrationCoordinator
                 return Result.failure(error)
             }
             dialogStateManager.updateContextMigration { it.copy(isExecuting = true, errorMessage = null) }
-            return runCatching { migrationRepository.migrateContext(state.context.id, target) }
+            return runCatching { migrationRepository.migrateContext(state.projectId, target) }
                 .map { Unit }
                 .onFailure { error ->
                     dialogStateManager.updateContextMigration { it.copy(isExecuting = false, errorMessage = error.message ?: "Міграція не виконана") }
@@ -89,5 +92,5 @@ internal fun DialogState.ContextMigration.materializeTarget(): ContextMigrationT
         null -> throw IllegalArgumentException("Оберіть ціль міграції")
     }
 
-internal fun canStartContextMigrationFromUi(context: Context): Boolean =
-    !SystemContexts.isSystem(ContextId(context.id))
+internal fun canStartContextMigrationFromUi(projectId: String): Boolean =
+    !SystemContexts.isSystem(ContextId(projectId))

@@ -55,7 +55,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 
 private data class ContextActionItem(
     val title: String,
@@ -78,31 +77,32 @@ private enum class AddEntityType {
 
 @Composable
 fun ContextMenuDialog(
-    project: Context,
+    projectId: String,
+    projectName: String,
     isUserFocused: Boolean,
     onDismissRequest: () -> Unit,
-    onMoveRequest: (Context) -> Unit,
-    onAddSubprojectRequest: (Context) -> Unit,
-    onDeleteRequest: (Context) -> Unit,
-    onEditRequest: (Context) -> Unit,
-    onOpenContextRequest: (Context) -> Unit,
-    onAddToDayPlanRequest: (Context) -> Unit,
-    onAddToDayFocusRequest: (Context) -> Unit,
-    onSetReminderRequest: (Context) -> Unit,
-    onToggleUserFocusRequest: (Context) -> Unit,
-    onCopyContextLinkRequest: (Context) -> Unit,
-    onCutContextLinkRequest: (Context) -> Unit,
-    onPasteContextLinkRequest: (Context) -> Unit,
-    onAddContextAppearanceRequest: (Context) -> Unit,
-    onAddNoteDocumentRequest: (Context) -> Unit,
-    onAddChecklistRequest: (Context) -> Unit,
-    onMigrateRequest: (Context) -> Unit,
+    onMoveRequest: () -> Unit,
+    onAddSubprojectRequest: () -> Unit,
+    onDeleteRequest: () -> Unit,
+    onEditRequest: () -> Unit,
+    onOpenContextRequest: () -> Unit,
+    onAddToDayPlanRequest: () -> Unit,
+    onAddToDayFocusRequest: () -> Unit,
+    onSetReminderRequest: () -> Unit,
+    onToggleUserFocusRequest: () -> Unit,
+    onCopyContextLinkRequest: () -> Unit,
+    onCutContextLinkRequest: () -> Unit,
+    onPasteContextLinkRequest: () -> Unit,
+    onAddContextAppearanceRequest: () -> Unit,
+    onAddNoteDocumentRequest: () -> Unit,
+    onAddChecklistRequest: () -> Unit,
+    onMigrateRequest: () -> Unit,
     canPasteContextLinks: Boolean,
 ) {
     var showAddActionsDialog by remember { mutableStateOf(false) }
-    val contextId = remember(project.id) { ContextId(project.id) }
-    val isSystemContext = remember(project.id) { SystemContexts.isSystem(contextId) }
-    val canRenameOrMove = remember(project.id) { SystemContexts.canRenameOrMove(contextId) }
+    val contextId = remember(projectId) { ContextId(projectId) }
+    val isSystemContext = remember(projectId) { SystemContexts.isSystem(contextId) }
+    val canRenameOrMove = remember(projectId) { SystemContexts.canRenameOrMove(contextId) }
     val colorScheme = MaterialTheme.colorScheme
 
     val createSection =
@@ -129,7 +129,7 @@ fun ContextMenuDialog(
                                 title = "Відкрити контекст",
                                 icon = Icons.AutoMirrored.Filled.OpenInNew,
                                 tint = colorScheme.primary,
-                                onClick = { onOpenContextRequest(project) },
+                                onClick = { onOpenContextRequest() },
                             ),
                     )
                     if (canRenameOrMove) {
@@ -138,7 +138,7 @@ fun ContextMenuDialog(
                                 title = "Редагувати",
                                 icon = Icons.Default.Edit,
                                 tint = colorScheme.secondary,
-                                onClick = { onEditRequest(project) },
+                                onClick = { onEditRequest() },
                             ),
                         )
                         add(
@@ -146,7 +146,7 @@ fun ContextMenuDialog(
                                 title = "Перемістити",
                                 icon = Icons.Default.FolderOpen,
                                 tint = colorScheme.secondary,
-                                onClick = { onMoveRequest(project) },
+                                onClick = { onMoveRequest() },
                             ),
                         )
                     }
@@ -157,7 +157,7 @@ fun ContextMenuDialog(
                                 subtitle = "Явно вибрати канонічну ціль",
                                 icon = Icons.Outlined.AccountTree,
                                 tint = colorScheme.primary,
-                                onClick = { onMigrateRequest(project) },
+                                onClick = { onMigrateRequest() },
                             ),
                         )
                     }
@@ -166,7 +166,7 @@ fun ContextMenuDialog(
                             title = if (isUserFocused) "Зняти з фокусу" else "Додати у фокус",
                             icon = Icons.Default.FilterCenterFocus,
                             tint = colorScheme.tertiary,
-                            onClick = { onToggleUserFocusRequest(project) },
+                            onClick = { onToggleUserFocusRequest() },
                         ),
                     )
                 },
@@ -181,19 +181,19 @@ fun ContextMenuDialog(
                         title = "Додати в план дня",
                         icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                         tint = colorScheme.secondary,
-                        onClick = { onAddToDayPlanRequest(project) },
+                        onClick = { onAddToDayPlanRequest() },
                     ),
                     ContextActionItem(
                         title = "Додати у фокус дня",
                         icon = Icons.Outlined.Flag,
                         tint = colorScheme.secondary,
-                        onClick = { onAddToDayFocusRequest(project) },
+                        onClick = { onAddToDayFocusRequest() },
                     ),
                     ContextActionItem(
                         title = "Нагадування",
                         icon = Icons.Default.Alarm,
                         tint = colorScheme.secondary,
-                        onClick = { onSetReminderRequest(project) },
+                        onClick = { onSetReminderRequest() },
                     ),
                 ),
         )
@@ -205,7 +205,7 @@ fun ContextMenuDialog(
                     title = "Копіювати посилання",
                     icon = Icons.Default.ContentCopy,
                     tint = colorScheme.secondary,
-                    onClick = { onCopyContextLinkRequest(project) },
+                    onClick = { onCopyContextLinkRequest() },
                 ),
             )
             add(
@@ -213,7 +213,7 @@ fun ContextMenuDialog(
                     title = "Вирізати посилання",
                     icon = Icons.Default.ContentCut,
                     tint = colorScheme.secondary,
-                    onClick = { onCutContextLinkRequest(project) },
+                    onClick = { onCutContextLinkRequest() },
                 ),
             )
             if (canPasteContextLinks) {
@@ -222,7 +222,7 @@ fun ContextMenuDialog(
                         title = "Додати появу тут",
                         icon = Icons.Outlined.AccountTree,
                         tint = colorScheme.tertiary,
-                        onClick = { onAddContextAppearanceRequest(project) },
+                        onClick = { onAddContextAppearanceRequest() },
                     ),
                 )
                 add(
@@ -230,7 +230,7 @@ fun ContextMenuDialog(
                         title = "Вставити посилання",
                         icon = Icons.Default.ContentPaste,
                         tint = colorScheme.secondary,
-                        onClick = { onPasteContextLinkRequest(project) },
+                        onClick = { onPasteContextLinkRequest() },
                     ),
                 )
             }
@@ -265,7 +265,7 @@ fun ContextMenuDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ContextMenuHeader(
-                    title = project.name,
+                    title = projectName,
                     isSystemContext = isSystemContext,
                     onDismissRequest = onDismissRequest,
                 )
@@ -281,7 +281,7 @@ fun ContextMenuDialog(
                     DestructiveContextAction(
                         title = "Видалити контекст",
                         subtitle = "Разом із вкладеним вмістом",
-                        onClick = { onDeleteRequest(project) },
+                        onClick = { onDeleteRequest() },
                     )
                 }
             }
@@ -294,9 +294,9 @@ fun ContextMenuDialog(
             onSelect = { type ->
                 showAddActionsDialog = false
                 when (type) {
-                    AddEntityType.CONTEXT -> onAddSubprojectRequest(project)
-                    AddEntityType.NOTE_DOCUMENT -> onAddNoteDocumentRequest(project)
-                    AddEntityType.CHECKLIST -> onAddChecklistRequest(project)
+                    AddEntityType.CONTEXT -> onAddSubprojectRequest()
+                    AddEntityType.NOTE_DOCUMENT -> onAddNoteDocumentRequest()
+                    AddEntityType.CHECKLIST -> onAddChecklistRequest()
                 }
             },
         )

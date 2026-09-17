@@ -44,6 +44,5 @@ fun LegacyBackupDiff.toSelectable(): SelectableDatabaseContent {
         contextLogs = mapDiff(this.contextLogs),
         scripts = mapDiff(this.scripts),
         attachments = mapDiff(this.attachments),
-        allContextAttachmentCrossRefs = this.contextAttachmentCrossRefs.added + this.contextAttachmentCrossRefs.updated.map { it.incoming },
     )
 }

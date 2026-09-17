@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
@@ -18,6 +19,7 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesS
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncVersion
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceTagRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
@@ -87,6 +89,7 @@ internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
         workspaces.isNotEmpty() ||
         workspaceBindings.isNotEmpty() ||
         workspaceCapabilities.isNotEmpty() ||
+        workspaceTagRefs.isNotEmpty() ||
         savedViews.isNotEmpty()
 
 private fun CanonicalOrientationSyncPayload.toAck() =
@@ -100,6 +103,14 @@ private fun CanonicalOrientationSyncPayload.toAck() =
         workspaces = workspaces.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         workspaceBindings = workspaceBindings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         workspaceCapabilities = workspaceCapabilities.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        workspaceTagRefs =
+            workspaceTagRefs.map {
+                CanonicalWorkspaceTagRefSyncVersion(
+                    workspaceId = it.workspaceId,
+                    normalizedTag = it.normalizedTag,
+                    version = it.version,
+                )
+            },
         savedViews = savedViews.map { CanonicalOrientationSyncVersion(it.id, it.version) },
     )
 
@@ -246,7 +257,6 @@ private fun buildSnapshotSelectionDelta(
         logs = full.logs.filter { it.id in logs },
         scripts = full.scripts.filter { it.id in scripts },
         attachments = full.attachments.filter { it.id in attachments },
-        crossRefs = emptyList(),
         dayPlans = full.dayPlans.filter { it.id in plans },
         dayFocusItems = full.dayFocusItems.filter { it.id in focus },
         dayTasks = full.dayTasks.filter { it.id in tasks },
@@ -302,6 +312,7 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
     explicitCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
+    explicitCanonicalWorkspaceTags: List<WorkspaceTagRefEntity> = emptyList(),
 ): SnapshotBundle {
     val dayPlanIds = baseDelta.dayPlans.mapTo(hashSetOf()) { it.id }
     val dayFocusItemIds = baseDelta.dayFocusItems.mapTo(hashSetOf()) { it.id }
@@ -318,6 +329,7 @@ internal fun buildCanonicalSnapshotDelta(
     val includeCanonicalWorkspaceBacklog = explicitCanonicalWorkspaceBacklog.isNotEmpty()
     val includeCanonicalWorkspaceProblems = explicitCanonicalWorkspaceProblems.hasChanges()
     val includeCanonicalWorkspaceInbox = explicitCanonicalWorkspaceInbox.isNotEmpty()
+    val includeCanonicalWorkspaceTags = explicitCanonicalWorkspaceTags.isNotEmpty()
     val includeCanonicalOrientations =
         explicitCanonicalOrientations.hasChanges() ||
             includeCanonicalExecutionLogs ||
@@ -325,7 +337,8 @@ internal fun buildCanonicalSnapshotDelta(
             includeCanonicalWorkspaceConnections ||
             includeCanonicalWorkspaceBacklog ||
             includeCanonicalWorkspaceProblems ||
-            includeCanonicalWorkspaceInbox
+            includeCanonicalWorkspaceInbox ||
+            includeCanonicalWorkspaceTags
 
     fun <T> canonicalOrientationDependency(
         full: List<T>?,
@@ -339,7 +352,8 @@ internal fun buildCanonicalSnapshotDelta(
                 includeCanonicalWorkspaceConnections ||
                 includeCanonicalWorkspaceBacklog ||
                 includeCanonicalWorkspaceProblems ||
-                includeCanonicalWorkspaceInbox ->
+                includeCanonicalWorkspaceInbox ||
+                includeCanonicalWorkspaceTags ->
                 requireNotNull(full) {
                     "Local full snapshot must expose $fieldName before building a canonical capability-content delta."
                 }
@@ -493,7 +507,6 @@ internal fun buildCanonicalSnapshotDelta(
             checklistItems = selectedChecklistItems,
             linkItemEntities = selectedLinkItems,
             inbox = emptyList(),
-            crossRefs = emptyList(),
             attachments = selectedAttachments,
             dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
             dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
@@ -575,6 +588,19 @@ internal fun buildCanonicalSnapshotDelta(
                     explicitCanonicalOrientations.workspaceCapabilities,
                     "workspaceCapabilityInstances",
                 ),
+            workspaceTagRefs =
+                (explicitCanonicalOrientations.workspaceTagRefs + explicitCanonicalWorkspaceTags)
+                    .associateBy { it.workspaceId to it.normalizedTag }
+                    .values
+                    .toList()
+                    // A delta omits this collection when it carries no tag
+                    // rows. Full SnapshotBundle export remains non-null (and
+                    // may be []), which is the authoritative empty-collection
+                    // representation for the seed boundary.
+                    .takeIf {
+                        includeCanonicalWorkspaceTags ||
+                            explicitCanonicalOrientations.workspaceTagRefs.isNotEmpty()
+                    },
             savedOrientationViews =
                 canonicalOrientationDependency(
                     fullSnapshot.savedOrientationViews,
@@ -775,6 +801,8 @@ class SyncWifiService @Inject constructor(
             fullBackupLocalDataSource.loadCanonicalWorkspaceProblemsChangedSince(deltaSince)
         val changedCanonicalWorkspaceInbox =
             fullBackupLocalDataSource.loadCanonicalWorkspaceInboxChangedSince(deltaSince)
+        val changedCanonicalWorkspaceTags =
+            fullBackupLocalDataSource.loadCanonicalWorkspaceTagsChangedSince(deltaSince)
         val snapshotDelta =
             buildCanonicalSnapshotDelta(
                 baseDelta = changes,
@@ -788,6 +816,7 @@ class SyncWifiService @Inject constructor(
                 explicitCanonicalWorkspaceBacklog = changedCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = changedCanonicalWorkspaceProblems,
                 explicitCanonicalWorkspaceInbox = changedCanonicalWorkspaceInbox,
+                explicitCanonicalWorkspaceTags = changedCanonicalWorkspaceTags,
             )
         val deltaBackup = FullAppBackup(
             backupSchemaVersion = 2,

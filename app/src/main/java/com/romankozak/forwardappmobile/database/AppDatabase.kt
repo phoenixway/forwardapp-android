@@ -139,6 +139,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         MainBeaconGroupMember::class,
         MainBeaconParentLink::class,
         MainBeaconContextCrossRef::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef::class,
         MainBeaconAttachmentCrossRef::class,
         MainBeaconLevelStatus::class,
         AttachmentEntity::class,
@@ -196,6 +197,8 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         WorkspaceBindingEntity::class,
         WorkspaceCapabilityInstanceEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.SystemWorkspaceTagSeedStateEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemWorkspaceRefEntity::class,
@@ -212,7 +215,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 166,
+    version = 174,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -313,6 +316,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun orientationDao(): OrientationDao
 
     abstract fun workspaceDao(): WorkspaceDao
+
+    abstract fun workspaceTagRefDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceTagRefDao
+
+    abstract fun systemWorkspaceTagSeedStateDao(): com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeedStateDao
 
     abstract fun workspaceDirectionEntryDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 

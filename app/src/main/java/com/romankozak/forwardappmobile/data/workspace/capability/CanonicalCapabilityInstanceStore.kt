@@ -19,6 +19,8 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceP
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 data class CanonicalCapabilityInstanceSpec(
     val type: WorkspaceCapabilityType,
@@ -93,11 +95,151 @@ class CanonicalCapabilityInstanceStore
             return current
         }
 
+        /**
+         * Reports whether the logical row exists without interpreting malformed
+         * configuration as absence. This lets compatibility boundaries preserve
+         * established fail-closed state while still distinguishing a seedable
+         * missing instance.
+         */
+        suspend fun hasEstablishedInstance(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+        ): Boolean {
+            requireAuthorizedWorkspace(workspaceId, spec)
+            return logicalInstance(
+                orientationDao.getAllWorkspaceCapabilities(),
+                workspaceId,
+                spec,
+            ) != null
+        }
+
+        internal fun observeInstance(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+        ): Flow<WorkspaceCapabilityInstanceEntity?> =
+            combine(
+                workspaceDao.observeAll(),
+                orientationDao.observeWorkspaceCapabilities(workspaceId),
+            ) { workspaces, capabilities ->
+                runCatching {
+                    requireAuthorizedWorkspace(
+                        workspace = workspaces.singleOrNull { it.id == workspaceId },
+                        spec = spec,
+                    )
+                    logicalInstance(capabilities, workspaceId, spec)?.also {
+                        validateMutableConfiguration(it, spec)
+                    }
+                }.getOrNull()
+            }
+
+        internal fun observeEstablishedInstance(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+        ): Flow<Boolean> =
+            combine(
+                workspaceDao.observeAll(),
+                orientationDao.observeWorkspaceCapabilities(workspaceId),
+            ) { workspaces, capabilities ->
+                runCatching {
+                    requireAuthorizedWorkspace(
+                        workspace = workspaces.singleOrNull { it.id == workspaceId },
+                        spec = spec,
+                    )
+                    logicalInstance(capabilities, workspaceId, spec) != null
+                }.getOrDefault(false)
+            }
+
         suspend fun disable(
             spec: CanonicalCapabilityInstanceSpec,
             workspaceId: String,
             now: Long,
         ) = mutate(spec, workspaceId, CapabilityLifecycleCommand.DISABLE, now)
+
+        /**
+         * Boolean compatibility command for lifecycle callers that do not own
+         * archive or delete semantics.
+         *
+         * Missing, deleted, and already-disabled instances are idempotent when
+         * disabling. Existing instances are still validated on every path.
+         */
+        suspend fun setEnabled(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long,
+        ) = database.withTransaction {
+            requireAuthorizedWorkspace(workspaceId, spec)
+            val all = orientationDao.getAllWorkspaceCapabilities()
+            val current = logicalInstance(all, workspaceId, spec)
+
+            current?.let { validateMutableConfiguration(it, spec) }
+            if (
+                !enabled &&
+                (current == null || current.isDeleted || current.state == WorkspaceCapabilityState.DISABLED.name)
+            ) {
+                return@withTransaction
+            }
+
+            val projection =
+                transitionCapabilityLifecycle(
+                    current = current?.lifecycleProjection(),
+                    command =
+                        if (enabled) {
+                            CapabilityLifecycleCommand.ENABLE
+                        } else {
+                            CapabilityLifecycleCommand.DISABLE
+                        },
+                )
+            if (current != null && current.lifecycleProjection() == projection) {
+                return@withTransaction
+            }
+
+            val changed =
+                current?.bump(now)?.copy(
+                    state = projection.state.name,
+                    isDeleted = projection.isDeleted,
+                ) ?: newInstance(all, workspaceId, spec, now, projection)
+
+            persistValidated(all, changed)
+        }
+
+        /**
+         * Establishes an explicit canonical negative lifecycle decision without
+         * changing the generic missing + setEnabled(false) compatibility contract.
+         *
+         * Existing logical state is validated but never changed. Callers that
+         * need to disable an existing instance must continue through setEnabled.
+         */
+        suspend fun establishDisabledIfMissing(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+            now: Long,
+        ): Boolean =
+            database.withTransaction {
+                requireAuthorizedWorkspace(workspaceId, spec)
+                val all = orientationDao.getAllWorkspaceCapabilities()
+                val current = logicalInstance(all, workspaceId, spec)
+                if (current != null) {
+                    validateMutableConfiguration(current, spec)
+                    return@withTransaction false
+                }
+
+                val changed =
+                    newInstance(
+                        all = all,
+                        workspaceId = workspaceId,
+                        spec = spec,
+                        now = now,
+                        projection =
+                            CapabilityLifecycleProjection(
+                                state = WorkspaceCapabilityState.DISABLED,
+                                isDeleted = false,
+                            ),
+                    )
+                validateMutableConfiguration(changed, spec)
+                persistValidated(all, changed)
+                true
+            }
 
         suspend fun archive(
             spec: CanonicalCapabilityInstanceSpec,
@@ -175,6 +317,42 @@ class CanonicalCapabilityInstanceStore
             )
         }
 
+        /**
+         * Performs an explicit configuration-schema migration without changing
+         * capability lifecycle. Unlike user authoring, this is valid for
+         * disabled, archived, and deleted historical instances.
+         */
+        suspend fun migrateConfigurationVersionPreservingLifecycle(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+            fromVersion: Int,
+            configurationVersion: Int,
+            configuration: String,
+            now: Long,
+        ): Boolean =
+            database.withTransaction {
+                requireAuthorizedWorkspace(workspaceId, spec)
+                spec.configurationCodec.validate(configurationVersion, configuration)
+                val all = orientationDao.getAllWorkspaceCapabilities()
+                val current =
+                    requireNotNull(logicalInstance(all, workspaceId, spec)) {
+                        "${spec.type} capability does not exist"
+                    }
+                validateMutableConfiguration(current, spec)
+                if (current.configurationVersion == configurationVersion) return@withTransaction false
+                require(current.configurationVersion == fromVersion) {
+                    "${spec.type} configuration is not eligible for $fromVersion -> $configurationVersion migration"
+                }
+                persistValidated(
+                    all,
+                    current.bump(now).copy(
+                        configurationVersion = configurationVersion,
+                        configuration = configuration,
+                    ),
+                )
+                true
+            }
+
         private suspend fun mutate(
             spec: CanonicalCapabilityInstanceSpec,
             workspaceId: String,
@@ -214,20 +392,27 @@ class CanonicalCapabilityInstanceStore
             workspaceId: String,
             spec: CanonicalCapabilityInstanceSpec,
         ) {
+            requireAuthorizedWorkspace(workspaceDao.getById(workspaceId), spec)
+        }
+
+        private fun requireAuthorizedWorkspace(
+            workspace: com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity?,
+            spec: CanonicalCapabilityInstanceSpec,
+        ) {
             val definition = orientationCapabilityRegistry.single { it.type == spec.type }
             require(definition.availability == WorkspaceCapabilityAvailability.TARGET) {
                 "${spec.type} is not an activatable target capability"
             }
 
-            val workspace =
-                requireNotNull(workspaceDao.getById(workspaceId)) {
+            val authorizedWorkspace =
+                requireNotNull(workspace) {
                     "Workspace does not exist"
                 }
 
-            require(!workspace.isDeleted) { "Workspace is deleted" }
+            require(!authorizedWorkspace.isDeleted) { "Workspace is deleted" }
             require(
                 spec.workspaceAuthority == CapabilityWorkspaceAuthority.ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER ||
-                    workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name,
+                    authorizedWorkspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name,
             ) {
                 "${spec.type} canonical commands require a CANONICAL_ONLY Workspace before authority cutover"
             }

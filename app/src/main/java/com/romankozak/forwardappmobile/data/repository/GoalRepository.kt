@@ -17,11 +17,14 @@ import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogConfigurationAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow
 import androidx.room.withTransaction
 import java.util.UUID
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -52,12 +55,15 @@ class GoalRepository
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val contextDao: ContextDao,
         private val tagAssociationHandler: TagAssociationHandler,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val contextStructureRepository: ContextStructureRepository,
+        private val systemBacklogConfigurationAccess: SystemContextCanonicalBacklogConfigurationAccess,
         private val backlogPlacementCommands: BacklogPlacementCommands,
         private val database: AppDatabase,
         private val orientationDao: OrientationDao,
         private val canonicalOrientationRepository: CanonicalOrientationRepository,
         private val goalOrientationBridge: GoalOrientationBridge,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -208,8 +214,13 @@ class GoalRepository
             contextId: String,
             action: ContextTextAction,
         ) {
-            val context = contextDao.getContextById(contextId) ?: return
-            val contextTags = context.tags.orEmpty()
+            val contextTags =
+                when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
+                    SystemWorkspaceTagAuthority.Resolution.NotSystem ->
+                        contextDao.getContextById(contextId)?.tags.orEmpty()
+                    is SystemWorkspaceTagAuthority.Resolution.Canonical -> resolution.tags
+                    SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
+                }
             if (contextTags.isEmpty()) return
 
             val tagMap = contextMarkerHandler.tagToContextMarkerNameMap.value
@@ -252,7 +263,12 @@ class GoalRepository
                 val sourceContextIdNormalized = sourceContextId?.takeIf { it.isNotBlank() && it != targetContextId }
                 val sourceContextLink =
                     sourceContextIdNormalized?.let { sourceId ->
-                        val sourceName = contextDao.getContextById(sourceId)?.name?.trim().orEmpty()
+                        val sourceName =
+                            systemWorkspacePresentationContextProjector
+                                .resolvePresentation(sourceId)
+                                ?.name
+                                ?.trim()
+                                .orEmpty()
                         RelatedLink(
                             type = LinkType.CONTEXT,
                             target = sourceId,
@@ -381,8 +397,14 @@ class GoalRepository
             )
         }
 
-        private suspend fun shouldRemoveBacklogAfterTagAutocopy(contextId: String): Boolean =
-            contextStructureRepository.getStructureByContext(contextId)?.removeBacklogEntryAfterTagAutocopy == true
+        private suspend fun shouldRemoveBacklogAfterTagAutocopy(contextId: String): Boolean {
+            val canonical = systemBacklogConfigurationAccess.getState(contextId)
+            if (canonical != null) {
+                return canonical.isCanonicalOwnerAvailable && canonical.removeEntryAfterTagAutocopy
+            }
+            return contextStructureRepository.getStructureByContext(contextId)
+                ?.removeBacklogEntryAfterTagAutocopy == true
+        }
 
         private fun normalizeGoalState(goal: Goal): Goal {
             val normalizedStatus =

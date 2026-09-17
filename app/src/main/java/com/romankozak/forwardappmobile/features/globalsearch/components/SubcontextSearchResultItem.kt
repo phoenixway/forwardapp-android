@@ -49,7 +49,7 @@ fun SubprojectSearchResultItem(
     Log.d(
         "PATH_DEBUG",
         "[COMPOSABLE] Відображення SubprojectSearchResultItem: " +
-            "name='${result.subcontext.name}', " +
+            "name='${result.presentation.name}', " +
             "pathSegments=${result.pathSegments}",
     )
 
@@ -105,7 +105,7 @@ private fun SubcontextResultCardContent(
     onOpenInNavigation: () -> Unit,
 ) {
     Column {
-        SubcontextResultTitle(name = result.subcontext.name)
+        SubcontextResultTitle(name = result.presentation.name)
         SubcontextResultPath(pathSegments = result.pathSegments)
         SubcontextResultFooter(
             onClick = onClick,

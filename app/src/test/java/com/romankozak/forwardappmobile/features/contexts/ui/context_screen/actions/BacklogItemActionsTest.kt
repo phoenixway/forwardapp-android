@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -20,6 +21,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BacklogItemActionsTest {
+    @Test
+    fun `subproject completion delegates by stable id`() = runTest {
+        val contextRepository = mockk<ContextRepository>(relaxed = true)
+
+        backlogItemActions(contextRepository).updateSubprojectCompleted(
+            subprojectId = "subproject",
+            completed = true,
+        )
+
+        coVerify(exactly = 1) {
+            contextRepository.updateContextCompleted("subproject", true)
+        }
+    }
+
     @Test
     fun `LinkItem delete uses domain id and canonical lifecycle boundary`() = runTest {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
@@ -58,4 +73,59 @@ class BacklogItemActionsTest {
             contextRepository.deleteAttachmentEverywhere(any())
         }
     }
+
+    @Test
+    fun `ContextLink delete with legacy backing delegates by id`() = runTest {
+        val contextRepository = mockk<ContextRepository>(relaxed = true)
+        val legacyProject = mockk<Context>()
+        every { legacyProject.id } returns "legacy-project"
+
+        val item = mockk<BacklogItemContent.ContextLinkItem>()
+        every { item.legacyProject } returns legacyProject
+
+        val actions = backlogItemActions(contextRepository)
+
+        val result = actions.deleteEverywhere(item)
+
+        assertEquals("Підконтекст видалено", result)
+        coVerify(exactly = 1) {
+            contextRepository.deleteContextsByIds(listOf("legacy-project"))
+        }
+    }
+
+    @Test
+    fun `shell-free ContextLink delete remains read only`() = runTest {
+        val contextRepository = mockk<ContextRepository>(relaxed = true)
+
+        val item = mockk<BacklogItemContent.ContextLinkItem>()
+        every { item.legacyProject } returns null
+
+        val actions = backlogItemActions(contextRepository)
+
+        val result = actions.deleteEverywhere(item)
+
+        assertEquals("Цей проект доступний лише для читання", result)
+        coVerify(exactly = 0) {
+            contextRepository.deleteContextsByIds(any())
+        }
+    }
+
+    private fun backlogItemActions(
+        contextRepository: ContextRepository,
+    ): BacklogItemActions =
+        BacklogItemActions(
+            BacklogItemRepositories(
+                goalRepository = mockk<GoalRepository>(relaxed = true),
+                contextRepository = contextRepository,
+                noteDocumentRepository = mockk<NoteDocumentRepository>(relaxed = true),
+                musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
+                checklistRepository = mockk<ChecklistRepository>(relaxed = true),
+                noteRepository = mockk<LegacyNoteRepository>(relaxed = true),
+                listItemRepository = mockk<ListItemRepository>(relaxed = true),
+                dayManagementRepository = mockk<DayManagementRepository>(relaxed = true),
+                activityRepository = mockk<ActivityRepository>(relaxed = true),
+                contextTimeTrackingRepository = mockk<ContextTimeTrackingRepository>(relaxed = true),
+            ),
+        )
+
 }

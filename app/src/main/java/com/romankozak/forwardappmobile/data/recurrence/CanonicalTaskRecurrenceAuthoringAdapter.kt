@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.recurrence
 
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority as AndroidTaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.dao.CanonicalTaskSplitSourceVersion
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -202,6 +203,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     description = template.description,
                     goalId = template.goalId,
                     projectId = template.projectId,
+                    projectWorkspaceId = null,
                     linkedProjectIds = template.linkedProjectIds,
                     linkedAttachmentIds = template.linkedAttachmentIds,
                     recurrenceSeriesId = seriesId,
@@ -227,7 +229,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 updatedAt = now,
             )
 
-            return occurrence
+            return checkNotNull(
+                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(occurrence.id),
+            ) {
+                "Canonical recurring task occurrence was not persisted: ${occurrence.id}"
+            }
         }
 
         suspend fun splitSeriesFromOccurrence(
@@ -369,6 +375,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 description = nextTemplate.description,
                                 goalId = nextTemplate.goalId,
                                 projectId = nextTemplate.projectId,
+                                projectWorkspaceId = null,
                                 linkedProjectIds = nextTemplate.linkedProjectIds,
                                 linkedAttachmentIds = nextTemplate.linkedAttachmentIds,
                                 recurrenceSeriesId = newSeriesId,
@@ -405,6 +412,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 goalId = if (useNewTemplate) nextTemplate.goalId else source.goalId,
                                 projectId =
                                     if (useNewTemplate) nextTemplate.projectId else source.projectId,
+                                projectWorkspaceId =
+                                    if (useNewTemplate) null else source.projectWorkspaceId,
                                 linkedProjectIds =
                                     if (useNewTemplate) {
                                         nextTemplate.linkedProjectIds
@@ -485,7 +494,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 updatedAt = now,
             )
 
-            return returnedOccurrence
+            return checkNotNull(
+                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(returnedOccurrence.id),
+            ) {
+                "Split canonical task occurrence was not persisted: ${returnedOccurrence.id}"
+            }
         }
 
         suspend fun updateCurrentOccurrence(
@@ -533,6 +546,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     description = template.description,
                     goalId = template.goalId,
                     projectId = template.projectId,
+                    projectWorkspaceId = null,
                     linkedProjectIds = template.linkedProjectIds,
                     linkedAttachmentIds = template.linkedAttachmentIds,
                     taskType = effectiveTaskType(template),
@@ -546,7 +560,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 )
 
             appDatabase.dayTaskDao().update(updated)
-            return updated
+            return checkNotNull(
+                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(updated.id),
+            ) {
+                "Updated canonical task occurrence was not persisted: ${updated.id}"
+            }
         }
 
         suspend fun updateSeriesTemplate(
@@ -634,6 +652,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                         description = nextTemplate.description,
                         goalId = nextTemplate.goalId,
                         projectId = nextTemplate.projectId,
+                        projectWorkspaceId = null,
                         linkedProjectIds = nextTemplate.linkedProjectIds,
                         linkedAttachmentIds = nextTemplate.linkedAttachmentIds,
                         taskType = effectiveTaskType(nextTemplate),
@@ -654,9 +673,9 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             )
 
             return checkNotNull(
-                occurrencesToUpdate.firstOrNull { occurrence -> occurrence.id == task.id },
+                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(task.id),
             ) {
-                "Selected canonical task occurrence was not updated: ${task.id}"
+                "Selected canonical task occurrence was not persisted after series update: ${task.id}"
             }
         }
 
@@ -802,7 +821,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 description?.trim()?.takeIf { it.isNotEmpty() } ==
                 template.description?.trim()?.takeIf { it.isNotEmpty() } &&
                 goalId == template.goalId &&
-                projectId == template.projectId &&
+                logicalProjectId == template.projectId &&
                 linkedProjectIds.orEmpty() == template.linkedProjectIds &&
                 linkedAttachmentIds.orEmpty() == template.linkedAttachmentIds &&
                 taskType == effectiveTaskType(template) &&

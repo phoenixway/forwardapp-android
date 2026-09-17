@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -22,6 +23,7 @@ class ActivityEntityCatalogRepository
         dayThemeDao: CanonicalDayThemeDao,
         contextDao: ContextDao,
         goalDao: GoalDao,
+        systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         private val dayEntities =
             combine(
@@ -70,7 +72,10 @@ class ActivityEntityCatalogRepository
             }
 
         private val backlogEntities =
-            combine(contextDao.getAllContexts(), goalDao.getAllVisibleGoalsFlow()) { contexts, goals ->
+            combine(
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextDao.getAllContexts()),
+                goalDao.getAllVisibleGoalsFlow(),
+            ) { contexts, goals ->
                 buildList {
                     contexts.forEach { context ->
                         add(

@@ -67,6 +67,26 @@ class BacklogCanonicalTargetResolver
             }
         }
 
+        suspend fun resolveGoalIfCutOver(goalId: String): WorkspaceBacklogTargetRef? {
+            val normalizedId = goalId.trim()
+            require(normalizedId.isNotEmpty()) { "Backlog target id must not be blank" }
+
+            val mapping =
+                orientationDao.getLegacyMapping(
+                    LegacyOrientationSourceType.GOAL.name,
+                    normalizedId,
+                ) ?: return null
+
+            if (mapping.isDeleted || mapping.state != LegacySubjectMappingState.CUT_OVER.name) {
+                return null
+            }
+
+            return WorkspaceBacklogTargetRef(
+                WorkspaceBacklogTargetKind.ORIENTATION,
+                mapping.subjectId,
+            )
+        }
+
         private suspend fun resolveGoal(goalId: String): WorkspaceBacklogTargetRef {
             val mapping =
                 requireNotNull(

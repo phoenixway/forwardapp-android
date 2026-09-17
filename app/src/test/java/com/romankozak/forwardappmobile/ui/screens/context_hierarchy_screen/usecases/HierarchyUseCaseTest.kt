@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
@@ -100,15 +100,14 @@ class HierarchyUseCaseTest {
         name: String = id,
         tags: List<String>? = null,
         order: Long = 0,
-    ): Context =
-        Context(
+    ): HierarchyContextPresentationNode =
+        HierarchyContextPresentationNode(
             id = id,
             name = name,
             description = null,
             parentId = parentId,
-            createdAt = 0L,
-            updatedAt = 0L,
-            tags = tags,
             order = order,
+            roleCode = null,
+            tags = tags.orEmpty(),
         )
 }

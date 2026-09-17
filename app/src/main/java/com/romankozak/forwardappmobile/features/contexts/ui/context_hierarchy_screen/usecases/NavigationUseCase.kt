@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearResult
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.createClearExecutionContext
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -23,7 +23,7 @@ class NavigationUseCase
     ) {
         private var enhancedNavigationManager: EnhancedNavigationManager? = null
         private var uiEventChannel: Channel<ProjectUiEvent>? = null
-        private var allProjectsFlat: StateFlow<List<Context>>? = null
+        private var hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>? = null
 
         private val _isProcessingReveal = MutableStateFlow(false)
         val isProcessingReveal: StateFlow<Boolean> = _isProcessingReveal
@@ -34,27 +34,26 @@ class NavigationUseCase
         fun attach(
             enhancedNavigationManager: EnhancedNavigationManager,
             uiEventChannel: Channel<ProjectUiEvent>,
-            allProjectsFlat: StateFlow<List<Context>>,
+            hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>,
         ) {
             this.enhancedNavigationManager = enhancedNavigationManager
             this.uiEventChannel = uiEventChannel
-            this.allProjectsFlat = allProjectsFlat
+            this.hierarchyPresentationFlat = hierarchyPresentationFlat
             _isAttached.value = true
         }
 
         fun detach() {
             enhancedNavigationManager = null
             uiEventChannel = null
-            allProjectsFlat = null
+            hierarchyPresentationFlat = null
             _isProcessingReveal.value = false
             _isAttached.value = false
         }
 
-        private fun createClearContext(currentProjects: List<Context>) =
+        private fun createClearContext() =
             enhancedNavigationManager?.let { manager ->
                 uiEventChannel?.let { channel ->
                     createClearExecutionContext(
-                        currentProjects = currentProjects,
                         subStateStack = searchUseCase.subStateStack,
                         searchUseCase = searchUseCase,
                         planningUseCase = planningUseCase,
@@ -69,7 +68,7 @@ class NavigationUseCase
 
             scope.launch {
                 val context =
-                    createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
+                    createClearContext() ?: return@launch
                 val channel = uiEventChannel ?: return@launch
                 _isProcessingReveal.value = true
                 try {
@@ -98,12 +97,16 @@ class NavigationUseCase
 
             scope.launch {
                 val context =
-                    createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
+                    createClearContext() ?: return@launch
                 val channel = uiEventChannel ?: return@launch
                 _isProcessingReveal.value = true
                 try {
-                    val project = allProjectsFlat?.value?.find { it.id == projectId }
-                    val projectName = project?.name ?: "Unknown Project"
+                    val projectName =
+                        hierarchyPresentationFlat
+                            ?.value
+                            ?.firstOrNull { it.id == projectId }
+                            ?.name
+                            ?: "Unknown Project"
 
                     val result =
                         clearAndNavigateHomeUseCase.execute(
@@ -122,32 +125,4 @@ class NavigationUseCase
             }
         }
 
-        fun onCollapseAll(scope: CoroutineScope) {
-            if (!_isAttached.value || _isProcessingReveal.value) return
-
-            scope.launch {
-                val context =
-                    createClearContext(allProjectsFlat?.value ?: emptyList()) ?: return@launch
-                val channel = uiEventChannel ?: return@launch
-                _isProcessingReveal.value = true
-                try {
-                    val result =
-                        clearAndNavigateHomeUseCase.execute(
-                            command = ClearCommand.CollapseAll,
-                            context = context,
-                        )
-
-                    when (result) {
-                        is ClearResult.Success -> {
-                            channel.send(ProjectUiEvent.ShowToast("Всі проєкти згорнуто"))
-                        }
-                        is ClearResult.Error -> {
-                            channel.send(ProjectUiEvent.ShowToast("Помилка згортання: ${result.message}"))
-                        }
-                    }
-                } finally {
-                    _isProcessingReveal.value = false
-                }
-            }
-        }
     }

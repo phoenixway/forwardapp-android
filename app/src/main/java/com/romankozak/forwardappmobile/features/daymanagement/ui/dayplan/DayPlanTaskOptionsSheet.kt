@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 
 private const val TASK_OPTIONS_VERTICAL_PADDING_DP = 8
 private const val TASK_OPTIONS_DIVIDER_PADDING_DP = 16
@@ -232,12 +233,12 @@ private fun TaskOptionsItem(
     )
 }
 
-private fun DayTask.hasBacklogTarget(): Boolean = projectId != null || goalId != null
+private fun DayTask.hasBacklogTarget(): Boolean = logicalProjectId != null || goalId != null
 
 private fun logBacklogNavigationClick(task: DayTask) {
     Log.d(TAG, "1. КЛІК: 'Показати в беклозі'.")
     Log.d(TAG, "   - Task Title: ${task.title}")
-    Log.d(TAG, "   - Task ProjectID: ${task.projectId}")
+    Log.d(TAG, "   - Task ProjectID: ${task.logicalProjectId}")
     Log.d(TAG, "   - Task GoalID: ${task.goalId}")
     Log.d(TAG, "   - Task ID: ${task.id}")
 }

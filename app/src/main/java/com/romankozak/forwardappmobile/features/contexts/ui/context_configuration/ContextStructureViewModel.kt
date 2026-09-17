@@ -9,9 +9,14 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +54,9 @@ class ProjectStructureViewModel
         private val structurePresetDao: StructurePresetDao,
         private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
+        private val systemCapabilityAccess: SystemContextCanonicalInboxDirectionAccess,
+        private val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
+        private val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
     ) : ViewModel() {
         private val autoLinkLabel = "Auto add child context in context hierarchy to direction front"
         private val projectId: String = checkNotNull(savedStateHandle["projectId"])
@@ -74,22 +82,61 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 contextStructureRepository.observeStructure(projectId).collect { structure ->
                     if (structure != null) {
-                        val dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(projectId)
-                        val executionLogEnabled = canonicalExecutionLogRepository.isEnabled(projectId)
+                        val canonicalSystemState = systemCapabilityAccess.getState(projectId)
+                        val canonicalRemainingState = systemRemainingCapabilityAccess.getState(projectId)
+                        val canonicalBacklogState = systemBacklogLifecycleAccess.getState(projectId)
+                        val malformedSystemOwner =
+                            canonicalSystemState?.isCanonicalOwnerAvailable == false
+                        val dashboardEnabled =
+                            !malformedSystemOwner &&
+                                canonicalDashboardCapabilityRepository.isEnabled(projectId)
+                        val executionLogEnabled =
+                            !malformedSystemOwner &&
+                                canonicalExecutionLogRepository.isEnabled(projectId)
                         val flags =
                             mapOf(
-                                "Inbox" to (structure.structure.enableInbox ?: _uiState.value.featureFlags["Inbox"] ?: true),
+                                "Inbox" to
+                                    (canonicalSystemState?.inboxEnabled
+                                        ?: structure.structure.enableInbox
+                                        ?: _uiState.value.featureFlags["Inbox"]
+                                        ?: true),
                                 "Log" to executionLogEnabled,
                                 "Dashboard" to dashboardEnabled,
-                                "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
+                                "Backlog" to
+                                    when {
+                                        canonicalBacklogState == null ->
+                                            structure.structure.enableBacklog
+                                                ?: _uiState.value.featureFlags["Backlog"]
+                                                ?: true
+                                        !canonicalBacklogState.isCanonicalOwnerAvailable -> false
+                                        canonicalBacklogState.isEstablished -> canonicalBacklogState.enabled
+                                        else ->
+                                            structure.structure.enableBacklog
+                                                ?: _uiState.value.featureFlags["Backlog"]
+                                                ?: true
+                                    },
                                 "Connections" to
-                                    (
-                                        structure.structure.enableAttachments
-                                            ?: _uiState.value.featureFlags["Connections"]
-                                            ?: _uiState.value.featureFlags["Attachments"]
-                                            ?: true
-                                    ),
-                                autoLinkLabel to (structure.structure.enableAutoLinkSubprojects ?: _uiState.value.featureFlags[autoLinkLabel] ?: true),
+                                    when {
+                                        canonicalRemainingState == null ->
+                                            structure.structure.enableAttachments
+                                                ?: _uiState.value.featureFlags["Connections"]
+                                                ?: _uiState.value.featureFlags["Attachments"]
+                                                ?: true
+                                        !canonicalRemainingState.isCanonicalOwnerAvailable -> false
+                                        canonicalRemainingState.connectionsEstablished ->
+                                            canonicalRemainingState.connectionsEnabled
+                                        else ->
+                                            structure.structure.enableAttachments
+                                                ?: _uiState.value.featureFlags["Connections"]
+                                                ?: _uiState.value.featureFlags["Attachments"]
+                                                ?: true
+                                    },
+                                autoLinkLabel to
+                                    (canonicalSystemState?.let {
+                                        it.direction?.configuration?.autoLinkChildWorkspaces ?: false
+                                    } ?: structure.structure.enableAutoLinkSubprojects
+                                    ?: _uiState.value.featureFlags[autoLinkLabel]
+                                    ?: true),
                             )
                         _uiState.update {
                             it.copy(
@@ -110,23 +157,10 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
                 structurePresetService.applyPresetToContext(projectId, code)
-                val applied = contextStructureRepository.getStructureByContext(projectId)
-                canonicalDashboardCapabilityRepository.setEnabled(
-                    workspaceId = projectId,
-                    enabled = applied?.enableDashboard == true,
-                )
-                canonicalExecutionLogRepository.setEnabled(
-                    workspaceId = projectId,
-                    enabled = applied?.enableLog == true,
-                )
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         basePresetCode = code,
-                        featureFlags =
-                            it.featureFlags +
-                                ("Dashboard" to (applied?.enableDashboard == true)) +
-                                ("Log" to (applied?.enableLog == true)),
                     )
                 }
             }
@@ -184,30 +218,92 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 val updatedFlags = _uiState.value.featureFlags + (key to enabled)
                 _uiState.update { it.copy(featureFlags = updatedFlags) }
-                val structure = contextStructureRepository.ensureStructure(projectId)
-                when (key) {
-                    "Dashboard" ->
-                        canonicalDashboardCapabilityRepository.setEnabled(
-                            workspaceId = projectId,
-                            enabled = enabled,
+                try {
+                    val structure = contextStructureRepository.ensureStructure(projectId)
+                    when (key) {
+                        "Backlog" -> systemBacklogLifecycleAccess.setEnabled(projectId, enabled)
+                        "Inbox" -> systemCapabilityAccess.setInboxEnabled(projectId, enabled)
+                        "Connections" -> systemRemainingCapabilityAccess.setConnectionsEnabled(projectId, enabled)
+                        autoLinkLabel ->
+                            systemCapabilityAccess.updateDirectionConfiguration(
+                                projectId,
+                                DirectionCapabilityConfigurationV1(enabled),
+                            )
+                        "Dashboard" ->
+                            canonicalDashboardCapabilityRepository.setEnabled(
+                                workspaceId = projectId,
+                                enabled = enabled,
+                            )
+                        "Log" ->
+                            canonicalExecutionLogRepository.setEnabled(
+                                workspaceId = projectId,
+                                enabled = enabled,
+                            )
+                    }
+                    val compatibilityStructure =
+                        if (
+                            systemCapabilityAccess.handles(projectId) ||
+                            systemRemainingCapabilityAccess.handles(projectId) ||
+                            systemBacklogLifecycleAccess.handles(projectId)
+                        ) {
+                            contextStructureRepository.getStructureByContext(projectId) ?: structure
+                        } else {
+                            structure
+                        }
+                    contextStructureRepository.updateStructure(
+                        compatibilityStructure.copy(
+                            enableInbox =
+                                if (systemCapabilityAccess.handles(projectId)) {
+                                    compatibilityStructure.enableInbox
+                                } else {
+                                    updatedFlags["Inbox"]
+                                },
+                            enableAdvanced = compatibilityStructure.enableAdvanced,
+                            enableBacklog =
+                                if (systemBacklogLifecycleAccess.handles(projectId)) {
+                                    compatibilityStructure.enableBacklog
+                                } else {
+                                    updatedFlags["Backlog"]
+                                },
+                            enableAttachments =
+                                if (systemRemainingCapabilityAccess.handles(projectId)) {
+                                    compatibilityStructure.enableAttachments
+                                } else {
+                                    updatedFlags["Connections"] ?: updatedFlags["Attachments"]
+                                },
+                            enableAutoLinkSubprojects =
+                                if (systemCapabilityAccess.handles(projectId)) {
+                                    compatibilityStructure.enableAutoLinkSubprojects
+                                } else {
+                                    updatedFlags[autoLinkLabel]
+                                },
                         )
-                    "Log" ->
-                        canonicalExecutionLogRepository.setEnabled(
-                            workspaceId = projectId,
-                            enabled = enabled,
-                        )
-                }
-                contextStructureRepository.updateStructure(
-                    structure.copy(
-                        enableInbox = updatedFlags["Inbox"],
-                        enableAdvanced = false,
-                        enableBacklog = updatedFlags["Backlog"],
-                        enableAttachments = updatedFlags["Connections"] ?: updatedFlags["Attachments"],
-                        enableAutoLinkSubprojects = updatedFlags[autoLinkLabel],
-                    ),
-                )
-                if (key == autoLinkLabel && enabled) {
-                    contextRepository.ensureDirectionFrontLinksForExistingChildren(projectId)
+                    )
+                    if (key == autoLinkLabel && enabled) {
+                        contextRepository.ensureDirectionFrontLinksForExistingChildren(projectId)
+                    }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    if (
+                        systemCapabilityAccess.handles(projectId) &&
+                        key in setOf("Backlog", "Inbox", "Connections", autoLinkLabel)
+                    ) {
+                        val canonical = systemCapabilityAccess.getState(projectId)
+                        val restored =
+                            when (key) {
+                                "Backlog" ->
+                                    systemBacklogLifecycleAccess.getState(projectId)
+                                        ?.enabled == true
+                                "Inbox" -> canonical?.inboxEnabled == true
+                                "Connections" ->
+                                    systemRemainingCapabilityAccess.getState(projectId)
+                                        ?.connectionsEnabled == true
+                                else -> canonical?.direction?.configuration?.autoLinkChildWorkspaces == true
+                            }
+                        _uiState.update {
+                            it.copy(featureFlags = it.featureFlags + (key to restored))
+                        }
+                    }
                 }
             }
         }

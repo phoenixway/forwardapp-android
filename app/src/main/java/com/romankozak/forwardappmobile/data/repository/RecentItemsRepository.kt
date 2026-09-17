@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
@@ -24,21 +23,24 @@ class RecentItemsRepository
 
         fun getRecentItemsForContextFlow(contextId: String): Flow<List<RecentItem>> = recentItemDao.getRecentItemsForContext(contextId)
 
-        suspend fun logProjectAccess(project: Context) {
-            val existingItem = recentItemDao.getRecentItemById(project.id)
+        suspend fun logProjectAccess(
+            projectId: String,
+            displayName: String,
+        ) {
+            val existingItem = recentItemDao.getRecentItemById(projectId)
             val recentItem =
                 if (existingItem != null) {
                     existingItem.copy(
                         lastAccessed = System.currentTimeMillis(),
-                        displayName = project.name,
+                        displayName = displayName,
                     )
                 } else {
                     RecentItem(
-                        id = project.id,
+                        id = projectId,
                         type = RecentItemType.PROJECT,
                         lastAccessed = System.currentTimeMillis(),
-                        displayName = project.name,
-                        target = project.id,
+                        displayName = displayName,
+                        target = projectId,
                     )
                 }
             Log.d("Recents_Debug", "Logging project access: $recentItem")
@@ -155,18 +157,17 @@ class RecentItemsRepository
             recentItemDao.deleteById(itemId)
         }
 
-        suspend fun syncProjectRecentItemsWithContexts(allProjects: List<Context>) {
-            if (allProjects.isEmpty()) {
-                Log.d("Recents_Debug", "Skipping project recents sync because contexts list is empty")
+        suspend fun syncProjectRecentItems(projectsById: Map<String, String>) {
+            if (projectsById.isEmpty()) {
+                Log.d("Recents_Debug", "Skipping project recents sync because presentation universe is empty")
                 return
             }
 
-            val contextsById = allProjects.associateBy { it.id }
             val projectRecents = recentItemDao.getAllSync().filter { it.type == RecentItemType.PROJECT }
 
             val staleItemIds =
                 projectRecents
-                    .filter { recent -> contextsById[recent.target] == null }
+                    .filter { recent -> projectsById[recent.target] == null }
                     .map { it.id }
 
             if (staleItemIds.isNotEmpty()) {
@@ -175,9 +176,9 @@ class RecentItemsRepository
 
             val renamedItems =
                 projectRecents.mapNotNull { recent ->
-                    val context = contextsById[recent.target] ?: return@mapNotNull null
-                    if (recent.displayName != context.name) {
-                        recent.copy(displayName = context.name)
+                    val displayName = projectsById[recent.target] ?: return@mapNotNull null
+                    if (recent.displayName != displayName) {
+                        recent.copy(displayName = displayName)
                     } else {
                         null
                     }

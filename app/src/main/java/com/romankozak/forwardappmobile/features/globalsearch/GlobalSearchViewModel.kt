@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.globalsearch
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
@@ -18,6 +19,8 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -98,6 +101,8 @@ class GlobalSearchViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         companion object {
@@ -475,15 +480,15 @@ class GlobalSearchViewModel
 
         fun openInbox() {
             viewModelScope.launch {
-                val inboxContextId = resolveInboxContextId() ?: return@launch
+                val inbox = resolveInboxNavigationTarget() ?: return@launch
                 enhancedNavigationManager.navigate(
                     target =
                         NavTarget.ContextDetail(
-                            contextId = inboxContextId,
+                            contextId = inbox.first,
                             initialViewMode = "INBOX",
                         ),
                     recordInHistory = true,
-                    historyTitle = "Inbox",
+                    historyTitle = inbox.second,
                 )
             }
         }
@@ -534,20 +539,15 @@ class GlobalSearchViewModel
             val contextName = name.trim()
             if (contextName.isBlank()) return
             viewModelScope.launch {
-                val contextId = UUID.randomUUID().toString()
-                contextRepository.createContextWithId(
-                    id = contextId,
-                    name = contextName,
-                    parentId = null,
-                )
+                val workspaceId = canonicalWorkspaceRepository.create(nameOverride = contextName)
                 invalidateSearchCandidatesCache()
-                enhancedNavigationManager.navigateToProject(contextId, contextName)
+                enhancedNavigationManager.navigateToWorkspaceRead(workspaceId, contextName)
             }
         }
 
         fun createDocumentFromSearch() {
             viewModelScope.launch {
-                val inboxContextId = resolveInboxContextId() ?: return@launch
+                val inboxContextId = SystemContexts.INBOX.raw
                 enhancedNavigationManager.navigate(
                     target = NavTarget.NoteDocumentEdit(contextId = inboxContextId, documentId = null),
                 )
@@ -555,7 +555,7 @@ class GlobalSearchViewModel
         }
 
         suspend fun createAttachmentFromGlobalSearch(request: NewDocumentDraft): String? {
-            val inboxContextId = resolveInboxContextId() ?: return null
+            val inboxContextId = SystemContexts.INBOX.raw
             return when (request) {
                 is NewDocumentDraft.Note -> {
                     val documentId =
@@ -819,7 +819,7 @@ class GlobalSearchViewModel
             val text = rawQuery.trim()
             if (text.isBlank()) return
             viewModelScope.launch {
-                val inboxContextId = resolveInboxContextId() ?: return@launch
+                val inboxContextId = SystemContexts.INBOX.raw
                 inboxRepository.addInboxRecord(text = text, contextId = inboxContextId)
                 invalidateSearchCandidatesCache()
                 _uiState.update { it.copy(query = "") }
@@ -1137,15 +1137,15 @@ class GlobalSearchViewModel
                     )
                 is GlobalSearchResultItem.SubcontextItem ->
                     listOf(
-                        item.searchResult.subcontext.name,
+                        item.searchResult.presentation.name,
                         item.searchResult.parentContextName,
                         item.searchResult.pathSegments.joinToString(" "),
                     )
                 is GlobalSearchResultItem.ContextItem ->
                     listOf(
-                        item.searchResult.context.name,
-                        item.searchResult.context.description ?: "",
-                        item.searchResult.context.tags.orEmpty().joinToString(" "),
+                        item.searchResult.presentation.name,
+                        item.searchResult.presentation.description ?: "",
+                        item.searchResult.presentation.tags.joinToString(" "),
                         item.searchResult.pathSegments.joinToString(" "),
                     )
                 is GlobalSearchResultItem.ActivityItem ->
@@ -1170,12 +1170,18 @@ class GlobalSearchViewModel
         ): List<GlobalSearchResultItem> =
             results.filter { result -> selectedTypes.any { type -> type.matches(result) } }
 
-        private suspend fun resolveInboxContextId(): String? {
-            val allContexts = contextRepository.getAllContextsFlow().first()
-            return allContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
-                ?: allContexts.firstOrNull {
-                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
-                }?.id
+        private suspend fun resolveInboxNavigationTarget(): Pair<String, String>? {
+            val presentedContexts =
+                systemWorkspacePresentationContextProjector.projectPresentationUniverse(
+                    contextRepository.getAllContextsFlow().first(),
+                )
+            val inbox =
+                presentedContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }
+                    ?: presentedContexts.firstOrNull {
+                        !SystemContexts.isSystem(ContextId(it.id)) &&
+                            it.name.equals("Inbox", ignoreCase = true)
+                    }
+            return inbox?.let { it.id to it.name }
         }
 
         private fun parseModePrefix(rawValue: String): Pair<OmniboxMode?, String> {
@@ -1257,11 +1263,22 @@ class GlobalSearchViewModel
 
         fun navigateToProjectForResult(
             projectId: String,
-            projectName: String?,
+            _projectName: String?,
         ) {
             viewModelScope.launch {
-                val finalProjectName = projectName ?: contextRepository.getContextById(projectId)?.name ?: "Context"
-                enhancedNavigationManager.navigateToProject(projectId, finalProjectName)
+                val presentation =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(projectId)
+
+                val rawContext = contextRepository.getContextById(projectId)?.takeUnless { it.isDeleted }
+                when {
+                    rawContext != null ->
+                        enhancedNavigationManager.navigateToProject(projectId, rawContext.name)
+
+                    presentation != null ->
+                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, presentation.name)
+
+                    else -> Unit
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -744,10 +745,29 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     DayTaskDao::class.java -> dayTaskDao
                     DayFocusItemDao::class.java -> dayFocusItemDao ?: relaxedMock(parameterType)
                     ContextManagementDao::class.java -> contextManagementDao ?: relaxedMock(parameterType)
+                    ContextWorkspaceWriteThrough::class.java -> contextWorkspaceWriteThrough()
                     else -> relaxedMock(parameterType)
                 }
             }.toTypedArray()
         return constructor.newInstance(*arguments) as MergeLocalDataSourceImpl
+    }
+
+    private fun contextWorkspaceWriteThrough(): ContextWorkspaceWriteThrough {
+        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
+        coEvery {
+            writeThrough.mutateAndAfterWorkspaceRefresh<Any?>(
+                any(),
+                any(),
+                any(),
+            )
+        } coAnswers {
+            val mutation = secondArg<suspend () -> Any?>()
+            val afterRefresh = thirdArg<suspend (Any?) -> Unit>()
+            val result = mutation()
+            afterRefresh(result)
+            result
+        }
+        return writeThrough
     }
 
     @Suppress("UNCHECKED_CAST")

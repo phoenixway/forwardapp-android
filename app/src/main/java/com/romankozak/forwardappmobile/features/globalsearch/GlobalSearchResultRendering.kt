@@ -212,7 +212,7 @@ private fun subcontextCardSpec(
     typePresentation: ResultTypePresentation,
     renderContext: SearchResultRenderContext,
 ): SearchResultCardSpec {
-    val subproject = result.searchResult.subcontext
+    val subproject = result.searchResult.presentation
     return SearchResultCardSpec(
         presentation = typePresentation,
         isSelected = result.uniqueId == renderContext.selectedResultUniqueId,
@@ -240,7 +240,7 @@ private fun contextCardSpec(
     typePresentation: ResultTypePresentation,
     renderContext: SearchResultRenderContext,
 ): SearchResultCardSpec {
-    val project = result.searchResult.context
+    val project = result.searchResult.presentation
     return SearchResultCardSpec(
         presentation = typePresentation,
         isSelected = result.uniqueId == renderContext.selectedResultUniqueId,

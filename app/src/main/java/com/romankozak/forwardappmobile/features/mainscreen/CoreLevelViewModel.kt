@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
@@ -13,6 +13,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevel
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -27,6 +31,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.toEditorState
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
@@ -46,8 +51,9 @@ private val CORE_TAGS = setOf("core", "main-beacons")
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 
 data class CoreLevelUiState(
-    val allProjects: List<Context> = emptyList(),
-    val projects: List<Context> = emptyList(),
+    val allProjects: List<ContextPresentation> = emptyList(),
+    val ownerLabels: Map<String, String> = emptyMap(),
+    val projects: List<ContextPresentation> = emptyList(),
     val beacons: List<MainBeaconCardUi> = emptyList(),
     val groups: List<MainBeaconGroupUi> = emptyList(),
     val isLoading: Boolean = false,
@@ -59,6 +65,10 @@ class CoreLevelViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val canonicalWorkspaceTagRepository: CanonicalWorkspaceTagRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val settingsRepository: SettingsRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -67,11 +77,21 @@ class CoreLevelViewModel
         private val mainBeaconRepository: MainBeaconRepository,
     ) : ViewModel() {
         private val allContexts =
-            contextRepository.getAllContextsFlow()
+            systemWorkspacePresentationContextProjector.observePresentationUniverse(
+                contextRepository.getAllContextsFlow(),
+            )
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                     initialValue = emptyList(),
+                )
+
+        private val ownerLabels =
+            systemWorkspacePresentationContextProjector.observeOwnerLabels(contextRepository.getAllContextsFlow())
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    initialValue = emptyMap(),
                 )
 
         val mainBeaconDetails: StateFlow<List<MainBeaconWithRelations>> =
@@ -91,13 +111,19 @@ class CoreLevelViewModel
                 )
 
         val uiState: StateFlow<CoreLevelUiState> =
-            combine(allContexts, mainBeaconDetails, mainBeaconGroups) { projects, beacons, groups ->
+            combine(allContexts, ownerLabels, mainBeaconDetails, mainBeaconGroups) {
+                    projects,
+                    labels,
+                    beacons,
+                    groups,
+                ->
                 val coreProjects =
                     projects.filter {
                         it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
                     }
                 CoreLevelUiState(
                     allProjects = projects,
+                    ownerLabels = labels,
                     projects = coreProjects,
                     groups =
                         groups.map { group ->
@@ -118,7 +144,7 @@ class CoreLevelViewModel
                                 breakPointLevel = compactSummary.breakPointLevel,
                                 blockReason = compactSummary.blockReason,
                                 nextRequiredAction = compactSummary.nextRequiredAction,
-                                relatedContextIds = details.relatedContexts.map { it.id },
+                                relatedContextIds = details.relatedOwnerIds,
                                 relatedAttachmentIds = details.relatedAttachments.map { it.id },
                                 groupIds = details.groupIds,
                                 parentBeaconId = details.beacon.parentBeaconId,
@@ -197,7 +223,7 @@ class CoreLevelViewModel
                         blockerText = details.beacon.blockerText.orEmpty(),
                         nextActionText = details.beacon.nextActionText.orEmpty(),
                         relatedContextIds =
-                            details.relatedContexts.mapTo(linkedSetOf()) { it.id },
+                            details.relatedOwnerIds.toCollection(linkedSetOf()),
                         relatedAttachmentIds =
                             details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
                         groupIds = details.groupIds.toSet(),
@@ -403,15 +429,7 @@ class CoreLevelViewModel
         }
 
         suspend fun createRootContextForPicker(name: String): String? {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return null
-            val id = UUID.randomUUID().toString()
-            contextRepository.createContextWithId(
-                id = id,
-                name = trimmed,
-                parentId = null,
-            )
-            return id
+            return canonicalWorkspaceRepository.createRootWorkspaceForPicker(name)
         }
 
         suspend fun createCoreDocumentForPicker(request: NewDocumentDraft): String? {
@@ -504,8 +522,36 @@ class CoreLevelViewModel
             addTag: String? = null,
             removeTags: Set<String> = emptySet(),
         ) {
-            val context = contextRepository.getContextById(contextId) ?: return
-            val current = context.tags.orEmpty()
+            val writeContextTags: suspend (List<String>) -> Unit = { tags ->
+                contextRepository.updateContextTags(contextId, tags)
+            }
+            val currentAndWriter: Pair<List<String>, suspend (List<String>) -> Unit> =
+                when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
+                    SystemWorkspaceTagAuthority.Resolution.NotSystem -> {
+                        val rawContext = contextRepository.getContextById(contextId)
+                        if (rawContext?.isDeleted == true) {
+                            return
+                        }
+                        if (rawContext != null) {
+                            rawContext.tags.orEmpty() to writeContextTags
+                        } else {
+                            systemWorkspacePresentationContextProjector
+                                .resolvePresentation(contextId, rawContext)
+                                ?.let {
+                                    val writeCanonicalTags: suspend (List<String>) -> Unit = { tags ->
+                                        canonicalWorkspaceTagRepository.replaceTags(contextId, tags)
+                                    }
+                                    canonicalWorkspaceTagRepository.getTags(contextId) to
+                                        writeCanonicalTags
+                                }
+                        }
+                    }
+
+                    is SystemWorkspaceTagAuthority.Resolution.Canonical ->
+                        resolution.tags to writeContextTags
+                    SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
+                } ?: return
+            val (current, writeTags) = currentAndWriter
             val next =
                 current
                     .filterNot { it in removeTags }
@@ -514,7 +560,7 @@ class CoreLevelViewModel
                 next.add(addTag)
             }
             if (next != current) {
-                contextRepository.updateContext(context.copy(tags = next))
+                writeTags(next)
             }
         }
 

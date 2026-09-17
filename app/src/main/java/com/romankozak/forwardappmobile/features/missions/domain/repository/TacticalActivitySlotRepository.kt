@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.missions.domain.repository
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
 import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +21,9 @@ class TacticalActivitySlotRepository
             tacticalActivitySlotDao.getActiveSlotForContext(contextId) != null
 
         suspend fun addSlot(contextId: String) {
+            require(!SystemContexts.isSystem(ContextId(contextId))) {
+                "TacticalActivitySlot cannot target reserved System Context $contextId"
+            }
             val existing = tacticalActivitySlotDao.getSlotForContext(contextId)
             val now = System.currentTimeMillis()
             if (existing != null) {

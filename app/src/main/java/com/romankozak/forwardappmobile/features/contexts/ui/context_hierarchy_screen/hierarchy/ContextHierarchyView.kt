@@ -28,24 +28,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyPresentationItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildDirectChildrenByOrientationNodeId
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationDisplayChildMap
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
-    hierarchy: ContextHierarchyData,
-    flattenedHierarchy: List<FlatHierarchyItem>,
+    rawBackedProjectIds: Set<String>,
+    presentationHierarchy: HierarchyPresentationData,
     orientationHierarchy: List<OrientationHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
@@ -61,34 +59,26 @@ fun ProjectHierarchyView(
     isSelectionMode: Boolean,
     isSiblingReorderMode: Boolean,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
+    onPasteContextLink: (String) -> Unit,
     onEditBeacon: (String) -> Unit = {},
     onDeleteBeacon: (String) -> Unit = {},
     onProjectClicked: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
-    onMenuRequested: (Context) -> Unit,
+    onMenuRequested: (String) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Context) -> Unit,
-    onAddSubproject: (Context) -> Unit,
-    onDeleteProject: (Context) -> Unit,
-    onEditProject: (Context) -> Unit,
+    onFocusProject: (String) -> Unit,
+    onAddSubproject: (String) -> Unit,
+    onDeleteProject: (String) -> Unit,
+    onEditProject: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val dragAndDropState = rememberDragAndDropState<Context>()
+    val dragAndDropState = rememberDragAndDropState<String>()
     val directChildrenByNodeId =
         remember(orientationHierarchy) {
             buildDirectChildrenByOrientationNodeId(orientationHierarchy)
         }
-    val displayChildMap =
-        remember(hierarchy.childMap, orientationHierarchy, directChildrenByNodeId) {
-            buildOrientationDisplayChildMap(
-                canonicalChildMap = hierarchy.childMap,
-                orientationHierarchy = orientationHierarchy,
-                directChildrenByNodeId = directChildrenByNodeId,
-            )
-        }
-
     DragAndDropContainer(
         state = dragAndDropState,
         enabled = !isSearchActive && !isSelectionMode && !isSiblingReorderMode,
@@ -97,9 +87,9 @@ fun ProjectHierarchyView(
         if (focusedProjectId != null) {
             FocusedProjectView(
                 focusedProjectId = focusedProjectId,
-                hierarchy = hierarchy,
+                rawBackedProjectIds = rawBackedProjectIds,
+                presentationHierarchy = presentationHierarchy,
                 orientationHierarchy = orientationHierarchy,
-                displayChildMap = displayChildMap,
                 directChildrenByNodeId = directChildrenByNodeId,
                 breadcrumbs = breadcrumbs,
                 dragAndDropState = dragAndDropState,
@@ -113,6 +103,7 @@ fun ProjectHierarchyView(
                 selectedContextIds = selectedContextIds,
                 clipboardContextIds = clipboardContextIds,
                 onEvent = onEvent,
+                onPasteContextLink = onPasteContextLink,
                 onEditBeacon = onEditBeacon,
                 onDeleteBeacon = onDeleteBeacon,
                 onToggleSelection = onToggleSelection,
@@ -141,7 +132,7 @@ fun ProjectHierarchyView(
                 directChildren = directChildren,
                 directChildrenByNodeId = directChildrenByNodeId,
                 orientationHierarchy = orientationHierarchy,
-                displayChildMap = displayChildMap,
+                rawBackedProjectIds = rawBackedProjectIds,
                 dragAndDropState = dragAndDropState,
                 isSearchActive = isSearchActive,
                 highlightedProjectId = highlightedProjectId,
@@ -167,22 +158,9 @@ fun ProjectHierarchyView(
                 animatedVisibilityScope = animatedVisibilityScope,
             )
         } else {
-            val rootChildCounts =
-                remember(orientationHierarchy) {
-                    orientationHierarchy
-                        .filter { it.level == 0 }
-                        .associate { item ->
-                            item.node.id to
-                                directChildrenByNodeId[item.node.id].orEmpty().size
-                        }
-                }
-            val visibleItems =
-                remember(flattenedHierarchy, longDescendantsMap, hierarchy.childMap) {
-                    buildVisibleHierarchy(
-                        flattenedHierarchy,
-                        hierarchy.childMap,
-                        longDescendantsMap,
-                    )
+            val presentationChildCounts =
+                remember(presentationHierarchy.childMap) {
+                    presentationHierarchy.childMap.mapValues { (_, children) -> children.size }
                 }
 
             LazyColumn(
@@ -197,6 +175,9 @@ fun ProjectHierarchyView(
                             .filter { it.node is OrientationHierarchyNode.Group }
                             .distinctBy { it.node.id }
                     itemsIndexed(
+                        // Mobile hierarchy is focus-mode only. The root
+                        // surface shows only direct root entries; descendants
+                        // become visible by focusing their parent.
                         items = rootItems,
                         key = { index, item -> "${item.node.id}-$index" },
                     ) { _, item ->
@@ -206,14 +187,14 @@ fun ProjectHierarchyView(
                                     item = item,
                                     rootGroups = rootGroups,
                                     isSiblingReorderMode = isSiblingReorderMode,
-                                    childCount = rootChildCounts[node.id] ?: 0,
+                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
                                     onEvent = onEvent,
                                 )
                             is OrientationHierarchyNode.Beacon ->
                                 BeaconRootHeaderRow(
                                     node = node,
                                     level = item.level,
-                                    childCount = rootChildCounts[node.id] ?: 0,
+                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                     onEditBeacon = { onEditBeacon(node.id) },
                                     onDeleteBeacon = { onDeleteBeacon(node.id) },
@@ -229,7 +210,7 @@ fun ProjectHierarchyView(
                             OrientationHierarchyNode.NoGroup ->
                                 NoGroupRootHeaderRow(
                                     level = item.level,
-                                    childCount = rootChildCounts[node.id] ?: 0,
+                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                     onPasteBeacon = {
                                         onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(null))
@@ -238,69 +219,113 @@ fun ProjectHierarchyView(
                             OrientationHierarchyNode.NoBeacon ->
                                 NoBeaconRootHeaderRow(
                                     level = item.level,
-                                    childCount = rootChildCounts[node.id] ?: 0,
+                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            is OrientationHierarchyNode.ProjectLike ->
-                                HierarchyListItem(
-                                    item =
-                                        FlatHierarchyItem(
-                                            project = node.contextProjection,
-                                            level = item.level,
-                                            isLinkedAppearance = node.isLinkedAppearance,
-                                            isCanonicalWorkspace = node.isCanonicalWorkspace,
-                                        ),
-                                    childMap = displayChildMap,
-                                    dragAndDropState = dragAndDropState,
-                                    isSearchActive = isSearchActive,
-                                    highlightedProjectId = highlightedProjectId,
-                                    settings = hierarchySettings,
-                                    searchQuery = searchQuery,
-                                    focusedProjectId = focusedProjectId,
-                                    longDescendantsMap = longDescendantsMap,
-                                    isSelectionMode = isSelectionMode,
-                                    selectedContextIds = selectedContextIds,
-                                    onProjectClick = onProjectClicked,
-                                    onToggleSelection = onToggleSelection,
-                                    onStartSelection = onStartSelection,
-                                    onMenuRequested = onMenuRequested,
-                                    onProjectReorder = onProjectReorder,
-                                    onFocusProject = onFocusProject,
-                                    onAddSubproject = onAddSubproject,
-                                    onDeleteProject = onDeleteProject,
-                                    onEditProject = onEditProject,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    legacyContextActionsEnabled = !node.isCanonicalWorkspace,
-                                )
+                            is OrientationHierarchyNode.ProjectLike -> {
+                                val hasLegacyBacking = node.id in rawBackedProjectIds
+                                if (!hasLegacyBacking) {
+                                    PresentationHierarchyRow(
+                                        item =
+                                            FlatHierarchyPresentationItem(
+                                                project = node.presentation,
+                                                level = item.level,
+                                            ),
+                                        childCount = presentationChildCounts[node.id] ?: 0,
+                                        isSearchActive = isSearchActive,
+                                        searchQuery = searchQuery,
+                                        isFocused = node.id == focusedProjectId,
+                                        isHighlighted = node.id == highlightedProjectId,
+                                        onProjectClick = { projectId ->
+                                            onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                                        },
+                                    )
+                                } else {
+                                    HierarchyListItem(
+                                        item =
+                                            FlatHierarchyPresentationItem(
+                                                project = node.presentation,
+                                                level = item.level,
+                                                isLinkedAppearance = node.isLinkedAppearance,
+                                                isCanonicalWorkspace = node.isCanonicalWorkspace,
+                                            ),
+                                        childCount = presentationChildCounts[node.id] ?: 0,
+                                        dragAndDropState = dragAndDropState,
+                                        isSearchActive = isSearchActive,
+                                        highlightedProjectId = highlightedProjectId,
+                                        settings = hierarchySettings,
+                                        searchQuery = searchQuery,
+                                        focusedProjectId = focusedProjectId,
+                                        longDescendantsMap = longDescendantsMap,
+                                        isSelectionMode = isSelectionMode,
+                                        selectedContextIds = selectedContextIds,
+                                        onProjectClick = { projectId ->
+                                            onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                                        },
+                                        onToggleSelection = onToggleSelection,
+                                        onStartSelection = onStartSelection,
+                                        onMenuRequested = onMenuRequested,
+                                        onProjectReorder = onProjectReorder,
+                                        onFocusProject = onFocusProject,
+                                        onAddSubproject = onAddSubproject,
+                                        onDeleteProject = onDeleteProject,
+                                        onEditProject = onEditProject,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        legacyContextActionsEnabled = !node.isCanonicalWorkspace,
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
-                    items(visibleItems, key = { it.project.id }) { item ->
-                        HierarchyListItem(
-                            item = item,
-                            childMap = displayChildMap,
-                            dragAndDropState = dragAndDropState,
-                            isSearchActive = isSearchActive,
-                            highlightedProjectId = highlightedProjectId,
-                            settings = hierarchySettings,
-                            searchQuery = searchQuery,
-                            focusedProjectId = focusedProjectId,
-                            longDescendantsMap = longDescendantsMap,
-                            isSelectionMode = isSelectionMode,
-                            selectedContextIds = selectedContextIds,
-                            onProjectClick = onProjectClicked,
-                            onToggleSelection = onToggleSelection,
-                            onStartSelection = onStartSelection,
-                            onMenuRequested = onMenuRequested,
-                            onProjectReorder = onProjectReorder,
-                            onFocusProject = onFocusProject,
-                            onAddSubproject = onAddSubproject,
-                            onDeleteProject = onDeleteProject,
-                            onEditProject = onEditProject,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
+                    items(
+                        presentationHierarchy.topLevelProjects.sortedBy { it.order },
+                        key = { it.id },
+                    ) { project ->
+                        val presentationItem =
+                            FlatHierarchyPresentationItem(
+                                project = project,
+                                level = 0,
+                            )
+                        val hasLegacyBacking =
+                            presentationItem.project.id in rawBackedProjectIds
+                        if (!hasLegacyBacking) {
+                            PresentationHierarchyRow(
+                                item = presentationItem,
+                                childCount = presentationChildCounts[presentationItem.project.id] ?: 0,
+                                isSearchActive = isSearchActive,
+                                searchQuery = searchQuery,
+                                isFocused = presentationItem.project.id == focusedProjectId,
+                                isHighlighted = presentationItem.project.id == highlightedProjectId,
+                                onProjectClick = onProjectClicked,
+                            )
+                        } else {
+                            HierarchyListItem(
+                                item = presentationItem,
+                                childCount = presentationChildCounts[presentationItem.project.id] ?: 0,
+                                dragAndDropState = dragAndDropState,
+                                isSearchActive = isSearchActive,
+                                highlightedProjectId = highlightedProjectId,
+                                settings = hierarchySettings,
+                                searchQuery = searchQuery,
+                                focusedProjectId = focusedProjectId,
+                                longDescendantsMap = longDescendantsMap,
+                                isSelectionMode = isSelectionMode,
+                                selectedContextIds = selectedContextIds,
+                                onProjectClick = onProjectClicked,
+                                onToggleSelection = onToggleSelection,
+                                onStartSelection = onStartSelection,
+                                onMenuRequested = onMenuRequested,
+                                onProjectReorder = onProjectReorder,
+                                onFocusProject = onFocusProject,
+                                onAddSubproject = onAddSubproject,
+                                onDeleteProject = onDeleteProject,
+                                onEditProject = onEditProject,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                        }
                     }
                 }
             }

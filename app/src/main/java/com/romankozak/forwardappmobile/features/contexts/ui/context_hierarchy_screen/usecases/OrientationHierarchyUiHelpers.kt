@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
@@ -39,7 +38,7 @@ internal fun buildOrientationBreadcrumbsToContext(
 ): List<BreadcrumbItem> {
     val nodeIndex =
         items.indexOfFirst { item ->
-            (item.node as? OrientationHierarchyNode.ProjectLike)?.contextProjection?.id == contextId
+            (item.node as? OrientationHierarchyNode.ProjectLike)?.id == contextId
         }
     if (nodeIndex == -1) return emptyList()
     return buildDisplayedOrientationBreadcrumbs(items, nodeIndex)
@@ -63,7 +62,7 @@ private fun buildDisplayedOrientationBreadcrumbs(
     return (ancestors + targetItem).mapIndexed { index, item ->
         val contextNode = item.node as? OrientationHierarchyNode.ContextNode
         BreadcrumbItem(
-            id = contextNode?.context?.id ?: item.node.id,
+            id = contextNode?.id ?: item.node.id,
             name = item.node.title,
             level = index,
             target =
@@ -90,32 +89,5 @@ internal fun buildDirectChildrenByOrientationNodeId(
         }
         stack.addLast(item)
     }
-    return result
-}
-
-internal fun buildOrientationDisplayChildMap(
-    canonicalChildMap: Map<String, List<Context>>,
-    orientationHierarchy: List<OrientationHierarchyItem>,
-    directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
-): Map<String, List<Context>> {
-    val result = canonicalChildMap.mapValues { (_, children) -> children.toMutableList() }.toMutableMap()
-    orientationHierarchy
-        .filter { it.node is OrientationHierarchyNode.ProjectLike }
-        .forEach { parentItem ->
-            val parentNode = parentItem.node as OrientationHierarchyNode.ProjectLike
-            val parentContext = parentNode.contextProjection
-            val children =
-                directChildrenByNodeId[parentContext.id].orEmpty().mapNotNull { childItem ->
-                    (childItem.node as? OrientationHierarchyNode.ProjectLike)?.contextProjection
-                }
-            if (children.isNotEmpty()) {
-                val mutableChildren = result.getOrPut(parentContext.id) { mutableListOf() }
-                children.forEach { child ->
-                    if (mutableChildren.none { it.id == child.id }) {
-                        mutableChildren += child
-                    }
-                }
-            }
-        }
     return result
 }

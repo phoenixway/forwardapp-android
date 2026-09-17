@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
@@ -55,7 +54,6 @@ data class SelectableDatabaseContent(
     val contextLogs: List<SelectableDiffItem<ContextLog>> = emptyList(),
     val scripts: List<SelectableDiffItem<ScriptEntity>> = emptyList(),
     val attachments: List<SelectableDiffItem<AttachmentEntity>> = emptyList(),
-    val allContextAttachmentCrossRefs: List<ContextAttachmentCrossRef> = emptyList(), // Dependent, not directly selectable
 )
 
 data class CanonicalBacklogPreviewRow(
@@ -112,10 +110,6 @@ fun BackupDiff.toSelectable(source: SnapshotBundle): SelectableDatabaseContent {
         contextLogs = mapDiff(this.contextLogs, { it.toEntity() }),
         scripts = mapDiff(this.scripts, { it.toEntity() }),
         attachments = mapDiff(this.attachments, { it.toEntity() }),
-        allContextAttachmentCrossRefs =
-            this.contextAttachmentCrossRefs.added.map {
-                it.toEntity()
-            } + this.contextAttachmentCrossRefs.updated.map { it.incoming.toEntity() },
     )
 }
 

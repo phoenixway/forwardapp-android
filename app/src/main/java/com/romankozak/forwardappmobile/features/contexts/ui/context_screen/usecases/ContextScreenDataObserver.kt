@@ -13,12 +13,17 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 class ContextScreenDataObserver(
     private val dependencies: ContextScreenDataObserverDependencies,
@@ -34,8 +39,19 @@ class ContextScreenDataObserver(
             if (contextId.isBlank()) {
                 flowOf(ContextData.Empty)
             } else {
+                val rawContexts = dependencies.contextRepository.getAllContextsFlow()
+                val presentationUniverse =
+                    dependencies.systemWorkspacePresentationContextProjector.observePresentationUniverse(rawContexts)
+                val currentContextReadModel =
+                    combine(presentationUniverse, rawContexts) { presentations, contexts ->
+                        contextScreenReadModel(
+                            contextId = contextId,
+                            presentations = presentations,
+                            contexts = contexts,
+                        )
+                    }
                 combine(
-                    dependencies.contextRepository.getContextByIdFlow(contextId),
+                    currentContextReadModel,
                     dependencies.listItemRepository.getItemsForContextStream(contextId),
                     dependencies.contextStructureRepository.observeStructureOnly(contextId),
                     dependencies.contextLogRepository.getContextLogsStream(contextId),
@@ -43,15 +59,16 @@ class ContextScreenDataObserver(
                     dependencies.noteDocumentRepository.getDocumentsForContext(contextId),
                     dependencies.musicNoteRepository.getMusicNotesForContext(contextId),
                     dependencies.directionRepository.getDirectionItemsForContext(contextId),
-                    dependencies.contextRepository.getAllContextsFlow(),
                     dependencies.contextRepository.getAttachmentsForContextStream(contextId),
                     dependencies.listItemRepository.getAllEntitiesAsFlow(),
                     dependencies.reminderRepository.getAllReminders(),
                     dependencies.recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT),
                     dependencies.noteRepository.getNotesForContext(contextId),
                     dependencies.goalRepository.getGoalsByContextIdFlow(contextId),
-                    dependencies.contextRepository.getSubprojectsByParentIdFlow(contextId),
                     dependencies.orientationDao.observeWorkspaceCapabilities(contextId),
+                    dependencies.systemInboxDirectionAccess.observeState(contextId),
+                    dependencies.systemRemainingCapabilityAccess.observeState(contextId),
+                    dependencies.systemBacklogLifecycleAccess.observeState(contextId),
                 ) { args: Array<Any?> ->
                     mapper.map(
                         contextId = contextId,
@@ -79,4 +96,8 @@ data class ContextScreenDataObserverDependencies(
     val noteRepository: LegacyNoteRepository,
     val goalRepository: GoalRepository,
     val orientationDao: OrientationDao,
+    val systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
+    val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
+    val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
+    val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
 )

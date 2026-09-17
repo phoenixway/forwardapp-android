@@ -65,7 +65,6 @@ class MergeRepository @Inject constructor(
                     { log -> log.updatedAt },
                 ),
             // Legacy DayThemeDocuments are compatibility input only and are excluded from modern diff authority.
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt }),
             tacticalMissions = logicHelper.diffEntities(incoming.tacticalMissions, local.tacticalMissions, { it.id.toString() }, { it.version }, { it.updatedAt ?: it.createdAt }),
             tacticalIterations = logicHelper.diffEntities(incoming.tacticalIterations, local.tacticalIterations, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),
             missionStreams = logicHelper.diffEntities(incoming.missionStreams, local.missionStreams, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),

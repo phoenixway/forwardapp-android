@@ -7,9 +7,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -209,4 +211,26 @@ class CanonicalConnectionsRepositoryRoomTest {
             isDeleted = false,
             version = 1L,
         )
+
+    @Test
+    fun `typed state distinguishes missing disabled archived and deleted lifecycle`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(workspace()))
+            val repository = repository(database)
+            assertNull(repository.getState("owner"))
+
+            repository.enable("owner", now = 10L)
+            assertEquals(WorkspaceCapabilityState.ACTIVE, repository.getState("owner")?.lifecycleState)
+            repository.disable("owner", now = 11L)
+            assertEquals(WorkspaceCapabilityState.DISABLED, repository.getState("owner")?.lifecycleState)
+            repository.archive("owner", now = 12L)
+            assertEquals(WorkspaceCapabilityState.ARCHIVED, repository.getState("owner")?.lifecycleState)
+            repository.restore("owner", now = 13L)
+            repository.deleteCapability("owner", now = 14L)
+            assertTrue(requireNotNull(repository.getState("owner")).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
 }

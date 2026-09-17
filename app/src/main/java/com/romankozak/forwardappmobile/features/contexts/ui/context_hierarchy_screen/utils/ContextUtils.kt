@@ -1,9 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils
 
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 
 fun fuzzyMatch(
     query: String,
@@ -38,14 +35,25 @@ fun findAncestorsRecursive(
     }
 }
 
-fun findDescendantsForDeletion(
+fun findDescendantIdsForDeletion(
     projectId: String,
     childMap: Map<String, List<Context>>,
     visited: MutableSet<String> = mutableSetOf(),
-): List<Context> {
+): List<String> {
     if (!visited.add(projectId)) return emptyList()
-    val children = childMap[projectId] ?: emptyList()
-    return children + children.flatMap { findDescendantsForDeletion(it.id, childMap, visited) }
+
+    fun visitChildren(parentId: String): List<String> =
+        childMap[parentId]
+            .orEmpty()
+            .flatMap { child ->
+                if (!visited.add(child.id)) {
+                    emptyList()
+                } else {
+                    listOf(child.id) + visitChildren(child.id)
+                }
+            }
+
+    return visitChildren(projectId)
 }
 
 fun getDescendantIds(
@@ -63,60 +71,4 @@ fun getDescendantIds(
         }
     }
     return descendants
-}
-
-fun buildPathToProject(
-    targetId: String,
-    hierarchy: ContextHierarchyData,
-): List<BreadcrumbItem> {
-    val path = mutableListOf<BreadcrumbItem>()
-
-    fun findPath(
-        projects: List<Context>,
-        level: Int,
-    ): Boolean {
-        val sortedProjects = projects.sortedBy { it.order }
-        var found = false
-        for (project in sortedProjects) {
-            path.add(BreadcrumbItem(project.id, project.name, level))
-            val children = hierarchy.childMap[project.id] ?: emptyList()
-            found = project.id == targetId || findPath(children, level + 1)
-            if (found) {
-                break
-            }
-            path.removeLastOrNull()
-        }
-        return found
-    }
-
-    findPath(hierarchy.topLevelProjects, 0)
-    return path.toList()
-}
-
-fun flattenHierarchy(
-    currentProjects: List<Context>,
-    projectMap: Map<String, List<Context>>,
-): List<Context> {
-    val result = mutableListOf<Context>()
-    for (project in currentProjects) {
-        result.add(project)
-        if (project.isExpanded) {
-            val children = projectMap[project.id]?.sortedBy { it.order } ?: emptyList()
-            if (children.isNotEmpty()) {
-                result.addAll(flattenHierarchy(children, projectMap))
-            }
-        }
-    }
-    return result
-}
-
-fun flattenHierarchyWithLevels(
-    projects: List<Context>,
-    childMap: Map<String, List<Context>>,
-    expandedIds: Set<String>? = null,
-    level: Int = 0,
-): List<FlatHierarchyItem> {
-    return projects
-        .sortedBy { it.order }
-        .map { project -> FlatHierarchyItem(project = project, level = level) }
 }

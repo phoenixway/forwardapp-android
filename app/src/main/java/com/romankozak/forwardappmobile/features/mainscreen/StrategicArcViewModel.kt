@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -17,6 +17,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEA
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -52,8 +54,8 @@ private const val STRATEGIC_ARC_TAG = "arc"
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 
 data class StrategicArcUiState(
-    val allProjects: List<Context> = emptyList(),
-    val projects: List<Context> = emptyList(),
+    val allProjects: List<ContextPresentation> = emptyList(),
+    val projects: List<ContextPresentation> = emptyList(),
     val beacons: List<MainBeaconWithRelations> = emptyList(),
     val beaconGroups: List<MainBeaconGroup> = emptyList(),
     val arcQuests: List<ArcQuestEntity> = emptyList(),
@@ -80,6 +82,8 @@ class StrategicArcViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val settingsRepository: SettingsRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -121,7 +125,9 @@ class StrategicArcViewModel
                     }
 
             combine(
-                contextRepository.getAllContextsFlow(),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(
+                    contextRepository.getAllContextsFlow(),
+                ),
                 mainBeaconRepository.observeMainBeaconDetails(),
                 mainBeaconRepository.observeGroups(),
                 currentArcKey.flatMapLatest { arcKey -> arcQuestRepository.observeArcQuests(arcKey) },
@@ -375,7 +381,12 @@ class StrategicArcViewModel
 
         fun addArcQuestFromContext(contextId: String) {
             viewModelScope.launch {
-                val context = contextRepository.getContextById(contextId) ?: return@launch
+                val rawContext = contextRepository.getContextById(contextId)
+                val context =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = contextId,
+                        context = rawContext,
+                    ) ?: return@launch
                 arcQuestRepository.addQuest(
                     ArcQuestEntity(
                         arcKey = currentArcKey.value,
@@ -502,8 +513,16 @@ class StrategicArcViewModel
             addTag: String? = null,
             removeTags: Set<String> = emptySet(),
         ) {
-            val context = contextRepository.getContextById(contextId) ?: return
-            val current = context.tags.orEmpty()
+            val current =
+                when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
+                    SystemWorkspaceTagAuthority.Resolution.NotSystem -> {
+                        val context = contextRepository.getContextById(contextId) ?: return
+                        context.tags.orEmpty()
+                    }
+
+                    is SystemWorkspaceTagAuthority.Resolution.Canonical -> resolution.tags
+                    SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
+                }
             val next =
                 current
                     .filterNot { it in removeTags }
@@ -512,7 +531,7 @@ class StrategicArcViewModel
                 next.add(addTag)
             }
             if (next != current) {
-                contextRepository.updateContext(context.copy(tags = next))
+                contextRepository.updateContextTags(contextId, next)
             }
         }
 

@@ -43,6 +43,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_configuratio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetEditorScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyProjectNavigation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsScreen
@@ -175,16 +176,16 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToSettings = { navigationManager.navigate(target = NavTarget.Settings) },
             onNavigateToInbox = {
                 scope.launch {
-                    val inboxId = goalListViewModel.getInboxProjectId()
-                    if (inboxId != null) {
+                    val inbox = goalListViewModel.getInboxProjectPresentation()
+                    if (inbox != null) {
                         navigationManager.navigate(
                             target =
                                 NavTarget.ContextDetail(
-                                    contextId = inboxId,
+                                    contextId = inbox.id,
                                     initialViewMode = "INBOX",
                                 ),
                             recordInHistory = true,
-                            historyTitle = "Inbox",
+                            historyTitle = inbox.name,
                         )
                     }
                 }
@@ -220,11 +221,32 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToRecentItem = { item: RecentItem ->
                 when (item.type) {
                     RecentItemType.PROJECT ->
-                        navigationManager.navigate(
-                            target = NavTarget.ContextDetail(contextId = item.target),
-                            recordInHistory = true,
-                            historyTitle = "Context",
-                        )
+                        when (
+                            val projectNavigation =
+                                goalListViewModel.resolveProjectNavigation(item.target)
+                        ) {
+                            is HierarchyProjectNavigation.ContextDetail ->
+                                navigationManager.navigate(
+                                    target =
+                                        NavTarget.ContextDetail(
+                                            contextId = projectNavigation.projectId,
+                                        ),
+                                    recordInHistory = true,
+                                    historyTitle = projectNavigation.title,
+                                )
+
+                            is HierarchyProjectNavigation.HierarchyRead ->
+                                navigationManager.navigate(
+                                    target =
+                                        NavTarget.ContextHierarchy(
+                                            projectIdToReveal = projectNavigation.projectId,
+                                        ),
+                                    recordInHistory = true,
+                                    historyTitle = projectNavigation.title,
+                                )
+
+                            null -> Unit
+                        }
 
                     RecentItemType.NOTE,
                     RecentItemType.NOTE_DOCUMENT,

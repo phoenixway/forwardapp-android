@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.stat
 import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +34,7 @@ class ContextStateManager(
         _uiState.update { current ->
             current.copy(
                 context = data.context,
+                presentation = data.presentation,
                 items = data.items,
                 configuration = data.config,
                 logs = data.logs,
@@ -163,6 +165,9 @@ sealed class ContextData {
         val notes: List<LegacyNoteEntity>,
         val enabledCapabilityOverrides: Set<CapabilityId>?,
         val executionLogEnabledOverride: Boolean,
+        val canonicalCapabilityOverrides: Map<CapabilityId, Boolean> = emptyMap(),
+        val suppressPresetCapabilityDerivation: Boolean = false,
+        val presentation: ContextPresentation? = null,
     ) : ContextData()
 }
 
@@ -172,6 +177,7 @@ sealed class ContextData {
 data class ContextUiState(
     // Data from repositories
     val context: Context? = null,
+    val presentation: ContextPresentation? = null,
     val items: List<BacklogItemContent> = emptyList(),
     val configuration: ContextConfiguration? = null,
     val logs: List<ContextLog> = emptyList(),

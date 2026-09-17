@@ -131,11 +131,11 @@ class ItemActionHandler
                     when (item) {
                         is BacklogItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
                         is BacklogItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
-                        is BacklogItemContent.ContextLinkItem -> {
-                            contextRepository.getContextById(item.project.id)?.let {
-                                recentItemsRepository.logProjectAccess(it)
-                            }
-                        }
+                        is BacklogItemContent.ContextLinkItem ->
+                            recentItemsRepository.logProjectAccess(
+                                projectId = item.project.id,
+                                displayName = item.project.name,
+                            )
                         is BacklogItemContent.LinkItem -> {
                             if (item.link.linkData.type == LinkType.OBSIDIAN) {
                                 recentItemsRepository.logObsidianLinkAccess(item.link.linkData)

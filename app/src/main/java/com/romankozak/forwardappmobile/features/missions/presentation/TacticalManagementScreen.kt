@@ -85,7 +85,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
@@ -535,7 +535,7 @@ private fun TacticalManagementContent(
     missionStreams: List<MissionStream>,
     selectedMissionStreamId: String,
     missionStreamCounts: Map<String, Int>,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     selectedActivitySlotContextId: String?,
     selectedPlanningContextId: String?,
     uiState: TacticalManagementUiState,
@@ -1721,7 +1721,7 @@ private fun TacticalFabMenu(
 private fun TacticalManagementOverlays(
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     boardLinkedProjectIds: List<String>,
     boardLinkedAttachmentIds: List<String>,
     connectionsOrder: List<String>,
@@ -1951,7 +1951,7 @@ private fun TacticalManagementOverlays(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActivitySlotsSheet(
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     onDismiss: () -> Unit,
     onAddSlotClick: () -> Unit,
     onRemoveSlot: (String) -> Unit,
@@ -2358,7 +2358,7 @@ private fun MissionActionSheet(
     mission: TacticalMission,
     missionStreams: List<MissionStream>,
     selectedMissionStreamId: String,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     selectedActivitySlotContextId: String?,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
@@ -2536,7 +2536,7 @@ private fun MissionActionSection(
 @Composable
 private fun MissionSlotPickerSheet(
     mission: TacticalMission,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     onDismiss: () -> Unit,
     onAssignActivitySlot: (String?) -> Unit,
 ) {

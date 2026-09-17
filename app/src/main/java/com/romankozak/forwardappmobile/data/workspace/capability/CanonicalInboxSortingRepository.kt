@@ -3,11 +3,18 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSortingCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSortingCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class InboxSortingCapabilityState(
+    val lifecycleState: WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: InboxSortingCapabilityConfigurationV1,
+)
 
 @Singleton
 class CanonicalInboxSortingRepository
@@ -21,6 +28,31 @@ class CanonicalInboxSortingRepository
 
         suspend fun disable(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.disable(SPEC, workspaceId, now)
+
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
+        suspend fun hasEstablishedInstance(workspaceId: String): Boolean =
+            instanceStore.hasEstablishedInstance(SPEC, workspaceId)
+
+        fun observeEstablishedInstance(workspaceId: String): Flow<Boolean> =
+            instanceStore.observeEstablishedInstance(SPEC, workspaceId)
+
+        suspend fun getState(workspaceId: String): InboxSortingCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toInboxSortingCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<InboxSortingCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toInboxSortingCapabilityState() }.getOrNull() }
+            }
 
         suspend fun archive(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.archive(SPEC, workspaceId, now)
@@ -87,3 +119,11 @@ class CanonicalInboxSortingRepository
                 )
         }
     }
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+    .toInboxSortingCapabilityState() =
+    InboxSortingCapabilityState(
+        lifecycleState = WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = InboxSortingCapabilityConfigurationCodec.decode(configurationVersion, configuration),
+    )

@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSorting
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.WorkspaceSortingMode
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.WorkspaceSortingRule
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.WorkspaceSortingTarget
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -196,4 +197,26 @@ class CanonicalInboxSortingRepositoryRoomTest {
             isDeleted = false,
             version = 1L,
         )
+
+    @Test
+    fun `typed state distinguishes missing and established lifecycle`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(workspace()))
+            val repository = repository(database)
+            assertNull(repository.getState("owner"))
+
+            repository.enable("owner", now = 10L)
+            assertEquals(WorkspaceCapabilityState.ACTIVE, repository.getState("owner")?.lifecycleState)
+            repository.disable("owner", now = 11L)
+            assertEquals(WorkspaceCapabilityState.DISABLED, repository.getState("owner")?.lifecycleState)
+            repository.archive("owner", now = 12L)
+            assertEquals(WorkspaceCapabilityState.ARCHIVED, repository.getState("owner")?.lifecycleState)
+            repository.restore("owner", now = 13L)
+            repository.deleteCapability("owner", now = 14L)
+            assertTrue(requireNotNull(repository.getState("owner")).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
 }

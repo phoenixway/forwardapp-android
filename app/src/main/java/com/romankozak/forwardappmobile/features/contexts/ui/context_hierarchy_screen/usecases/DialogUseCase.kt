@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager
@@ -26,23 +25,34 @@ class DialogUseCase
         private val _recordForReminderDialog = MutableStateFlow<ActivityRecord?>(null)
         val recordForReminderDialog: StateFlow<ActivityRecord?> = _recordForReminderDialog.asStateFlow()
 
-        fun onAddProjectRequest(parentProject: Context? = null) {
-            if (parentProject == null) {
+        fun onAddProjectRequest(parentId: String? = null) {
+            if (parentId == null) {
                 dialogStateManager.onAddNewProjectRequest()
             } else {
-                dialogStateManager.onAddSubprojectRequest(parentProject)
+                dialogStateManager.onAddSubprojectRequest(parentId)
             }
         }
 
         fun onMenuRequested(
-            project: Context,
+            projectId: String,
+            projectName: String,
             canPasteContextLinks: Boolean = false,
         ) {
-            dialogStateManager.onMenuRequested(project, canPasteContextLinks)
+            dialogStateManager.onMenuRequested(
+                projectId = projectId,
+                projectName = projectName,
+                canPasteContextLinks = canPasteContextLinks,
+            )
         }
 
-        fun onDeleteRequest(project: Context) {
-            dialogStateManager.onDeleteRequest(project)
+        fun onDeleteRequest(
+            projectId: String,
+            projectName: String,
+        ) {
+            dialogStateManager.onDeleteRequest(
+                projectId = projectId,
+                projectName = projectName,
+            )
         }
 
         fun onUtilityDialogRequest(request: UtilityDialogRequest) {
@@ -92,17 +102,19 @@ class DialogUseCase
 
         fun onSetReminderForProject(
             scope: CoroutineScope,
-            project: Context,
+            projectId: String,
+            projectName: String,
+            projectCreatedAt: Long,
         ) {
             scope.launch {
-                val reminders = reminderRepository.getRemindersForEntityFlow(project.id).firstOrNull()
+                val reminders = reminderRepository.getRemindersForEntityFlow(projectId).firstOrNull()
                 val record =
                     ActivityRecord(
-                        id = project.id,
-                        text = project.name,
+                        id = projectId,
+                        text = projectName,
                         reminderTime = reminders?.firstOrNull()?.reminderTime,
-                        createdAt = project.createdAt,
-                        contextId = project.id,
+                        createdAt = projectCreatedAt,
+                        contextId = projectId,
                         goalId = null,
                     )
                 _recordForReminderDialog.update { record }

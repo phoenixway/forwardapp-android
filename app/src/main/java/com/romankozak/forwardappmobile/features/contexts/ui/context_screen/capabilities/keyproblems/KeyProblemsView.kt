@@ -64,7 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
@@ -87,7 +87,7 @@ fun KeyProblemsView(
     modifier: Modifier = Modifier,
     issues: List<ContextKeyProblemsRepository.IssueItem>,
     searchQuery: String = "",
-    allContexts: List<Context>,
+    allContexts: List<ContextPresentation>,
     pickerContextOptions: List<ProjectOption>,
     pickerAttachmentOptions: List<AttachmentOption>,
     onSaveIssue: (ContextKeyProblemsRepository.IssueItem) -> Unit,
@@ -487,7 +487,7 @@ private fun IssueEditorSheet(
     issue: ContextKeyProblemsRepository.IssueItem,
     contextOptions: List<ProjectOption>,
     attachmentOptions: List<AttachmentOption>,
-    allContexts: List<Context>,
+    allContexts: List<ContextPresentation>,
     onDismiss: () -> Unit,
     onSave: (ContextKeyProblemsRepository.IssueItem) -> Unit,
     onDelete: () -> Unit,

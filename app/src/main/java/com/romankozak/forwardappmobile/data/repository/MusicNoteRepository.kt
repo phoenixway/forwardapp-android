@@ -33,6 +33,7 @@ class MusicNoteRepository
             roleCode: String? = null,
             isSystem: Boolean = false,
         ): String {
+            attachmentRepository.requireAttachmentPlacementAuthoring(contextId)
             val now = System.currentTimeMillis()
             val musicNote =
                 MusicNoteEntity(

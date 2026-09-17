@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 
@@ -8,9 +7,7 @@ class ContextSettingsActions(
     private val contextRepository: ContextRepository,
 ) {
     suspend fun deleteCurrentProject(contextId: String) {
-        contextRepository.getContextById(contextId)?.let { project ->
-            contextRepository.deleteContextsAndSubContexts(listOf(project))
-        }
+        contextRepository.deleteContextsByIds(listOf(contextId))
     }
 
     suspend fun persistContextViewMode(
@@ -21,10 +18,8 @@ class ContextSettingsActions(
         contextRepository.updateContextViewMode(contextId, mode)
     }
 
-    suspend fun toggleAttachmentsExpanded(context: Context) {
-        contextRepository.updateContext(
-            context.copy(isAttachmentsExpanded = !context.isAttachmentsExpanded),
-        )
+    suspend fun toggleAttachmentsExpanded(contextId: String) {
+        contextRepository.toggleContextAttachmentsExpanded(contextId)
     }
 
     suspend fun toggleProjectManagement(

@@ -5,6 +5,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as AppContext
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
@@ -803,6 +807,139 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertFalse(day22.isDeleted)
         assertEquals(seriesId, day22.recurrenceSeriesId)
         assertEquals("2026-08-22", day22.recurrenceOccurrenceDayKey)
+    }
+
+    @Test
+    fun `System-owned series edits route logical project across Workspace and Context branches`() = runTest {
+        val systemId = SystemContexts.TODAY.raw
+        val ordinaryId = "project:ordinary"
+        val day20 = localDayStart(2026, 8, 20)
+        val day21 = localDayStart(2026, 8, 21)
+
+        db.workspaceDao().upsert(
+            listOf(
+                WorkspaceEntity(
+                    id = systemId,
+                    nameOverride = "Today",
+                    descriptionOverride = null,
+                    parentWorkspaceId = null,
+                    roleCode = null,
+                    workspaceOrder = 0L,
+                    createdAt = 1L,
+                    updatedAt = 1L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                    provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                    sourceContextId = null,
+                ),
+            ),
+        )
+        db.contextDao().insert(contextFixture(ordinaryId))
+        db.dayPlanDao().insert(
+            DayPlan(
+                id = "system-owner-plan-20",
+                date = day20,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                version = 1L,
+            ),
+        )
+        db.dayPlanDao().insert(
+            DayPlan(
+                id = "system-owner-plan-21",
+                date = day21,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                version = 1L,
+            ),
+        )
+
+        val selected =
+            authoring.createSeriesForPlan(
+                dayPlanId = "system-owner-plan-20",
+                title = "System template",
+                description = null,
+                goalId = null,
+                projectId = systemId,
+                taskType = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                priority = TaskPriority.MEDIUM,
+                estimatedDurationMinutes = 30L,
+                points = 5,
+                executionStrictness = TaskExecutionStrictness.NORMAL,
+                rule = dailyRule(),
+            )
+        val seriesId = requireNotNull(selected.recurrenceSeriesId)
+
+        assertEquals(systemId, selected.logicalProjectId)
+        assertNull(selected.projectId)
+        assertEquals(systemId, selected.projectWorkspaceId)
+
+        materializer.materializeForDate(day21, 20_000L)
+        val futureId = "recurrence:TASK:$seriesId:2026-08-21"
+        val futureSystem =
+            requireNotNull(db.dayTaskDao().getByIdForCanonicalRecurrenceSync(futureId))
+        assertEquals(systemId, futureSystem.logicalProjectId)
+        assertNull(futureSystem.projectId)
+        assertEquals(systemId, futureSystem.projectWorkspaceId)
+
+        val ordinarySelected =
+            authoring.updateSeriesTemplate(
+                task = selected,
+                title = "Ordinary template",
+                description = null,
+                goalId = null,
+                projectId = ordinaryId,
+                taskType = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                priority = TaskPriority.HIGH,
+                estimatedDurationMinutes = 45L,
+                points = 7,
+                executionStrictness = TaskExecutionStrictness.NORMAL,
+            )
+
+        assertEquals(ordinaryId, ordinarySelected.logicalProjectId)
+        assertEquals(ordinaryId, ordinarySelected.projectId)
+        assertNull(ordinarySelected.projectWorkspaceId)
+
+        val futureOrdinary =
+            requireNotNull(db.dayTaskDao().getByIdForCanonicalRecurrenceSync(futureId))
+        assertEquals("Ordinary template", futureOrdinary.title)
+        assertEquals(ordinaryId, futureOrdinary.logicalProjectId)
+        assertEquals(ordinaryId, futureOrdinary.projectId)
+        assertNull(futureOrdinary.projectWorkspaceId)
+        assertEquals(2L, futureOrdinary.recurrenceSourceSeriesVersion)
+
+        val systemSelectedAgain =
+            authoring.updateSeriesTemplate(
+                task = ordinarySelected,
+                title = "System template again",
+                description = null,
+                goalId = null,
+                projectId = systemId,
+                taskType = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                priority = TaskPriority.HIGH,
+                estimatedDurationMinutes = 45L,
+                points = 9,
+                executionStrictness = TaskExecutionStrictness.NORMAL,
+            )
+
+        assertEquals(systemId, systemSelectedAgain.logicalProjectId)
+        assertNull(systemSelectedAgain.projectId)
+        assertEquals(systemId, systemSelectedAgain.projectWorkspaceId)
+
+        val futureSystemAgain =
+            requireNotNull(db.dayTaskDao().getByIdForCanonicalRecurrenceSync(futureId))
+        assertEquals("System template again", futureSystemAgain.title)
+        assertEquals(systemId, futureSystemAgain.logicalProjectId)
+        assertNull(futureSystemAgain.projectId)
+        assertEquals(systemId, futureSystemAgain.projectWorkspaceId)
+        assertEquals(3L, futureSystemAgain.recurrenceSourceSeriesVersion)
     }
 
     @Test

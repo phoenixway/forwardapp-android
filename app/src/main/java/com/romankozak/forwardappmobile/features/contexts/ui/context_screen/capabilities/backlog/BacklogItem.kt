@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLinkProjectReadModel
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
@@ -529,7 +530,7 @@ private fun TacticalPriorityBadge(
 
 @Composable
 private fun InternalSubprojectItem(
-    subproject: Context,
+    subproject: ContextLinkProjectReadModel,
     reminders: List<Reminder>,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,

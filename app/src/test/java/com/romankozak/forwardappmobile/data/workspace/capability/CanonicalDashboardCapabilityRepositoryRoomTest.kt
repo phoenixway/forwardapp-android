@@ -215,6 +215,101 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
     }
 
     @Test
+    fun `store setEnabled covers boolean lifecycle compatibility matrix`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceId = "canonical-store-toggle"
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(workspaceId)))
+            val store = instanceStore(database)
+            val spec = dashboardSpec()
+
+            store.setEnabled(spec, workspaceId, enabled = false, now = 10L)
+            assertTrue(database.orientationDao().getAllWorkspaceCapabilities().isEmpty())
+
+            store.setEnabled(spec, workspaceId, enabled = true, now = 20L)
+            val created = dashboard(database, workspaceId)
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, created.state)
+            assertEquals(1L, created.version)
+
+            store.setEnabled(spec, workspaceId, enabled = true, now = 30L)
+            assertEquals(created, dashboard(database, workspaceId))
+
+            store.setEnabled(spec, workspaceId, enabled = false, now = 40L)
+            val disabled = dashboard(database, workspaceId)
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, disabled.state)
+            assertEquals(2L, disabled.version)
+
+            store.setEnabled(spec, workspaceId, enabled = false, now = 50L)
+            assertEquals(disabled, dashboard(database, workspaceId))
+
+            store.setEnabled(spec, workspaceId, enabled = true, now = 60L)
+            val reenabled = dashboard(database, workspaceId)
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, reenabled.state)
+            assertEquals(3L, reenabled.version)
+
+            store.archive(spec, workspaceId, now = 70L)
+            val archived = dashboard(database, workspaceId)
+            assertTrue(runCatching { store.setEnabled(spec, workspaceId, enabled = true, now = 80L) }.isFailure)
+            assertTrue(runCatching { store.setEnabled(spec, workspaceId, enabled = false, now = 90L) }.isFailure)
+            assertEquals(archived, dashboard(database, workspaceId))
+
+            store.restore(spec, workspaceId, now = 100L)
+            store.delete(spec, workspaceId, now = 110L)
+            val deleted = dashboard(database, workspaceId)
+            assertTrue(deleted.isDeleted)
+
+            store.setEnabled(spec, workspaceId, enabled = false, now = 120L)
+            assertEquals(deleted, dashboard(database, workspaceId))
+
+            store.setEnabled(spec, workspaceId, enabled = true, now = 130L)
+            val resurrected = dashboard(database, workspaceId)
+            assertEquals(deleted.id, resurrected.id)
+            assertFalse(resurrected.isDeleted)
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, resurrected.state)
+            assertEquals(deleted.version + 1L, resurrected.version)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `store setEnabled validates no-op authorization and configuration`() = runBlocking {
+        val database = database()
+        try {
+            val store = instanceStore(database)
+            val spec = dashboardSpec()
+
+            val missingWorkspaceFailure =
+                runCatching {
+                    store.setEnabled(spec, "missing", enabled = false, now = 10L)
+                }.exceptionOrNull()
+            assertTrue(missingWorkspaceFailure is IllegalArgumentException)
+
+            val workspaceId = "canonical-invalid-noop"
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(workspaceId)))
+            store.setEnabled(spec, workspaceId, enabled = true, now = 20L)
+            store.setEnabled(spec, workspaceId, enabled = false, now = 30L)
+            val disabled = dashboard(database, workspaceId)
+            database.orientationDao().upsertWorkspaceCapabilities(
+                listOf(
+                    disabled.copy(
+                        configurationVersion = 2,
+                        configuration = """{"future":true}""",
+                    ),
+                ),
+            )
+
+            val invalidConfigurationFailure =
+                runCatching {
+                    store.setEnabled(spec, workspaceId, enabled = false, now = 40L)
+                }.exceptionOrNull()
+            assertTrue(invalidConfigurationFailure is IllegalArgumentException)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `unknown Dashboard configuration version blocks mutation and preserves raw row`() = runBlocking {
         val database = database()
         try {
@@ -270,6 +365,13 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
             database = database,
             workspaceDao = database.workspaceDao(),
             orientationDao = database.orientationDao(),
+        )
+
+    private fun dashboardSpec() =
+        CanonicalCapabilityInstanceSpec(
+            type = WorkspaceCapabilityType.DASHBOARD,
+            configurationCodec = DashboardCapabilityConfigurationCodec,
+            workspaceAuthority = CapabilityWorkspaceAuthority.ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER,
         )
 
     private suspend fun dashboard(

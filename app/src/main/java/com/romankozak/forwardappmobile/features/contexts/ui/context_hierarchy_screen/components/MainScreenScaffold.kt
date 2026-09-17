@@ -115,11 +115,12 @@ fun ProjectHierarchyScreenScaffold(
                     }
             val focusedProject =
                 when (focusedOrientationNode) {
-                    is OrientationHierarchyNode.ContextNode -> focusedOrientationNode.context
+                    is OrientationHierarchyNode.ContextNode ->
+                        uiState.rawContextsById[focusedOrientationNode.id]
                     else ->
                         (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
                             ?.projectId
-                            ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
+                            ?.let { focusedId -> uiState.rawContextsById[focusedId] }
                 }
             val focusedBeaconNode =
                 focusedOrientationNode as? OrientationHierarchyNode.Beacon
@@ -159,7 +160,7 @@ fun ProjectHierarchyScreenScaffold(
                 onPasteToFocusedContext = {
                     when {
                         uiState.clipboardContextIds.isNotEmpty() && focusedProject != null ->
-                            onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject))
+                            onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject.id))
                         uiState.clipboardContextIds.isNotEmpty() && focusedBeaconNode != null ->
                             onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon(focusedBeaconNode.id))
                         canPasteContextIntoNoBeacon ->

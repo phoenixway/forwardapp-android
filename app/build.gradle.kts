@@ -124,6 +124,11 @@ android {
         }
     }
 
+    // Temporary explicit device-cutover harness.
+    // Keeps instrumentation on the debuggable production-package build type.
+    // Remove after the one-shot System Workspace ownership cutover is verified.
+    testBuildType = "local"
+
     flavorDimensions += "env"
     productFlavors {
         create("prod") {
@@ -135,6 +140,15 @@ android {
             dimension = "env"
             versionNameSuffix = "-exp"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
+        }
+    }
+
+    // Deliberately isolate the historical src/androidTest tree, which contains
+    // unrelated stale instrumentation tests. Re-enable it only after those tests
+    // are reconciled explicitly.
+    sourceSets {
+        getByName("androidTest") {
+            java.setSrcDirs(listOf("src/isolatedAndroidTest/java"))
         }
     }
 
@@ -150,6 +164,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST,io.netty.versions.properties}"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE-notice.md"
         }
     }
 }

@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.context.isDirectHierarchyChildContex
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLinkProjectReadModel
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
@@ -27,6 +28,11 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceHierarchyUpdate
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
@@ -45,6 +51,39 @@ import javax.inject.Provider
 import javax.inject.Singleton
 
 enum class ContextTextAction { ADD, REMOVE }
+
+internal data class ContextHierarchyUpdate(
+    val id: String,
+    val parentId: String?,
+    val order: Long,
+)
+
+internal data class ContextSharedStateUpdate(
+    val name: String,
+    val description: String?,
+    val contextStatus: String,
+    val defaultViewModeName: String,
+    val isCompleted: Boolean,
+)
+
+internal data class ContextSettingsUpdate(
+    val name: String,
+    val description: String?,
+    val relatedLinks: List<RelatedLink>,
+    val showCheckboxes: Boolean,
+    val isContextManagementEnabled: Boolean,
+    val valueImportance: Float,
+    val valueImpact: Float,
+    val effort: Float,
+    val cost: Float,
+    val risk: Float,
+    val weightEffort: Float,
+    val weightCost: Float,
+    val weightRisk: Float,
+    val rawScore: Float,
+    val displayScore: Int,
+    val scoringStatus: String,
+)
 
 @Singleton
 @Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
@@ -75,6 +114,10 @@ class ContextRepository
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val tagAssociationHandler: TagAssociationHandler,
         private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val canonicalWorkspaceTagRepository: CanonicalWorkspaceTagRepository,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
+        private val systemContextCanonicalInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
         private val canonicalKeyProblemsRepository: CanonicalKeyProblemsRepository,
         private val canonicalInboxRepository: CanonicalInboxRepository,
         private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
@@ -252,42 +295,53 @@ class ContextRepository
         ): BacklogItemContent.ContextLinkItem? =
             lookupMaps.contextsMap[entityId]?.let { context ->
                 BacklogItemContent.ContextLinkItem(
-                    context,
-                    lookupMaps.remindersMap[context.id] ?: emptyList(),
-                    this,
+                    project = ContextLinkProjectReadModel.fromLegacyContext(context),
+                    reminders = lookupMaps.remindersMap[context.id] ?: emptyList(),
+                    backlogItem = this,
+                    legacyProject = context,
                 )
             }
 
         // --- Операції переміщення та логіки ---
         @Transaction
-        suspend fun moveContext(
-            contextToMove: Context,
+        suspend fun moveContextById(
+            contextId: String,
             newParentId: String?,
+            allowSystemMoves: Boolean = false,
         ) {
-            val persisted =
-                contextDao.getContextById(contextToMove.id)?.takeUnless { it.isDeleted }
-                    ?: return
+            val stableId = ContextId(contextId)
+            val isSystem = SystemContexts.isSystem(stableId)
+            if (isSystem) {
+                if (!allowSystemMoves) return
+                if (SystemContexts.isPinnedRoot(stableId) && newParentId != null) return
+                canonicalWorkspaceRepository.movePreservingOrder(
+                    id = contextId,
+                    newParentWorkspaceId = newParentId,
+                )
+                return
+            }
+
+            val persisted = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
             val oldParentId = persisted.parentId
             if (oldParentId == newParentId) return
 
             // Hierarchy ownership lives only on Context.parentId/Context.order.
             // Backlog SUBLIST is reserved for explicit user-created context references.
-            // Оновлюємо сам об'єкт контексту.
-            val updatedContext =
-                persisted.copy(
-                    parentId = newParentId,
-                    updatedAt = System.currentTimeMillis(),
-                    version = persisted.version + 1,
-                    syncedAt = null,
+            val mutationNow = System.currentTimeMillis()
+            val updatedContext = persisted.copy(parentId = newParentId).bumpSync(mutationNow)
+            val persistedUpdate =
+                workspaceWriteThrough.mutate(
+                    now = mutationNow,
+                    mutation = {
+                        contextDao.update(updatedContext)
+                        updatedContext
+                    },
                 )
-            workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
-                contextDao.update(updatedContext)
-            }
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = oldParentId,
-                newParentId = newParentId,
-                childId = persisted.id,
-                childName = persisted.name,
+                newParentId = persistedUpdate.parentId,
+                childId = persistedUpdate.id,
+                childName = persistedUpdate.name,
             )
         }
 
@@ -345,7 +399,9 @@ class ContextRepository
         suspend fun ensureDirectionFrontLinksForExistingChildren(parentContextId: String): Int {
             val normalizedParentId = normalizeParentId(parentContextId) ?: return 0
             val parentStructure = contextStructureDao.getStructureByContext(normalizedParentId)
-            val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
+            val autoAddToDirectionFront =
+                systemContextCanonicalInboxDirectionAccess.directionAutoLinkEnabled(normalizedParentId)
+                    ?: (parentStructure?.enableAutoLinkSubprojects == true)
             if (!autoAddToDirectionFront) return 0
 
             val children = contextDao.getActiveContextsByParentId(normalizedParentId)
@@ -384,7 +440,12 @@ class ContextRepository
             enabled: Boolean,
         ) {
             val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
-            updateContext(context.copy(isContextManagementEnabled = enabled))
+            if (!SystemContexts.isSystem(ContextId(id))) {
+                persistContextUpdate(
+                    context = context.copy(isContextManagementEnabled = enabled),
+                    previous = context,
+                )
+            }
             contextLogRepository.addToggleContextManagementLog(id, enabled)
         }
 
@@ -394,60 +455,246 @@ class ContextRepository
             text: String?,
         ) {
             val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
-            updateContext(context.copy(contextStatus = status, contextStatusText = text))
+            if (!SystemContexts.isSystem(ContextId(id))) {
+                persistContextUpdate(
+                    context = context.copy(contextStatus = status, contextStatusText = text),
+                    previous = context,
+                )
+            }
             contextLogRepository.addUpdateContextStatusLog(id, status, text)
         }
 
-        suspend fun updateContext(context: Context) {
-            val previous = contextDao.getContextById(context.id) ?: return
-            if (previous.isDeleted) return
+        suspend fun updateContextPresentation(
+            contextId: String,
+            name: String,
+            description: String?,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) {
+                canonicalWorkspaceRepository.updateNameAndDescription(
+                    id = contextId,
+                    nameOverride = name,
+                    descriptionOverride = description,
+                )
+                return
+            }
 
-            val now = System.currentTimeMillis()
-            // bumpSync повертає копію об'єкта з новою версією та скинутим syncedAt
-            val bumped = context.bumpSync(now)
-
-            workspaceWriteThrough.mutate(now) { contextDao.update(bumped) }
-            tagAssociationHandler.syncContextTags(bumped, previous?.tags)
-            ensureDirectionFrontLinkForParentChangeIfNeeded(
-                oldParentId = previous?.parentId,
-                newParentId = bumped.parentId,
-                childId = bumped.id,
-                childName = bumped.name,
+            val current =
+                contextDao.getContextById(contextId)
+                    ?.takeUnless { it.isDeleted }
+                    ?: return
+            persistContextUpdate(
+                context = current.copy(name = name, description = description),
+                previous = current,
             )
-
-            // Оновлюємо відображення в списку нещодавніх проектів
-            recentItemsRepository.updateRecentItemDisplayName(context.id, context.name)
         }
 
-        /**
-         * Пакетне оновлення списку контекстів.
-         * Використовується при масових змінах або сортуванні.
-         */
-        suspend fun updateContexts(contexts: List<Context>): Int {
-            if (contexts.isEmpty()) return 0
+        internal suspend fun updateContextSharedState(
+            contextId: String,
+            update: ContextSharedStateUpdate,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) return
 
-            val previousById =
+            val current = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            persistContextUpdate(
+                context =
+                    current.copy(
+                        name = update.name,
+                        description = update.description,
+                        contextStatus = update.contextStatus,
+                        defaultViewModeName = update.defaultViewModeName,
+                        isCompleted = update.isCompleted,
+                    ),
+                previous = current,
+            )
+        }
+
+        internal suspend fun updateContextSettings(
+            contextId: String,
+            update: ContextSettingsUpdate,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) return
+
+            val current = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            persistContextUpdate(
+                context =
+                    current.copy(
+                        name = update.name,
+                        description = update.description,
+                        relatedLinks = update.relatedLinks,
+                        showCheckboxes = update.showCheckboxes,
+                        isContextManagementEnabled = update.isContextManagementEnabled,
+                        valueImportance = update.valueImportance,
+                        valueImpact = update.valueImpact,
+                        effort = update.effort,
+                        cost = update.cost,
+                        risk = update.risk,
+                        weightEffort = update.weightEffort,
+                        weightCost = update.weightCost,
+                        weightRisk = update.weightRisk,
+                        rawScore = update.rawScore,
+                        displayScore = update.displayScore,
+                        scoringStatus = update.scoringStatus,
+                    ),
+                previous = current,
+            )
+        }
+
+        suspend fun updateContextCompleted(
+            contextId: String,
+            completed: Boolean,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) return
+
+            val current = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            if (current.isCompleted == completed) return
+            persistContextUpdate(
+                context = current.copy(isCompleted = completed),
+                previous = current,
+            )
+        }
+
+        suspend fun toggleContextAttachmentsExpanded(contextId: String) {
+            if (SystemContexts.isSystem(ContextId(contextId))) return
+
+            val current = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            persistContextUpdate(
+                context = current.copy(isAttachmentsExpanded = !current.isAttachmentsExpanded),
+                previous = current,
+            )
+        }
+
+        suspend fun updateContextRole(
+            contextId: String,
+            roleCode: String?,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) {
+                canonicalWorkspaceRepository.updateRole(
+                    id = contextId,
+                    roleCode = roleCode,
+                )
+                return
+            }
+
+            val current = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            if (current.roleCode == roleCode) return
+            persistContextUpdate(
+                context = current.copy(roleCode = roleCode),
+                previous = current,
+            )
+        }
+
+        suspend fun updateContextTags(
+            contextId: String,
+            tags: List<String>,
+        ) {
+            if (SystemContexts.isSystem(ContextId(contextId))) {
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = contextId,
+                    tags = tags,
+                )
+                return
+            }
+
+            val context = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
+            persistContextUpdate(
+                context = context.copy(tags = tags),
+                previous = context,
+            )
+        }
+
+        private suspend fun persistContextUpdate(
+            context: Context,
+            previous: Context,
+        ) {
+            val now = System.currentTimeMillis()
+            val bumped = context.bumpSync(now)
+
+            val persisted =
+                workspaceWriteThrough.mutate(
+                    now = now,
+                    mutation = {
+                        val tagAuthoritative =
+                            systemWorkspaceTagAuthority.reconcileBeforeContextWrite(
+                                context = bumped,
+                                tagsWereExplicitlyChanged = context.tags != previous.tags,
+                                now = now,
+                            )
+                        contextDao.update(tagAuthoritative)
+                        tagAuthoritative
+                    },
+                )
+
+            tagAssociationHandler.syncContextTags(persisted, previous.tags)
+            ensureDirectionFrontLinkForParentChangeIfNeeded(
+                oldParentId = previous.parentId,
+                newParentId = persisted.parentId,
+                childId = persisted.id,
+                childName = persisted.name,
+            )
+
+            recentItemsRepository.updateRecentItemDisplayName(
+                persisted.id,
+                persisted.name,
+            )
+        }
+
+        internal suspend fun applyHierarchyUpdates(updates: List<ContextHierarchyUpdate>): Int {
+            if (updates.isEmpty()) return 0
+
+            val systemUpdates =
+                updates.filter { SystemContexts.isSystem(ContextId(it.id)) }
+            canonicalWorkspaceRepository.updateHierarchyBatch(
+                systemUpdates.map { update ->
+                    CanonicalWorkspaceHierarchyUpdate(
+                        id = update.id,
+                        parentWorkspaceId = update.parentId,
+                        workspaceOrder = update.order,
+                    )
+                },
+            )
+
+            val ordinaryUpdates =
+                updates.filterNot { SystemContexts.isSystem(ContextId(it.id)) }
+            if (ordinaryUpdates.isEmpty()) return systemUpdates.size
+
+            val currentById =
                 contextDao
-                    .getContextsByIds(contexts.map { it.id }.distinct())
+                    .getContextsByIds(ordinaryUpdates.map { it.id })
                     .associateBy { it.id }
-            val writableContexts =
-                contexts.filter { context ->
-                    previousById[context.id]?.isDeleted == false
+            val writableUpdates =
+                ordinaryUpdates.mapNotNull { update ->
+                    currentById[update.id]
+                        ?.takeUnless { it.isDeleted }
+                        ?.let { current -> update to current }
                 }
-            if (writableContexts.isEmpty()) return 0
+            if (writableUpdates.isEmpty()) return systemUpdates.size
 
             val now = System.currentTimeMillis()
-            val bumpedList = writableContexts.map { it.bumpSync(now) }
-            val updated = workspaceWriteThrough.mutate(now) { contextDao.update(bumpedList) }
-            bumpedList.forEach { bumped ->
+            val persistedUpdates =
+                writableUpdates.map { (update, current) ->
+                    current.copy(
+                        parentId = update.parentId,
+                        order = update.order,
+                    ).bumpSync(now)
+                }
+            val updated =
+                workspaceWriteThrough.mutate(
+                    now = now,
+                    mutation = {
+                        contextDao.update(persistedUpdates)
+                    },
+                )
+
+            persistedUpdates.forEach { persisted ->
+                val previous = requireNotNull(currentById[persisted.id])
                 ensureDirectionFrontLinkForParentChangeIfNeeded(
-                    oldParentId = previousById[bumped.id]?.parentId,
-                    newParentId = bumped.parentId,
-                    childId = bumped.id,
-                    childName = bumped.name,
+                    oldParentId = previous.parentId,
+                    newParentId = persisted.parentId,
+                    childId = persisted.id,
+                    childName = persisted.name,
                 )
             }
-            return updated
+            return systemUpdates.size + updated
         }
 
         suspend fun addContextComment(
@@ -460,16 +707,19 @@ class ContextRepository
             mode: ContextViewMode,
         ) {
             val context = contextDao.getContextById(id)?.takeUnless { it.isDeleted } ?: return
-            updateContext(context.copy(defaultViewModeName = mode.name))
+            if (SystemContexts.isSystem(ContextId(id))) return
+            persistContextUpdate(
+                context = context.copy(defaultViewModeName = mode.name),
+                previous = context,
+            )
         }
 
-        suspend fun deleteContextsAndSubContexts(contexts: List<Context>) {
+        suspend fun deleteContextsByIds(contextIds: Collection<String>) {
             // A retired Context remains readable as a compatibility shell, but
             // legacy lifecycle commands must not mutate it after canonical cutover.
             val candidateIds =
-                contexts
+                contextIds
                     .asSequence()
-                    .map { it.id }
                     .distinct()
                     .filterNot { SystemContexts.isSystem(ContextId(it)) }
                     .toList()
@@ -702,6 +952,9 @@ class ContextRepository
             parentId: String?,
             roleCode: String? = null,
         ) {
+            require(!SystemContexts.isSystem(ContextId(id))) {
+                "Reserved System Context shells cannot be created: $id"
+            }
             val now = System.currentTimeMillis()
             val normalizedRoleCode = roleCode?.trim()?.takeIf { it.isNotBlank() }
             val preset = normalizedRoleCode?.let { structurePresetDao.getByCode(it) }
@@ -725,7 +978,7 @@ class ContextRepository
                         basePresetCode = normalizedRoleCode,
                         enableInbox = preset?.enableInbox,
                         enableLog = preset?.enableLog,
-                        enableAdvanced = preset?.enableAdvanced,
+                        enableAdvanced = null,
                         enableDashboard = preset?.enableDashboard,
                         enableBacklog = preset?.enableBacklog,
                         enableAttachments = preset?.enableAttachments,
@@ -768,7 +1021,9 @@ class ContextRepository
         ) {
             val parentId = normalizeParentId(parentContextId) ?: return
             val parentStructure = contextStructureDao.getStructureByContext(parentId)
-            val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
+            val autoAddToDirectionFront =
+                systemContextCanonicalInboxDirectionAccess.directionAutoLinkEnabled(parentId)
+                    ?: (parentStructure?.enableAutoLinkSubprojects == true)
             if (!autoAddToDirectionFront) return
             addChildContextToDirectionFront(
                 parentContextId = parentId,
@@ -788,53 +1043,6 @@ class ContextRepository
                 childContextName = childContextName,
             )
         }
-
-        /**
-         * Переміщує проєкт в іншу папку.
-         * allowSystemMoves дозволяє або забороняє переміщення системних папок (як-от Inbox).
-         */
-        @androidx.room.Transaction
-        suspend fun moveContext(
-            contextToMove: Context,
-            newParentId: String?,
-            allowSystemMoves: Boolean = false, // Додано цей параметр
-        ) {
-            // 1. Перевірка на системність (якщо не дозволено — ігноруємо)
-            val isSystem =
-                com.romankozak.forwardappmobile.core.context.SystemContexts.isSystem(
-                    com.romankozak.forwardappmobile.core.context.ContextId(contextToMove.id),
-                )
-            if (isSystem && !allowSystemMoves) return
-            if (SystemContexts.isPinnedRoot(ContextId(contextToMove.id)) && newParentId != null) return
-
-            val persisted =
-                contextDao.getContextById(contextToMove.id)?.takeUnless { it.isDeleted }
-                    ?: return
-            val oldParentId = persisted.parentId
-            if (oldParentId == newParentId) return
-
-            // Hierarchy ownership lives only on Context.parentId/Context.order.
-            // Backlog SUBLIST is reserved for explicit user-created context references.
-            // Оновлюємо запис самого контексту в базі.
-            val updatedContext =
-                persisted.copy(
-                    parentId = newParentId,
-                    updatedAt = System.currentTimeMillis(),
-                    version = persisted.version + 1,
-                    syncedAt = null, // Скидаємо для синхронізації
-                )
-            workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
-                contextDao.update(updatedContext)
-            }
-            ensureDirectionFrontLinkForParentChangeIfNeeded(
-                oldParentId = oldParentId,
-                newParentId = newParentId,
-                childId = persisted.id,
-                childName = persisted.name,
-            )
-        }
-
-        // Додайте в ContextRepository.kt
 
         /**
          * Логування підсумків часу для контексту (використовується в MainActivity)

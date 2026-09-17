@@ -36,6 +36,7 @@ class ChecklistRepository
             roleCode: String? = null,
             isSystem: Boolean = false,
         ): String {
+            attachmentRepository.requireAttachmentPlacementAuthoring(contextId)
             val now = System.currentTimeMillis()
             val checklist = ChecklistEntity(contextId = contextId, name = name, updatedAt = now)
             checklistDao.insertChecklist(checklist)

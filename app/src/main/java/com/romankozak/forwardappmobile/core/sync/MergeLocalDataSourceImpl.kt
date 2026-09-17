@@ -7,10 +7,13 @@ import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemS
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceConnectionSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagTransportStore
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeed
 
-import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
+import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 
 import android.util.Log
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
@@ -27,6 +30,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonical
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toWorkspaceOwnedEntityOrNull
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
@@ -35,12 +39,14 @@ import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBoot
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
+import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
@@ -69,6 +75,8 @@ class MergeLocalDataSourceImpl
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
         private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val systemWorkspaceMaterializer: SystemWorkspaceMaterializer,
+        private val databaseInitializer: DatabaseInitializer,
         private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
         private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
         private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
@@ -102,17 +110,39 @@ class MergeLocalDataSourceImpl
         private val canonicalWorkspaceInboxSyncStore: CanonicalWorkspaceInboxSyncStore,
         private val canonicalWorkspaceConnectionSyncStore: CanonicalWorkspaceConnectionSyncStore,
         private val canonicalWorkspaceBacklogSyncStore: CanonicalWorkspaceBacklogSyncStore,
+        private val canonicalWorkspaceTagTransportStore: CanonicalWorkspaceTagTransportStore,
+        private val systemWorkspaceTagSeed: SystemWorkspaceTagSeed,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
-        private val inboxAssociationCache: InboxAssociationCache,
+        private val tagAssociationHandler: TagAssociationHandler,
     ) : MergeLocalDataSource {
-        override suspend fun getContexts(): List<Context> = contextDao.getAll()
+        override suspend fun getContexts(): List<Context> {
+            val retiredContextIds = db.canonicalRetiredContextIds()
+            return contextDao
+                .getAll()
+                .withoutLiveRetiredContexts(
+                    retiredContextIds = retiredContextIds,
+                    id = { it.id },
+                    isDeleted = { it.isDeleted },
+                )
+        }
 
         override suspend fun getGoals(): List<Goal> = goalDao.getAll()
 
         override suspend fun insertContexts(contexts: List<Context>) =
-            contextWorkspaceWriteThrough.mutate { contextDao.insertContexts(contexts) }
+            contextWorkspaceWriteThrough.mutate {
+                val retiredContextIds = db.canonicalRetiredContextIds()
+                val contextsForPersistence =
+                    contexts
+                        .filterNot { context -> isReservedSystemContextId(context.id) }
+                        .withoutLiveRetiredContexts(
+                            retiredContextIds = retiredContextIds,
+                            id = { it.id },
+                            isDeleted = { it.isDeleted },
+                        )
+                contextDao.insertContexts(contextsForPersistence)
+            }
 
         override suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
 
@@ -140,7 +170,25 @@ class MergeLocalDataSourceImpl
             // У SyncChange.entity тип Any, він не може бути null, тому прибираємо Elvis оператор
             when (val entity = change.entity) {
                 is Goal -> goalDao.insertGoal(entity)
-                is Context -> contextDao.insert(entity)
+                is Context -> {
+                    when {
+                        isReservedSystemContextId(entity.id) -> {
+                            Log.d(
+                                "MergeDataSource",
+                                "Ignoring legacy reserved-System Context upsert ${entity.id}",
+                            )
+                        }
+
+                        !entity.isDeleted && db.isCanonicalRetiredContextId(entity.id) -> {
+                            Log.d(
+                                "MergeDataSource",
+                                "Ignoring retired Context resurrection ${entity.id}",
+                            )
+                        }
+
+                        else -> contextDao.insert(entity)
+                    }
+                }
                 is AttachmentEntity -> attachmentDao.insertAttachment(entity)
             }
         }
@@ -150,8 +198,15 @@ class MergeLocalDataSourceImpl
             when (change.entityType) {
                 "Ціль" -> goalDao.deleteGoalById(change.id)
                 "Список" -> {
-                    val context = contextDao.getContextById(change.id)
-                    if (context == null) contextDao.delete(change.id) else contextDao.insert(context.softDelete())
+                    if (isReservedSystemContextId(change.id)) {
+                        Log.d(
+                            "MergeDataSource",
+                            "Ignoring legacy reserved-System Context delete ${change.id}",
+                        )
+                    } else {
+                        val context = contextDao.getContextById(change.id)
+                        if (context == null) contextDao.delete(change.id) else contextDao.insert(context.softDelete())
+                    }
                 }
                 "Вкладення" -> attachmentDao.deleteAttachment(change.id)
             }
@@ -164,7 +219,16 @@ class MergeLocalDataSourceImpl
             crossRefs: List<ContextAttachmentCrossRef>,
         ) {
             contextWorkspaceWriteThrough.mutate {
-                if (projects.isNotEmpty()) contextDao.insertContexts(projects)
+                val retiredContextIds = db.canonicalRetiredContextIds()
+                val ordinaryProjects =
+                    projects
+                        .filterNot { project -> isReservedSystemContextId(project.id) }
+                        .withoutLiveRetiredContexts(
+                            retiredContextIds = retiredContextIds,
+                            id = { it.id },
+                            isDeleted = { it.isDeleted },
+                        )
+                if (ordinaryProjects.isNotEmpty()) contextDao.insertContexts(ordinaryProjects)
                 if (goals.isNotEmpty()) goalDao.insertGoals(goals)
                 if (attachments.isNotEmpty()) attachmentDao.insertAttachments(attachments)
                 if (crossRefs.isNotEmpty()) attachmentDao.insertContextAttachmentLinks(crossRefs)
@@ -174,6 +238,46 @@ class MergeLocalDataSourceImpl
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
+
+            val contextIngress = partitionSystemContextSnapshotIngress(bundle.contexts)
+            val retiredContextIds =
+                db.canonicalRetiredContextIds(bundle.workspaces.orEmpty())
+            val contextSnapshotsForPersistence =
+                contextIngress.ordinarySnapshots.withoutLiveRetiredContexts(
+                    retiredContextIds = retiredContextIds,
+                    id = { it.id },
+                    isDeleted = { it.isDeleted },
+                )
+            val contextConfigurations =
+                bundle.contextConfigurations.map { snapshot ->
+                    ContextConfiguration(
+                        id = snapshot.id,
+                        contextId = snapshot.contextId,
+                        basePresetCode = snapshot.basePresetCode,
+                        experimentalCapabilityIds = snapshot.experimentalCapabilityIds.orEmpty(),
+                        applyMode = snapshot.applyMode,
+                        enableInbox = snapshot.enableInbox,
+                        enableLog = snapshot.enableLog,
+                        enableAdvanced = snapshot.enableAdvanced,
+                        enableDashboard = snapshot.enableDashboard,
+                        enableBacklog = snapshot.enableBacklog,
+                        enableAttachments = snapshot.enableAttachments,
+                        enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
+                        removeInboxEntryAfterTagAutocopy = snapshot.removeInboxEntryAfterTagAutocopy ?: false,
+                        removeBacklogEntryAfterTagAutocopy = snapshot.removeBacklogEntryAfterTagAutocopy ?: false,
+                        version = snapshot.version,
+                        updatedAt = snapshot.updatedAt,
+                        isDeleted = snapshot.isDeleted,
+                    )
+                }
+            val legacySystemConfigurationEvidence =
+                contextConfigurations.filter { configuration ->
+                    isReservedSystemContextId(configuration.contextId)
+                }
+            val ordinaryContextConfigurations =
+                contextConfigurations.filterNot { configuration ->
+                    isReservedSystemContextId(configuration.contextId)
+                }
 
             val hasCanonicalDayThemePayload =
                 bundle.themeDefinitions != null &&
@@ -328,8 +432,12 @@ class MergeLocalDataSourceImpl
                 (goalDao.getAllRaw().map { goal -> goal.id } + bundle.goals.map { goal -> goal.id })
                     .toSet()
             val validContextIdsForDayTasks =
-                (contextDao.getAllRaw().map { context -> context.id } + bundle.contexts.map { context -> context.id })
-                    .toSet()
+                (
+                    contextDao.getAllRaw()
+                        .map { context -> context.id }
+                        .filterNot(::isReservedSystemContextId) +
+                        contextSnapshotsForPersistence.map { context -> context.id }
+                ).toSet()
             val validActivityRecordIds =
                 (activityRecordDao.getAllRaw().map { record -> record.id } + bundle.activityRecords.map { record -> record.id })
                     .toSet()
@@ -359,7 +467,11 @@ class MergeLocalDataSourceImpl
                     }.map { task ->
                         task.copy(
                             goalId = task.goalId?.takeIf { id -> id in validGoalIds },
-                            projectId = task.projectId?.takeIf { id -> id in validContextIdsForDayTasks },
+                            projectId =
+                                task.projectId?.takeIf { id ->
+                                    isReservedSystemContextId(id) ||
+                                        id in validContextIdsForDayTasks
+                                },
                             activityRecordId = task.activityRecordId?.takeIf { id -> id in validActivityRecordIds },
                         )
                     }
@@ -367,7 +479,12 @@ class MergeLocalDataSourceImpl
             val skippedDayFocusCount = remappedDayFocusItems.size - dayFocusItemsToInsert.size
             val clearedTaskGoalCount = remappedDayTasks.count { task -> task.goalId != null && task.goalId !in validGoalIds }
             val clearedTaskContextCount =
-                remappedDayTasks.count { task -> task.projectId != null && task.projectId !in validContextIdsForDayTasks }
+                remappedDayTasks.count { task ->
+                    task.projectId?.let { id ->
+                        !isReservedSystemContextId(id) &&
+                            id !in validContextIdsForDayTasks
+                    } == true
+                }
             val clearedTaskActivityCount =
                 remappedDayTasks.count { task -> task.activityRecordId != null && task.activityRecordId !in validActivityRecordIds }
             Log.i(
@@ -384,15 +501,26 @@ class MergeLocalDataSourceImpl
                     "remap=$incomingPlanIdRemap",
             )
 
-            contextWorkspaceWriteThrough.mutate {
-                contextDao.insertAll(bundle.contexts.map { it.toEntity() })
-                val validContextIds = bundle.contexts.map { it.id }.toSet()
-                contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
+            contextWorkspaceWriteThrough.mutateAndAfterWorkspaceRefresh(
+                mutation = {
+                contextDao.insertAll(contextSnapshotsForPersistence.map { it.toEntity() })
+                contextParentLinkDao.insertAll(
+                    bundle.contextParentLinks
+                        .filterNot { link ->
+                            isReservedSystemContextId(link.parentContextId) ||
+                                isReservedSystemContextId(link.childContextId) ||
+                                link.parentContextId in retiredContextIds ||
+                                link.childContextId in retiredContextIds
+                        }.map { it.toEntity() },
+                )
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
-                val validDocumentIds = bundle.documents.map { it.id }.toSet()
                 musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
-                legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
+                legacyNoteDao.insertAll(
+                    bundle.notes
+                        .filterNot { note -> isReservedSystemContextId(note.contextId) }
+                        .map { it.toEntity() },
+                )
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
                 // --- Consolidate and auto-link attachments and cross-refs ---
@@ -446,14 +574,13 @@ class MergeLocalDataSourceImpl
                         .map { it.toEntity() },
                 )
 
-                val missions = bundle.tacticalMissions.map { it.toEntity() }
-                if (missions.isNotEmpty()) {
-                    tacticalMissionDao.insertMissions(missions)
-                    Log.d("MergeImport", "Tactical Missions: ${missions.size} records processed during Import.")
-                }
                 tacticalIterationDao.insertAll(bundle.tacticalIterations)
                 missionStreamDao.insertAll(bundle.missionStreams)
-                tacticalActivitySlotDao.insertAll(bundle.tacticalActivitySlots)
+                tacticalActivitySlotDao.insertAll(
+                    bundle.tacticalActivitySlots.filterNot { slot ->
+                        isReservedSystemContextId(slot.contextId)
+                    },
+                )
                 arcQuestDao.insertAll(bundle.arcQuests)
 
                 if (bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty()) {
@@ -472,30 +599,13 @@ class MergeLocalDataSourceImpl
                     )
                 }
 
-                systemAppDao.insertAll(
-                    bundle.systemApps.mapNotNull { app ->
-                        when {
-                            app.contextId !in validContextIds -> null
-                            app.noteDocumentId != null && app.noteDocumentId !in validDocumentIds ->
-                                app.copy(noteDocumentId = null)
-                            else -> app
-                        }
-                    }.map { it.toEntity() },
-                )
                 activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
                 recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
                 linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
-                dayTaskDao.insertTasks(
-                    dayTasksToInsert.map { snapshot ->
-                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
-                            .dayTaskEntity(snapshot, snapshot.toEntity())
-                    },
-                )
                 dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
                 chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
                 chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
                 reminderDao.insertAll(bundle.reminders.map { it.toEntity() })
-                tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
                 aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
                 aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
                 mainBeaconDao.insertGroups(bundle.mainBeaconGroups.map { it.toEntity() })
@@ -504,30 +614,12 @@ class MergeLocalDataSourceImpl
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
                 structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
                 structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
-                contextStructureDao.insertAll(
-                    bundle.contextConfigurations.map { snapshot ->
-                        ContextConfiguration(
-                            id = snapshot.id,
-                            contextId = snapshot.contextId,
-                            basePresetCode = snapshot.basePresetCode,
-                            experimentalCapabilityIds = snapshot.experimentalCapabilityIds.orEmpty(),
-                            applyMode = snapshot.applyMode,
-                            enableInbox = snapshot.enableInbox,
-                            enableLog = snapshot.enableLog,
-                            enableAdvanced = snapshot.enableAdvanced,
-                            enableDashboard = snapshot.enableDashboard,
-                            enableBacklog = snapshot.enableBacklog,
-                            enableAttachments = snapshot.enableAttachments,
-                            enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
-                            removeInboxEntryAfterTagAutocopy = snapshot.removeInboxEntryAfterTagAutocopy ?: false,
-                            removeBacklogEntryAfterTagAutocopy = snapshot.removeBacklogEntryAfterTagAutocopy ?: false,
-                            version = snapshot.version,
-                            updatedAt = snapshot.updatedAt,
-                            isDeleted = snapshot.isDeleted,
-                        )
-                    },
+                contextStructureDao.insertAll(ordinaryContextConfigurations)
+                contextStructureDao.insertAllItems(
+                    bundle.projectStructureItems
+                        .filterNot { item -> item.contextStructureId in legacySystemConfigurationEvidence.map { it.id } }
+                        .map { it.toEntity() },
                 )
-                contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
                 if (bundle.contextInboxSortingRules.isNotEmpty()) {
                     Log.d(
                         "ForwardSync",
@@ -538,10 +630,60 @@ class MergeLocalDataSourceImpl
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
                 mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
                 mainBeaconDao.insertParentLinks(bundle.mainBeaconParentLinks.map { it.toEntity() })
-                mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
                 db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+
+                val validCanonicalWorkspaceIdsForDayTasks =
+                    db.workspaceDao().getAll()
+                        .asSequence()
+                        .filter { workspace ->
+                            !workspace.isDeleted &&
+                                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                                workspace.sourceContextId == null
+                        }
+                        .mapTo(hashSetOf()) { workspace -> workspace.id }
+
+                val routedDayTasksToInsert =
+                    dayTasksToInsert.map { snapshot ->
+                        val projectId = snapshot.projectId
+                        if (
+                            projectId != null &&
+                            isReservedSystemContextId(projectId) &&
+                            projectId !in validCanonicalWorkspaceIdsForDayTasks
+                        ) {
+                            Log.w(
+                                "MergeImport",
+                                "Dropping legacy System DayTask owner $projectId for ${snapshot.id}: " +
+                                    "no live same-id CANONICAL_ONLY Workspace",
+                            )
+                            snapshot.copy(projectId = null)
+                        } else {
+                            snapshot
+                        }
+                    }
+
+                dayTaskDao.insertTasks(
+                    routedDayTasksToInsert.map { snapshot ->
+                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                            .dayTaskEntity(snapshot, snapshot.toEntity())
+                    },
+                )
+
+                val missions = bundle.tacticalMissions.map { it.toEntity() }
+                if (missions.isNotEmpty()) {
+                    tacticalMissionDao.insertMissions(missions)
+                    Log.d(
+                        "MergeImport",
+                        "Tactical Missions: ${missions.size} records processed during Import.",
+                    )
+                }
+                tacticalMissionDao.insertMissionAttachments(
+                    bundle.tacticalMissionAttachments.map { it.toEntity() },
+                )
+
+                mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+                canonicalWorkspaceTagTransportStore.mergeIncoming(bundle.workspaceTagRefs)
                 bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
                     canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
                 }
@@ -550,11 +692,45 @@ class MergeLocalDataSourceImpl
                 canonicalWorkspaceInboxSyncStore.mergeIncoming(bundle.workspaceInboxRecords)
                 canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
                 canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
+                },
+                afterRefresh = {
+                    // Exact reserved System Contexts are never projected as
+                    // CONTEXT_BACKED. Materialize canonical owners before
+                    // SystemApp validation and explicit old-backup capability
+                    // ingress consume the imported payload.
+                    systemWorkspaceMaterializer.materializeAll(
+                        seedMissingFactoryCapabilities = false,
+                        legacyContextEvidence = contextIngress.systemEvidence,
+                    )
+                    insertWorkspaceOwnedSystemAppsForMerge(bundle)
+                },
+            )
+            if (bundle.workspaceTagRefs != null) {
+                systemWorkspaceTagSeed.markImportedCanonicalCollections(
+                    workspaceIds =
+                        bundle.workspaces.orEmpty().map { it.id } +
+                            bundle.workspaceTagRefs.orEmpty().map { it.workspaceId },
+                )
+            } else {
+                systemWorkspaceTagSeed.ingestLegacySystemTagProjection(
+                    legacyTagsByWorkspaceId =
+                        bundle.contexts.associate { context ->
+                            context.id to context.tags.orEmpty()
+                        },
+                )
+            }
+            if (bundle.workspaceCapabilityInstances == null) {
+                // Explicit import-only compatibility boundary. Normal bootstrap
+                // intentionally ignores promoted-System legacy capability drift.
+                contextWorkspaceWriteThrough.ingestLegacySystemCapabilityProjection(
+                    legacyContextEvidence = contextIngress.systemEvidence,
+                    legacyConfigurationEvidence = legacySystemConfigurationEvidence,
+                )
             }
             executionLogWorkspaceOwnershipBridge.repairUnresolved()
             // InboxRecordLink is a local materialized cache only.
-            // Rebuild it from canonical InboxRecord + Context.tags after import.
-            inboxAssociationCache.rebuild()
+            // Rebuild Goal/Inbox hashtag associations from effective ordinary-Context + canonical-System tag ownership.
+            tagAssociationHandler.repairAllAssociations()
             // A pre-canonical backup carries Main Beacon group membership only
             // in the legacy full-set collection. If the destination has already
             // CUT_OVER, ordinary bootstrap intentionally ignores legacy drift.
@@ -582,6 +758,32 @@ class MergeLocalDataSourceImpl
                     "merge affected plan dayPlanId=$planId taskCount=${dayTaskDao.getTaskCountForDay(planId)}",
                 )
             }
+
+            // A successful import must leave reserved System ownership in its
+            // canonical postcondition. Legacy Context rows from old payloads
+            // are bounded ingress evidence, never the returned runtime owner.
+            databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+        }
+
+        private suspend fun insertWorkspaceOwnedSystemAppsForMerge(bundle: SnapshotBundle) {
+            val validWorkspaceIds =
+                db.workspaceDao().getAll().asSequence().filterNot { it.isDeleted }.mapTo(hashSetOf()) { it.id }
+            val validDocumentIds = bundle.documents.mapTo(hashSetOf()) { it.id }
+            val systemAppsToInsert =
+                bundle.systemApps.mapNotNull { app ->
+                    app.toWorkspaceOwnedEntityOrNull(
+                        liveWorkspaceIds = validWorkspaceIds,
+                        validDocumentIds = validDocumentIds,
+                        allowLegacyContextOwner = false,
+                    ) ?: run {
+                        Log.w(
+                            "ForwardSync",
+                            "Skipping SystemApp ${app.id}: missing canonical live Workspace owner",
+                        )
+                        null
+                    }
+                }
+            systemAppDao.insertAll(systemAppsToInsert)
         }
 
         private suspend fun findExistingPlanForIncomingDate(incomingDate: Long) =

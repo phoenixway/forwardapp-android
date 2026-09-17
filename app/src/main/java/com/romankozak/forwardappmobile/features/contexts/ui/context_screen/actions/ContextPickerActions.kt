@@ -11,11 +11,13 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
-import java.util.UUID
 
 data class ContextPickerRepositories(
     val contextRepository: ContextRepository,
+    val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
     val contextKeyProblemsRepository: ContextKeyProblemsRepository,
     val focusContextRepository: FocusContextRepository,
     val noteDocumentRepository: NoteDocumentRepository,
@@ -26,6 +28,7 @@ data class ContextPickerRepositories(
 class ContextPickerActions(
     private val repositories: ContextPickerRepositories,
     private val listChooserFlowActions: ListChooserFlowActions,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     private val loggerTag: String,
 ) {
     suspend fun onPickerContextSelected(
@@ -39,7 +42,12 @@ class ContextPickerActions(
             return
         }
 
-        val targetName = contextRepository.getContextById(targetContextId)?.name?.ifBlank { null } ?: targetContextId
+        val targetName =
+            systemWorkspacePresentationContextProjector
+                .resolvePresentation(targetContextId)
+                ?.name
+                ?.ifBlank { null }
+                ?: targetContextId
         contextRepository.addLinkItemToContextFromLink(
             contextId = currentContextId,
             link =
@@ -151,13 +159,12 @@ class ContextPickerActions(
     suspend fun createRootContextForPicker(name: String): String? {
         val trimmed = name.trim()
         if (trimmed.isBlank()) return null
-        val id = UUID.randomUUID().toString()
-        contextRepository.createContextWithId(
-            id = id,
-            name = trimmed,
-            parentId = null,
+        return repositories.canonicalWorkspaceRepository.create(
+            nameOverride = trimmed,
+            descriptionOverride = null,
+            parentWorkspaceId = null,
+            roleCode = null,
         )
-        return id
     }
 
     suspend fun createAttachmentForPicker(

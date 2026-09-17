@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
@@ -68,6 +69,7 @@ class EditTaskViewModelRecurrenceEditTest {
             every { task.dayPlanId } returns "plan-1"
             every { task.goalId } returns null
             every { task.projectId } returns null
+            every { task.projectWorkspaceId } returns null
             every { task.taskType } returns null
 
             every { recurringSeries.rule } returns
@@ -105,6 +107,7 @@ class EditTaskViewModelRecurrenceEditTest {
                     dayManagementRepository = repository,
                     canonicalTaskRecurrenceAuthoringAdapter = canonicalTaskRecurrenceAuthoringAdapter,
                     contextRepository = contextRepository,
+                    systemWorkspacePresentationContextProjector = mockk(relaxed = true),
                     savedStateHandle = SavedStateHandle(mapOf("taskId" to "task-1")),
                 )
 
@@ -156,4 +159,110 @@ class EditTaskViewModelRecurrenceEditTest {
 
             coVerify(exactly = 0) { repository.deleteTask(any()) }
         }
+
+    @Test
+    fun `editing System-owned recurring task preserves logical project owner`() =
+        runTest(dispatcher) {
+            val repository = mockk<DayManagementRepository>(relaxed = true)
+            val canonicalTaskRecurrenceAuthoringAdapter =
+                mockk<CanonicalTaskRecurrenceAuthoringAdapter>(relaxed = true)
+            val contextRepository = mockk<ContextRepository>(relaxed = true)
+            val task = mockk<DayTask>()
+            val recurringSeries = mockk<RecurringTaskSeries>()
+            val systemId = SystemContexts.TODAY.raw
+
+            every { task.id } returns "system-task"
+            every { task.recurrenceSeriesId } returns "series-system"
+            every { task.linkedProjectIds } returns emptyList()
+            every { task.linkedAttachmentIds } returns emptyList()
+            every { task.title } returns "System recurring task"
+            every { task.description } returns "Before edit"
+            every { task.priority } returns TaskPriority.MEDIUM
+            every { task.estimatedDurationMinutes } returns 30L
+            every { task.scheduledTime } returns null
+            every { task.dueTime } returns null
+            every { task.executionStrictness } returns TaskExecutionStrictness.NORMAL
+            every { task.points } returns 4
+            every { task.dayPlanId } returns "plan-system"
+            every { task.goalId } returns null
+            every { task.projectId } returns null
+            every { task.projectWorkspaceId } returns systemId
+            every { task.taskType } returns null
+
+            every { recurringSeries.rule } returns
+                CanonicalRecurrenceRule(
+                    frequency = CanonicalRecurrenceFrequency.DAILY,
+                    interval = 1,
+                    daysOfWeek = null,
+                )
+
+            coEvery { repository.getTaskById("system-task") } returns task
+            coEvery { repository.getPlanById("plan-system") } returns null
+            coEvery {
+                canonicalTaskRecurrenceAuthoringAdapter.getSeriesForOccurrence(task)
+            } returns recurringSeries
+
+            coEvery {
+                canonicalTaskRecurrenceAuthoringAdapter.updateSeriesTemplate(
+                    task = task,
+                    title = any(),
+                    description = any(),
+                    goalId = any(),
+                    projectId = any(),
+                    taskType = any(),
+                    linkedProjectIds = any(),
+                    linkedAttachmentIds = any(),
+                    priority = any(),
+                    estimatedDurationMinutes = any(),
+                    points = any(),
+                    executionStrictness = any(),
+                )
+            } returns task
+
+            val viewModel =
+                EditTaskViewModel(
+                    dayManagementRepository = repository,
+                    canonicalTaskRecurrenceAuthoringAdapter =
+                        canonicalTaskRecurrenceAuthoringAdapter,
+                    contextRepository = contextRepository,
+                    systemWorkspacePresentationContextProjector = mockk(relaxed = true),
+                    savedStateHandle =
+                        SavedStateHandle(mapOf("taskId" to "system-task")),
+                )
+
+            assertThat(viewModel.uiState.value.isRecurring).isTrue()
+
+            val navigationEvent = async { viewModel.uiEvent.first() }
+            viewModel.saveTask()
+            navigationEvent.await()
+
+            coVerify(exactly = 1) {
+                canonicalTaskRecurrenceAuthoringAdapter.updateSeriesTemplate(
+                    task = task,
+                    title = "System recurring task",
+                    description = "Before edit",
+                    goalId = null,
+                    projectId = systemId,
+                    taskType = null,
+                    linkedProjectIds = emptyList(),
+                    linkedAttachmentIds = emptyList(),
+                    priority = TaskPriority.MEDIUM,
+                    estimatedDurationMinutes = 30L,
+                    points = 4,
+                    executionStrictness = TaskExecutionStrictness.NORMAL,
+                )
+            }
+
+            coVerify(exactly = 1) {
+                repository.updateTask(
+                    match { params ->
+                        params.taskId == "system-task" &&
+                            params.projectId == systemId &&
+                            params.updateContextLinks
+                    },
+                )
+            }
+        }
+
+
 }

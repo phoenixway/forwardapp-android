@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceTagRefDao
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import javax.inject.Inject
@@ -17,6 +18,7 @@ class CanonicalOrientationSyncStore
         private val dao: OrientationDao,
         private val bootstrapper: CanonicalOrientationBootstrapper,
         private val workspaceDao: WorkspaceDao,
+        private val workspaceTagRefDao: WorkspaceTagRefDao,
         private val workspaceBootstrapper: CanonicalWorkspaceBootstrapper,
     ) {
         suspend fun loadUnsynced(): CanonicalOrientationSyncPayload {
@@ -40,6 +42,14 @@ class CanonicalOrientationSyncStore
                 ack.workspaces.forEach { workspaceDao.markSynced(it.id, it.version, syncedAt) }
                 ack.workspaceBindings.forEach { dao.markWorkspaceBindingSynced(it.id, it.version, syncedAt) }
                 ack.workspaceCapabilities.forEach { dao.markWorkspaceCapabilitySynced(it.id, it.version, syncedAt) }
+                ack.workspaceTagRefs.forEach {
+                    workspaceTagRefDao.markSyncedIfVersionMatches(
+                        workspaceId = it.workspaceId,
+                        normalizedTag = it.normalizedTag,
+                        expectedVersion = it.version,
+                        syncedAt = syncedAt,
+                    )
+                }
                 ack.savedViews.forEach { dao.markSavedViewSynced(it.id, it.version, syncedAt) }
             }
         }
@@ -57,6 +67,7 @@ class CanonicalOrientationSyncStore
                 workspaces = workspaceDao.getAll(),
                 workspaceBindings = dao.getAllWorkspaceBindings(),
                 workspaceCapabilities = dao.getAllWorkspaceCapabilities(),
+                workspaceTagRefs = workspaceTagRefDao.getAll(),
                 savedViews = dao.getAllSavedViews(),
             )
     }
@@ -71,4 +82,5 @@ private fun CanonicalOrientationSyncPayload.hasDirtyRows(): Boolean =
         workspaces.any { it.syncedAt == null } ||
         workspaceBindings.any { it.syncedAt == null } ||
         workspaceCapabilities.any { it.syncedAt == null } ||
+        workspaceTagRefs.any { it.syncedAt == null } ||
         savedViews.any { it.syncedAt == null }

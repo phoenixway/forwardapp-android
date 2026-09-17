@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
@@ -35,6 +36,7 @@ class AlarmScheduler
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
         private val missionRepositoryProvider: Provider<MissionRepository>,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
@@ -79,9 +81,16 @@ class AlarmScheduler
                                 val goal = goalRepository.getGoalById(reminder.entityId)
                                 Triple(goal?.text, goal?.description, "🎯")
                             }
-                            "CONTEXT" -> {
-                                val context = contextRepository.getContextById(reminder.entityId)
-                                Triple(context?.name, context?.description, "📂")
+                            // Project/context reminders exist under both persisted discriminator values.
+                            // Resolve both through the same shell-free presentation path.
+                            "PROJECT", "CONTEXT" -> {
+                                val rawContext = contextRepository.getContextById(reminder.entityId)
+                                val presentation =
+                                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                                        contextId = reminder.entityId,
+                                        context = rawContext,
+                                    )
+                                Triple(presentation?.name, presentation?.description, "📂")
                             }
                             "TASK" -> {
                                 val task = dayManagementRepository.getTaskById(reminder.entityId)

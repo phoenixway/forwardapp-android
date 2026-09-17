@@ -5,8 +5,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 class ContextCapabilitiesResolver {
-    fun resolve(config: ContextConfiguration): Set<CapabilityId> {
-        val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+    fun resolve(
+        config: ContextConfiguration,
+        includePresetCapabilities: Boolean = true,
+    ): Set<CapabilityId> {
+        val useRoleDefaults =
+            includePresetCapabilities &&
+                !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
         val roleCapabilities =
             if (useRoleDefaults) {
                 ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode)
@@ -84,8 +89,7 @@ class ContextCapabilitiesResolver {
                 config.enableLog != null ||
                 config.enableDashboard != null ||
                 config.enableBacklog != null ||
-                config.enableAttachments != null ||
-                config.enableAdvanced != null
+                config.enableAttachments != null
         val hasExperimentalOverrides = config.experimentalCapabilityIds.isNotEmpty()
         return !hasPreset && !hasLegacyOverrides && !hasExperimentalOverrides
     }

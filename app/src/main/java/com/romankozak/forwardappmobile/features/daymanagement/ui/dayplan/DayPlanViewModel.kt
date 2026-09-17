@@ -6,13 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
@@ -28,8 +28,11 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.TodayTabScopeLinksHandler
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
@@ -60,7 +63,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.UUID
 import javax.inject.Inject
 
 data class ParentInfo(
@@ -167,6 +169,8 @@ class DayPlanViewModel
         private val reminderRepository: ReminderRepository,
         private val contextDao: ContextDao,
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
@@ -205,8 +209,8 @@ class DayPlanViewModel
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextRepository.contextMarkerToEmojiMap
         val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
         private val allContextsFlow =
-            contextDao
-                .getAllContextsFlow()
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextDao.getAllContextsFlow())
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
@@ -363,11 +367,11 @@ class DayPlanViewModel
                                                             },
                                                         )
                                                     }
-                                                } else if (task.projectId != null) {
+                                                } else if (task.logicalProjectId != null) {
                                                     flow {
                                                         emit(
-                                                            dayManagementRepository.getProject(
-                                                                task.projectId!!,
+                                                            dayManagementRepository.getProjectPresentation(
+                                                                requireNotNull(task.logicalProjectId),
                                                             ),
                                                         )
                                                     }.map { project ->
@@ -592,15 +596,7 @@ class DayPlanViewModel
         }
 
         suspend fun createRootContextForPicker(name: String): String? {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return null
-            val id = UUID.randomUUID().toString()
-            contextRepository.createContextWithId(
-                id = id,
-                name = trimmed,
-                parentId = null,
-            )
-            return id
+            return canonicalWorkspaceRepository.createRootWorkspaceForPicker(name)
         }
 
         suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? =
@@ -1110,14 +1106,14 @@ class DayPlanViewModel
 
         fun copyTaskToEntityClipboard(taskWithReminder: DayTaskWithReminder) {
             backlogClipboardUseCase.copyDayTasks(
-                sourceContextId = taskWithReminder.dayTask.projectId.orEmpty(),
+                sourceContextId = taskWithReminder.dayTask.logicalProjectId.orEmpty(),
                 taskIds = listOf(taskWithReminder.dayTask.id),
             )
         }
 
         fun cutTaskToEntityClipboard(taskWithReminder: DayTaskWithReminder) {
             backlogClipboardUseCase.cutDayTasks(
-                sourceContextId = taskWithReminder.dayTask.projectId.orEmpty(),
+                sourceContextId = taskWithReminder.dayTask.logicalProjectId.orEmpty(),
                 taskIds = listOf(taskWithReminder.dayTask.id),
             )
         }
@@ -1145,7 +1141,7 @@ class DayPlanViewModel
                             description = task.description,
                             deadline = System.currentTimeMillis(),
                             status = MissionStatus.ACTIVE,
-                            projectId = task.projectId,
+                            projectId = task.logicalProjectId,
                             linkedProjectIds = task.linkedProjectIds.orEmpty(),
                             linkedAttachmentIds = emptyList(),
                         ),
@@ -1207,7 +1203,7 @@ class DayPlanViewModel
                                 title = title,
                                 description = description,
                                 goalId = task.goalId,
-                                projectId = task.projectId,
+                                projectId = task.logicalProjectId,
                                 taskType = task.taskType,
                                 linkedProjectIds = task.linkedProjectIds.orEmpty(),
                                 linkedAttachmentIds = task.linkedAttachmentIds.orEmpty(),
@@ -1225,7 +1221,7 @@ class DayPlanViewModel
                                 title = title,
                                 description = description,
                                 goalId = task.goalId,
-                                projectId = task.projectId,
+                                projectId = task.logicalProjectId,
                                 taskType = task.taskType,
                                 linkedProjectIds = task.linkedProjectIds.orEmpty(),
                                 linkedAttachmentIds = task.linkedAttachmentIds.orEmpty(),

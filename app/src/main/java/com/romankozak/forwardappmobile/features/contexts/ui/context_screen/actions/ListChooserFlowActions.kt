@@ -4,10 +4,12 @@ import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 
 class ListChooserFlowActions(
     private val contextRepository: ContextRepository,
     private val directionRepository: DirectionRepository,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
 ) {
     data class DirectionAddResult(
         val errorMessage: String? = null,
@@ -28,7 +30,10 @@ class ListChooserFlowActions(
             return DirectionAddResult(errorMessage = "Оберіть контекст для напрямку.")
         }
         val linkedContextName =
-            contextRepository.getContextById(linkedContextId)?.name?.takeIf { it.isNotBlank() }
+            systemWorkspacePresentationContextProjector
+                .resolvePresentation(linkedContextId)
+                ?.name
+                ?.takeIf { it.isNotBlank() }
                 ?: "Context"
         directionRepository.addDirectionItem(
             contextId = currentContextId,

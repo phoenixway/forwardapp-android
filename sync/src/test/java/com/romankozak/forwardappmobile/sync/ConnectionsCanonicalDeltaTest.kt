@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -63,24 +63,20 @@ class ConnectionsCanonicalDeltaTest {
     }
 
     @Test
-    fun `legacy Context attachment links are not projected after Connections hard cutover`() {
-        val tombstone =
-            ContextAttachmentCrossRefSnapshot(
-                contextId = "context-1",
-                attachmentId = "attachment-1",
-                attachmentOrder = 0L,
-                updatedAt = 500L,
-                isDeleted = true,
-                version = 3L,
+    fun `legacy Context attachment links are ignored after Connections hard cutover`() {
+        val legacyPayload =
+            Gson().fromJson(
+                """
+                {"version":2,"crossRefs":[{"contextId":"context-1","attachmentId":"attachment-1","attachmentOrder":0,"updatedAt":500,"isDeleted":true,"version":3}]}
+                """.trimIndent(),
+                SnapshotBundle::class.java,
             )
-
         val delta =
             buildCanonicalSnapshotDelta(
-                baseDelta = SnapshotBundle(version = 2, crossRefs = listOf(tombstone)),
+                baseDelta = legacyPayload,
                 fullSnapshot = SnapshotBundle(version = 2),
             )
 
-        assertTrue(delta.crossRefs.isEmpty())
         assertEquals(null, delta.workspaceConnections)
     }
 

@@ -11,14 +11,41 @@ import kotlin.test.assertTrue
 
 class BacklogCapabilityContractTest {
     @Test
-    fun `configuration v1 is an exact empty object`() {
-        assertEquals("{}", BacklogCapabilityConfigurationCodec.encodeDefault())
+    fun `configuration keeps strict v1 compatibility and uses typed v2 by default`() {
         assertEquals(
             BacklogCapabilityConfigurationV1,
             BacklogCapabilityConfigurationCodec.decode(1, "{}"),
         )
-        assertTrue(runCatching { BacklogCapabilityConfigurationCodec.decode(2, "{}") }.isFailure)
         assertTrue(runCatching { BacklogCapabilityConfigurationCodec.decode(1, "{\"x\":1}") }.isFailure)
+        assertEquals(
+            BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = false),
+            BacklogCapabilityConfigurationCodec.decode(
+                BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
+                BacklogCapabilityConfigurationCodec.encodeDefault(),
+            ),
+        )
+        listOf(false, true).forEach { enabled ->
+            val configuration = BacklogCapabilityConfigurationV2(enabled)
+            assertEquals(
+                configuration,
+                BacklogCapabilityConfigurationCodec.decode(2, BacklogCapabilityConfigurationCodec.encode(configuration)),
+            )
+        }
+        assertTrue(runCatching { BacklogCapabilityConfigurationCodec.decode(2, "{}") }.isFailure)
+        assertTrue(
+            runCatching {
+                BacklogCapabilityConfigurationCodec.decode(2, "{\"removeEntryAfterTagAutocopy\":\"true\"}")
+            }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                BacklogCapabilityConfigurationCodec.decode(
+                    2,
+                    "{\"removeEntryAfterTagAutocopy\":false,\"extra\":true}",
+                )
+            }.isFailure,
+        )
+        assertTrue(runCatching { BacklogCapabilityConfigurationCodec.decode(3, "{}") }.isFailure)
     }
 
     @Test

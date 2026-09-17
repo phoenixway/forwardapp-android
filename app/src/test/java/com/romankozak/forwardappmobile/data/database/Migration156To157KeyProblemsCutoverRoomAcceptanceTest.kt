@@ -33,6 +33,8 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             MIGRATION_163_164,
             MIGRATION_164_165,
             MIGRATION_165_166,
+            MIGRATION_166_167,
+            MIGRATION_167_168,
         )
 
     @Test
@@ -92,7 +94,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
 
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_problems"))
@@ -281,7 +283,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
 
             db.query(

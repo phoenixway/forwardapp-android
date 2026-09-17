@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.MusicNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ScriptSnapshot
@@ -72,6 +71,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Sav
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSnapshot
@@ -104,7 +104,6 @@ data class SnapshotBundle(
     @SerializedName("checklistItems") val checklistItems: List<ChecklistItemSnapshot> = emptyList(),
     @SerializedName("scripts") val scripts: List<ScriptSnapshot> = emptyList(),
     @SerializedName("attachments") val attachments: List<AttachmentSnapshot> = emptyList(),
-    @SerializedName("crossRefs") val crossRefs: List<ContextAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("inbox") val inbox: List<InboxRecordSnapshot> = emptyList(),
     @SerializedName("logs") val logs: List<ContextLogSnapshot> = emptyList(),
 
@@ -166,6 +165,10 @@ data class SnapshotBundle(
     @SerializedName("workspaceBindings") val workspaceBindings: List<WorkspaceBindingEntity>? = null,
     @SerializedName("workspaceCapabilityInstances")
     val workspaceCapabilityInstances: List<WorkspaceCapabilityInstanceEntity>? = null,
+    // Canonical Workspace tag-membership contract. null = absent/pre-cutover;
+    // [] = current canonical transport contains no membership rows.
+    @SerializedName("workspaceTagRefs")
+    val workspaceTagRefs: List<WorkspaceTagRefEntity>? = null,
     @SerializedName("savedOrientationViews")
     val savedOrientationViews: List<SavedOrientationViewEntity>? = null,
 

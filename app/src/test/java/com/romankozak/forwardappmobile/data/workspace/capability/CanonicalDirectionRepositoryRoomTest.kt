@@ -16,6 +16,12 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceC
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -64,6 +70,128 @@ class CanonicalDirectionRepositoryRoomTest {
                 database.orientationDao().getAllAssessments()
                     .any { it.orientationId == orientationId },
             )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `configuration update persists typed Direction configuration`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner")
+            val repository = repository(database)
+            val configuration =
+                DirectionCapabilityConfigurationV1(
+                    autoLinkChildWorkspaces = false,
+                )
+
+            repository.updateConfiguration(
+                workspaceId = "owner",
+                configuration = configuration,
+                now = 20L,
+            )
+
+            val stored =
+                database.orientationDao()
+                    .getAllWorkspaceCapabilities()
+                    .single {
+                        it.workspaceId == "owner" &&
+                            it.capabilityType == WorkspaceCapabilityType.DIRECTION.name &&
+                            !it.isDeleted
+                    }
+            assertEquals(
+                configuration,
+                DirectionCapabilityConfigurationCodec.decode(
+                    stored.configurationVersion,
+                    stored.configuration,
+                ),
+            )
+            assertEquals(2L, stored.version)
+            assertEquals(20L, stored.updatedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `typed state observes canonical lifecycle and typed configuration idempotently`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(workspace("owner")))
+            val repository = repository(database)
+            assertNull(repository.getState("owner"))
+            val active = CompletableDeferred<Unit>()
+            val disabled = CompletableDeferred<Unit>()
+            val archived = CompletableDeferred<Unit>()
+            val deleted = CompletableDeferred<Unit>()
+            val observation = launch {
+                repository.observeState("owner").collect { state ->
+                    when {
+                        state?.isDeleted == true -> deleted.complete(Unit)
+                        state?.lifecycleState == WorkspaceCapabilityState.ARCHIVED -> archived.complete(Unit)
+                        state?.lifecycleState == WorkspaceCapabilityState.DISABLED -> disabled.complete(Unit)
+                        state?.lifecycleState == WorkspaceCapabilityState.ACTIVE -> active.complete(Unit)
+                    }
+                }
+            }
+            try {
+                repository.enable("owner", now = 10L)
+                withTimeout(5_000L) { active.await() }
+
+                val configuration = DirectionCapabilityConfigurationV1(autoLinkChildWorkspaces = false)
+                repository.updateConfiguration("owner", configuration, now = 20L)
+                val version = database.orientationDao().getAllWorkspaceCapabilities().single().version
+                repository.updateConfiguration("owner", configuration, now = 30L)
+                assertEquals(version, database.orientationDao().getAllWorkspaceCapabilities().single().version)
+                assertEquals(configuration, repository.observeState("owner").first()?.configuration)
+
+                repository.disable("owner", now = 40L)
+                withTimeout(5_000L) { disabled.await() }
+                assertEquals(WorkspaceCapabilityState.DISABLED, repository.getState("owner")?.lifecycleState)
+                repository.archive("owner", now = 50L)
+                withTimeout(5_000L) { archived.await() }
+                assertEquals(WorkspaceCapabilityState.ARCHIVED, repository.getState("owner")?.lifecycleState)
+                repository.delete("owner", now = 60L)
+                withTimeout(5_000L) { deleted.await() }
+                assertTrue(requireNotNull(repository.getState("owner")).isDeleted)
+            } finally {
+                observation.cancelAndJoin()
+            }
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `typed state rejects unsupported Direction configuration`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner")
+            val current = database.orientationDao().getAllWorkspaceCapabilities().single()
+            database.orientationDao().upsertWorkspaceCapabilities(
+                listOf(current.copy(configurationVersion = 999)),
+            )
+            assertTrue(runCatching { repository(database).getState("owner") }.isFailure)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `database uniqueness prevents duplicate Direction logical default`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner")
+            val before = database.orientationDao().getAllWorkspaceCapabilities().single()
+
+            database.orientationDao().upsertWorkspaceCapabilities(
+                listOf(before.copy(id = "duplicate-direction")),
+            )
+
+            val after = database.orientationDao().getAllWorkspaceCapabilities()
+            assertEquals(1, after.size)
+            assertEquals(before, after.single())
         } finally {
             database.close()
         }

@@ -45,6 +45,7 @@ class NoteDocumentRepository
             isSystem: Boolean = false,
         ): String {
             Log.d(TAG, "createDocument called with name: $name, contextId: $contextId, content: $content")
+            attachmentRepository.requireAttachmentPlacementAuthoring(contextId)
             val now = System.currentTimeMillis()
             val resolvedName = name.trim().ifBlank { DEFAULT_NOTE_NAME }
             val resolvedContent =

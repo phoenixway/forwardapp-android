@@ -41,12 +41,6 @@ data class ContextTagRef(
             childColumns = ["record_id"],
             onDelete = ForeignKey.CASCADE,
         ),
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
     ],
 )
 data class InboxRecordLink(
@@ -60,8 +54,12 @@ data class InboxRecordLink(
 /**
  * Rebuildable local projection for hashtag-routed Goal appearances in Backlog.
  *
- * Authority remains Goal + Context tags + the explicit owner placement.
- * These rows are never sync, backup, or canonical placement authority.
+ * Authority remains Goal + effective owner tags + the explicit owner placement.
+ * Reserved System tag authority may come from canonical Workspace tags.
+ * context_id is therefore a stable logical target id, not Context ownership:
+ * it may identify either an ordinary Context or an exact canonical System
+ * Workspace. These rows are never sync, backup, or canonical placement
+ * authority.
  */
 @Entity(
     tableName = "backlog_goal_association_links",
@@ -77,12 +75,6 @@ data class InboxRecordLink(
             entity = Goal::class,
             parentColumns = ["id"],
             childColumns = ["goal_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],

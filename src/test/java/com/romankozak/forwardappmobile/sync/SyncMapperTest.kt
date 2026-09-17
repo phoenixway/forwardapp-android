@@ -37,7 +37,6 @@ class SyncMapperTest {
         // ПЕРЕВІРКА ЗВ'ЯЗКІВ (те саме, що фіксить "невидимість")
         // Має бути 2 вкладення: одне для чек-ліста, одне для документа
         assertEquals(2, snapshot.attachments.size)
-        assertEquals(2, snapshot.crossRefs.size)
 
         // Перевірка детермінованості ID
         val expectedAttachmentId = SyncMapper.generateDeterministicId("ch-1", "CHECKLIST")
@@ -45,9 +44,6 @@ class SyncMapperTest {
         assertEquals("ID вкладення має бути детермінованим", expectedAttachmentId, actualAttachmentId)
 
         // Перевірка CrossRef
-        val crossRef = snapshot.crossRefs.find { it.attachmentId == actualAttachmentId }
-        assertNotNull("CrossRef має існувати для вкладення", crossRef)
-        assertEquals(testContextId, crossRef?.contextId)
     }
 
     @Test
@@ -62,6 +58,5 @@ class SyncMapperTest {
 
         // Якщо contextId порожній, вкладення не повинні створюватися (щоб не засмічувати базу)
         assertTrue(snapshot.attachments.isEmpty())
-        assertTrue(snapshot.crossRefs.isEmpty())
     }
 }

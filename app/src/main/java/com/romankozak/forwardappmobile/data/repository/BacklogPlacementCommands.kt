@@ -119,6 +119,22 @@ class BacklogPlacementCommands
                 .distinct()
                 .sorted()
 
+        /**
+         * Read-only compatibility lookup for rebuildable Goal projections.
+         *
+         * MATERIALIZED / absent legacy Goal mappings have not crossed canonical
+         * write authority yet, so they simply have no canonical direct
+         * placements to contribute to association repair.
+         */
+        suspend fun findLiveGoalWorkspaceIdsIfCutOver(goalId: String): List<String> {
+            val target = canonicalTargetResolver.resolveGoalIfCutOver(goalId) ?: return emptyList()
+            return canonicalRepository
+                .findLivePlacements(target)
+                .map { it.workspaceId }
+                .distinct()
+                .sorted()
+        }
+
         suspend fun restoreContextBacked(items: List<BacklogItem>) {
             val explicit =
                 items.filter { item ->

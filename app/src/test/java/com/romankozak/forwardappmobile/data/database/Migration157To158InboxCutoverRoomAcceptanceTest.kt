@@ -32,6 +32,8 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
             MIGRATION_163_164,
             MIGRATION_164_165,
             MIGRATION_165_166,
+            MIGRATION_166_167,
+            MIGRATION_167_168,
         )
 
     @Test
@@ -56,7 +58,7 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
                 .build()
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "inbox_records"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_inbox_records"))
             assertEquals(
@@ -114,7 +116,7 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "inbox_records"))
             assertEquals(
                 1L,

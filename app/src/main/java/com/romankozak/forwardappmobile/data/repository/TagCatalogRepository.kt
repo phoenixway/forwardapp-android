@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.domain.tags.buildHashTagCatalog
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -18,6 +19,7 @@ class TagCatalogRepository
         goalDao: GoalDao,
         dayTaskDao: DayTaskDao,
         contextDao: ContextDao,
+        systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
     ) {
         val tags: Flow<List<String>> =
             combine(
@@ -25,7 +27,8 @@ class TagCatalogRepository
                 goalDao.getAllVisibleGoalsFlow(),
                 dayTaskDao.getAllVisibleTasksFlow(),
                 contextDao.getAllContexts(),
-            ) { activityRecords, goals, dayTasks, contexts ->
+                systemWorkspaceTagAuthority.observeEffectiveOwners(contextDao.getAllContexts()),
+            ) { activityRecords, goals, dayTasks, contexts, tagOwners ->
                 buildHashTagCatalog(
                     texts =
                         sequence {
@@ -45,7 +48,7 @@ class TagCatalogRepository
                         sequence {
                             goals.forEach { goal -> yieldAll(goal.tags.orEmpty()) }
                             dayTasks.forEach { task -> yieldAll(task.tags.orEmpty()) }
-                            contexts.forEach { context -> yieldAll(context.tags.orEmpty()) }
+                            tagOwners.forEach { owner -> yieldAll(owner.tags) }
                         },
                 )
             }

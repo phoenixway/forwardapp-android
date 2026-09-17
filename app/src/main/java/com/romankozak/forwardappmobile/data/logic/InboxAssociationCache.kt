@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.shared.core.domain.inbox.firstMatchingInboxAssociationTag
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,7 +14,7 @@ import javax.inject.Singleton
 /**
  * Local materialized cache for Inbox hashtag routing.
  *
- * Canonical authority is InboxRecord + Context.tags. These links are never
+ * Canonical authority is InboxRecord + effective owner tags: ordinary Context.tags plus canonical System Workspace tags. These links are never
  * synchronization or backup authority and may be deleted and rebuilt at any time.
  */
 @Singleton
@@ -23,6 +24,7 @@ class InboxAssociationCache
         private val contextDao: ContextDao,
         private val inboxRecordDao: InboxRecordDao,
         private val inboxRecordLinkDao: InboxRecordLinkDao,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
     ) {
         @Transaction
         suspend fun refresh(record: InboxRecord): Map<String, String> {
@@ -32,12 +34,13 @@ class InboxAssociationCache
             }
 
             val desired =
-                contextDao.getAll()
+                systemWorkspaceTagAuthority
+                    .effectiveOwners(contextDao.getAll())
                     .asSequence()
-                    .filter { context -> !context.isDeleted && context.id != record.contextId }
-                    .mapNotNull { context ->
-                        firstMatchingInboxAssociationTag(record.text, context.tags.orEmpty())
-                            ?.let { tag -> context.id to tag }
+                    .filter { owner -> owner.id != record.contextId }
+                    .mapNotNull { owner ->
+                        firstMatchingInboxAssociationTag(record.text, owner.tags)
+                            ?.let { tag -> owner.id to tag }
                     }
                     .toMap()
 

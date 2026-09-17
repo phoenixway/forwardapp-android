@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
@@ -36,45 +35,39 @@ class HierarchyFocusCoordinator
             searchUseCase.clearNavigation()
         }
 
-        fun focusContext(
-            context: Context,
-            currentHierarchy: ContextHierarchyData,
-            currentSubState: MainSubState,
-            currentBreadcrumbs: List<BreadcrumbItem>,
-            orientationHierarchy: List<OrientationHierarchyItem>,
-        ) {
-            revealContext(
-                context = context,
-                currentHierarchy = currentHierarchy,
-                currentSubState = currentSubState,
-                currentBreadcrumbs = currentBreadcrumbs,
-                orientationHierarchy = orientationHierarchy,
-                enterFocus = true,
-            )
-        }
-
-        fun revealContext(
-            context: Context,
-            currentHierarchy: ContextHierarchyData,
+        /**
+         * Reveals a read-side hierarchy node by stable id. This intentionally
+         * has no Room Context requirement: a valid shell-free
+         * reserved System Workspace is represented by the orientation presentation
+         * graph and remains read-only.
+         */
+        fun revealProject(
+            projectId: String,
+            currentHierarchy: HierarchyPresentationData,
             currentSubState: MainSubState,
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
             enterFocus: Boolean,
             replaceFocusPath: Boolean = false,
         ) {
+            // Stable-id reveal is a read-side operation, but the id must still
+            // belong to the admitted presentation universe. Do not let an
+            // arbitrary id manufacture focused/navigation state.
+            if (currentHierarchy.allProjects.none { it.id == projectId }) return
+
             val orientationBreadcrumbs =
                 buildOrientationBreadcrumbsToContext(
                     items = orientationHierarchy,
-                    contextId = context.id,
+                    contextId = projectId,
                 )
             if (orientationBreadcrumbs.isNotEmpty()) {
                 searchUseCase.navigateToProjectWithBreadcrumbs(
-                    projectId = context.id,
+                    projectId = projectId,
                     breadcrumbs = orientationBreadcrumbs,
                 )
             } else {
                 searchUseCase.navigateToProject(
-                    projectId = context.id,
+                    projectId = projectId,
                     currentHierarchy = currentHierarchy,
                     breadcrumbPrefix =
                         currentOrientationBreadcrumbPrefix(
@@ -87,17 +80,17 @@ class HierarchyFocusCoordinator
             if (enterFocus) {
                 if (replaceFocusPath && orientationBreadcrumbs.isNotEmpty()) {
                     searchUseCase.enterProjectFocusPath(
-                        projectId = context.id,
+                        projectId = projectId,
                         breadcrumbs = orientationBreadcrumbs,
                     )
                 } else {
-                    searchUseCase.enterProjectFocus(context.id)
+                    searchUseCase.enterProjectFocus(projectId)
                 }
             }
         }
 
         fun handleBackNavigation(
-            currentHierarchy: ContextHierarchyData,
+            currentHierarchy: HierarchyPresentationData,
             goBack: () -> Unit,
         ) {
             searchUseCase.handleBackNavigation(

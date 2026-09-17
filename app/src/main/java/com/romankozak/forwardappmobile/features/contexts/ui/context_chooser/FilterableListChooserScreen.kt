@@ -43,9 +43,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import kotlinx.coroutines.delay
-import java.util.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -60,17 +60,18 @@ fun FilterableListChooserScreen(
     onConfirm: (String?) -> Unit,
     currentParentId: String?,
     disabledIds: Set<String> = emptySet(),
-    onAddNewList: (id: String, parentId: String?, name: String) -> Unit,
+    onAddNewList: suspend (parentId: String?, name: String) -> String?,
     showDescendants: Boolean,
     onToggleShowDescendants: () -> Unit,
 ) {
     Log.d("ListChooserScreen", "onConfirm called")
     var isCreatingMode by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
-    var parentForNewProject by remember { mutableStateOf<Context?>(null) }
+    var parentForNewProject by remember { mutableStateOf<ContextPresentation?>(null) }
     var highlightedProjectId by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val coroutineScope = rememberCoroutineScope()
     val searchFocusRequester = remember { FocusRequester() }
     val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
@@ -195,12 +196,14 @@ fun FilterableListChooserScreen(
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
                     onCreate = {
-                        val id = UUID.randomUUID().toString()
-                        onAddNewList(id, parentForNewProject?.id, newProjectName)
-                        highlightedProjectId = id
+                        val parentId = parentForNewProject?.id
+                        val name = newProjectName
                         isCreatingMode = false
                         keyboardController?.hide()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        coroutineScope.launch {
+                            highlightedProjectId = onAddNewList(parentId, name)
+                        }
                     },
                     modifier = Modifier.padding(16.dp),
                 )
@@ -556,15 +559,15 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
 
 @Composable
 private fun RecursiveSelectableListItem(
-    project: Context,
-    childMap: Map<String, List<Context>>,
+    project: ContextPresentation,
+    childMap: Map<String, List<ContextPresentation>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onSelect: (String) -> Unit,
     disabledIds: Set<String>,
     highlightedProjectId: String?,
-    onAddSubprojectRequest: (parentProject: Context) -> Unit,
+    onAddSubprojectRequest: (parentProject: ContextPresentation) -> Unit,
     filterText: String,
 ) {
     val isExpanded = project.id in expandedIds

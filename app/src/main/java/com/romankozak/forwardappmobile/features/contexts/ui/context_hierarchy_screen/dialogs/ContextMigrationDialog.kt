@@ -32,7 +32,7 @@ fun ContextMigrationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Міграція контексту: ${state.context.name}") },
+        title = { Text("Міграція контексту: ${state.projectName}") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text("Рекомендація: ${recommendationLabel(state.preview.suggestedOutcome.name)} (${state.preview.confidence.name})")

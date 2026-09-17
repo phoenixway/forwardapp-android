@@ -1,38 +1,59 @@
 package com.romankozak.forwardappmobile.shared.core.domain.workspace
 
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogEntry
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 
-/** BACKLOG v1 intentionally owns no configurable fields. */
-data object BacklogCapabilityConfigurationV1
+sealed interface BacklogCapabilityConfiguration
+
+/** BACKLOG v1 intentionally owned no configurable fields. */
+data object BacklogCapabilityConfigurationV1 : BacklogCapabilityConfiguration
+
+data class BacklogCapabilityConfigurationV2(
+    val removeEntryAfterTagAutocopy: Boolean = false,
+) : BacklogCapabilityConfiguration
 
 object BacklogCapabilityConfigurationCodec : CapabilityConfigurationCodec {
-    const val CURRENT_VERSION: Int = 1
+    const val CURRENT_VERSION: Int = 2
+    private val json = Json
 
     override val currentVersion: Int = CURRENT_VERSION
 
-    override fun encodeDefault(): String = "{}"
+    override fun encodeDefault(): String = encode(BacklogCapabilityConfigurationV2())
 
     override fun validate(
         version: Int,
         raw: String,
     ) {
-        require(version == CURRENT_VERSION) {
-            "Unsupported BACKLOG configuration version: $version"
-        }
-        require(raw.trim() == "{}") { "Invalid BACKLOG configuration v1" }
+        decode(version, raw)
     }
 
-    fun encode(
-        configuration: BacklogCapabilityConfigurationV1 =
-            BacklogCapabilityConfigurationV1,
-    ): String = encodeDefault()
+    fun encode(configuration: BacklogCapabilityConfigurationV2): String =
+        "{\"removeEntryAfterTagAutocopy\":${configuration.removeEntryAfterTagAutocopy}}"
 
     fun decode(
         version: Int,
         raw: String,
-    ): BacklogCapabilityConfigurationV1 {
-        validate(version, raw)
-        return BacklogCapabilityConfigurationV1
+    ): BacklogCapabilityConfiguration {
+        if (version == 1) {
+            require(raw.trim() == "{}") { "Invalid BACKLOG configuration v1" }
+            return BacklogCapabilityConfigurationV1
+        }
+        require(version == CURRENT_VERSION) {
+            "Unsupported BACKLOG configuration version: $version"
+        }
+        val root = runCatching { json.parseToJsonElement(raw) }.getOrNull() as? JsonObject
+        require(root != null && root.keys == setOf("removeEntryAfterTagAutocopy")) {
+            "Invalid BACKLOG configuration v2"
+        }
+        val value =
+            (root["removeEntryAfterTagAutocopy"] as? JsonPrimitive)
+                ?.takeUnless { it.isString }
+                ?.booleanOrNull
+        require(value != null) { "Invalid BACKLOG configuration v2" }
+        return BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = value)
     }
 }
 

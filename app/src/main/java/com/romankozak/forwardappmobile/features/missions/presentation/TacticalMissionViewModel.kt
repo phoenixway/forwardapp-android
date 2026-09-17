@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -25,8 +25,11 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalActivitySlotRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
@@ -63,9 +66,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.WeekFields
-import java.util.UUID
 import javax.inject.Inject
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.logicalProjectId
 import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalIterationRepository
 
 enum class TacticsWorkspaceMode {
@@ -91,6 +94,8 @@ class TacticalMissionViewModel
         private val deleteTacticalMissionUseCase: DeleteTacticalMissionUseCase,
         private val missionRepository: MissionRepository,
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val dayManagementRepository: DayManagementRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -140,13 +145,24 @@ class TacticalMissionViewModel
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
                 )
+        private val contextRows = contextRepository.getAllContextsFlow()
+
         private val allContexts =
-            contextRepository
-                .getAllContextsFlow()
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRows)
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
+                )
+
+        private val projectOwnerLabels =
+            systemWorkspacePresentationContextProjector
+                .observeOwnerLabels(contextRows)
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyMap(),
                 )
         val missionStreams: StateFlow<List<MissionStream>> =
             missionStreamRepository
@@ -172,7 +188,7 @@ class TacticalMissionViewModel
 	                started = SharingStarted.Eagerly,
 	                initialValue = missionStreams.value,
 	            )
-	        val activitySlotContexts: StateFlow<List<Context>> =
+	        val activitySlotContexts: StateFlow<List<ContextPresentation>> =
 	            combine(allContexts, tacticalActivitySlotRepository.observeSlots()) { contexts, slots ->
                 val contextById = contexts.associateBy { it.id }
                 slots.mapNotNull { slot -> contextById[slot.contextId] }
@@ -270,8 +286,8 @@ class TacticalMissionViewModel
                     initialValue = emptyList(),
                 )
         val projectOptions: StateFlow<List<ProjectOption>> =
-            allContexts
-                .map { projects ->
+            combine(allContexts, projectOwnerLabels) { projects, ownerLabels ->
+                val contextOptions =
                     projects.map {
                         ProjectOption(
                             id = it.id,
@@ -279,11 +295,26 @@ class TacticalMissionViewModel
                             parentId = it.parentId,
                         )
                     }
-                }.stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.Eagerly,
-                    initialValue = emptyList(),
-                )
+                val contextIds = contextOptions.mapTo(hashSetOf()) { it.id }
+                val shellFreeSystemOptions =
+                    ownerLabels
+                        .asSequence()
+                        .filter { (id, _) -> id !in contextIds }
+                        .map { (id, label) ->
+                            ProjectOption(
+                                id = id,
+                                name = label,
+                                parentId = null,
+                            )
+                        }
+                        .toList()
+
+                contextOptions + shellFreeSystemOptions
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = emptyList(),
+            )
         val attachmentOptions: StateFlow<List<AttachmentOption>> =
             allAttachmentLibraryItems
                 .map { results -> results.mapNotNull { it.toAttachmentOption() } }
@@ -584,20 +615,21 @@ class TacticalMissionViewModel
         }
 
         fun addWeeklyMissionFromContext(contextId: String) {
-            val context = allContexts.value.firstOrNull { it.id == contextId } ?: return
-            val activitySlotContextId = context.id.takeIf { isKnownActivitySlot(it) }
+            val context = allContexts.value.firstOrNull { it.id == contextId }
+            val projectName = context?.name ?: projectOwnerLabels.value[contextId] ?: return
+            val activitySlotContextId = contextId.takeIf { isKnownActivitySlot(it) }
             val now = System.currentTimeMillis()
             val oneWeekMs = 7L * 24L * 60L * 60L * 1000L
             addMission(
                 TacticalMission(
-                    title = context.name,
+                    title = projectName,
                     description = null,
                     startTime = now,
                     deadline = now + oneWeekMs,
                     status = MissionStatus.ACTIVE,
                     priority = MissionPriority.MEDIUM,
-                    projectId = context.id,
-                    linkedProjectIds = listOf(context.id),
+                    projectId = contextId,
+                    linkedProjectIds = listOf(contextId),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
                     iterationId = activeIterationId(),
@@ -605,7 +637,7 @@ class TacticalMissionViewModel
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
                     sourceType = MissionSourceType.MANUAL,
-                    sourceContextId = context.id,
+                    sourceContextId = contextId,
                 ),
             )
         }
@@ -624,7 +656,7 @@ class TacticalMissionViewModel
                         dayPlanId = todayPlan.id,
                         title = trimmedTitle,
                         description = mission.description,
-                        projectId = mission.projectId,
+                        projectId = mission.logicalProjectId,
                         linkedProjectIds = mission.linkedProjectIds.orEmpty(),
                         priority = TaskPriority.MEDIUM,
                         taskType = BacklogItemTypeValues.GOAL,
@@ -643,7 +675,7 @@ class TacticalMissionViewModel
                         arcKey = YearMonth.now().toString(),
                         title = trimmedTitle,
                         description = mission.description,
-                        linkedContextId = mission.projectId,
+                        linkedContextId = mission.logicalProjectId,
                         linkedMissionId = mission.id,
                         sourceType = ArcQuestSourceType.MISSION.name,
                         sourceId = mission.id.toString(),
@@ -947,14 +979,14 @@ class TacticalMissionViewModel
 
         fun copyMissionToEntityClipboard(mission: TacticalMission) {
             backlogClipboardUseCase.copyTacticalMissions(
-                sourceContextId = mission.projectId.orEmpty(),
+                sourceContextId = mission.logicalProjectId.orEmpty(),
                 missionIds = listOf(mission.id),
             )
         }
 
         fun cutMissionToEntityClipboard(mission: TacticalMission) {
             backlogClipboardUseCase.cutTacticalMissions(
-                sourceContextId = mission.projectId.orEmpty(),
+                sourceContextId = mission.logicalProjectId.orEmpty(),
                 missionIds = listOf(mission.id),
             )
         }
@@ -1070,15 +1102,7 @@ class TacticalMissionViewModel
         }
 
         suspend fun createRootContextForPicker(name: String): String? {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return null
-            val id = UUID.randomUUID().toString()
-            contextRepository.createContextWithId(
-                id = id,
-                name = trimmed,
-                parentId = null,
-            )
-            return id
+            return canonicalWorkspaceRepository.createRootWorkspaceForPicker(name)
         }
 
         suspend fun createBoardDocumentForPicker(request: NewDocumentDraft): String? {
@@ -1252,7 +1276,7 @@ private fun List<String>.withRecentFirst(streamId: String): List<String> =
 
 private fun BacklogItem.toPlanBacklogItem(
     goalsById: Map<String, Goal>,
-    contextsById: Map<String, Context>,
+    contextsById: Map<String, ContextPresentation>,
     alreadyInWeek: Boolean,
     fallbackContextId: String?,
 ): TacticalPlanBacklogItem {

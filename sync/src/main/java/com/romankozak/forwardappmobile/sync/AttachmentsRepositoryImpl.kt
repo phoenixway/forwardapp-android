@@ -75,6 +75,10 @@ class AttachmentsRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
 
+    override suspend fun requireAttachmentPlacementAuthoring(contextId: String) {
+        localDataSource.requireAttachmentPlacementAuthoring(contextId)
+    }
+
     override suspend fun ensureAttachmentLinkedToContext(
         attachmentType: String,
         entityId: String,

@@ -28,6 +28,7 @@ import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderBadge
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -106,7 +107,7 @@ private fun hasStatusContent(task: DayTask): Boolean {
     return (task.priority != TaskPriority.NONE) ||
         (!task.description.isNullOrBlank()) ||
         (task.goalId != null) ||
-        (task.projectId != null) ||
+        (task.logicalProjectId != null) ||
         (task.recurrenceSeriesId != null)
 }
 

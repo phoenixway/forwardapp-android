@@ -1,9 +1,11 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
@@ -18,6 +20,10 @@ import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklo
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogTargetValidator
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
@@ -267,9 +273,95 @@ class GoalCanonicalSubjectCreationRoomTest {
         }
     }
 
-    private fun goalRepository(database: AppDatabase): GoalRepository {
+    @Test
+    fun `source Context link captures canonical System name and keeps historical snapshot after rename`() =
+        runBlocking {
+            val database = database()
+            try {
+                seedOwner(database, active = true)
+                val sourceId = SystemContexts.INBOX.raw
+
+                database.contextDao().insert(
+                    ContextEntity(
+                        id = sourceId,
+                        name = "Stale Inbox",
+                        description = null,
+                        parentId = null,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                    ),
+                )
+                database.workspaceDao().upsert(
+                    listOf(
+                        WorkspaceEntity(
+                            id = sourceId,
+                            nameOverride = "Canonical Inbox",
+                            descriptionOverride = null,
+                            parentWorkspaceId = null,
+                            roleCode = null,
+                            workspaceOrder = 0L,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                            provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                            sourceContextId = null,
+                        ),
+                    ),
+                )
+
+                val repository =
+                    goalRepository(
+                        database = database,
+                        contextDao = database.contextDao(),
+                    )
+                repository.addGoalToContext("Capture presentation", OWNER_ID)
+                val goalId = database.goalDao().getAll().single().id
+
+                repository.createGoalLinks(
+                    goalIds = listOf(goalId),
+                    targetContextId = OWNER_ID,
+                    sourceContextId = sourceId,
+                )
+
+                val captured =
+                    requireNotNull(database.goalDao().getGoalById(goalId))
+                        .relatedLinks
+                        .orEmpty()
+                        .single { it.type == LinkType.CONTEXT && it.target == sourceId }
+
+                assertEquals("Canonical Inbox", captured.displayName)
+
+                val workspace = requireNotNull(database.workspaceDao().getById(sourceId))
+                database.workspaceDao().upsert(
+                    listOf(
+                        workspace.copy(
+                            nameOverride = "Renamed Inbox",
+                            updatedAt = 2L,
+                            version = 2L,
+                        ),
+                    ),
+                )
+
+                val historical =
+                    requireNotNull(database.goalDao().getGoalById(goalId))
+                        .relatedLinks
+                        .orEmpty()
+                        .single { it.type == LinkType.CONTEXT && it.target == sourceId }
+
+                assertEquals("Canonical Inbox", historical.displayName)
+            } finally {
+                database.close()
+            }
+        }
+
+    private fun goalRepository(
+        database: AppDatabase,
+        contextDao: ContextDao = mockk(relaxed = true),
+    ): GoalRepository {
         val placements = BacklogPlacementCommands(
-            contextDao = mockk(relaxed = true),
+            contextDao = contextDao,
             canonicalRepository = canonicalBacklog(database),
             canonicalTargetResolver = BacklogCanonicalTargetResolver(database.orientationDao(), database.workspaceDao()),
         )
@@ -284,9 +376,17 @@ class GoalCanonicalSubjectCreationRoomTest {
             goalDao = database.goalDao(),
             reminderRepository = mockk(relaxed = true),
             contextMarkerHandlerProvider = markerProvider,
-            contextDao = mockk(relaxed = true),
+            contextDao = contextDao,
             tagAssociationHandler = associations,
+            systemWorkspaceTagAuthority =
+                SystemWorkspaceTagAuthority(
+                    workspaceDao = database.workspaceDao(),
+                    workspaceTagRefDao = database.workspaceTagRefDao(),
+                    systemWorkspaceTagSeedStateDao = database.systemWorkspaceTagSeedStateDao(),
+                    canonicalWorkspaceTagRepository = CanonicalWorkspaceTagRepository(database),
+                ),
             contextStructureRepository = mockk(relaxed = true),
+            systemBacklogConfigurationAccess = mockk(relaxed = true),
             backlogPlacementCommands = placements,
             database = database,
             orientationDao = database.orientationDao(),
@@ -296,6 +396,13 @@ class GoalCanonicalSubjectCreationRoomTest {
                     database = database,
                     goalDao = database.goalDao(),
                     orientationDao = database.orientationDao(),
+                ),
+            systemWorkspacePresentationContextProjector =
+                SystemWorkspacePresentationContextProjector(
+                    workspaceDao = database.workspaceDao(),
+                    systemWorkspaceTagAuthority = mockk(relaxed = true),
+                    canonicalWorkspaceTagRepository = CanonicalWorkspaceTagRepository(database),
+                    contextDao = database.contextDao(),
                 ),
         )
     }

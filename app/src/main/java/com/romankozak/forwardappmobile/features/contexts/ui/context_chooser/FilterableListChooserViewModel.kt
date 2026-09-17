@@ -2,8 +2,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -13,8 +15,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ChooserUiState(
-    val topLevelProjects: List<Context> = emptyList(),
-    val childMap: Map<String, List<Context>> = emptyMap(),
+    val topLevelProjects: List<ContextPresentation> = emptyList(),
+    val childMap: Map<String, List<ContextPresentation>> = emptyMap(),
 )
 
 @HiltViewModel
@@ -22,6 +24,8 @@ class FilterableListChooserViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : ViewModel() {
         private val TAG = "FilterChooserVM"
 
@@ -34,8 +38,8 @@ class FilterableListChooserViewModel
         private val _showDescendants = MutableStateFlow(false)
         val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
         private val allProjects =
-            contextRepository
-                .getAllContextsFlow()
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
@@ -77,7 +81,7 @@ class FilterableListChooserViewModel
 
                     matchingProjects.forEach { matchedProject ->
                         val path = mutableSetOf<String>()
-                        var current: Context? = matchedProject
+                        var current: ContextPresentation? = matchedProject
                         while (current != null && current.id !in path) {
                             path.add(current.id)
                             visibleIds.add(current.id)
@@ -169,13 +173,17 @@ class FilterableListChooserViewModel
                 }
         }
 
-        fun addNewProject(
-            id: String,
+        suspend fun addNewProject(
             parentId: String?,
             name: String,
-        ) {
-            viewModelScope.launch {
-                contextRepository.createContextWithId(id, name, parentId)
-            }
+        ): String? {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return null
+            return canonicalWorkspaceRepository.create(
+                nameOverride = trimmed,
+                descriptionOverride = null,
+                parentWorkspaceId = parentId,
+                roleCode = null,
+            )
         }
     }

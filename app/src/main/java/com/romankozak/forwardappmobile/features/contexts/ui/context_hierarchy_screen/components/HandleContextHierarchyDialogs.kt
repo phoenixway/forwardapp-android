@@ -49,31 +49,58 @@ fun HandleProjectHierarchyDialogs(
 
         is DialogState.ProjectMenu -> {
             ContextMenuDialog(
-                project = state.project,
-                isUserFocused = focusedContextIds.contains(state.project.id),
+                projectId = state.projectId,
+                projectName = state.projectName,
+                isUserFocused = focusedContextIds.contains(state.projectId),
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
-                onMoveRequest = { project -> onEvent(ContextHierarchyScreenEvent.MoveRequest(project)) },
-                onAddSubprojectRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(project)) },
-                onDeleteRequest = { project -> onEvent(ContextHierarchyScreenEvent.DeleteRequest(project)) },
-                onEditRequest = { project -> onEvent(ContextHierarchyScreenEvent.EditRequest(project)) },
-                onOpenContextRequest = { project -> onEvent(ContextHierarchyScreenEvent.OpenContextRequest(project)) },
-                onAddToDayPlanRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddToDayPlanRequest(project)) },
-                onAddToDayFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddToDayFocusRequest(project)) },
-                onSetReminderRequest = { project -> onEvent(ContextHierarchyScreenEvent.SetReminderRequest(project)) },
-                onToggleUserFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(project)) },
-                onCopyContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CopyContextLink(project)) },
-                onCutContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CutContextLink(project)) },
-                onPasteContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(project)) },
-                onAddContextAppearanceRequest = { project ->
-                    onEvent(ContextHierarchyScreenEvent.AddContextAppearanceHere(project))
+                onMoveRequest = {
+                    onEvent(ContextHierarchyScreenEvent.MoveRequest(state.projectId))
                 },
-                onAddNoteDocumentRequest = { project ->
-                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest(project))
+                onAddSubprojectRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(state.projectId))
                 },
-                onAddChecklistRequest = { project ->
-                    onEvent(ContextHierarchyScreenEvent.AddChecklistToContextRequest(project))
+                onDeleteRequest = {
+                    onEvent(ContextHierarchyScreenEvent.DeleteRequest(state.projectId))
                 },
-                onMigrateRequest = { project -> onEvent(ContextHierarchyScreenEvent.MigrateRequest(project)) },
+                onEditRequest = {
+                    onEvent(ContextHierarchyScreenEvent.EditRequest(state.projectId))
+                },
+                onOpenContextRequest = {
+                    onEvent(ContextHierarchyScreenEvent.OpenContextRequest(state.projectId))
+                },
+                onAddToDayPlanRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddToDayPlanRequest(state.projectId))
+                },
+                onAddToDayFocusRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddToDayFocusRequest(state.projectId))
+                },
+                onSetReminderRequest = {
+                    onEvent(ContextHierarchyScreenEvent.SetReminderRequest(state.projectId))
+                },
+                onToggleUserFocusRequest = {
+                    onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(state.projectId))
+                },
+                onCopyContextLinkRequest = {
+                    onEvent(ContextHierarchyScreenEvent.CopyContextLink(state.projectId))
+                },
+                onCutContextLinkRequest = {
+                    onEvent(ContextHierarchyScreenEvent.CutContextLink(state.projectId))
+                },
+                onPasteContextLinkRequest = {
+                    onEvent(ContextHierarchyScreenEvent.PasteContextLink(state.projectId))
+                },
+                onAddContextAppearanceRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddContextAppearanceHere(state.projectId))
+                },
+                onAddNoteDocumentRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest(state.projectId))
+                },
+                onAddChecklistRequest = {
+                    onEvent(ContextHierarchyScreenEvent.AddChecklistToContextRequest(state.projectId))
+                },
+                onMigrateRequest = {
+                    onEvent(ContextHierarchyScreenEvent.MigrateRequest(state.projectId))
+                },
                 canPasteContextLinks = state.canPasteContextLinks,
             )
         }
@@ -95,11 +122,11 @@ fun HandleProjectHierarchyDialogs(
                 title = { Text("Delete project?") },
                 text = {
                     Text(
-                        "Are you sure you want to delete '${state.project.name}' and all its contents? This action cannot be undone.",
+                        "Are you sure you want to delete '${state.projectName}' and all its contents? This action cannot be undone.",
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DeleteConfirm(state.project)) }) {
+                    TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DeleteConfirm(state.projectId)) }) {
                         Text("Delete")
                     }
                 },
@@ -173,9 +200,6 @@ fun HandleProjectHierarchyDialogs(
             )
         }
 
-        is DialogState.EditProject -> {
-            onEvent(ContextHierarchyScreenEvent.DismissDialog)
-        }
         is DialogState.WifiImport -> { }
         is DialogState.WifiServer -> { }
     }

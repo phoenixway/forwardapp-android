@@ -1,13 +1,21 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -23,6 +31,163 @@ private const val TYPE_ORDER_CONTEXT = 0
 private const val TYPE_ORDER_GOAL = 1
 private const val TYPE_ORDER_ATTACHMENT = 2
 private const val TYPE_ORDER_OTHER = 3
+
+private data class SearchContextPresentationNode(
+    val presentation: GlobalSearchContextPresentation,
+    val isDeleted: Boolean,
+    val hasPersistedContext: Boolean,
+    val legacyContextUpdatedAt: Long?,
+)
+
+internal class SearchContextPresentationSnapshot(
+    presentations: List<ContextPresentation>,
+    rawContexts: List<Context>,
+    private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+    canonicalWorkspaceUpdatedAtById: Map<String, Long>,
+) {
+    private val rawContextsById = rawContexts.associateBy(Context::id)
+    private val nodesById =
+        presentations
+            .mapNotNull { presentation ->
+                presentation.toSearchNode(
+                    rawContext = rawContextsById[presentation.id],
+                    canonicalWorkspaceUpdatedAt = canonicalWorkspaceUpdatedAtById[presentation.id],
+                )
+            }.associateBy { it.presentation.id }
+
+    fun presentation(contextId: String): GlobalSearchContextPresentation? =
+        nodesById[contextId]?.presentation
+
+    fun legacyContextUpdatedAt(contextId: String): Long? =
+        nodesById[contextId]?.legacyContextUpdatedAt
+
+    fun hasPersistedContext(contextId: String): Boolean =
+        nodesById[contextId]?.hasPersistedContext == true
+
+    suspend fun pathSegments(contextId: String): List<String>? = buildPath(contextId)
+
+    suspend fun searchContexts(query: String): List<GlobalContextSearchResult> {
+        val normalizedQuery = normalizeSearchQuery(query)
+        val results = mutableListOf<GlobalContextSearchResult>()
+        for (node in nodesById.values) {
+            val presentation = node.presentation
+            val matches =
+                normalizedQuery.isBlank() ||
+                    presentation.name.contains(normalizedQuery, ignoreCase = true) ||
+                    presentation.tags.any { it.contains(normalizedQuery, ignoreCase = true) }
+            if (!matches) continue
+            val path = pathSegments(presentation.id) ?: continue
+            results +=
+                GlobalContextSearchResult(
+                    presentation = presentation,
+                pathSegments = path,
+                matchedTags =
+                    if (normalizedQuery.isBlank()) {
+                        emptyList()
+                    } else {
+                        presentation.tags
+                            .map(String::trim)
+                            .filter { it.isNotBlank() && it.contains(normalizedQuery, ignoreCase = true) }
+                            .distinct()
+                    },
+                )
+        }
+        return results
+    }
+
+    suspend fun searchSubcontexts(query: String): List<GlobalSubcontextSearchResult> {
+        val normalizedQuery = normalizeSearchQuery(query)
+        val results = mutableListOf<GlobalSubcontextSearchResult>()
+        for (node in nodesById.values) {
+            val presentation = node.presentation
+            val parentId = presentation.parentId ?: continue
+            val parent = resolvePathNode(parentId) ?: continue
+            if (node.isDeleted || nodesById[parentId]?.isDeleted == true) continue
+            if (
+                normalizedQuery.isNotBlank() &&
+                !presentation.name.contains(normalizedQuery, ignoreCase = true)
+            ) {
+                continue
+            }
+            val path = pathSegments(presentation.id) ?: continue
+            results +=
+                GlobalSubcontextSearchResult(
+                    presentation = presentation,
+                    parentContextId = parent.id,
+                    parentContextName = parent.name,
+                    pathSegments = path,
+                )
+        }
+        return results
+    }
+
+    private suspend fun buildPath(contextId: String): List<String>? {
+        val reversedPath = mutableListOf<String>()
+        val visited = mutableSetOf<String>()
+        var currentId: String? = contextId
+        while (currentId != null) {
+            if (!visited.add(currentId)) return null
+            val current = resolvePathNode(currentId) ?: return null
+            reversedPath += current.name
+            currentId = current.parentWorkspaceId
+        }
+        return reversedPath.asReversed()
+    }
+
+    private suspend fun resolvePathNode(contextId: String): SearchPathNode? {
+        nodesById[contextId]?.presentation?.let { presentation ->
+            return SearchPathNode(
+                id = presentation.id,
+                name = presentation.name,
+                parentWorkspaceId = presentation.parentId,
+            )
+        }
+        if (SystemContexts.isSystem(ContextId(contextId))) return null
+        return canonicalWorkspaceRepository
+            .getLiveCanonicalAncestryPresentation(contextId)
+            ?.let { presentation ->
+                SearchPathNode(
+                    id = presentation.id,
+                    name = presentation.name,
+                    parentWorkspaceId = presentation.parentWorkspaceId,
+                )
+            }
+    }
+}
+
+private data class SearchPathNode(
+    val id: String,
+    val name: String,
+    val parentWorkspaceId: String?,
+)
+
+private fun ContextPresentation.toSearchNode(
+    rawContext: Context?,
+    canonicalWorkspaceUpdatedAt: Long?,
+): SearchContextPresentationNode? {
+    val rankingTimestamp =
+        rawContext?.updatedAt
+            ?: rawContext?.createdAt
+            ?: canonicalWorkspaceUpdatedAt
+            ?: return null
+    return SearchContextPresentationNode(
+        presentation =
+            GlobalSearchContextPresentation(
+                id = id,
+                name = name,
+                description = description,
+                parentId = parentId,
+                tags = tags.orEmpty(),
+                rankingTimestamp = rankingTimestamp,
+            ),
+        isDeleted = rawContext?.isDeleted ?: false,
+        hasPersistedContext = rawContext != null,
+        legacyContextUpdatedAt = rawContext?.updatedAt,
+    )
+}
+
+private fun normalizeSearchQuery(query: String): String =
+    query.removePrefix("%").removeSuffix("%").trim()
 
 internal fun buildSafeActivityFtsQuery(query: String): String? {
     val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
@@ -60,22 +225,26 @@ class SearchRepository
         private val activityRepository: ActivityRepository,
         private val inboxRecordDao: InboxRecordDao,
         private val attachmentsRepository: AttachmentsRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val workspaceDao: WorkspaceDao,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
     ) {
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
             val structuredQuery = StructuredSearchQuery.parse(query)
+            val contextPresentation = loadContextPresentation()
             if (structuredQuery.hasTags) {
-                return searchStructured(structuredQuery)
+                return searchStructured(structuredQuery, contextPresentation)
             }
             val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
             val activityQuery = buildSafeActivityFtsQuery(query)
             val combinedResults =
-                buildGoalResults(query) +
-                    buildLinkResults(query) +
-                    buildSubcontextResults(query) +
-                    buildContextResults(query) +
+                buildGoalResults(query, contextPresentation) +
+                    buildLinkResults(query, contextPresentation) +
+                    buildSubcontextResults(query, contextPresentation) +
+                    buildContextResults(query, contextPresentation) +
                     buildActivityResults(activityQuery) +
                     buildInboxResults(query) +
-                    buildAttachmentResults(sanitizedQuery)
+                    buildAttachmentResults(sanitizedQuery, contextPresentation)
 
             return combinedResults.sortedWith(
                 compareBy<GlobalSearchResultItem> { it.typeOrder }
@@ -83,16 +252,19 @@ class SearchRepository
             )
         }
 
-        private suspend fun searchStructured(query: StructuredSearchQuery): List<GlobalSearchResultItem> {
+        private suspend fun searchStructured(
+            query: StructuredSearchQuery,
+            contextPresentation: SearchContextPresentationSnapshot,
+        ): List<GlobalSearchResultItem> {
             val allQuery = "%%"
             val candidates =
-                buildGoalResults(allQuery) +
-                    buildLinkResults(allQuery) +
-                    buildSubcontextResults(allQuery) +
-                    buildContextResults(allQuery) +
+                buildGoalResults(allQuery, contextPresentation) +
+                    buildLinkResults(allQuery, contextPresentation) +
+                    buildSubcontextResults(allQuery, contextPresentation) +
+                    buildContextResults(allQuery, contextPresentation) +
                     buildAllActivityResults() +
                     buildInboxResults(allQuery) +
-                    buildAttachmentResults("")
+                    buildAttachmentResults("", contextPresentation)
 
             return candidates
                 .asSequence()
@@ -107,36 +279,63 @@ class SearchRepository
                 .toList()
         }
 
-        private suspend fun buildGoalResults(query: String): List<GlobalSearchResultItem.GoalItem> =
-            goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
+        private suspend fun buildGoalResults(
+            query: String,
+            contextPresentation: SearchContextPresentationSnapshot,
+        ): List<GlobalSearchResultItem.GoalItem> {
+            val results = mutableListOf<GlobalSearchResultItem.GoalItem>()
+            for (searchResult in goalDao.searchGoalsGlobal(query)) {
+                val context = contextPresentation.presentation(searchResult.contextId) ?: continue
+                val path = contextPresentation.pathSegments(context.id) ?: continue
                 val listItem =
                     listItemRepository.getRuntimeItemForEntityInContext(
                         entityId = searchResult.goal.id,
                         itemType = BacklogItemTypeValues.GOAL,
                         contextId = searchResult.contextId,
                     )
-                listItem?.let {
-                    GlobalSearchResultItem.GoalItem(
-                        goal = searchResult.goal,
-                        backlogItem = it,
-                        projectName = searchResult.contextName,
-                        pathSegments = searchResult.pathSegments,
-                    )
+                if (listItem != null) {
+                    results +=
+                        GlobalSearchResultItem.GoalItem(
+                            goal = searchResult.goal,
+                            backlogItem = listItem,
+                            projectName = context.name,
+                            pathSegments = path,
+                        )
                 }
             }
+            return results
+        }
 
-        private suspend fun buildLinkResults(query: String): List<GlobalSearchResultItem.LinkItem> =
-            linkItemDao.searchLinksGlobal(query).map { GlobalSearchResultItem.LinkItem(it) }
-
-        private suspend fun buildSubcontextResults(query: String): List<GlobalSearchResultItem.SubcontextItem> =
-            contextDao.searchSubprojectsGlobal(query).map { GlobalSearchResultItem.SubcontextItem(it) }
-
-        private suspend fun buildContextResults(query: String): List<GlobalSearchResultItem.ContextItem> =
-            contextDao.searchContextsGlobal(query).map { searchRow ->
-                GlobalSearchResultItem.ContextItem(
-                    searchRow.toSearchResult(query),
-                )
+        private suspend fun buildLinkResults(
+            query: String,
+            contextPresentation: SearchContextPresentationSnapshot,
+        ): List<GlobalSearchResultItem.LinkItem> {
+            val results = mutableListOf<GlobalSearchResultItem.LinkItem>()
+            for (searchResult in linkItemDao.searchLinksGlobal(query)) {
+                val context = contextPresentation.presentation(searchResult.contextId) ?: continue
+                val path = contextPresentation.pathSegments(context.id) ?: continue
+                results +=
+                    GlobalSearchResultItem.LinkItem(
+                        searchResult.copy(
+                            contextName = context.name,
+                            pathSegments = path,
+                        ),
+                    )
             }
+            return results
+        }
+
+        private suspend fun buildSubcontextResults(
+            query: String,
+            contextPresentation: SearchContextPresentationSnapshot,
+        ): List<GlobalSearchResultItem.SubcontextItem> =
+            contextPresentation.searchSubcontexts(query).map(GlobalSearchResultItem::SubcontextItem)
+
+        private suspend fun buildContextResults(
+            query: String,
+            contextPresentation: SearchContextPresentationSnapshot,
+        ): List<GlobalSearchResultItem.ContextItem> =
+            contextPresentation.searchContexts(query).map(GlobalSearchResultItem::ContextItem)
 
         private suspend fun buildActivityResults(activityQuery: String?): List<GlobalSearchResultItem.ActivityItem> =
             activityQuery
@@ -153,11 +352,50 @@ class SearchRepository
 
         private suspend fun buildAttachmentResults(
             sanitizedQuery: String,
+            contextPresentation: SearchContextPresentationSnapshot,
         ): List<GlobalSearchResultItem.AttachmentItem> =
             attachmentsRepository
                 .getAttachmentLibraryItems()
                 .first()
-                .mapNotNull { result -> buildAttachmentSearchResult(result, sanitizedQuery) }
+                .mapNotNull { result ->
+                    val ownerContextId = result.ownerContextId
+                    val presentedContext = ownerContextId?.let(contextPresentation::presentation)
+                    val presentedResult =
+                        when {
+                            presentedContext != null &&
+                                contextPresentation.hasPersistedContext(presentedContext.id) ->
+                                result.copy(
+                                    contextName = presentedContext.name,
+                                    contextUpdatedAt =
+                                        contextPresentation.legacyContextUpdatedAt(presentedContext.id),
+                                )
+                            presentedContext != null ->
+                                // A shell-free promoted System owner still has a
+                                // canonical display label, but no Context-history
+                                // timestamp may be projected into this result.
+                                result.copy(
+                                    contextName = presentedContext.name,
+                                    contextUpdatedAt = null,
+                                )
+                            ownerContextId != null && SystemContexts.isSystem(ContextId(ownerContextId)) ->
+                                result.copy(contextName = null, contextUpdatedAt = null)
+                            else -> result
+                        }
+                    buildAttachmentSearchResult(presentedResult, sanitizedQuery)
+                }
+
+        private suspend fun loadContextPresentation(): SearchContextPresentationSnapshot =
+            contextDao.getAllRaw().let { rawContexts ->
+                val workspaces = workspaceDao.getAll()
+                SearchContextPresentationSnapshot(
+                    presentations =
+                        systemWorkspacePresentationContextProjector.projectPresentationUniverse(rawContexts),
+                    rawContexts = rawContexts,
+                    canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                    canonicalWorkspaceUpdatedAtById =
+                        workspaces.associate { workspace -> workspace.id to workspace.updatedAt },
+                )
+            }
 
         private fun buildAttachmentSearchResult(
             result: AttachmentLibraryQueryResult,
@@ -259,28 +497,6 @@ class SearchRepository
                     runCatching { Gson().fromJson(safeLinkDisplayName, RelatedLink::class.java) }.getOrNull()
                 }
 
-        private fun GlobalContextSearchRow.toSearchResult(query: String): GlobalContextSearchResult {
-            val normalizedQuery = query.removePrefix("%").removeSuffix("%").trim()
-            if (normalizedQuery.isBlank()) {
-                return GlobalContextSearchResult(
-                    context = context,
-                    pathSegments = pathSegments,
-                    matchedTags = emptyList(),
-                )
-            }
-            val matchedTags =
-                context.tags
-                    .orEmpty()
-                    .map { it.trim() }
-                    .filter { it.isNotBlank() && it.contains(normalizedQuery, ignoreCase = true) }
-                    .distinct()
-            return GlobalContextSearchResult(
-                context = context,
-                pathSegments = pathSegments,
-                matchedTags = matchedTags,
-            )
-        }
-
         private fun GlobalSearchResultItem.searchableTexts(): List<String> =
             when (this) {
                 is GlobalSearchResultItem.GoalItem ->
@@ -299,17 +515,17 @@ class SearchRepository
                     )
                 is GlobalSearchResultItem.SubcontextItem ->
                     listOf(
-                        searchResult.subcontext.name,
-                        searchResult.subcontext.description.orEmpty(),
-                        searchResult.subcontext.tags.orEmpty().joinToString(" "),
+                        searchResult.presentation.name,
+                        searchResult.presentation.description.orEmpty(),
+                        searchResult.presentation.tags.joinToString(" "),
                         searchResult.parentContextName,
                         searchResult.pathSegments.joinToString(" "),
                     )
                 is GlobalSearchResultItem.ContextItem ->
                     listOf(
-                        searchResult.context.name,
-                        searchResult.context.description.orEmpty(),
-                        searchResult.context.tags.orEmpty().joinToString(" "),
+                        searchResult.presentation.name,
+                        searchResult.presentation.description.orEmpty(),
+                        searchResult.presentation.tags.joinToString(" "),
                         searchResult.pathSegments.joinToString(" "),
                     )
                 is GlobalSearchResultItem.ActivityItem ->

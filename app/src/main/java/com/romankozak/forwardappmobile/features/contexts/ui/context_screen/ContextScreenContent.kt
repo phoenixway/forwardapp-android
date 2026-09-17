@@ -98,7 +98,7 @@ fun GoalDetailContent(
     val tacticalBacklogMissionStreamIds by viewModel.tacticalBacklogMissionStreamIds.collectAsStateWithLifecycle()
     val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
     val missionStreamTitleById = missionStreams.associate { it.id to it.title }
-    val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
+    val enableKeyProblems = CapabilityId("key_problems") in enabledCapabilities
     val localSearchQuery = uiState.localSearchQuery.trim()
 
     when (currentViewMode) {
@@ -154,10 +154,12 @@ fun GoalDetailContent(
                                     )
 
                                 is BacklogItemContent.ContextLinkItem ->
-                                    viewModel.onSubprojectCompletedChanged(
-                                        item.project,
-                                        isChecked,
-                                    )
+                                    item.legacyProject?.let { legacyProject ->
+                                        viewModel.onSubprojectCompletedChanged(
+                                            legacyProject,
+                                            isChecked,
+                                        )
+                                    }
 
                                 else -> {}
                             }
@@ -262,7 +264,7 @@ fun GoalDetailContent(
                 onSwitchView = onSwitchView,
                 enabledCapabilities = enabledCapabilities,
                 enableDashboard = uiState.enableDashboard,
-                enableAttachments = uiState.enableAttachments,
+                enableAttachments = CapabilityId("connections") in enabledCapabilities,
                 enableLog = uiState.enableLog,
                 enableKeyProblems = enableKeyProblems,
             )
@@ -280,7 +282,7 @@ fun GoalDetailContent(
         ContextViewMode.KEY_PROBLEMS -> {
             val pickerContextOptions =
                 allContexts
-                    .filter { it.id != uiState.context?.id }
+                    .filter { it.id != (uiState.presentation?.id ?: uiState.context?.id) }
                     .map { context ->
                         ProjectOption(
                             id = context.id,

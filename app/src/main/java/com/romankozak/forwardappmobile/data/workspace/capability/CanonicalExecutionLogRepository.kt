@@ -49,30 +49,7 @@ class CanonicalExecutionLogRepository
             workspaceId: String,
             enabled: Boolean,
             now: Long = System.currentTimeMillis(),
-        ) {
-            val current = instanceStore.findInstance(SPEC, workspaceId)
-
-            if (enabled) {
-                if (
-                    current != null &&
-                    !current.isDeleted &&
-                    current.state == WorkspaceCapabilityState.ACTIVE.name
-                ) {
-                    return
-                }
-                enable(workspaceId, now)
-                return
-            }
-
-            if (
-                current == null ||
-                current.isDeleted ||
-                current.state == WorkspaceCapabilityState.DISABLED.name
-            ) {
-                return
-            }
-            disable(workspaceId, now)
-        }
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
 
         suspend fun archive(
             workspaceId: String,

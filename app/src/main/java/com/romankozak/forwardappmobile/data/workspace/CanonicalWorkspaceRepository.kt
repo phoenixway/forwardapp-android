@@ -1,7 +1,11 @@
 package com.romankozak.forwardappmobile.data.workspace
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationGraphRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
@@ -20,6 +24,44 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal data class CanonicalWorkspacePresentation(
+    val id: String,
+    val nameOverride: String?,
+    val descriptionOverride: String?,
+    val parentWorkspaceId: String?,
+    val roleCode: String?,
+    val workspaceOrder: Long,
+    val isDeleted: Boolean,
+)
+
+/**
+ * Read-only canonical node for ancestry and path construction.
+ *
+ * This intentionally excludes Context compatibility and all mutation state.
+ * A node is available only when a live canonical Workspace has a usable
+ * canonical display name.
+ */
+internal data class CanonicalWorkspaceAncestryPresentation(
+    val id: String,
+    val name: String,
+    val parentWorkspaceId: String?,
+)
+
+internal data class CanonicalWorkspacePresentationUpdate(
+    val id: String,
+    val nameOverride: String?,
+    val descriptionOverride: String?,
+    val parentWorkspaceId: String?,
+    val roleCode: String?,
+    val workspaceOrder: Long,
+)
+
+internal data class CanonicalWorkspaceHierarchyUpdate(
+    val id: String,
+    val parentWorkspaceId: String?,
+    val workspaceOrder: Long,
+)
+
 @Singleton
 class CanonicalWorkspaceRepository
     @Inject
@@ -35,6 +77,31 @@ class CanonicalWorkspaceRepository
         private val connectionsRepository: CanonicalConnectionsRepository,
         private val backlogRepository: CanonicalBacklogRepository,
     ) {
+        /**
+         * Resolves a live canonical Workspace without requiring a Context row.
+         * CONTEXT_BACKED Workspaces remain owned by their Context presentation.
+         */
+        internal suspend fun getLiveCanonicalAncestryPresentation(
+            id: String,
+        ): CanonicalWorkspaceAncestryPresentation? =
+            workspaceDao.getById(id)?.toLiveCanonicalAncestryPresentationOrNull()
+
+        internal suspend fun getCanonicalPresentation(id: String): CanonicalWorkspacePresentation? =
+            workspaceDao.getById(id)?.toCanonicalPresentationOrNull()
+
+        internal suspend fun getCanonicalPresentations(): Map<String, CanonicalWorkspacePresentation> =
+            workspaceDao.getAll()
+                .mapNotNull { it.toCanonicalPresentationOrNull() }
+                .associateBy { it.id }
+
+        internal fun observeCanonicalPresentations(): Flow<Map<String, CanonicalWorkspacePresentation>> =
+            workspaceDao.observeAll()
+                .map { workspaces ->
+                    workspaces
+                        .mapNotNull { it.toCanonicalPresentationOrNull() }
+                        .associateBy { it.id }
+                }
+
         suspend fun create(
             nameOverride: String,
             descriptionOverride: String? = null,
@@ -62,7 +129,7 @@ class CanonicalWorkspaceRepository
                         syncedAt = null,
                         isDeleted = false,
                         version = 1L,
-                        provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                        provenance = WorkspaceProvenance.STANDALONE.name,
                         sourceContextId = null,
                     )
                 validateHierarchy(live.values + workspace)
@@ -83,6 +150,38 @@ class CanonicalWorkspaceRepository
                     current.bump(now).copy(
                         nameOverride = nameOverride.normalized(),
                         descriptionOverride = descriptionOverride.normalized(),
+                        roleCode = roleCode.normalized(),
+                    ),
+                ),
+            )
+        }
+
+        suspend fun updateNameAndDescription(
+            id: String,
+            nameOverride: String?,
+            descriptionOverride: String?,
+            now: Long = System.currentTimeMillis(),
+        ) = database.withTransaction {
+            val current = requireActiveCanonical(id)
+            workspaceDao.upsert(
+                listOf(
+                    current.bump(now).copy(
+                        nameOverride = nameOverride.normalized(),
+                        descriptionOverride = descriptionOverride.normalized(),
+                    ),
+                ),
+            )
+        }
+
+        suspend fun updateRole(
+            id: String,
+            roleCode: String?,
+            now: Long = System.currentTimeMillis(),
+        ) = database.withTransaction {
+            val current = requireActiveCanonical(id)
+            workspaceDao.upsert(
+                listOf(
+                    current.bump(now).copy(
                         roleCode = roleCode.normalized(),
                     ),
                 ),
@@ -111,12 +210,162 @@ class CanonicalWorkspaceRepository
             workspaceDao.upsert(listOf(changed))
         }
 
+        /**
+         * Moves a canonical Workspace without allowing a legacy caller to choose its order.
+         * The Workspace owner's current order is retained deliberately; [move]'s null order
+         * instead means append beneath the new parent.
+         */
+        internal suspend fun movePreservingOrder(
+            id: String,
+            newParentWorkspaceId: String?,
+            now: Long = System.currentTimeMillis(),
+        ) = database.withTransaction {
+            val current = requireActiveCanonical(id)
+            if (current.parentWorkspaceId == newParentWorkspaceId) return@withTransaction
+
+            val live = loadLive()
+            requireActiveParent(newParentWorkspaceId, live)
+            val changed =
+                current.bump(now).copy(
+                    parentWorkspaceId = newParentWorkspaceId,
+                    workspaceOrder = current.workspaceOrder,
+                )
+            validateHierarchy(live.values.filterNot { it.id == id } + changed)
+            workspaceDao.upsert(listOf(changed))
+        }
+
+        /**
+         * Applies a coherent set of canonical presentation/hierarchy changes.
+         *
+         * This is intentionally package-internal: compatibility bridges may
+         * reuse the canonical Workspace owner's validation and versioning
+         * without becoming a second Workspace lifecycle owner.
+         *
+         * Callers that already hold the surrounding Room transaction can use
+         * this directly; all changes are validated as one prospective graph
+         * and persisted as one batch.
+         */
+        internal suspend fun updatePresentationBatchInCurrentTransaction(
+            updates: List<CanonicalWorkspacePresentationUpdate>,
+            now: Long,
+        ) {
+            if (updates.isEmpty()) return
+
+            require(updates.map { it.id }.distinct().size == updates.size) {
+                "Canonical Workspace presentation batch contains duplicate ids"
+            }
+
+            val live = loadLive()
+            val changedById = linkedMapOf<String, WorkspaceEntity>()
+
+            updates.forEach { update ->
+                val current =
+                    requireNotNull(live[update.id]) {
+                        "Workspace does not exist: ${update.id}"
+                    }
+
+                require(!current.isDeleted) {
+                    "Workspace is deleted: ${update.id}"
+                }
+                require(current.isCanonicalWorkspaceOwner()) {
+                    "Workspace presentation mutation requires canonical ownership: ${update.id}"
+                }
+
+                requireActiveParent(update.parentWorkspaceId, live)
+
+                val desiredName = update.nameOverride.normalized()
+                val desiredDescription = update.descriptionOverride.normalized()
+                val desiredRole = update.roleCode.normalized()
+
+                val presentationChanged =
+                    current.nameOverride != desiredName ||
+                        current.descriptionOverride != desiredDescription ||
+                        current.parentWorkspaceId != update.parentWorkspaceId ||
+                        current.roleCode != desiredRole ||
+                        current.workspaceOrder != update.workspaceOrder
+
+                if (!presentationChanged) return@forEach
+
+                changedById[update.id] =
+                    current.bump(now).copy(
+                        nameOverride = desiredName,
+                        descriptionOverride = desiredDescription,
+                        parentWorkspaceId = update.parentWorkspaceId,
+                        roleCode = desiredRole,
+                        workspaceOrder = update.workspaceOrder,
+                    )
+            }
+
+            if (changedById.isEmpty()) return
+
+            val prospective =
+                live.values.map { workspace ->
+                    changedById[workspace.id] ?: workspace
+                }
+
+            validateHierarchy(prospective)
+            workspaceDao.upsert(changedById.values.toList())
+        }
+
+        internal suspend fun updateHierarchyBatch(
+            updates: List<CanonicalWorkspaceHierarchyUpdate>,
+            now: Long = System.currentTimeMillis(),
+        ) = database.withTransaction {
+            if (updates.isEmpty()) return@withTransaction
+
+            require(updates.map { it.id }.distinct().size == updates.size) {
+                "Canonical Workspace hierarchy batch contains duplicate ids"
+            }
+
+            val live = loadLive()
+            val changedById = linkedMapOf<String, WorkspaceEntity>()
+
+            updates.forEach { update ->
+                val current =
+                    requireNotNull(live[update.id]) {
+                        "Workspace does not exist: ${update.id}"
+                    }
+
+                require(!current.isDeleted) {
+                    "Workspace is deleted: ${update.id}"
+                }
+                require(current.isCanonicalWorkspaceOwner()) {
+                    "Workspace hierarchy mutation requires canonical ownership: ${update.id}"
+                }
+
+                requireActiveParent(update.parentWorkspaceId, live)
+
+                if (
+                    current.parentWorkspaceId == update.parentWorkspaceId &&
+                    current.workspaceOrder == update.workspaceOrder
+                ) {
+                    return@forEach
+                }
+
+                changedById[update.id] =
+                    current.bump(now).copy(
+                        parentWorkspaceId = update.parentWorkspaceId,
+                        workspaceOrder = update.workspaceOrder,
+                    )
+            }
+
+            if (changedById.isEmpty()) return@withTransaction
+
+            val prospective =
+                live.values.map { workspace ->
+                    changedById[workspace.id] ?: workspace
+                }
+
+            validateHierarchy(prospective)
+            workspaceDao.upsert(changedById.values.toList())
+        }
+
         suspend fun tombstone(
             id: String,
             now: Long = System.currentTimeMillis(),
         ) = database.withTransaction {
             val current = workspaceDao.getById(id) ?: error("Workspace does not exist")
-            require(current.provenance == WorkspaceProvenance.CANONICAL_ONLY.name) {
+            require(current.isCanonicalWorkspaceOwner()) {
                 "Context-backed Workspace lifecycle remains owned by Context"
             }
             if (current.isDeleted) return@withTransaction
@@ -127,9 +376,9 @@ class CanonicalWorkspaceRepository
                     .filter { it.parentWorkspaceId == id }
                     .sortedBy { it.workspaceOrder }
             val protectedChildren =
-                children.filter { it.provenance != WorkspaceProvenance.CANONICAL_ONLY.name }
+                children.filterNot { it.isCanonicalWorkspaceOwner() }
             require(protectedChildren.isEmpty()) {
-                "Cannot tombstone canonical-only Workspace while it has Context-backed or unknown-provenance children"
+                "Cannot tombstone canonical Workspace while it has Context-backed or unknown-provenance children"
             }
 
             val rootStart = nextOrder(live.values.filterNot { it.id == id }, null)
@@ -269,10 +518,9 @@ class CanonicalWorkspaceRepository
 
         private suspend fun requireActiveCanonical(id: String): WorkspaceEntity {
             val workspace = requireNotNull(workspaceDao.getById(id)) { "Workspace does not exist" }
-            require(
-                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                    !workspace.isDeleted,
-            ) { "Workspace is not an active canonical-only Workspace" }
+            require(!workspace.isDeleted && workspace.isCanonicalWorkspaceOwner()) {
+                "Workspace is not an active canonical Workspace"
+            }
             return workspace
         }
 
@@ -288,6 +536,37 @@ class CanonicalWorkspaceRepository
             require(parentId == null || parentId in live) { "Workspace parent must be active" }
         }
     }
+
+private fun WorkspaceEntity.toCanonicalPresentationOrNull(): CanonicalWorkspacePresentation? {
+    if (!isCanonicalWorkspaceOwner()) return null
+    require(sourceContextId == null) {
+        "Canonical Workspace still references legacy Context: $id"
+    }
+    return CanonicalWorkspacePresentation(
+        id = id,
+        nameOverride = nameOverride,
+        descriptionOverride = descriptionOverride,
+        parentWorkspaceId = parentWorkspaceId,
+        roleCode = roleCode,
+        workspaceOrder = workspaceOrder,
+        isDeleted = isDeleted,
+    )
+}
+
+private fun WorkspaceEntity.toLiveCanonicalAncestryPresentationOrNull(): CanonicalWorkspaceAncestryPresentation? {
+    if (
+        isDeleted ||
+        !isCanonicalWorkspaceOwner()
+    ) {
+        return null
+    }
+    val name = nameOverride?.takeIf { it.isNotBlank() } ?: return null
+    return CanonicalWorkspaceAncestryPresentation(
+        id = id,
+        name = name,
+        parentWorkspaceId = parentWorkspaceId,
+    )
+}
 
 private fun validateHierarchy(workspaces: Collection<WorkspaceEntity>) {
     require(
@@ -312,3 +591,13 @@ private fun WorkspaceEntity.bump(now: Long) =
     )
 
 private fun String?.normalized(): String? = this?.trim()?.ifEmpty { null }
+
+private fun WorkspaceEntity.isCanonicalWorkspaceOwner(): Boolean =
+    sourceContextId == null &&
+        (
+            provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||
+                (
+                    provenance == WorkspaceProvenance.STANDALONE.name &&
+                        !SystemContexts.isSystem(ContextId(id))
+                )
+        )

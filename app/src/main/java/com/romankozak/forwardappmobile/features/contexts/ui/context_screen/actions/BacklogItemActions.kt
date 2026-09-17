@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTimeMetrics
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -31,10 +30,10 @@ class BacklogItemActions(
     private val repositories: BacklogItemRepositories,
 ) {
     suspend fun updateSubprojectCompleted(
-        subproject: Context,
+        subprojectId: String,
         completed: Boolean,
     ) {
-        repositories.contextRepository.updateContext(subproject.copy(isCompleted = completed))
+        repositories.contextRepository.updateContextCompleted(subprojectId, completed)
     }
 
     suspend fun updateProjectStatus(
@@ -60,8 +59,13 @@ class BacklogItemActions(
             }
 
             is BacklogItemContent.ContextLinkItem -> {
-                repositories.contextRepository.deleteContextsAndSubContexts(listOf(item.project))
-                "Підконтекст видалено"
+                val legacyProject = item.legacyProject
+                if (legacyProject != null) {
+                    repositories.contextRepository.deleteContextsByIds(listOf(legacyProject.id))
+                    "Підконтекст видалено"
+                } else {
+                    "Цей проект доступний лише для читання"
+                }
             }
 
             is BacklogItemContent.NoteDocumentItem -> {

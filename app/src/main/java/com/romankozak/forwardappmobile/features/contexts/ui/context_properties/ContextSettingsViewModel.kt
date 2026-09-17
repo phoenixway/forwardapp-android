@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -9,6 +11,7 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
 import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -19,12 +22,21 @@ import com.romankozak.forwardappmobile.core.navigation.capability.settings.Capab
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.ContextSettingsUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.canonicalSystemBacklogLifecycleOverrides
+import com.romankozak.forwardappmobile.data.workspace.canonicalSystemRemainingCapabilityOverrides
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -36,6 +48,7 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActio
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +63,12 @@ import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 
+private data class SettingsOptionsSources(
+    val contexts: List<ContextPresentation>,
+    val attachments: List<AttachmentLibraryQueryResult>,
+    val relatedLinks: List<RelatedLink>,
+)
+
 @HiltViewModel
 class ContextSettingsViewModel
     @Inject
@@ -60,6 +79,8 @@ class ContextSettingsViewModel
         private val structurePresetDao: StructurePresetDao,
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val capabilityRegistry: CapabilityRegistry,
         private val contextCapabilitiesResolver: ContextCapabilitiesResolver,
         private val capabilitySettingsRegistry: CapabilitySettingsRegistry,
@@ -69,11 +90,15 @@ class ContextSettingsViewModel
         private val checklistRepository: ChecklistRepository,
         private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
+        private val systemCapabilityAccess: SystemContextCanonicalInboxDirectionAccess,
+        private val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
+        private val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
         private val allContexts =
-            contextRepository.getAllContextsFlow()
-                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            systemWorkspacePresentationContextProjector.observePresentationUniverse(
+                contextRepository.getAllContextsFlow(),
+            ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
         private val allAttachmentOptions =
             attachmentsRepository.getAttachmentLibraryItems()
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -105,14 +130,30 @@ class ContextSettingsViewModel
             }
 
             viewModelScope.launch {
-                combine(allContexts, allAttachmentOptions, uiState) { contexts, attachments, state ->
-                    Triple(contexts, attachments, state.relatedLinks)
-                }.collect { (contexts, attachments, relatedLinks) ->
+                combine(
+                    allContexts,
+                    allAttachmentOptions,
+                    uiState,
+                ) { contexts, attachments, state ->
+                    SettingsOptionsSources(
+                        contexts = contexts,
+                        attachments = attachments,
+                        relatedLinks = state.relatedLinks,
+                    )
+                }.collect { sources ->
                     val contextOptions =
-                        contexts.map { context ->
-                            ProjectOption(id = context.id, name = context.name, parentId = context.parentId)
+                        sources.contexts.map { context ->
+                            ProjectOption(
+                                id = context.id,
+                                name = context.name,
+                                parentId = context.parentId,
+                            )
                         }
-                    val attachmentOptions = attachments.mapNotNull { it.toAttachmentOption() }.filterNot { it.linkType == LinkType.CONTEXT }
+                    val attachmentOptions =
+                        sources.attachments
+                            .mapNotNull { it.toAttachmentOption() }
+                            .filterNot { it.linkType == LinkType.CONTEXT }
+                    val relatedLinks = sources.relatedLinks
                     _uiState.update {
                         it.copy(
                             availableContexts = contextOptions,
@@ -128,81 +169,122 @@ class ContextSettingsViewModel
          * Завантаження існуючого проекту з повною синхронізацією конфігурації
          */
         private suspend fun loadExistingProject(projectId: String) {
-            // 1. Отримуємо основні дані проекту та його структуру
             val project = contextRepository.getContextById(projectId)
+            val presentedProject =
+                systemWorkspacePresentationContextProjector.resolvePresentation(
+                    contextId = projectId,
+                    context = project,
+                )
+            if (presentedProject == null) {
+                _events.send(ContextSettingsEvent.NavigateBack("Проект недоступний"))
+                return
+            }
+
             val structure = contextStructureRepository.getStructureByContext(projectId)
+            val resolvedConfig = structure ?: ContextConfiguration.default(projectId)
+            val presetLabel =
+                structure?.basePresetCode?.let { code ->
+                    structurePresetDao.getByCode(code)?.label
+                } ?: "Стандартний (Default)"
 
-            if (project != null) {
-                // 2. Резолвимо назву пресета (ролі) для відображення в UI
-                val presetLabel =
-                    structure?.basePresetCode?.let { code ->
-                        structurePresetDao.getByCode(code)?.label
-                    } ?: "Стандартний (Default)"
+            val canonicalSystemState = systemCapabilityAccess.getState(projectId)
+            val canonicalRemainingState = systemRemainingCapabilityAccess.getState(projectId)
+            val canonicalBacklogState = systemBacklogLifecycleAccess.getState(projectId)
+            val hasPromotedSystemCapabilityAuthority =
+                canonicalSystemState?.isCanonicalOwnerAvailable == true &&
+                    canonicalRemainingState?.isCanonicalOwnerAvailable == true &&
+                    canonicalBacklogState?.isCanonicalOwnerAvailable == true
 
-                // 3. Формуємо мапу фіч через той самий resolver, що й runtime екрану контексту.
-                val resolvedConfig = structure ?: ContextConfiguration.default(project.id)
-                val legacyEnabledCapabilities = contextCapabilitiesResolver.resolve(resolvedConfig)
-                val dashboardCapability = CapabilityId("dashboard")
-                val executionLogCapability = CapabilityId("log")
-                val withCanonicalDashboard =
-                    if (canonicalDashboardCapabilityRepository.isEnabled(project.id)) {
-                        legacyEnabledCapabilities + dashboardCapability
-                    } else {
-                        legacyEnabledCapabilities - dashboardCapability
+            val legacyEnabledCapabilities =
+                contextCapabilitiesResolver.resolve(
+                    config = resolvedConfig,
+                    includePresetCapabilities = !hasPromotedSystemCapabilityAuthority,
+                )
+            val withCanonicalSystemCapabilities =
+                canonicalSystemState?.let { canonical ->
+                    legacyEnabledCapabilities
+                        .let { if (canonical.inboxEnabled) it + CapabilityId("inbox") else it - CapabilityId("inbox") }
+                        .let { if (canonical.directionEnabled) it + CapabilityId("direction") else it - CapabilityId("direction") }
+                } ?: legacyEnabledCapabilities
+            val withAllCanonicalSystemCapabilities =
+                canonicalSystemRemainingCapabilityOverrides(projectId, canonicalRemainingState)
+                    .entries
+                    .fold(withCanonicalSystemCapabilities) { capabilities, (id, enabled) ->
+                        if (enabled) capabilities + id else capabilities - id
                     }
-                val enabledCapabilities =
-                    if (canonicalExecutionLogRepository.isEnabled(project.id)) {
-                        withCanonicalDashboard + executionLogCapability
-                    } else {
-                        withCanonicalDashboard - executionLogCapability
+            val withCanonicalBacklog =
+                canonicalSystemBacklogLifecycleOverrides(projectId, canonicalBacklogState)
+                    .entries
+                    .fold(withAllCanonicalSystemCapabilities) { capabilities, (id, enabled) ->
+                        if (enabled) capabilities + id else capabilities - id
                     }
-                val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities() + enabledCapabilities
-                val structureFeatures =
-                    allKnownCapabilities.associate { capId ->
-                        val key = featureLabelForCapability(capId)
-                        key to enabledCapabilities.contains(capId)
-                    }.toSortedMap()
 
-                // 4. Оновлюємо стан UI одним атомарним блоком
-                _uiState.update { state ->
-                    state.copy(
-                        contextId = project.id,
-                        // Метадані проекту
-                        title = state.title.copy(project.name),
-                        description = state.description.copy(project.description ?: ""),
-                        relatedLinks = project.relatedLinks ?: emptyList(),
-                        tags = sanitizeTags(project.tags),
-                        isReady = true,
-                        isNewProject = false,
-                        showCheckboxes = project.showCheckboxes,
-                        // Скоринг та оцінка
-                        valueImportance = project.valueImportance,
-                        valueImpact = project.valueImpact,
-                        effort = project.effort,
-                        cost = project.cost,
-                        risk = project.risk,
-                        weightEffort = project.weightEffort,
-                        weightCost = project.weightCost,
-                        weightRisk = project.weightRisk,
-                        rawScore = project.rawScore,
-                        displayScore = project.displayScore,
-                        scoringStatus = project.scoringStatus,
-                        isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
-                        // Системна конфігурація
-                        basePresetCode = resolvedConfig.basePresetCode,
-                        capabilityApplyMode = resolvedConfig.applyMode,
-                        enabledCapabilityIds = enabledCapabilities,
-                        experimentalCapabilityIds = resolvedConfig.experimentalCapabilityIds,
-                        currentPresetLabel = presetLabel,
-                        features = structureFeatures,
-                        // Синхронізація ключових прапорців для UI-логіки
-                        autoLinkSubprojects = structure?.enableAutoLinkSubprojects ?: true,
-                        isProjectManagementEnabled = project.isContextManagementEnabled == true,
-                    )
+            val dashboardCapability = CapabilityId("dashboard")
+            val executionLogCapability = CapabilityId("log")
+            val malformedSystemOwner =
+                canonicalSystemState?.isCanonicalOwnerAvailable == false
+            val withCanonicalDashboard =
+                if (
+                    !malformedSystemOwner &&
+                    canonicalDashboardCapabilityRepository.isEnabled(projectId)
+                ) {
+                    withCanonicalBacklog + dashboardCapability
+                } else {
+                    withCanonicalBacklog - dashboardCapability
                 }
-            } else {
-                // Якщо проект видалено або не знайдено — повертаємо користувача назад
-                _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
+            val enabledCapabilities =
+                if (
+                    !malformedSystemOwner &&
+                    canonicalExecutionLogRepository.isEnabled(projectId)
+                ) {
+                    withCanonicalDashboard + executionLogCapability
+                } else {
+                    withCanonicalDashboard - executionLogCapability
+                }
+
+            val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities() + enabledCapabilities
+            val structureFeatures =
+                allKnownCapabilities.associate { capId ->
+                    featureLabelForCapability(capId) to enabledCapabilities.contains(capId)
+                }.toSortedMap()
+
+            _uiState.update { state ->
+                state.copy(
+                    contextId = projectId,
+                    title = state.title.copy(presentedProject.name),
+                    description = state.description.copy(presentedProject.description ?: ""),
+                    relatedLinks = project?.relatedLinks ?: emptyList(),
+                    tags = sanitizeTags(presentedProject.tags),
+                    isReady = true,
+                    isNewProject = false,
+                    showCheckboxes = project?.showCheckboxes ?: state.showCheckboxes,
+                    valueImportance = project?.valueImportance ?: 0f,
+                    valueImpact = project?.valueImpact ?: 0f,
+                    effort = project?.effort ?: 0f,
+                    cost = project?.cost ?: 0f,
+                    risk = project?.risk ?: 0f,
+                    weightEffort = project?.weightEffort ?: 1f,
+                    weightCost = project?.weightCost ?: 1f,
+                    weightRisk = project?.weightRisk ?: 1f,
+                    rawScore = project?.rawScore ?: 0f,
+                    displayScore = project?.displayScore ?: 0,
+                    scoringStatus = project?.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+                    isScoringEnabled =
+                        project?.scoringStatus?.let {
+                            it != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS
+                        } ?: true,
+                    basePresetCode = resolvedConfig.basePresetCode,
+                    capabilityApplyMode = resolvedConfig.applyMode,
+                    enabledCapabilityIds = enabledCapabilities,
+                    experimentalCapabilityIds = resolvedConfig.experimentalCapabilityIds,
+                    currentPresetLabel = presetLabel,
+                    features = structureFeatures,
+                    autoLinkSubprojects =
+                        canonicalSystemState?.let {
+                            it.direction?.configuration?.autoLinkChildWorkspaces ?: false
+                        } ?: (structure?.enableAutoLinkSubprojects ?: true),
+                    isProjectManagementEnabled = project?.isContextManagementEnabled == true,
+                )
             }
         }
 
@@ -212,37 +294,68 @@ class ContextSettingsViewModel
                     _events.send(ContextSettingsEvent.NavigateBack("Назва проекту не може бути пустою"))
                     return@launch
                 }
-                saveProject()
-                _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
+                if (saveProject()) {
+                    _events.send(ContextSettingsEvent.NavigateBack("Збережено"))
+                } else {
+                    _events.send(ContextSettingsEvent.NavigateBack("Проект недоступний"))
+                }
             }
         }
 
-        private suspend fun saveProject() {
-            val projectId: String = savedStateHandle["projectId"] ?: return
-            val project = contextRepository.getContextById(projectId) ?: return
+        private suspend fun saveProject(): Boolean {
+            val projectId: String = savedStateHandle["projectId"] ?: return false
+            val project = contextRepository.getContextById(projectId)
+            val isReservedSystem = SystemContexts.isSystem(ContextId(projectId))
 
-            val updatedProject =
-                project.copy(
+            if (isReservedSystem) {
+                val presentation =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = projectId,
+                        context = project,
+                    ) ?: return false
+
+                contextRepository.updateContextPresentation(
+                    contextId = presentation.id,
                     name = _uiState.value.title.text,
                     description = _uiState.value.description.text.ifEmpty { null },
-                    relatedLinks = _uiState.value.relatedLinks,
-                    tags = sanitizeTags(_uiState.value.tags),
-                    showCheckboxes = _uiState.value.showCheckboxes,
-                    isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
-                    valueImportance = _uiState.value.valueImportance,
-                    valueImpact = _uiState.value.valueImpact,
-                    effort = _uiState.value.effort,
-                    cost = _uiState.value.cost,
-                    risk = _uiState.value.risk,
-                    weightEffort = _uiState.value.weightEffort,
-                    weightCost = _uiState.value.weightCost,
-                    weightRisk = _uiState.value.weightRisk,
-                    rawScore = _uiState.value.rawScore,
-                    displayScore = _uiState.value.displayScore,
-                    scoringStatus = _uiState.value.scoringStatus,
                 )
-            contextRepository.updateContext(updatedProject)
+                contextRepository.updateContextTags(
+                    contextId = projectId,
+                    tags = sanitizeTags(_uiState.value.tags),
+                )
+                persistFeatureFlags()
+                return true
+            }
+
+            project ?: return false
+            contextRepository.updateContextSettings(
+                contextId = projectId,
+                update =
+                    ContextSettingsUpdate(
+                        name = _uiState.value.title.text,
+                        description = _uiState.value.description.text.ifEmpty { null },
+                        relatedLinks = _uiState.value.relatedLinks,
+                        showCheckboxes = _uiState.value.showCheckboxes,
+                        isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
+                        valueImportance = _uiState.value.valueImportance,
+                        valueImpact = _uiState.value.valueImpact,
+                        effort = _uiState.value.effort,
+                        cost = _uiState.value.cost,
+                        risk = _uiState.value.risk,
+                        weightEffort = _uiState.value.weightEffort,
+                        weightCost = _uiState.value.weightCost,
+                        weightRisk = _uiState.value.weightRisk,
+                        rawScore = _uiState.value.rawScore,
+                        displayScore = _uiState.value.displayScore,
+                        scoringStatus = _uiState.value.scoringStatus,
+                    ),
+            )
+            contextRepository.updateContextTags(
+                contextId = projectId,
+                tags = sanitizeTags(_uiState.value.tags),
+            )
             persistFeatureFlags()
+            return true
         }
 
         fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
@@ -315,12 +428,17 @@ class ContextSettingsViewModel
 
         fun onAddContextLink(contextId: String) {
             viewModelScope.launch {
-                val context = contextRepository.getContextById(contextId) ?: return@launch
+                val context = contextRepository.getContextById(contextId)
+                val presented =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = contextId,
+                        context = context,
+                    ) ?: return@launch
                 addRelatedLink(
                     RelatedLink(
                         type = LinkType.CONTEXT,
-                        target = context.id,
-                        displayName = context.name,
+                        target = presented.id,
+                        displayName = presented.name,
                     ),
                 )
             }
@@ -397,55 +515,7 @@ class ContextSettingsViewModel
         fun onApplyPreset(code: String) {
             val pid = projectId ?: return
             viewModelScope.launch {
-                // 1. Застосовуємо пресет (це оновить basePresetCode та, можливо, структуру)
                 structurePresetService.applyPresetToContext(pid, code)
-
-                // 2. Отримуємо можливості, що відповідають цьому пресету
-                val presetCapabilities = ContextRoleRegistry.getCapabilitiesForRole(code)
-
-                // 3. Розділяємо можливості на legacy та експериментальні
-                val allKnownLegacyCaps =
-                    setOf(
-                        "inbox",
-                        "log",
-                        "dashboard",
-                        "backlog",
-                        "attachments",
-                        "connections",
-                    )
-                val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
-
-                // 4. Оновлюємо конфігурацію в БД, щоб прапорці відповідали пресету
-                val structure = contextStructureRepository.ensureStructure(pid)
-                val preset = structurePresetDao.getByCode(code)
-                val updatedStructure =
-                    structure.copy(
-                        basePresetCode = code,
-                        applyMode = APPLY_MODE_ADDITIVE,
-                        // Оновлення legacy-прапорців
-                        enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
-                        enableAdvanced = preset?.enableAdvanced,
-                        enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
-                        enableAttachments =
-                            presetCapabilities.contains(CapabilityId("connections")) ||
-                                presetCapabilities.contains(CapabilityId("attachments")),
-                        enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
-                        removeInboxEntryAfterTagAutocopy = structure.removeInboxEntryAfterTagAutocopy,
-                        removeBacklogEntryAfterTagAutocopy = structure.removeBacklogEntryAfterTagAutocopy,
-                        // Оновлення списку експериментальних ID
-                        experimentalCapabilityIds = experimentalIdsFromPreset,
-                    )
-                contextStructureRepository.updateStructure(updatedStructure)
-                canonicalDashboardCapabilityRepository.setEnabled(
-                    workspaceId = pid,
-                    enabled = true,
-                )
-                canonicalExecutionLogRepository.setEnabled(
-                    workspaceId = pid,
-                    enabled = presetCapabilities.contains(CapabilityId("log")),
-                )
-
-                // 5. Перезавантажуємо дані, щоб UI оновився згідно зі змінами
                 loadExistingProject(pid)
             }
         }
@@ -488,6 +558,28 @@ class ContextSettingsViewModel
                     isProjectManagementEnabled = state.isProjectManagementEnabled,
                 )
             }
+            if (
+                systemCapabilityAccess.handles(projectId.orEmpty()) &&
+                capabilityId.raw in
+                    setOf("backlog", "inbox", "direction", "connections", "inbox_sorting", "key_problems")
+            ) {
+                viewModelScope.launch {
+                    val id = projectId.orEmpty()
+                    try {
+                        when (capabilityId.raw) {
+                            "backlog" -> systemBacklogLifecycleAccess.setEnabled(id, enabled)
+                            "inbox" -> systemCapabilityAccess.setInboxEnabled(id, enabled)
+                            "direction" -> systemCapabilityAccess.setDirectionEnabled(id, enabled)
+                            "connections" -> systemRemainingCapabilityAccess.setConnectionsEnabled(id, enabled)
+                            "inbox_sorting" -> systemRemainingCapabilityAccess.setInboxSortingEnabled(id, enabled)
+                            "key_problems" -> systemRemainingCapabilityAccess.setKeyProblemsEnabled(id, enabled)
+                        }
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) throw error
+                        loadExistingProject(id)
+                    }
+                }
+            }
         }
 
         private fun featureLabelToCapabilityId(label: String): CapabilityId =
@@ -515,8 +607,65 @@ class ContextSettingsViewModel
             val pid = projectId ?: return
             val currentState = _uiState.value
 
-            // 1. Отримуємо існуючу структуру або створюємо нову
+            if (SystemContexts.isSystem(ContextId(pid))) {
+                if (systemCapabilityAccess.handles(pid)) {
+                    systemCapabilityAccess.setInboxEnabled(
+                        pid,
+                        currentState.features["Inbox"] == true,
+                    )
+                    systemCapabilityAccess.setDirectionEnabled(
+                        pid,
+                        currentState.features["Direction"] == true,
+                    )
+                }
+                if (systemRemainingCapabilityAccess.handles(pid)) {
+                    systemRemainingCapabilityAccess.setConnectionsEnabled(
+                        pid,
+                        currentState.features["Connections"] == true ||
+                            currentState.features["Attachments"] == true,
+                    )
+                    systemRemainingCapabilityAccess.setInboxSortingEnabled(
+                        pid,
+                        currentState.features["Inbox Sorting"] == true,
+                    )
+                    systemRemainingCapabilityAccess.setKeyProblemsEnabled(
+                        pid,
+                        currentState.features["Key Problems"] == true,
+                    )
+                }
+                if (systemBacklogLifecycleAccess.handles(pid)) {
+                    systemBacklogLifecycleAccess.setEnabled(
+                        pid,
+                        currentState.features["Backlog"] == true,
+                    )
+                }
+                canonicalDashboardCapabilityRepository.setEnabled(
+                    workspaceId = pid,
+                    enabled = currentState.features["Dashboard"] == true,
+                )
+                canonicalExecutionLogRepository.setEnabled(
+                    workspaceId = pid,
+                    enabled = currentState.features["Log"] == true,
+                )
+                return
+            }
+
+            // Ordinary Context configuration remains Context-owned.
             val structure = contextStructureRepository.ensureStructure(pid)
+            val isCanonicalSystem = systemCapabilityAccess.handles(pid)
+            val canonicalCompatibilityIds =
+                setOf(
+                    CapabilityId("direction"),
+                    CapabilityId("inbox_sorting"),
+                    CapabilityId("key_problems"),
+                )
+            val experimentalCapabilityIds =
+                if (isCanonicalSystem) {
+                    (currentState.experimentalCapabilityIds - canonicalCompatibilityIds) +
+                        structure.experimentalCapabilityIds.filter { it in canonicalCompatibilityIds }
+                } else {
+                    currentState.experimentalCapabilityIds
+                }
 
             // 2. Створюємо оновлений об'єкт структури
             val updated =
@@ -525,12 +674,23 @@ class ContextSettingsViewModel
                     basePresetCode = currentState.basePresetCode,
                     applyMode = currentState.capabilityApplyMode,
                     // Зберігаємо список активованих ідентифікаторів можливостей
-                    experimentalCapabilityIds = currentState.experimentalCapabilityIds,
+                    experimentalCapabilityIds = experimentalCapabilityIds,
                     // Підтримка legacy-колонок (для сумісності)
-                    enableInbox = currentState.features["Inbox"] == true,
-                    enableAdvanced = currentState.isProjectManagementEnabled,
-                    enableBacklog = currentState.features["Backlog"] == true,
-                    enableAttachments = currentState.features["Connections"] ?: currentState.features["Attachments"] == true,
+                    enableInbox =
+                        if (isCanonicalSystem) structure.enableInbox else currentState.features["Inbox"] == true,
+                    enableAdvanced = structure.enableAdvanced,
+                    enableBacklog =
+                        if (systemBacklogLifecycleAccess.handles(pid)) {
+                            structure.enableBacklog
+                        } else {
+                            currentState.features["Backlog"] == true
+                        },
+                    enableAttachments =
+                        if (isCanonicalSystem) {
+                            structure.enableAttachments
+                        } else {
+                            currentState.features["Connections"] ?: currentState.features["Attachments"] == true
+                        },
                     // Керується окремою вкладкою Direction settings.
                     // Тут не перезаписуємо, щоб не затирати актуальне значення.
                     enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
@@ -560,7 +720,6 @@ class ContextSettingsViewModel
         }
 
         private companion object {
-            private const val APPLY_MODE_ADDITIVE = "ADDITIVE"
             private const val APPLY_MODE_OVERRIDE = "OVERRIDE"
 
             private fun sanitizeTags(tags: List<String>?): List<String> =

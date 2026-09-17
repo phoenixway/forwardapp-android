@@ -734,10 +734,14 @@ A minimal technical migration record or redirect may be retained when needed
 for idempotency, diagnostics, old deep links or explicitly supported migration
 boundaries. Such a record is not a Context content/configuration owner.
 
-The final Context-compatibility extinction cutover is triggered only after no
-live legacy Context remains. At that point the project may remove Context
-persistence, hierarchy/configuration/runtime compatibility projection and other
-Context-only infrastructure in one separately verified cutover.
+The regular/non-system Context retirement checkpoint is reached only after no
+live non-system legacy Context remains. Reaching that checkpoint does not by
+itself authorize removal of Context persistence. Reserved `SystemContexts` are
+an explicit remaining compatibility boundary. Context persistence,
+hierarchy/configuration/runtime compatibility projection and other Context-only
+infrastructure may be removed only in a separately verified cutover that first
+replaces or retires the reserved system identities and audits every remaining
+compatibility consumer.
 
 Rationale:
 
@@ -873,9 +877,17 @@ Decision:
 Legacy Context semantic retirement proceeds bottom-up, from active leaves toward
 the root.
 
-A Context with any live legacy child Context is not eligible for semantic
-cutover. Its active descendants must be retired first. The existing production
-leaf gate is retained as the canonical migration-order invariant.
+A regular Context with any live non-system legacy child Context is not eligible
+for semantic cutover. Its migratable active descendants must be retired first.
+The production leaf gate is retained as the canonical migration-order invariant
+for non-system Contexts.
+
+Reserved `SystemContexts` children are the terminal exception. They cannot
+themselves be migrated, so they do not block retirement of an otherwise-eligible
+regular parent. If such a parent cuts over, the reserved child's operational
+Workspace edge may remain attached to the parent's same-id canonical Workspace.
+This exception does not permit parent-first retirement for ordinary non-system
+children.
 
 A child Context cutover preserves its existing Workspace id and
 `parentWorkspaceId`. The promoted `CANONICAL_ONLY` child Workspace may remain
@@ -1429,3 +1441,730 @@ edits still mutated only legacy storage, allowing canonical Orientation state to
 drift. A scoped compatibility write-through closes that gap without making the
 legacy Goal model a permanent second authority or copying Goal-only fields into
 the canonical Orientation aggregate.
+
+## 2026-09-07 - Reserved System Context children are a terminal compatibility boundary
+
+Decision:
+
+Bottom-up regular Context retirement counts only active non-system Context
+children as migration blockers. Reserved `SystemContexts` remain live and
+cannot be migrated by `CanonicalContextMigrationRepository.migrateContext()`;
+therefore a reserved system child must not create an impossible terminal leaf
+barrier for its regular parent.
+
+When a reserved system Context keeps a legacy `Context.parentId` pointing to a
+regular parent that has semantically cut over, Workspace bootstrap may preserve
+that operational parent edge only when the parent id resolves to an active
+same-id `CANONICAL_ONLY` Workspace. This is a narrow reserved-system boundary,
+not general parent-first migration. A live ordinary non-system compatibility
+child beneath a canonical parent remains invalid and is still quarantined with
+`WORKSPACE_PARENT_COLLISION`.
+
+The regular Context migration program is complete. Production verification
+after the final wave reports:
+
+- 483 regular Context cutovers completed;
+- 652 persisted Context rows in total;
+- 20 active Contexts, all 20 reserved system identities;
+- zero active non-system Contexts;
+- all final regular Contexts tombstoned with their operational Workspaces
+  promoted to `CANONICAL_ONLY`;
+- all tested reserved-system-to-canonical-parent Workspace edges preserved;
+- database integrity clean, zero foreign-key violations and zero active
+  hierarchy cycles.
+
+The temporary AI migration review/export/import/apply pipeline and offline
+snapshot evaluator were scaffolding for this finite retirement program and are
+removed after completion. The classifier, candidate reader, manual migration
+workflow, canonical single-target preflight and migration command remain
+separate compatibility mechanisms.
+
+Reaching zero active non-system Contexts closes regular semantic retirement but
+does not authorize physical Context-infrastructure deletion. The 20 reserved
+system Contexts and remaining Context-only consumers require a separate
+authority census, replacement design and verified schema/runtime cutover.
+
+Verification:
+
+- the canonical Context migration Room suite is green after removal of the
+  review-only batch-preflight machinery;
+- the manual `ContextMigrationWorkflowTest` remains green;
+- `:app:compileExpDebugKotlin` is green;
+- production database audit confirms the persisted 0/non-system + 20/system
+  boundary and preserved Workspace hierarchy described above.
+
+## 2026-09-07 - SystemApp operational scope belongs to Workspace
+
+Decision:
+
+`SystemApp` is an operational system feature scoped by a stable canonical
+Workspace identity, not by legacy Context semantics. The persisted owner is
+therefore `system_apps.workspace_id -> workspaces(id)`. The stable `sys_*`
+value remains unchanged, so the current `sys_strategic` owner becomes the
+same-id Workspace owner without migrating the reserved SystemContext through
+the normal Context migration vocabulary.
+
+The 166-to-167 schema migration must fail closed unless every former
+`system_apps.context_id` resolves to a live Workspace with the exact same id.
+It never creates a substitute Workspace. Current SnapshotBundle export carries
+`workspaceId`; full backup may accept historical `contextId` only as bounded
+input that resolves to that identical live Workspace. Live merge does not
+restore legacy Context ownership.
+
+This decision concerns only SystemApp scope. It does not rename or reinterpret
+`NoteDocument.contextId`, attachment owner fields, MainBeacon Context links or
+TacticalMission Context references.
+
+## 2026-09-08 - Reserved System Context adapters are transitional, not final architecture
+
+Decision:
+
+The 20 stable reserved `sys_*` identities are permanent operational identities,
+but their persisted legacy `Context` rows are not accepted as permanent runtime
+owners.
+
+The target architecture is:
+
+`stable system identity -> same-id CANONICAL_ONLY Workspace -> typed canonical capabilities`
+
+At the 2026-09-08 checkpoint,
+`SystemContextCanonicalWorkspaceMirror`,
+`SystemContextCanonicalCapabilityLifecycleRouter`,
+`SystemContextCanonicalCapabilityConfigurationMirror`,
+`SystemWorkspaceOwnershipCutover`, and promoted-System
+`ContextConfiguration -> bootstrap` projection existed only to preserve behavior
+while legacy readers, writers, transport, materialization, and relational
+dependencies were retired. This is historical context; later decisions retire
+several of these boundaries.
+
+Compatibility adapters must not become a second source of truth. Each adapter is
+removed after the specific legacy boundary it protects has crossed to canonical
+ownership.
+
+The dependency order is intentionally incremental: direct canonical capability
+authoring/read, closure of legacy-only configuration semantics, independent
+fixed-id System Workspace materialization, canonical capability transport,
+removal of promoted-System legacy capability projection, direct Workspace
+UI/navigation ownership, tag/association ownership, remaining Context
+relational cutovers, and finally stopping Context materialization before
+physical deletion of the reserved rows.
+
+Physical removal of the 20 active reserved System Context rows is a distinct
+milestone from complete removal of the `contexts` persistence schema.
+Historical tombstones, migration provenance, old-backup compatibility and other
+Context-only persisted contracts must be audited separately.
+
+At the 2026-09-08 checkpoint those Context-only domain concepts still required
+their own evidence-led ownership decisions before destructive schema changes.
+Subsequent decisions resolved canonical Workspace tag ownership, Main Beacon
+operational ownership, Tactical Mission reserved-System project ownership, and
+startup/restore materialization. The current continuation is the separate
+fail-closed physical-deletion checkpoint recorded by the later 2026-09-12
+Step-10 decision.
+## 2026-09-10 - Workspace owns canonical tag membership independently
+
+Decision:
+
+Canonical tag membership belongs to the stable operational Workspace identity,
+not to a persisted Context row and not to Workspace presentation metadata.
+
+Workspace tag membership is represented as independently versioned
+`workspace_tag_refs` rows keyed by `(workspaceId, normalizedTag)`. Each logical
+membership has its own `updatedAt`, `syncedAt`, tombstone, and version lifecycle.
+
+`Context.tags` remains a compatibility representation while step 8 readers and
+writers are cut over. `context_tag_refs` remains a legacy/rebuildable Context
+index until its relational retirement is handled separately. Stable `sys_*`
+owner-key fields without a Context foreign key are not renamed merely because
+their historical field name contains `ContextId`.
+
+Reason:
+
+Reserved System tags currently disappear semantically if their Context row is
+removed because association code derives tag owners from `Context.tags`.
+Putting tags directly on `WorkspaceEntity` would couple independent tag edits
+to Workspace name/description/hierarchy/order through one whole-row Workspace
+version and freshness winner. Existing Workspace-owned mutable collections
+already establish independently versioned rows as the canonical pattern.
+
+Consequence:
+
+Schema 168 introduces canonical Workspace tag storage without changing runtime
+tag authority yet. System tag seeding, transport, association/search cutover,
+compatibility projection, and eventual Context FK/index retirement remain
+separate evidence-led slices.
+
+## 2026-09-11 - Reserved System legacy tag ingress is bounded and one-shot
+
+Decision:
+
+Canonical System Workspace tag state remains authoritative once established,
+but pre-canonical backup/merge input requires one explicit compatibility
+window. `system_workspace_tag_seed_states.legacyIngressClosedAt` records whether
+that window has permanently closed.
+
+Startup seed may establish an empty or populated canonical tag collection
+without treating stale legacy transport as permanent authority. A direct
+canonical System tag write or current canonical `workspaceTagRefs` transport
+closes legacy ingress permanently. A pre-canonical payload may consume an
+established but still-open legacy ingress once. It cannot later reclaim
+authority after canonical authoring.
+
+For existing schema-169 seed markers, historical provenance cannot be
+reconstructed safely. Migration 169 -> 170 therefore closes their legacy
+ingress conservatively by setting `legacyIngressClosedAt = seededAt`.
+
+Reserved-id handling always uses the exact current reserved identity set, never
+a `sys_%` prefix test.
+
+## 2026-09-11 - Main Beacon operational owners use typed Context and Workspace branches
+
+Decision:
+
+Main Beacon has one logical ordered operational-owner relation. While ordinary
+Context ownership still exists, that logical relation has two typed physical
+storage branches:
+
+- ordinary Context owners remain in `main_beacon_context_cross_ref` with the
+  existing Context foreign key;
+- exact reserved System owners use
+  `main_beacon_workspace_cross_ref` with a Workspace foreign key.
+
+A reserved System endpoint keeps the same stable `sys_*` id and is valid only
+when a live same-id `CANONICAL_ONLY` Workspace with `sourceContextId = null`
+exists. Missing, deleted or malformed canonical ownership fails closed. The
+historical deleted `sys_strategic-beacons` row is not reserved and is not
+reclassified by prefix.
+
+The historical SnapshotBundle field name `mainBeaconContextCrossRefs` remains a
+compatibility wire contract. Logical export unions both typed branches, while
+import routes exact reserved ids to Workspace storage. Full restore and merge
+must install canonical Workspace payload before typed Main Beacon relation
+routing.
+
+Main Beacon UI/read semantics use stable logical owner ids and canonical owner
+labels. A reserved System Main Beacon relation therefore remains usable without
+a persisted System Context shell. This relation is not converted into generic
+Workspace bindings or Orientation relations; Main Beacon keeps ownership of its
+specialized domain relation.
+
+## 2026-09-12 - Tactical Mission reserved-System project owners use a Workspace branch
+
+Decision:
+
+`TacticalMission.projectId` represents one logical project-owner relation.
+Ordinary project owners remain Context-backed, while an exact current reserved
+System identity is owned by the same-id canonical Workspace rather than by its
+temporary persisted System Context shell.
+
+Room schema 171 therefore uses two mutually exclusive physical branches:
+
+- ordinary owner: `projectId -> contexts(id)`;
+- exact reserved System owner:
+  `project_workspace_id -> workspaces(id)`.
+
+The stable logical id is preserved. Exact reserved classification uses the
+current reserved identity set, not a `sys_*` prefix. Migration and runtime writes
+fail closed when a reserved owner lacks the required live same-id
+`CANONICAL_ONLY` Workspace, and conflicting physical owner branches are invalid.
+
+The historical transport meaning of `projectId` remains the logical project id.
+Compatibility at the wire boundary does not return persistence authority to the
+reserved Context row.
+
+This closes roadmap Step 9D and the known Step 9 reserved-System relational/FK
+cutovers. It does not authorize deletion of the 20 reserved System Context rows.
+Step 10 first removes startup/restore dependence on their materialization; row
+deletion remains the separate later fail-closed checkpoint.
+
+## 2026-09-14 - DayTask reserved-System project ownership uses a Workspace branch
+
+Decision:
+
+`DayTask` has one logical project-owner relation. Ordinary project owners remain
+Context-backed, while an exact current reserved System identity is owned by the
+same-id canonical Workspace rather than by a persisted System Context shell.
+
+Room schema 172 therefore uses two mutually exclusive physical branches:
+
+- ordinary owner: `projectId -> contexts(id)`;
+- exact reserved System owner:
+  `project_workspace_id -> workspaces(id)`.
+
+`DayTask.logicalProjectId` is the semantic owner accessor and current transport
+continues to carry one logical `projectId`. Exact reserved classification uses
+the current reserved identity set, never a `sys_*` prefix. Historical
+non-reserved `sys_*` ids remain ordinary Context owners.
+
+All persistence paths that can author DayTask rows must apply the same routing
+invariant. This includes canonical recurrence atomic Room transactions, which
+have raw task insert/update primitives for transactionality and therefore route
+their task rows before those raw writes. Template-driven recurrence updates
+clear any stale physical Workspace branch before rerouting, while recurrence
+template equality compares the logical owner.
+
+A reserved owner requires a live same-id `CANONICAL_ONLY` Workspace with
+`sourceContextId = null`. Conflicting physical branches are invalid. Obsolete
+reserved ownership without a valid canonical Workspace may be detached at
+migration/import boundaries rather than recreating a Context shell.
+
+This is a Step 11 runtime-shell extinction sub-slice. It does not authorize
+physical deletion of the remaining reserved System Context rows by itself.
+
+## 2026-09-12 - Reserved System Workspace ownership converges without Context materialization
+
+Decision:
+
+Roadmap Step 10 stops treating persisted reserved System Context rows as a
+startup, restore, or Workspace-materialization prerequisite.
+
+Reserved classification is exact: only the current 20 identities recognized by
+`SystemContexts` receive this behavior. A string merely beginning with `sys_*`
+remains an ordinary Context unless it belongs to that exact reserved set.
+
+`SystemWorkspaceMaterializer` owns canonical convergence:
+
+- if the same-id Workspace is missing and no historical reserved Context exists,
+  create the live `CANONICAL_ONLY` Workspace from
+  `SystemOperationalDefinitions` create-time defaults;
+- if the Workspace is missing and a live historical same-id reserved Context
+  exists, create the Workspace directly as `CANONICAL_ONLY` using that Context's
+  metadata;
+- if an old same-id `CONTEXT_BACKED` Workspace exists, require a live same-id
+  Context and exact agreement for name, description, parent, role, and order,
+  then promote the Workspace in place to `CANONICAL_ONLY` and clear
+  `sourceContextId`;
+- deleted Context evidence, deleted System Workspaces, orphaned
+  `CONTEXT_BACKED` ownership, stale projection metadata, or malformed
+  provenance/source combinations fail closed;
+- an already valid `CANONICAL_ONLY` Workspace is preserved and factory defaults
+  never reclaim its mutable metadata.
+
+Historical reserved Context rows are bounded evidence only in Step 10. The step
+neither creates nor deletes them.
+
+Factory capability defaults are deliberately a second phase from Workspace
+ownership. Normal startup convergence seeds only genuinely absent logical
+factory instances.
+
+For merge of a pre-canonical backup, canonical Workspace owners are first
+materialized with factory capability seeding disabled. When the payload has no
+canonical `workspaceCapabilityInstances`,
+`ingestLegacySystemCapabilityProjection()` then gets the first opportunity to
+seed genuinely missing canonical System capability state from imported reserved
+Context/configuration evidence. Final convergence afterwards fills only
+still-missing factory defaults.
+
+Any existing logical capability instance, including a tombstone, remains
+canonical authority and is never overwritten or resurrected by factory seeding.
+
+Ordinary Workspace bootstrap does not project exact reserved System Contexts
+into `CONTEXT_BACKED` Workspace metadata. Normal bootstrap and ordinary Context
+writes also do not derive promoted-System capability state from
+`ContextConfiguration`; explicit pre-canonical import ingress is the bounded
+legacy capability path.
+
+`SystemContextEnsurer` and `SystemWorkspaceOwnershipCutover`, including the
+dedicated one-shot live cutover harness, are retired. `DatabaseInitializer`
+converges canonical System Workspace ownership and canonical System tag
+collections without reserved Context seeding.
+
+Consequence:
+
+Step 10 is `CURRENT / VERIFIED / COMPLETE`.
+
+Host verification is green for `:app:compileExpLocalKotlin` and the focused
+System Workspace materializer, initializer, tag-seed, capability-transport,
+SystemApp, Session Mode, and Command Deck regression suite.
+
+Physical deletion remains the separate Step 11 operation. Before deleting
+exactly the 20 surviving active reserved Context rows, current canonical owner
+state, capabilities, tags, inbound dependencies, and any remaining Context-only
+persisted state must be re-audited. Deletion must fail closed on any unaccounted
+dependency or ambiguity.
+
+## 2026-09-14 - Reserved System Context shells retire after runtime canonical convergence
+
+Decision:
+
+Physical retirement of the current reserved System Context compatibility
+shells is a bounded runtime convergence operation, not a Room schema migration.
+
+`DatabaseInitializer.ensureCanonicalSystemWorkspaceOwnership()` preserves this
+dependency order:
+
+1. `SystemWorkspaceMaterializer` consumes persisted or transient historical
+   reserved-Context evidence and converges all exact reserved identities to
+   same-id canonical Workspace ownership.
+2. `SystemWorkspaceTagSeed.seedMissingCanonicalCollections()` establishes
+   canonical System tag collections.
+3. `SystemContextShellRetirer` performs one complete fail-closed preflight and
+   physically deletes only active exact-reserved Context rows.
+
+The retirer requires the exact current reserved definition set to contain 20
+distinct ids. For every id, the same-id Workspace must exist, be live,
+`CANONICAL_ONLY`, and have `sourceContextId = null`. A canonical tag-seed state
+must also exist.
+
+`legacyIngressClosedAt` is not a shell-retirement prerequisite. It represents
+the separately bounded pre-canonical backup compatibility window, not whether
+local persisted Context evidence has already been consumed safely.
+
+Only active exact-reserved Context rows are deleted. Exact reserved tombstones
+remain historical records. Ordinary Contexts and historical non-reserved
+`sys_*` ids remain ordinary Context data. Reserved classification always uses
+the exact `SystemContexts` identity set and never a prefix match.
+
+Reason:
+
+Room migration order is too early for this destructive operation. Verified old
+upgrade behavior shows that a database can reach the current Room schema while
+reserved System Workspaces are still `CONTEXT_BACKED`. Runtime
+`SystemWorkspaceMaterializer` performs the later promotion to
+`CANONICAL_ONLY`.
+
+Before that promotion, the persisted reserved Context may still be the only
+historical evidence for canonical name, description, hierarchy, role and
+ordering. Deleting it during schema migration could therefore destroy valid
+state before the canonical owner has consumed it.
+
+Consequence:
+
+No schema bump and no permanent shell-retirement ledger are introduced for
+this cutover. Existing canonical Workspace ownership and tag-seed state are
+sufficient preconditions.
+
+Startup convergence retires surviving active shells only after canonical state
+is safe. Full restore and merge never persist exact reserved Context snapshots
+and finish in the same shell-free canonical postcondition.
+
+Focused host acceptance verifies fail-closed behavior, idempotency, integrity,
+and anti-resurrection across startup, full restore, merge and pre-canonical
+old-backup ingress.
+
+This completes roadmap Step 11 at the architecture, implementation and focused
+test level. Whether a particular production database has already executed the
+retirement is an operational observation and is recorded separately from the
+architecture state.
+
+
+## 2026-09-15 - Retired Context transport is tombstone-preserving and anti-resurrection
+
+Decision:
+
+A same-id Workspace with `provenance = CANONICAL_ONLY` and
+`sourceContextId = null` is canonical Context-retirement authority for transport.
+
+For such an id, current transport must not export, select, acknowledge, merge or
+restore a **live** ordinary Context. This rule applies across full
+backup/restore, merge/Wi-Fi ingress, local dirty selection and delta,
+selective-import closure, and Context ACK handling.
+
+Context tombstones are not suppressed by this rule. They remain transportable
+compatibility/history evidence and preserve deletion/version semantics.
+
+Exact reserved System Context identities remain governed by the separate
+shell-free System transport contract and are classified by the exact
+`SystemContexts` identity set, never by a `sys_*` prefix.
+
+Reason:
+
+After ordinary Context migration had been production-verified with zero active
+non-System Contexts, a transport path resurrected `486` retired Context rows.
+The canonical Workspaces and semantic migration evidence remained intact, so
+the failure was transport ownership enforcement rather than loss of canonical
+state.
+
+Workspace-only retirement intentionally has no
+`CONTEXT / CUT_OVER` mapping. Therefore a semantic mapping cannot be the
+universal transport guard. The common durable ownership shape is the same-id
+canonical Workspace with cleared `sourceContextId`.
+
+Consequence:
+
+Transport filters live retired Contexts while preserving tombstones and
+legitimate `CONTEXT_BACKED` Contexts. Incoming canonical Workspace payload may
+establish the retirement authority used by the same restore/merge operation, so
+ingress cannot recreate a Context merely because the local pre-merge database
+does not yet contain that canonical Workspace.
+
+Dependent legacy Context-parent links to rejected retired Context ids are also
+excluded.
+
+This rule is transport ownership protection, not permission for arbitrary local
+Context deletion. In particular, code must not infer a destructive local
+cutover solely from the canonical Workspace shape. Explicit Context migration
+and its completed-state contracts remain the authority for intentional local
+retirement.
+
+Verification:
+
+Focused Room and sync tests cover full restore, merge/Wi-Fi ingress, selective
+import, export/delta/selection, ACK, tombstone preservation and legitimate
+`CONTEXT_BACKED` transport. The 2026-09-15 production incident recovery was
+separately verified and its temporary recovery implementation was removed after
+use. A subsequent clean APK without that recovery code was installed and
+started against production; the database remained at zero active ordinary
+Contexts and zero reserved Context rows with clean integrity.
+
+## 2026-09-15 - Android mobile hierarchy is focus-mode only
+
+Decision:
+
+Android owns a focus-navigation hierarchy rather than an expandable full-tree
+presentation.
+
+The mobile root shows only level-0 operational hierarchy nodes. Entering a
+Group, Beacon, Workspace or Context replaces the hierarchy body with that
+node's direct children and a breadcrumb/back navigation path. A focused Group
+does not inline Beacon grandchildren, and a focused ProjectLike node does not
+render its complete descendant tree.
+
+Expand/collapse is therefore not part of the Android hierarchy presentation
+contract. Existing persisted `Context.isExpanded` data is retained as
+compatibility/legacy state and may remain useful to a separate desktop tree
+interface, but it must not become Android presentation authority again.
+
+Canonical-only and shell-free Workspaces participate in the same mobile focus
+contract through stable operational hierarchy ids. The UI must not manufacture
+a fake Context solely to support navigation.
+
+The Desktop application remains a separate repository. A Desktop expandable
+tree, if desired, owns its own presentation behavior and must not require the
+Android hierarchy to restore flattened-tree rendering.
+
+Rationale:
+
+The historical Context hierarchy originally used persisted expansion state.
+Focus mode later became the primary mobile interaction model, but remnants of
+the old tree renderer and newer orientation-container expansion controls caused
+both models to coexist. That hybrid duplicated navigation state, exposed
+grandchildren at the wrong focus level, and made reveal/search depend on rows
+that should not exist on a focus-only root surface.
+
+One navigation model is simpler and also fits the post-Context canonical
+operational hierarchy: a stable Workspace can remain navigable even when no
+legacy Context row exists.
+
+Consequence:
+
+Android hierarchy code, search/reveal behavior and shell-free Workspace
+presentation should be reviewed against focus semantics, not against
+`Context.isExpanded`. Reintroducing mobile tree expansion requires a new
+explicit product decision rather than being treated as restoration of missing
+behavior.
+
+Verification:
+
+The focused host Gradle gate is green and the installed APK passed manual
+acceptance for root -> Group -> Beacon -> Context/subcontext traversal and
+breadcrumb/back navigation.
+
+## 2026-09-16 - Context read authority no longer uses persisted Context-shaped projection
+
+Decision:
+
+Runtime project presentation must not manufacture or return a persisted
+`Context` entity merely to carry read/display state.
+
+The canonical read boundary uses `ContextPresentation`, hierarchy presentation
+nodes, stable ids, and narrowly scoped operational label contracts.
+
+For an active ordinary compatibility Context, Context presentation ownership may
+remain legacy-backed until that Context is explicitly retired.
+
+For a retired ordinary project, a live same-id `CANONICAL_ONLY` Workspace with
+`sourceContextId = null` supplies canonical presentation. A deleted same-id
+ordinary Context may be consulted only as historical identity/retirement
+evidence. Its name, description, parent, role, order and tags are not read
+authority.
+
+An arbitrary shell-free non-System Workspace is not sufficient evidence that a
+project presentation exists. Without the retired ordinary identity evidence it
+fails closed.
+
+Exact reserved System identities remain independently shell-free. Their
+canonical Workspace and System tag authority determine presentation; malformed
+or unavailable canonical ownership fails closed rather than falling back to a
+stale System Context shell.
+
+Operational owner labels are a separate narrow relation contract. Main Beacon
+and similar stable-owner relations may require `ownerId -> display label`
+without requiring a complete project presentation. That label contract may use
+canonical Workspace names for exact System owners and retired ordinary owners,
+but it must not manufacture Context entities or become a second project
+presentation source.
+
+Retired ordinary canonical tag membership is Workspace-owned. Any established
+canonical Workspace tag collection prevents stale legacy `Context.tags` from
+reclaiming collection authority.
+
+Consequence:
+
+The obsolete Context-returning projector methods, reactive Context-shaped
+projector API and `projectSystemWorkspacePresentation()` helper are removed.
+Read-only UI and domain consumers migrate to presentation/id carriers rather
+than receiving an adapter back to `Context`.
+
+Raw Context objects may still exist at explicit mutation and compatibility
+boundaries. Their continued existence is not evidence of read authority. Step
+12C subsequently retired runtime mutation command carriers in favor of stable
+ids and explicit semantic values; remaining Context-shaped compatibility is a
+separate Step 12D concern.
+
+This decision does not authorize immediate Context schema deletion. Transport,
+old-format compatibility, relational FKs and persistence infrastructure remain
+separate Step 12D/12E work.
+
+Verification:
+
+The final 12B2g production Kotlin compile and focused unit suite are green.
+Static census reports zero production callsites of the removed Context-shaped
+projector surfaces, and the remaining legacy hierarchy tests were migrated to
+the current presentation contract.
+
+## 2026-09-17 - Runtime Context mutations use explicit command ownership
+
+Decision:
+
+Runtime mutation boundaries must not accept caller-owned persisted `Context`
+snapshots. Commands carry stable ids and only the values owned by their
+operation; repository owners reread the current ordinary Context row before
+persisting it. Exact reserved System ids use canonical Workspace owners where
+that authority exists and otherwise fail closed.
+
+Consequence:
+
+Hierarchy delete/move/reorder, clipboard and migration commands, settings and
+scalar updates, adapter updates, and project-reminder setup no longer require
+a caller-owned Context as their write command. Private repository persistence
+helpers and raw topology snapshots remain implementation details, not public
+mutation authority.
+
+This closes Step 12C. Context-shaped transport/compatibility remains Step 12D;
+Room/FK/schema retirement remains Step 12E.
+
+## 2026-09-17 - Context Big Cut uses current canonical Android state as the only supported migration authority
+
+Decision:
+
+Context Persistence Extinction will use the current canonical Android production state as the only supported migration starting point.
+
+The compatibility boundary is intentionally hard:
+
+- the current canonical Android database is the sole supported migration authority for the Context Big Cut;
+- old Android installations that still contain active ordinary Context rows are unsupported and do not require an upgrade path through the cut;
+- the `632` surviving ordinary Context tombstones in the current production database are not retained as permanent history or anti-resurrection evidence and may be dropped with Context persistence;
+- Context-based Desktop compatibility is frozen across the cut; the existing Desktop Context protocol is not a blocker to Android Context extinction;
+- a future Desktop version must target the canonical post-Context model rather than preserve or recreate the legacy Context aggregate;
+- old Context-shaped backup/sync/import behavior does not justify preserving Context persistence after the cut boundary.
+
+Reason:
+
+The current production checkpoint already has zero active ordinary Contexts and zero exact reserved System Context rows. Preserving Context-shaped transport, tombstones, and compatibility adapters solely for unsupported historical Android/Desktop states would prolong dual ownership and require new transitional architecture whose only purpose would be later removal.
+
+The project therefore prefers a clean canonical cut over constructing additional compatibility bridges.
+
+Consequence:
+
+Step 12D may retire Context transport and compatibility surfaces instead of replacing every historical Context field one-for-one. Each surviving Android-local Context dependency is classified as either:
+
+1. canonical state that must move to an existing or explicitly accepted canonical owner;
+2. still-live product behavior that requires a deliberate owner decision;
+3. obsolete compatibility/history state that is deleted.
+
+Once external Context ingress and Android-local Context consumers are closed, Step 12E may remove remaining Context foreign keys, DAO/schema infrastructure, tombstones, tables, and temporary anti-resurrection machinery.
+
+This decision does not authorize inventing a new Context-like canonical entity or copying every legacy Context field into Workspace.
+
+## 2026-09-17 - Project is not a canonical entity
+
+Decision:
+
+ForwardApp has no canonical `Project` entity.
+
+`Project` is historical product/domain terminology from the model that later
+became ordinary `Context`. Where current code, UI labels, tests, or historical
+documentation still use “project”, that term must not be interpreted as a
+separate persistence identity, aggregate root, or canonical domain type.
+
+For Context Persistence Extinction:
+
+- ordinary user-created Context behavior that remains part of the product may
+  move to canonical `Workspace` ownership where the behavior is operational;
+- this does not create a `Project` entity and does not mean `Workspace` is a
+  renamed `Context`;
+- `Orientation`, `Aspect`, and other semantic entities remain separate and are
+  not aliases for Project, Context, or Workspace;
+- legacy names such as `projectId`, “project picker”, “new project”, or
+  project-oriented UI wording may survive temporarily as naming debt while
+  their actual owner is migrated;
+- such historical naming is not evidence that a canonical Project model should
+  be introduced.
+
+Terminology for architectural documentation should prefer:
+
+- `ordinary Context` when referring to the legacy persisted entity/population;
+- `Workspace` when referring to the canonical operational owner;
+- “historical project terminology” when explaining old UI/API names.
+
+Reason:
+
+The application historically used “project” for the concept that evolved into
+`Context`. Treating Project as a new entity during Context extinction would
+invent a fourth overlapping concept and risk recreating the same aggregate
+under a different name.
+
+## 2026-09-17 - New operational Context creation moves to canonical Workspace ownership
+
+Decision:
+
+The current Android behaviors that historically create an ordinary `Context`
+as an operational working container remain supported, but their canonical
+persistence and identity owner is `Workspace`.
+
+This is not the introduction of a `Project` entity. `Project` remains only
+historical terminology for the model that later became ordinary `Context`.
+
+For new operational creation:
+
+- creation must converge on a canonical standalone `Workspace`, not a new
+  ordinary `Context`;
+- no new `ContextConfiguration` row is created merely to preserve the legacy
+  aggregate;
+- `Workspace` owns the operational identity and the Workspace semantics already
+  established by the canonical model, including presentation, hierarchy and
+  role;
+- generic operational tags use canonical Workspace-owned tag membership;
+- capability defaults must be explicit canonical capability-instance behavior,
+  not copied wholesale from `ContextConfiguration`;
+- legacy Context fields do not receive automatic one-for-one replacements;
+- `Aspect`, `Orientation`, and other semantic entities are not automatically
+  created merely because a Workspace is created;
+- a Workspace is not a renamed Context and must not become a new catch-all
+  aggregate.
+
+The existing reachable Android flows historically labeled “new project”,
+quick-create, picker-create, hierarchy creation, copy/create, Day/Tactical
+target creation, Strategic/Core target creation, and similar ordinary-Context
+creation paths are therefore migration targets toward canonical Workspace
+creation/admission rather than reasons to preserve Context persistence.
+
+Two narrow semantics remain separate decisions and must not block the general
+creation cutover:
+
+1. legacy `ArcQuestSourceType.CONTEXT` source meaning;
+2. preset-driven `SUBCONTEXT` child creation.
+
+Those cases require their own evidence-based owner decisions rather than
+restoring generic Context creation.
+
+Consequence:
+
+Step 12D must establish generic non-System Workspace creation/admission for the
+supported operational flows and migrate ordinary Context creators to it. Once
+Android can no longer create live ordinary Context rows, Context transport can
+be retired independently under the already accepted Context Big Cut.
+
+This decision does not authorize physical Context schema removal; that remains
+Step 12E after logical/runtime and transport extinction.

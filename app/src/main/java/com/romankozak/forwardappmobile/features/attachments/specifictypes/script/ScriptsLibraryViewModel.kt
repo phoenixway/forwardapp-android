@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,6 +41,7 @@ class ScriptsLibraryViewModel
     constructor(
         scriptRepository: ScriptRepository,
         contextRepository: ContextRepository,
+        systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         settingsRepository: SettingsRepository,
     ) : ViewModel() {
         private val query = MutableStateFlow("")
@@ -48,7 +50,7 @@ class ScriptsLibraryViewModel
         val uiState: StateFlow<ScriptsLibraryUiState> =
             combine(
                 scriptRepository.getAllScripts(),
-                contextRepository.getAllContextsFlow(),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextRepository.getAllContextsFlow()),
                 query,
                 filter,
                 settingsRepository.featureTogglesFlow,

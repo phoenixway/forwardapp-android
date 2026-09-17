@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.reminders.list
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -131,21 +132,22 @@ fun RemindersScreen(
                             )
                         }
                         is ReminderListItem.ProjectReminder -> {
-                            ProjectItem(
-                                project = reminderItem.project,
-                                childProjects = emptyList(),
-                                onCheckedChange = { _ -> },
-                                onItemClick = { viewModel.onEditReminder(reminderItem.reminder) },
-                                onLongClick = { },
-                                onTagClick = { },
-                                onChildProjectClick = { },
-                                onRelatedLinkClick = { },
-                                emojiToHide = null,
-                                contextMarkerToEmojiMap = emptyMap(),
-                                currentTimeMillis = currentTimeMillis,
-                                isSelected = false,
-                                reminders = listOf(reminderItem.reminder),
-                                endAction = {
+                            androidx.compose.material3.ListItem(
+                                modifier =
+                                    Modifier.clickable {
+                                        viewModel.onEditReminder(reminderItem.reminder)
+                                    },
+                                headlineContent = {
+                                    androidx.compose.material3.Text(reminderItem.project.name)
+                                },
+                                supportingContent = {
+                                    reminderItem.project.description
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let { description ->
+                                            androidx.compose.material3.Text(description)
+                                        }
+                                },
+                                trailingContent = {
                                     IconButton(onClick = { showActionsDialogForItem = reminderItem }) {
                                         Icon(Icons.Default.MoreHoriz, "...")
                                     }

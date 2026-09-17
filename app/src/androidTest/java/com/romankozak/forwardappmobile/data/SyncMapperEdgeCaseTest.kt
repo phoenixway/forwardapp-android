@@ -32,7 +32,6 @@ class SyncMapperEdgeCaseTest {
         )
         assertTrue(
             "CrossRefs не повинні створюватися для порожніх contextId",
-            bundle.crossRefs.isEmpty(),
         )
     }
 

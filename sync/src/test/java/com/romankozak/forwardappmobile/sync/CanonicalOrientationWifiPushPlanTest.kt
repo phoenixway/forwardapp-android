@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.sync
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
@@ -13,6 +14,51 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CanonicalOrientationWifiPushPlanTest {
+    @Test
+    fun `dirty Workspace tag carries canonical delta and exact composite acknowledgement`() {
+        val workspace = workspace()
+        val tag =
+            WorkspaceTagRefEntity(
+                workspaceId = workspace.id,
+                normalizedTag = "focus",
+                createdAt = 10L,
+                updatedAt = 20L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 3L,
+            )
+        val fullSnapshot = canonicalWorkspaceSnapshot(workspace)
+
+        val plan =
+            buildCanonicalWifiPushPlan(
+                selection = LocalSyncSelection(),
+                fullSnapshot = fullSnapshot,
+                dirtyCanonicalSeries = emptyList(),
+                dirtyCanonicalOrientations =
+                    CanonicalOrientationSyncPayload(workspaceTagRefs = listOf(tag)),
+            )
+
+        assertEquals(listOf(tag), plan.snapshotDelta.workspaceTagRefs)
+        assertEquals(workspace.id, plan.orientationsAck.workspaceTagRefs.single().workspaceId)
+        assertEquals(tag.normalizedTag, plan.orientationsAck.workspaceTagRefs.single().normalizedTag)
+        assertEquals(tag.version, plan.orientationsAck.workspaceTagRefs.single().version)
+    }
+
+    @Test
+    fun `non-tag canonical delta omits Workspace tags rather than declaring empty membership`() {
+        val workspace = workspace()
+
+        val plan =
+            buildCanonicalWifiPushPlan(
+                selection = LocalSyncSelection(),
+                fullSnapshot = SnapshotBundle(),
+                dirtyCanonicalSeries = emptyList(),
+                dirtyCanonicalOrientations = CanonicalOrientationSyncPayload(workspaces = listOf(workspace)),
+            )
+
+        assertEquals(null, plan.snapshotDelta.workspaceTagRefs)
+    }
+
     @Test
     fun `dirty Workspace participates in atomic delta and exact acknowledgement`() {
         val workspace =
@@ -234,6 +280,39 @@ class CanonicalOrientationWifiPushPlanTest {
             updatedAt = 120L,
             version = 4L,
             isDeleted = false,
+        )
+
+    private fun workspace() =
+        WorkspaceEntity(
+            id = "workspace",
+            nameOverride = "Canonical workspace",
+            descriptionOverride = null,
+            parentWorkspaceId = null,
+            roleCode = null,
+            workspaceOrder = 0L,
+            createdAt = 10L,
+            updatedAt = 20L,
+            syncedAt = 15L,
+            isDeleted = false,
+            version = 3L,
+            provenance = "CANONICAL_ONLY",
+            sourceContextId = null,
+        )
+
+    private fun canonicalWorkspaceSnapshot(workspace: WorkspaceEntity) =
+        SnapshotBundle(
+            managedSubjects = emptyList(),
+            orientations = emptyList(),
+            aspects = emptyList(),
+            orientationAssessments = emptyList(),
+            orientationAssessmentRevisions = emptyList(),
+            legacySubjectMappings = emptyList(),
+            orientationRelations = emptyList(),
+            aspectOrientationRefs = emptyList(),
+            workspaces = listOf(workspace),
+            workspaceBindings = emptyList(),
+            workspaceCapabilityInstances = emptyList(),
+            savedOrientationViews = emptyList(),
         )
 
     private fun canonicalExecutionLog() =

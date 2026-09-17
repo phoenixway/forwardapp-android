@@ -9,6 +9,7 @@ import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 
 data class CanonicalFocusSplitSourceVersion(
     val itemId: String,
@@ -101,6 +102,9 @@ interface CanonicalRecurringSeriesDao {
         }
     }
 
+    @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
+    suspend fun getOperationalProjectWorkspaceForTask(workspaceId: String): WorkspaceEntity?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTaskOccurrenceForAuthoring(task: DayTask)
 
@@ -132,7 +136,11 @@ interface CanonicalRecurringSeriesDao {
         updatedAt: Long,
     ) {
         insert(series)
-        insertTaskOccurrenceForAuthoring(occurrence)
+        insertTaskOccurrenceForAuthoring(
+            routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
+                getOperationalProjectWorkspaceForTask(workspaceId)
+            },
+        )
 
         val deletedCount =
             softDeleteTaskOneOffForConversion(
@@ -164,7 +172,13 @@ interface CanonicalRecurringSeriesDao {
     ) {
         update(series)
         if (occurrences.isNotEmpty()) {
-            updateTaskOccurrences(occurrences)
+            updateTaskOccurrences(
+                occurrences.map { occurrence ->
+                    routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
+                        getOperationalProjectWorkspaceForTask(workspaceId)
+                    }
+                },
+            )
         }
     }
 
@@ -360,7 +374,13 @@ interface CanonicalRecurringSeriesDao {
         check(deletedCount == 1) {
             "Cannot detach stale, deleted, legacy, or non-canonical task occurrence: $taskId"
         }
-        insertTaskOccurrencesForSplit(listOf(detachedTask))
+        insertTaskOccurrencesForSplit(
+            listOf(
+                routeDayTaskProjectForPersistence(detachedTask) { workspaceId ->
+                    getOperationalProjectWorkspaceForTask(workspaceId)
+                },
+            ),
+        )
     }
 
     @Transaction
@@ -400,7 +420,13 @@ interface CanonicalRecurringSeriesDao {
         }
 
         if (replacementOccurrences.isNotEmpty()) {
-            insertTaskOccurrencesForSplit(replacementOccurrences)
+            insertTaskOccurrencesForSplit(
+                replacementOccurrences.map { occurrence ->
+                    routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
+                        getOperationalProjectWorkspaceForTask(workspaceId)
+                    }
+                },
+            )
         }
     }
 

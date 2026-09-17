@@ -15,6 +15,9 @@ interface AttachmentsLocalDataSource {
     suspend fun getAllContextIds(): Set<String>
 
     // --- Бізнес-логіка ---
+    /** Fails closed before new content is created for a canonical-only System owner. */
+    suspend fun requireAttachmentPlacementAuthoring(contextId: String)
+
     suspend fun ensureAttachmentLinkedToContext(
         attachmentType: String,
         entityId: String,

@@ -26,17 +26,18 @@ class StructurePresetService
             contextId: String,
             presetCode: String,
         ) {
+            // Canonical capability application is the authoritative preset
+            // command and must succeed before descriptive legacy metadata is
+            // updated or structural side effects are materialized.
+            contextStructureRepository.applyPresetToContext(contextId, presetCode)
             contextRepository.getContextById(contextId)?.let { context ->
                 if (context.roleCode != presetCode) {
-                    contextRepository.updateContext(
-                        context.copy(
-                            roleCode = presetCode,
-                            updatedAt = System.currentTimeMillis(),
-                        ),
+                    contextRepository.updateContextRole(
+                        contextId = context.id,
+                        roleCode = presetCode,
                     )
                 }
             }
-            contextStructureRepository.applyPresetToContext(contextId, presetCode)
             applyContextStructure(contextId)
         }
 

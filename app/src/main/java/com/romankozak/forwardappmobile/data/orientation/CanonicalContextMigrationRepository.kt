@@ -7,7 +7,14 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
@@ -91,6 +98,11 @@ data class ContextMigrationResult(
     val changed: Boolean,
 )
 
+data class ContextMigrationPreflightResult(
+    val ready: Boolean,
+    val reason: String? = null,
+)
+
 /**
  * Canonical command boundary for explicit legacy Context cutover.
  *
@@ -110,7 +122,25 @@ class CanonicalContextMigrationRepository
         private val orientationRepository: CanonicalOrientationRepository,
         private val graphRepository: CanonicalOrientationGraphRepository,
         private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val canonicalWorkspaceTagRepository: CanonicalWorkspaceTagRepository,
     ) {
+        suspend fun preflightContextMigration(
+            contextId: String,
+            target: ContextMigrationTarget,
+        ): ContextMigrationPreflightResult =
+            try {
+                requireContextMigrationPreflight(
+                    contextId = contextId,
+                    target = target,
+                )
+                ContextMigrationPreflightResult(ready = true)
+            } catch (failure: IllegalArgumentException) {
+                ContextMigrationPreflightResult(
+                    ready = false,
+                    reason = failure.message ?: "Context migration preflight rejected",
+                )
+            }
+
         suspend fun migrateContext(
             contextId: String,
             target: ContextMigrationTarget,
@@ -178,29 +208,12 @@ class CanonicalContextMigrationRepository
                     return@mutate validateWorkspaceOnlyCutOver(contextId)
                 }
 
-                require(contextDao.getActiveContextsByParentId(contextId).isEmpty()) {
-                    "Context migration currently requires an active legacy leaf"
-                }
-                val workspace =
-                    requireNotNull(workspaceDao.getById(contextId)) {
-                        "Context-backed Workspace does not exist"
-                    }
-                require(
-                    !workspace.isDeleted &&
-                        workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                        workspace.sourceContextId == contextId,
-                ) {
-                    "Workspace is not owned by this live legacy Context"
-                }
-                require(
-                    orientationDao.getAllWorkspaceBindings().none {
-                        !it.isDeleted &&
-                            it.bindingType == WorkspaceBindingType.EMBODIES.name &&
-                            it.workspaceId == contextId
-                    },
-                ) {
-                    "Workspace-only cutover cannot remove an existing embodiment"
-                }
+                val liveState =
+                    requireLiveWorkspaceOnlyPreflight(
+                        contextId = contextId,
+                        context = context,
+                    )
+                val workspace = liveState.workspace
 
                 workspaceDao.upsert(
                     listOf(
@@ -212,6 +225,11 @@ class CanonicalContextMigrationRepository
                             sourceContextId = null,
                         ),
                     ),
+                )
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = context.id,
+                    tags = context.tags.orEmpty(),
+                    now = now,
                 )
                 contextDao.insert(context.softDelete(now))
 
@@ -283,61 +301,13 @@ class CanonicalContextMigrationRepository
                     )
                 }
 
-                val context =
-                    requireNotNull(contextDao.getContextById(contextId)) {
-                        "Context does not exist"
-                    }
-                require(!context.isDeleted) { "Context is already deleted" }
-                require(contextDao.getActiveContextsByParentId(contextId).isEmpty()) {
-                    "Context migration currently requires an active legacy leaf"
-                }
-
-                val workspace =
-                    requireNotNull(workspaceDao.getById(contextId)) {
-                        "Context-backed Workspace does not exist"
-                    }
-                require(
-                    !workspace.isDeleted &&
-                        workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                        workspace.sourceContextId == contextId,
-                ) {
-                    "Workspace is not owned by this live legacy Context"
-                }
-
-                orientationRepository.requireCompleteActiveOrientationAggregate(target.orientationId)
-
-                // Any mapping, including a tombstone, reserves a canonical
-                // subject id under one-source <-> one-subject provenance.
-                val subjectMapping =
-                    orientationDao.getAllLegacyMappings()
-                        .firstOrNull { it.subjectId == target.orientationId }
-                require(subjectMapping == null) {
-                    "Existing Orientation is already reserved by legacy mapping " +
-                        "${subjectMapping?.sourceType}:${subjectMapping?.sourceId}"
-                }
-
-                val liveEmbodiments =
-                    orientationDao.getAllWorkspaceBindings()
-                        .filter {
-                            !it.isDeleted &&
-                                it.bindingType == WorkspaceBindingType.EMBODIES.name
-                        }
-                require(
-                    liveEmbodiments.none {
-                        it.workspaceId == contextId &&
-                            it.subjectId != target.orientationId
-                    },
-                ) {
-                    "Workspace already embodies a different canonical subject"
-                }
-                require(
-                    liveEmbodiments.none {
-                        it.subjectId == target.orientationId &&
-                            it.workspaceId != contextId
-                    },
-                ) {
-                    "Existing Orientation is already embodied by another Workspace"
-                }
+                val liveState =
+                    requireLiveExistingOrientationPreflight(
+                        contextId = contextId,
+                        target = target,
+                    )
+                val context = liveState.context
+                val workspace = liveState.workspace
 
                 val bindingId =
                     graphRepository.bindExistingPrimaryEmbodiment(
@@ -372,6 +342,11 @@ class CanonicalContextMigrationRepository
                         version = 1L,
                     )
                 orientationDao.upsertLegacyMappings(listOf(mapping))
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = context.id,
+                    tags = context.tags.orEmpty(),
+                    now = now,
+                )
                 contextDao.insert(context.softDelete(now))
 
                 ContextMigrationResult(
@@ -468,53 +443,21 @@ class CanonicalContextMigrationRepository
                     )
                 }
 
-                val context =
-                    requireNotNull(contextDao.getContextById(contextId)) {
-                        "Context does not exist"
-                    }
-                require(!context.isDeleted) {
-                    "Context is deleted"
-                }
-                require(
-                    contextDao.getActiveContextsByParentId(contextId).isEmpty(),
-                ) {
-                    "Context migration requires an active legacy leaf"
-                }
-
-                val workspace =
-                    requireNotNull(workspaceDao.getById(contextId)) {
-                        "Context-backed Workspace does not exist"
-                    }
-                require(!workspace.isDeleted) {
-                    "Context-backed Workspace is deleted"
-                }
-                require(
-                    workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                        workspace.sourceContextId == contextId,
-                ) {
-                    "Workspace is not owned by this legacy Context"
-                }
+                val liveState =
+                    requireLiveNewOrientationPreflight(
+                        contextId = contextId,
+                        target = target,
+                    )
+                val context = liveState.context
+                val workspace = liveState.workspace
 
                 val orientationId = stableContextSubjectId(contextId)
                 val expectedTitle =
                     (target.titleOverride ?: context.name).trim()
-                require(expectedTitle.isNotEmpty()) {
-                    "Orientation title must not be blank"
-                }
                 val expectedDescription =
                     (target.descriptionOverride ?: context.description)
                         ?.trim()
                         ?.takeIf { it.isNotEmpty() }
-
-                // LegacySubjectMapping remains one-source <-> one-subject
-                // provenance ownership. Any previous mapping, including a
-                // tombstone, reserves the canonical subject id.
-                val subjectMapping =
-                    orientationDao.getAllLegacyMappings()
-                        .firstOrNull { it.subjectId == orientationId }
-                require(subjectMapping == null) {
-                    "Canonical Orientation id is already reserved by another legacy mapping"
-                }
 
                 orientationRepository.ensureOrientationWithId(
                     id = orientationId,
@@ -559,6 +502,11 @@ class CanonicalContextMigrationRepository
                     )
                 orientationDao.upsertLegacyMappings(listOf(mapping))
 
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = context.id,
+                    tags = context.tags.orEmpty(),
+                    now = now,
+                )
                 contextDao.insert(context.softDelete(now))
 
                 ContextMigrationResult(
@@ -704,49 +652,17 @@ class CanonicalContextMigrationRepository
                     )
                 }
 
-                val context =
-                    requireNotNull(contextDao.getContextById(contextId)) {
-                        "Context does not exist"
-                    }
-                require(!context.isDeleted) { "Context is already deleted" }
-
-                val activeChildren = contextDao.getActiveContextsByParentId(contextId)
-                require(activeChildren.isEmpty()) {
-                    "Context migration currently requires a leaf Context; " +
-                        "active children: ${activeChildren.joinToString { it.id }}"
-                }
-
-                val workspace =
-                    requireNotNull(workspaceDao.getContextBackedForContextId(contextId)) {
-                        "Context-backed Workspace does not exist"
-                    }
-                require(!workspace.isDeleted) { "Context-backed Workspace is deleted" }
+                val liveState =
+                    requireLiveNewAspectPreflight(
+                        contextId = contextId,
+                        target = target,
+                    )
+                val context = liveState.context
+                val workspace = liveState.workspace
 
                 val aspectId = stableContextSubjectId(contextId)
                 val expectedTitle = target.resolvedTitle(context)
                 val expectedDescription = target.resolvedDescription(context)
-
-                val liveEmbodiments =
-                    orientationDao.getAllWorkspaceBindings()
-                        .filter {
-                            !it.isDeleted &&
-                                it.bindingType == WorkspaceBindingType.EMBODIES.name
-                        }
-
-                require(
-                    liveEmbodiments.none {
-                        it.workspaceId == contextId && it.subjectId != aspectId
-                    },
-                ) {
-                    "Workspace already embodies a different canonical subject"
-                }
-                require(
-                    liveEmbodiments.none {
-                        it.subjectId == aspectId && it.workspaceId != contextId
-                    },
-                ) {
-                    "Target Aspect already has a different embodied Workspace"
-                }
 
                 aspectRepository.createWithId(
                     id = aspectId,
@@ -791,6 +707,11 @@ class CanonicalContextMigrationRepository
                     )
                 orientationDao.upsertLegacyMappings(listOf(mapping))
 
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = context.id,
+                    tags = context.tags.orEmpty(),
+                    now = now,
+                )
                 contextDao.insert(context.softDelete(now))
 
                 ContextMigrationResult(
@@ -829,69 +750,13 @@ class CanonicalContextMigrationRepository
                     )
                 }
 
-                val context =
-                    requireNotNull(contextDao.getContextById(contextId)) {
-                        "Context does not exist"
-                    }
-                require(!context.isDeleted) { "Context is already deleted" }
-
-                val activeChildren = contextDao.getActiveContextsByParentId(contextId)
-                require(activeChildren.isEmpty()) {
-                    "Context migration currently requires a leaf Context; " +
-                        "active children: ${activeChildren.joinToString { it.id }}"
-                }
-
-                val workspace =
-                    requireNotNull(workspaceDao.getContextBackedForContextId(contextId)) {
-                        "Context-backed Workspace does not exist"
-                    }
-                require(!workspace.isDeleted) { "Context-backed Workspace is deleted" }
-
-                val aspect =
-                    requireNotNull(aspectRepository.get(target.aspectId)) {
-                        "Existing Aspect does not exist"
-                    }
-                require(
-                    aspect.subject.subjectType == ManagedSubjectType.ASPECT.name &&
-                        !aspect.subject.isDeleted
-                ) {
-                    "Existing Aspect is not active"
-                }
-
-                // LegacySubjectMapping is a one-source <-> one-subject identity
-                // bridge. Room also enforces subjectId uniqueness across
-                // tombstones, so any prior mapping reserves this canonical id.
-                val subjectMapping =
-                    orientationDao.getAllLegacyMappings()
-                        .firstOrNull { it.subjectId == target.aspectId }
-                require(subjectMapping == null) {
-                    "Existing Aspect is already reserved by legacy mapping " +
-                        "${subjectMapping?.sourceType}:${subjectMapping?.sourceId}"
-                }
-
-                val liveEmbodiments =
-                    orientationDao.getAllWorkspaceBindings()
-                        .filter {
-                            !it.isDeleted &&
-                                it.bindingType == WorkspaceBindingType.EMBODIES.name
-                        }
-
-                require(
-                    liveEmbodiments.none {
-                        it.workspaceId == contextId &&
-                            it.subjectId != target.aspectId
-                    },
-                ) {
-                    "Workspace already embodies a different canonical subject"
-                }
-                require(
-                    liveEmbodiments.none {
-                        it.subjectId == target.aspectId &&
-                            it.workspaceId != contextId
-                    },
-                ) {
-                    "Existing Aspect is already embodied by another Workspace"
-                }
+                val liveState =
+                    requireLiveExistingAspectPreflight(
+                        contextId = contextId,
+                        target = target,
+                    )
+                val context = liveState.context
+                val workspace = liveState.workspace
 
                 // bindCompatibilityWorkspace() is allowed here only because the
                 // preflight above proves there is no live binding to displace.
@@ -930,6 +795,11 @@ class CanonicalContextMigrationRepository
                     )
                 orientationDao.upsertLegacyMappings(listOf(mapping))
 
+                canonicalWorkspaceTagRepository.replaceTags(
+                    workspaceId = context.id,
+                    tags = context.tags.orEmpty(),
+                    now = now,
+                )
                 contextDao.insert(context.softDelete(now))
 
                 ContextMigrationResult(
@@ -1116,7 +986,501 @@ class CanonicalContextMigrationRepository
             )
         }
 
-        private fun ContextMigrationTarget.NewAspectWithExistingWorkspace.resolvedTitle(
+        private suspend fun requireContextMigrationPreflight(
+            contextId: String,
+            target: ContextMigrationTarget,
+        ) {
+            require(!SystemContexts.isSystem(ContextId(contextId))) {
+                "System Context cannot be migrated"
+            }
+
+            when (target) {
+                ContextMigrationTarget.WorkspaceOnly -> {
+                    val existingMapping =
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.CONTEXT.name,
+                            contextId,
+                        )
+                    require(existingMapping == null) {
+                        "Workspace-only cutover cannot adopt a semantic Context mapping"
+                    }
+
+                    val context =
+                        requireNotNull(contextDao.getContextById(contextId)) {
+                            "Context does not exist"
+                        }
+                    if (context.isDeleted) {
+                        validateWorkspaceOnlyCutOver(contextId)
+                    } else {
+                        requireLiveWorkspaceOnlyPreflight(
+                            contextId = contextId,
+                            context = context,
+                        )
+                    }
+                }
+
+                is ContextMigrationTarget.ExistingOrientationWithExistingWorkspace -> {
+                    require(target.orientationId.isNotBlank()) {
+                        "Existing Orientation id must not be blank"
+                    }
+                    val existingMapping =
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.CONTEXT.name,
+                            contextId,
+                        )
+                    if (existingMapping != null) {
+                        validateExistingOrientationAdoptionCutOver(
+                            contextId = contextId,
+                            target = target,
+                            mapping = existingMapping,
+                        )
+                    } else {
+                        requireLiveExistingOrientationPreflight(
+                            contextId = contextId,
+                            target = target,
+                        )
+                    }
+                }
+
+                is ContextMigrationTarget.NewOrientationWithExistingWorkspace -> {
+                    val existingMapping =
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.CONTEXT.name,
+                            contextId,
+                        )
+                    if (existingMapping != null) {
+                        validateExistingOrientationCutOver(
+                            contextId = contextId,
+                            target = target,
+                            mapping = existingMapping,
+                        )
+                    } else {
+                        requireLiveNewOrientationPreflight(
+                            contextId = contextId,
+                            target = target,
+                        )
+                    }
+                }
+
+                is ContextMigrationTarget.ExistingAspectWithExistingWorkspace -> {
+                    require(target.aspectId.isNotBlank()) {
+                        "Existing Aspect id must not be blank"
+                    }
+                    val existingMapping =
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.CONTEXT.name,
+                            contextId,
+                        )
+                    if (existingMapping != null) {
+                        validateExistingAspectAdoptionCutOver(
+                            contextId = contextId,
+                            target = target,
+                            mapping = existingMapping,
+                        )
+                    } else {
+                        requireLiveExistingAspectPreflight(
+                            contextId = contextId,
+                            target = target,
+                        )
+                    }
+                }
+
+                is ContextMigrationTarget.NewAspectWithExistingWorkspace -> {
+                    val existingMapping =
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.CONTEXT.name,
+                            contextId,
+                        )
+                    if (existingMapping != null) {
+                        validateExistingCutOver(
+                            contextId = contextId,
+                            target = target,
+                            mapping = existingMapping,
+                        )
+                    } else {
+                        requireLiveNewAspectPreflight(
+                            contextId = contextId,
+                            target = target,
+                        )
+                    }
+                }
+            }
+        }
+
+        private suspend fun requireLiveWorkspaceOnlyPreflight(
+            contextId: String,
+            context: Context,
+        ): ContextMigrationLiveState {
+            require(!context.isDeleted) { "Context is already deleted" }
+            require(blockingActiveLegacyChildren(contextId).isEmpty()) {
+                "Context migration currently requires an active legacy leaf"
+            }
+
+            val workspace =
+                requireNotNull(workspaceDao.getById(contextId)) {
+                    "Context-backed Workspace does not exist"
+                }
+            require(
+                !workspace.isDeleted &&
+                    workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
+                    workspace.sourceContextId == contextId,
+            ) {
+                "Workspace is not owned by this live legacy Context"
+            }
+            require(
+                orientationDao.getAllWorkspaceBindings().none {
+                    !it.isDeleted &&
+                        it.bindingType == WorkspaceBindingType.EMBODIES.name &&
+                        it.workspaceId == contextId
+                },
+            ) {
+                "Workspace-only cutover cannot remove an existing embodiment"
+            }
+
+            return ContextMigrationLiveState(context, workspace)
+        }
+
+        private suspend fun requireLiveExistingOrientationPreflight(
+            contextId: String,
+            target: ContextMigrationTarget.ExistingOrientationWithExistingWorkspace,
+        ): ContextMigrationLiveState {
+            val context = contextDao.getContextById(contextId)
+            val hasActiveChildren =
+                blockingActiveLegacyChildren(contextId).isNotEmpty()
+            val workspace = workspaceDao.getById(contextId)
+            val subject = orientationDao.getManagedSubject(target.orientationId)
+            val orientationNodes =
+                orientationDao.getAllOrientations()
+                    .filter { it.subjectId == target.orientationId }
+            val currents =
+                orientationDao.getAllAssessments()
+                    .filter { it.orientationId == target.orientationId }
+            val revisions = orientationDao.getAllAssessmentRevisions()
+            val subjectMapping =
+                orientationDao.getAllLegacyMappings()
+                    .firstOrNull { it.subjectId == target.orientationId }
+            val liveEmbodiments =
+                orientationDao.getAllWorkspaceBindings()
+                    .filter {
+                        !it.isDeleted &&
+                            it.bindingType == WorkspaceBindingType.EMBODIES.name
+                    }
+
+            return requireLiveExistingOrientationPreflightSnapshot(
+                contextId = contextId,
+                target = target,
+                context = context,
+                hasActiveChildren = hasActiveChildren,
+                workspace = workspace,
+                subject = subject,
+                orientationNodes = orientationNodes,
+                currents = currents,
+                revisions = revisions,
+                subjectMapping = subjectMapping,
+                liveEmbodiments = liveEmbodiments,
+            )
+        }
+
+        private suspend fun requireLiveNewOrientationPreflight(
+            contextId: String,
+            target: ContextMigrationTarget.NewOrientationWithExistingWorkspace,
+        ): ContextMigrationLiveState {
+            val context =
+                requireNotNull(contextDao.getContextById(contextId)) {
+                    "Context does not exist"
+                }
+            require(!context.isDeleted) { "Context is deleted" }
+            require(blockingActiveLegacyChildren(contextId).isEmpty()) {
+                "Context migration requires an active legacy leaf"
+            }
+
+            val workspace =
+                requireNotNull(workspaceDao.getById(contextId)) {
+                    "Context-backed Workspace does not exist"
+                }
+            require(!workspace.isDeleted) {
+                "Context-backed Workspace is deleted"
+            }
+            require(
+                workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
+                    workspace.sourceContextId == contextId,
+            ) {
+                "Workspace is not owned by this legacy Context"
+            }
+
+            val orientationId = stableContextSubjectId(contextId)
+            val expectedTitle =
+                (target.titleOverride ?: context.name).trim()
+            require(expectedTitle.isNotEmpty()) {
+                "Orientation title must not be blank"
+            }
+
+            val subjectMapping =
+                orientationDao.getAllLegacyMappings()
+                    .firstOrNull { it.subjectId == orientationId }
+            require(subjectMapping == null) {
+                "Canonical Orientation id is already reserved by another legacy mapping"
+            }
+
+            return ContextMigrationLiveState(context, workspace)
+        }
+
+        private suspend fun requireLiveNewAspectPreflight(
+            contextId: String,
+            target: ContextMigrationTarget.NewAspectWithExistingWorkspace,
+        ): ContextMigrationLiveState {
+            val context =
+                requireNotNull(contextDao.getContextById(contextId)) {
+                    "Context does not exist"
+                }
+            require(!context.isDeleted) { "Context is already deleted" }
+
+            val activeChildren = blockingActiveLegacyChildren(contextId)
+            require(activeChildren.isEmpty()) {
+                "Context migration currently requires a leaf Context; " +
+                    "active non-system children: ${activeChildren.joinToString { it.id }}"
+            }
+
+            val workspace =
+                requireNotNull(workspaceDao.getContextBackedForContextId(contextId)) {
+                    "Context-backed Workspace does not exist"
+                }
+            require(!workspace.isDeleted) {
+                "Context-backed Workspace is deleted"
+            }
+
+            val aspectId = stableContextSubjectId(contextId)
+            target.resolvedTitle(context)
+            target.resolvedDescription(context)
+
+            val liveEmbodiments =
+                orientationDao.getAllWorkspaceBindings()
+                    .filter {
+                        !it.isDeleted &&
+                            it.bindingType == WorkspaceBindingType.EMBODIES.name
+                    }
+
+            require(
+                liveEmbodiments.none {
+                    it.workspaceId == contextId && it.subjectId != aspectId
+                },
+            ) {
+                "Workspace already embodies a different canonical subject"
+            }
+            require(
+                liveEmbodiments.none {
+                    it.subjectId == aspectId && it.workspaceId != contextId
+                },
+            ) {
+                "Target Aspect already has a different embodied Workspace"
+            }
+
+            return ContextMigrationLiveState(context, workspace)
+        }
+
+        private suspend fun requireLiveExistingAspectPreflight(
+            contextId: String,
+            target: ContextMigrationTarget.ExistingAspectWithExistingWorkspace,
+        ): ContextMigrationLiveState {
+            val context = contextDao.getContextById(contextId)
+            val hasActiveChildren =
+                blockingActiveLegacyChildren(contextId).isNotEmpty()
+            val workspace = workspaceDao.getContextBackedForContextId(contextId)
+            val subject = orientationDao.getManagedSubject(target.aspectId)
+            val aspect = orientationDao.getAspect(target.aspectId)
+            val subjectMapping =
+                orientationDao.getAllLegacyMappings()
+                    .firstOrNull { it.subjectId == target.aspectId }
+            val liveEmbodiments =
+                orientationDao.getAllWorkspaceBindings()
+                    .filter {
+                        !it.isDeleted &&
+                            it.bindingType == WorkspaceBindingType.EMBODIES.name
+                    }
+
+            return requireLiveExistingAspectPreflightSnapshot(
+                contextId = contextId,
+                target = target,
+                context = context,
+                hasActiveChildren = hasActiveChildren,
+                workspace = workspace,
+                subject = subject,
+                aspect = aspect,
+                subjectMapping = subjectMapping,
+                liveEmbodiments = liveEmbodiments,
+            )
+        }
+
+        private fun requireLiveExistingOrientationPreflightSnapshot(
+            contextId: String,
+            target: ContextMigrationTarget.ExistingOrientationWithExistingWorkspace,
+            context: Context?,
+            hasActiveChildren: Boolean,
+            workspace: WorkspaceEntity?,
+            subject: ManagedSubjectEntity?,
+            orientationNodes: List<OrientationEntity>,
+            currents: List<OrientationAssessmentEntity>,
+            revisions: List<OrientationAssessmentRevisionEntity>,
+            subjectMapping: LegacySubjectMappingEntity?,
+            liveEmbodiments: List<WorkspaceBindingEntity>,
+        ): ContextMigrationLiveState {
+            val requiredContext =
+                requireNotNull(context) {
+                    "Context does not exist"
+                }
+            require(!requiredContext.isDeleted) {
+                "Context is already deleted"
+            }
+            require(!hasActiveChildren) {
+                "Context migration currently requires an active legacy leaf"
+            }
+
+            val requiredWorkspace =
+                requireNotNull(workspace) {
+                    "Context-backed Workspace does not exist"
+                }
+            require(
+                !requiredWorkspace.isDeleted &&
+                    requiredWorkspace.provenance ==
+                    WorkspaceProvenance.CONTEXT_BACKED.name &&
+                    requiredWorkspace.sourceContextId == contextId,
+            ) {
+                "Workspace is not owned by this live legacy Context"
+            }
+
+            orientationRepository.requireCompleteActiveOrientationAggregate(
+                subjectId = target.orientationId,
+                subject = subject,
+                orientationNodes = orientationNodes,
+                currents = currents,
+                revisions = revisions,
+            )
+
+            require(subjectMapping == null) {
+                "Existing Orientation is already reserved by legacy mapping " +
+                    "${subjectMapping?.sourceType}:${subjectMapping?.sourceId}"
+            }
+
+            require(
+                liveEmbodiments.none {
+                    it.workspaceId == contextId &&
+                        it.subjectId != target.orientationId
+                },
+            ) {
+                "Workspace already embodies a different canonical subject"
+            }
+            require(
+                liveEmbodiments.none {
+                    it.subjectId == target.orientationId &&
+                        it.workspaceId != contextId
+                },
+            ) {
+                "Existing Orientation is already embodied by another Workspace"
+            }
+
+            return ContextMigrationLiveState(
+                context = requiredContext,
+                workspace = requiredWorkspace,
+            )
+        }
+
+        private fun requireLiveExistingAspectPreflightSnapshot(
+            contextId: String,
+            target: ContextMigrationTarget.ExistingAspectWithExistingWorkspace,
+            context: Context?,
+            hasActiveChildren: Boolean,
+            workspace: WorkspaceEntity?,
+            subject: ManagedSubjectEntity?,
+            aspect: AspectEntity?,
+            subjectMapping: LegacySubjectMappingEntity?,
+            liveEmbodiments: List<WorkspaceBindingEntity>,
+        ): ContextMigrationLiveState {
+            val requiredContext =
+                requireNotNull(context) {
+                    "Context does not exist"
+                }
+            require(!requiredContext.isDeleted) {
+                "Context is already deleted"
+            }
+            require(!hasActiveChildren) {
+                "Context migration currently requires a leaf Context"
+            }
+
+            val requiredWorkspace =
+                requireNotNull(workspace) {
+                    "Context-backed Workspace does not exist"
+                }
+            require(
+                !requiredWorkspace.isDeleted &&
+                    requiredWorkspace.provenance ==
+                    WorkspaceProvenance.CONTEXT_BACKED.name &&
+                    requiredWorkspace.sourceContextId == contextId,
+            ) {
+                "Context-backed Workspace does not match Context ownership"
+            }
+
+            val requiredSubject =
+                requireNotNull(subject) {
+                    "Existing Aspect does not exist"
+                }
+            require(aspect != null && aspect.subjectId == target.aspectId) {
+                "Existing Aspect does not exist"
+            }
+            require(
+                requiredSubject.subjectType == ManagedSubjectType.ASPECT.name &&
+                    !requiredSubject.isDeleted,
+            ) {
+                "Existing Aspect is not active"
+            }
+
+            require(subjectMapping == null) {
+                "Existing Aspect is already reserved by legacy mapping " +
+                    "${subjectMapping?.sourceType}:${subjectMapping?.sourceId}"
+            }
+
+            require(
+                liveEmbodiments.none {
+                    it.workspaceId == contextId &&
+                        it.subjectId != target.aspectId
+                },
+            ) {
+                "Workspace already embodies a different canonical subject"
+            }
+            require(
+                liveEmbodiments.none {
+                    it.subjectId == target.aspectId &&
+                        it.workspaceId != contextId
+                },
+            ) {
+                "Existing Aspect is already embodied by another Workspace"
+            }
+
+            return ContextMigrationLiveState(
+                context = requiredContext,
+                workspace = requiredWorkspace,
+            )
+        }
+
+        /**
+         * Bottom-up retirement is blocked only by live Context descendants that
+         * can themselves participate in Context retirement. Reserved system
+         * Context identities remain live by contract and therefore cannot form
+         * an impossible terminal barrier for their regular parent.
+         */
+        private suspend fun blockingActiveLegacyChildren(
+            contextId: String,
+        ): List<Context> =
+            contextDao.getActiveContextsByParentId(contextId)
+                .filterNot { child ->
+                    SystemContexts.isSystem(ContextId(child.id))
+                }
+
+        private data class ContextMigrationLiveState(
+            val context: Context,
+            val workspace: WorkspaceEntity,
+        )
+
+                private fun ContextMigrationTarget.NewAspectWithExistingWorkspace.resolvedTitle(
             context: Context,
         ): String =
             titleOverride

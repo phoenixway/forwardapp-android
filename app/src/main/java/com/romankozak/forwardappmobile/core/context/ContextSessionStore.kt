@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 data class ContextSessionState(
     val enabledCapabilities: Set<CapabilityId> = emptySet(),
+    val canonicalCapabilityOverrides: Map<CapabilityId, Boolean> = emptyMap(),
+    val suppressPresetCapabilityDerivation: Boolean = false,
     val availableViews: List<ContextViewMode> = emptyList(),
     val currentView: ContextViewMode = ContextViewMode.DASHBOARD,
 )
@@ -22,6 +24,8 @@ sealed interface ContextCommand {
         val currentView: ContextViewMode,
         val dashboardEnabledOverride: Boolean? = null,
         val executionLogEnabledOverride: Boolean? = null,
+        val canonicalCapabilityOverrides: Map<CapabilityId, Boolean> = emptyMap(),
+        val suppressPresetCapabilityDerivation: Boolean = false,
     ) : ContextCommand
 
     data class SelectView(
@@ -46,6 +50,8 @@ class ContextSessionStore(
                     currentView = command.currentView,
                     dashboardEnabledOverride = command.dashboardEnabledOverride,
                     executionLogEnabledOverride = command.executionLogEnabledOverride,
+                    canonicalCapabilityOverrides = command.canonicalCapabilityOverrides,
+                    suppressPresetCapabilityDerivation = command.suppressPresetCapabilityDerivation,
                 )
             is ContextCommand.SelectView -> {
                 val resolved = selectView(command.requested)
@@ -61,11 +67,17 @@ class ContextSessionStore(
         currentView: ContextViewMode,
         dashboardEnabledOverride: Boolean? = null,
         executionLogEnabledOverride: Boolean? = null,
+        canonicalCapabilityOverrides: Map<CapabilityId, Boolean> = emptyMap(),
+        suppressPresetCapabilityDerivation: Boolean = false,
     ): ContextSessionState {
         val enabled =
-            capabilitiesResolver.resolve(config)
+            capabilitiesResolver.resolve(
+                config = config,
+                includePresetCapabilities = !suppressPresetCapabilityDerivation,
+            )
                 .withDashboardOverride(dashboardEnabledOverride)
                 .withExecutionLogOverride(executionLogEnabledOverride)
+                .withCanonicalOverrides(canonicalCapabilityOverrides)
         val availableViews = ContextViewPolicy.availableViews(enabled)
         val preferred = preferredViewName?.let(::parseViewMode)
         val resolved = ContextViewPolicy.resolveView(availableViews, preferred, currentView)
@@ -73,6 +85,8 @@ class ContextSessionStore(
         val newState =
             ContextSessionState(
                 enabledCapabilities = enabled,
+                canonicalCapabilityOverrides = canonicalCapabilityOverrides,
+                suppressPresetCapabilityDerivation = suppressPresetCapabilityDerivation,
                 availableViews = availableViews,
                 currentView = resolved,
             )
@@ -88,6 +102,8 @@ class ContextSessionStore(
                         start = ViewId(resolved.name.lowercase()),
                     ),
                 config = config,
+                canonicalCapabilityOverrides = canonicalCapabilityOverrides.keys,
+                suppressPresetCapabilityDerivation = suppressPresetCapabilityDerivation,
             ),
         )
         return newState
@@ -104,6 +120,13 @@ class ContextSessionStore(
         val executionLog = CapabilityId("log")
         return if (enabled) this + executionLog else this - executionLog
     }
+
+    private fun Set<CapabilityId>.withCanonicalOverrides(
+        overrides: Map<CapabilityId, Boolean>,
+    ): Set<CapabilityId> =
+        overrides.entries.fold(this) { capabilities, (id, enabled) ->
+            if (enabled) capabilities + id else capabilities - id
+        }
 
     fun selectView(requested: ContextViewMode): ContextViewMode {
         val available = _state.value.availableViews
@@ -127,6 +150,10 @@ class ContextSessionStore(
             features = features,
             views = updatedViews,
             config = config,
+            canonicalCapabilityOverrides =
+                (this as? CanonicalCapabilityOverrideState)?.canonicalCapabilityOverrides.orEmpty(),
+            suppressPresetCapabilityDerivation =
+                (this as? CanonicalCapabilityOverrideState)?.suppressPresetCapabilityDerivation == true,
         )
     }
 }
@@ -136,4 +163,6 @@ data class DefaultContextState(
     override val features: CapabilitySet,
     override val views: ViewSet,
     override val config: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration,
-) : ContextState
+    override val canonicalCapabilityOverrides: Set<CapabilityId> = emptySet(),
+    override val suppressPresetCapabilityDerivation: Boolean = false,
+) : ContextState, CanonicalCapabilityOverrideState

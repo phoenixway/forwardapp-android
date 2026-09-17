@@ -78,6 +78,7 @@ fun ModernInputPanel(
     capabilityViewActions: List<CapabilityViewActionDescriptor>,
     onCapabilityViewActionClick: (String) -> Unit,
     enabledCapabilitiesOverride: Set<CapabilityId>? = null,
+    canonicalCapabilityOverrides: Map<CapabilityId, Boolean> = emptyMap(),
 ) {
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
     // У ModernInputPanel.kt
@@ -92,29 +93,18 @@ fun ModernInputPanel(
             isProjectManagementEnabled,
             experimentalCapabilityIds,
             enabledCapabilitiesOverride,
+            canonicalCapabilityOverrides,
         ) {
-            buildSet {
-                // 1. Додаємо старі прапорці (Legacy/UI)
-                if (enableInbox) add(CapabilityId("inbox"))
-                if (enableLog) add(CapabilityId("log"))
-                if (enableBacklog) add(CapabilityId("backlog"))
-                if (enableDashboard) add(CapabilityId("dashboard"))
-                if (enableAttachments) add(CapabilityId("connections"))
-
-                // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.), ігноруючи пошкоджені значення
-                experimentalCapabilityIds.forEach { id ->
-                    val normalized =
-                        runCatching { id.raw.trim() }
-                            .getOrNull()
-                            ?.takeIf { it.isNotEmpty() }
-                            ?: return@forEach
-                    add(CapabilityId(normalized))
-                }
-
-                // 3. Session override додаємо зверху, але не замінюємо локальні прапорці повністю.
-                // Це дозволяє уникнути коротких станів, коли сесія ще не пересинхронизована.
-                enabledCapabilitiesOverride?.forEach { add(it) }
-            }
+            resolveInputPanelCapabilities(
+                enableInbox = enableInbox,
+                enableLog = enableLog,
+                enableBacklog = enableBacklog,
+                enableDashboard = enableDashboard,
+                enableAttachments = enableAttachments,
+                experimentalCapabilityIds = experimentalCapabilityIds,
+                enabledCapabilitiesOverride = enabledCapabilitiesOverride,
+                canonicalCapabilityOverrides = canonicalCapabilityOverrides,
+            )
         }
 
     val state =

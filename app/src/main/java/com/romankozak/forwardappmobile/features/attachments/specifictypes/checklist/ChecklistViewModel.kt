@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.ClipboardEntityRef
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.ClipboardOperation
@@ -63,6 +64,7 @@ class ChecklistViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val goalRepository: GoalRepository,
         private val inboxRepository: InboxRepository,
         private val listItemRepository: ListItemRepository,
@@ -88,12 +90,17 @@ class ChecklistViewModel
 
         private var hasLoggedAccess = false
 
+        private val presentedContexts =
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
         val linkSuggestions: StateFlow<List<String>> =
             combine(
                 noteDocumentRepository.getAllDocumentsAsFlow(),
                 musicNoteRepository.getAllMusicNotesAsFlow(),
                 checklistRepository.getAllChecklistsAsFlow(),
-                contextRepository.getAllContextsFlow(),
+                presentedContexts,
             ) { docs, musicNotes, checklists, contexts ->
                 (
                     docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
@@ -106,7 +113,7 @@ class ChecklistViewModel
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
         val contextSuggestions: StateFlow<List<String>> =
-            contextRepository.getAllContextsFlow()
+            presentedContexts
                 .map { contexts ->
                     contexts.map { it.name }.filter { it.isNotBlank() }.distinct()
                 }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -535,13 +542,14 @@ class ChecklistViewModel
             val goalsFromRefs = backlogGoalIds.associateWith { id -> goalRepository.getGoalById(id) }
             val goalIdsFromBacklog = backlogItemsById.values.filter { it.itemType == BacklogItemTypeValues.GOAL }.map { it.entityId }.distinct()
             val goalsFromBacklog = goalIdsFromBacklog.associateWith { id -> goalRepository.getGoalById(id) }
-            val contextNames = contextIds.distinct().associateWith { id -> contextRepository.getContextById(id)?.name?.trim().orEmpty() }
+            val presentedContextById = presentedContexts.value.associateBy { it.id }
+            val contextNames = contextIds.distinct().associateWith { id -> presentedContextById[id]?.name?.trim().orEmpty() }
             val contextNamesFromBacklog =
                 backlogItemsById.values
                     .filter { it.itemType == BacklogItemTypeValues.SUBLIST }
                     .map { it.entityId }
                     .distinct()
-                    .associateWith { id -> contextRepository.getContextById(id)?.name?.trim().orEmpty() }
+                    .associateWith { id -> presentedContextById[id]?.name?.trim().orEmpty() }
 
             val sameChecklistItemsToMove = mutableListOf<ChecklistItemEntity>()
             val itemsToInsert = mutableListOf<ChecklistPasteSourceItem>()

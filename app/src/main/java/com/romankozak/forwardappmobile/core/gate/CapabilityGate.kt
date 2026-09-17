@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
 import com.romankozak.forwardappmobile.core.context.ConfigurableState
 import com.romankozak.forwardappmobile.core.context.ContextController
+import com.romankozak.forwardappmobile.core.context.CanonicalCapabilityOverrideState
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,15 +35,23 @@ class CapabilityGate
                 return isRegisteredOrLegacyAlias(id) && currentState.features.active.contains(id)
             }
             val config = (currentState as? ConfigurableState)?.config
+            val suppressPresetCapabilityDerivation =
+                (currentState as? CanonicalCapabilityOverrideState)
+                    ?.suppressPresetCapabilityDerivation == true
             val enabledByRole = config?.let { currentConfig ->
                 val useRoleDefaults =
-                    !currentConfig.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+                    !suppressPresetCapabilityDerivation &&
+                        !currentConfig.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
                 useRoleDefaults &&
                     ContextRoleRegistry.getCapabilitiesForRole(currentConfig.basePresetCode)
                         .contains(id)
             } == true
 
             if (!isRegisteredOrLegacyAlias(id)) return false
+
+            if ((currentState as? CanonicalCapabilityOverrideState)?.canonicalCapabilityOverrides?.contains(id) == true) {
+                return currentState.features.active.contains(id)
+            }
 
             if (id.raw == "log") {
                 return currentState.features.active.contains(id)

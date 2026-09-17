@@ -225,6 +225,49 @@ class BacklogPlacementCommandsTest {
     }
 
     @Test
+    fun `Goal association repair sees no canonical placements before CUT_OVER`() = runTest {
+        val contextDao = mockk<ContextDao>(relaxed = true)
+        val canonical = mockk<CanonicalBacklogRepository>()
+        val resolver = mockk<BacklogCanonicalTargetResolver>()
+
+        coEvery { resolver.resolveGoalIfCutOver("goal-1") } returns null
+
+        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+
+        assertEquals(emptyList<String>(), commands.findLiveGoalWorkspaceIdsIfCutOver("goal-1"))
+
+        coVerify(exactly = 1) { resolver.resolveGoalIfCutOver("goal-1") }
+        coVerify(exactly = 0) { canonical.findLivePlacements(any()) }
+    }
+
+    @Test
+    fun `Goal association repair reads canonical placements after CUT_OVER`() = runTest {
+        val contextDao = mockk<ContextDao>(relaxed = true)
+        val canonical = mockk<CanonicalBacklogRepository>()
+        val resolver = mockk<BacklogCanonicalTargetResolver>()
+        val target =
+            WorkspaceBacklogTargetRef(
+                WorkspaceBacklogTargetKind.ORIENTATION,
+                "orientation-1",
+            )
+
+        coEvery { resolver.resolveGoalIfCutOver("goal-1") } returns target
+        coEvery { canonical.findLivePlacements(target) } returns
+            listOf(
+                entry(isDeleted = false).copy(workspaceId = "workspace-b"),
+                entry(isDeleted = false).copy(id = "placement-2", workspaceId = "workspace-a"),
+                entry(isDeleted = false).copy(id = "placement-3", workspaceId = "workspace-b"),
+            )
+
+        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+
+        assertEquals(
+            listOf("workspace-a", "workspace-b"),
+            commands.findLiveGoalWorkspaceIdsIfCutOver("goal-1"),
+        )
+    }
+
+    @Test
     fun `live duplicate lookup uses canonical logical placement state`() = runTest {
         val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()

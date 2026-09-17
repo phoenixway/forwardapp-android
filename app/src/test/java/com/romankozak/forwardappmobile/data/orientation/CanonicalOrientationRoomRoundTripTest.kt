@@ -57,15 +57,11 @@ class CanonicalOrientationRoomRoundTripTest {
         val database = database()
         try {
             val legacyJson =
-                gson.toJson(
-                    payload(version = 1, deleted = false),
-                ).replace(
-                    "\"provenance\":\"CANONICAL_ONLY\",",
-                    "",
-                ).replace(
-                    "\"sourceContextId\":null,",
-                    "",
-                )
+                gson.toJsonTree(payload(version = 1, deleted = false)).asJsonObject
+            val legacyWorkspaceJson =
+                legacyJson.getAsJsonArray("workspaces")[0].asJsonObject
+            legacyWorkspaceJson.remove("provenance")
+            legacyWorkspaceJson.remove("sourceContextId")
             val decoded = gson.fromJson(legacyJson, SnapshotBundle::class.java)
 
             database.orientationDao().storeCanonicalPayload(

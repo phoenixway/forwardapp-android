@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
@@ -30,11 +29,18 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ContextClick(val projectId: String) : ContextHierarchyScreenEvent
 
+    /** Read-side stable-ID expansion for Context/Workspace presentation nodes. */
+
+    /**
+     * Session-only collapse state for structural Orientation containers
+     * (Group, Beacon, NoGroup, NoBeacon). It never writes Context.isExpanded.
+     */
+
     data class OrientationNodeClick(val nodeId: String) : ContextHierarchyScreenEvent
 
-    data class ContextMenuRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class ContextMenuRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class MigrateRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class MigrateRequest(val projectId: String) : ContextHierarchyScreenEvent
 
     data class MigrationChoiceSelected(val choice: ContextMigrationChoice) : ContextHierarchyScreenEvent
 
@@ -70,6 +76,9 @@ sealed interface ContextHierarchyScreenEvent {
         val orderedGroupIds: List<String>,
     ) : ContextHierarchyScreenEvent
 
+    /** Focus a read-side hierarchy project by stable id, including shell-free Workspaces. */
+    data class FocusHierarchyProject(val projectId: String) : ContextHierarchyScreenEvent
+
     data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : ContextHierarchyScreenEvent
 
     data object ClearBreadcrumbNavigation : ContextHierarchyScreenEvent
@@ -82,17 +91,17 @@ sealed interface ContextHierarchyScreenEvent {
 
     data object AddChecklistRequest : ContextHierarchyScreenEvent
 
-    data class AddNoteDocumentToContextRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class AddNoteDocumentToContextRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class AddChecklistToContextRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class AddChecklistToContextRequest(val projectId: String) : ContextHierarchyScreenEvent
 
     data class ListChooserResult(val projectId: String?) : ContextHierarchyScreenEvent
 
-    data class DeleteRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class DeleteRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class MoveRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class MoveRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class DeleteConfirm(val project: Context) : ContextHierarchyScreenEvent
+    data class DeleteConfirm(val projectId: String) : ContextHierarchyScreenEvent
 
     data class MoveConfirm(val newParentId: String?) : ContextHierarchyScreenEvent
 
@@ -132,26 +141,24 @@ sealed interface ContextHierarchyScreenEvent {
 
     data object CommandDeckClick : ContextHierarchyScreenEvent
 
-    data class EditRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class EditRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class OpenContextRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class OpenContextRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class AddToDayPlanRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class AddToDayPlanRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class AddToDayFocusRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class AddToDayFocusRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class SetReminderRequest(val project: Context) : ContextHierarchyScreenEvent
+    data class SetReminderRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class FocusContext(val project: Context) : ContextHierarchyScreenEvent
+    data class ToggleUserFocusContext(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class ToggleUserFocusContext(val project: Context) : ContextHierarchyScreenEvent
+    data class CopyContextLink(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class CopyContextLink(val project: Context) : ContextHierarchyScreenEvent
-
-    data class CutContextLink(val project: Context) : ContextHierarchyScreenEvent
+    data class CutContextLink(val projectId: String) : ContextHierarchyScreenEvent
 
     data class PasteContextLink(
-        val project: Context,
+        val projectId: String,
         val mode: BacklogPasteMode = BacklogPasteMode.AS_LINK,
     ) : ContextHierarchyScreenEvent
 
@@ -169,7 +176,7 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PasteBeaconIntoGroup(val groupNodeId: String?) : ContextHierarchyScreenEvent
 
-    data class AddContextAppearanceHere(val parentProject: Context) : ContextHierarchyScreenEvent
+    data class AddContextAppearanceHere(val parentProjectId: String) : ContextHierarchyScreenEvent
 
     data class ToggleContextSelection(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -229,13 +236,11 @@ sealed interface ContextHierarchyScreenEvent {
         val roleCode: String? = null,
     ) : ContextHierarchyScreenEvent
 
-    data class AddSubprojectRequest(val parentProject: Context) : ContextHierarchyScreenEvent
+    data class AddSubprojectRequest(val parentProjectId: String) : ContextHierarchyScreenEvent
 
     data object CloseSearch : ContextHierarchyScreenEvent
 
     data class NavigateToContext(val projectId: String) : ContextHierarchyScreenEvent
-
-    data object CollapseAll : ContextHierarchyScreenEvent
 
     data class UpdateLightTheme(val themeName: ThemeName) : ContextHierarchyScreenEvent
 

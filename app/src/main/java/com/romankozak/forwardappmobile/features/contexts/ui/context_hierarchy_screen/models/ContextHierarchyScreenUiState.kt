@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
@@ -19,8 +19,9 @@ data class ProjectHierarchyScreenUiState(
     val subStateStack: List<MainSubState> = listOf(ProjectHierarchyScreenSubState.Hierarchy),
     val searchQuery: TextFieldValue = TextFieldValue(""),
     val searchHistory: List<String> = emptyList(),
-    val projectHierarchy: ContextHierarchyData = ContextHierarchyData(),
-    val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
+    val rawContextsById: Map<String, Context> = emptyMap(),
+    val rawChildMap: Map<String, List<Context>> = emptyMap(),
+    val presentationHierarchy: HierarchyPresentationData = HierarchyPresentationData(),
     val orientationHierarchy: List<OrientationHierarchyItem> = emptyList(),
     val longDescendantsMap: Map<String, Boolean> = emptyMap(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
@@ -31,7 +32,6 @@ data class ProjectHierarchyScreenUiState(
     val recentItems: List<RecentItem> = emptyList(),
     val allContextMarkers: List<UiContextMarker> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
-    val filteredListHierarchyForDialog: ContextHierarchyData = ContextHierarchyData(),
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
     val showNavigationMenu: Boolean = false,

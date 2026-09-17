@@ -3,8 +3,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties.
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogConfigurationAccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +26,7 @@ class BacklogSettingsViewModel
     @Inject
     constructor(
         private val contextStructureRepository: ContextStructureRepository,
+        private val systemBacklogConfigurationAccess: SystemContextCanonicalBacklogConfigurationAccess,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(BacklogSettingsUiState())
         val uiState: StateFlow<BacklogSettingsUiState> = _uiState.asStateFlow()
@@ -38,6 +41,21 @@ class BacklogSettingsViewModel
             _uiState.update { it.copy(contextId = contextId) }
             observeJob =
                 viewModelScope.launch {
+                    if (systemBacklogConfigurationAccess.handles(contextId)) {
+                        systemBacklogConfigurationAccess.observeState(contextId).collectLatest { canonical ->
+                            _uiState.update { state ->
+                                if (state.isSaving) {
+                                    state
+                                } else {
+                                    state.copy(
+                                        removeAfterAutocopyEntriesWithTags =
+                                            canonical?.removeEntryAfterTagAutocopy == true,
+                                    )
+                                }
+                            }
+                        }
+                        return@launch
+                    }
                     contextStructureRepository.observeStructureOnly(contextId).collectLatest { structure ->
                         if (structure == null) {
                             contextStructureRepository.ensureStructure(contextId)
@@ -66,14 +84,38 @@ class BacklogSettingsViewModel
                         removeAfterAutocopyEntriesWithTags = enabled,
                     )
                 }
-                val structure = contextStructureRepository.ensureStructure(contextId)
-                contextStructureRepository.updateStructure(
-                    structure.copy(
-                        removeBacklogEntryAfterTagAutocopy = enabled,
-                        updatedAt = System.currentTimeMillis(),
-                    ),
-                )
-                _uiState.update { it.copy(isSaving = false) }
+                try {
+                    if (systemBacklogConfigurationAccess.handles(contextId)) {
+                        systemBacklogConfigurationAccess.setRemoveEntryAfterTagAutocopy(contextId, enabled)
+                    } else {
+                        val structure = contextStructureRepository.ensureStructure(contextId)
+                        contextStructureRepository.updateStructure(
+                            structure.copy(
+                                removeBacklogEntryAfterTagAutocopy = enabled,
+                                updatedAt = System.currentTimeMillis(),
+                            ),
+                        )
+                    }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    reloadCanonicalWinner(contextId)
+                } finally {
+                    _uiState.update { state ->
+                        if (state.contextId == contextId) state.copy(isSaving = false) else state
+                    }
+                }
+            }
+        }
+
+        private suspend fun reloadCanonicalWinner(contextId: String) {
+            if (!systemBacklogConfigurationAccess.handles(contextId)) return
+            val canonical = systemBacklogConfigurationAccess.getState(contextId)
+            _uiState.update { state ->
+                if (state.contextId == contextId) {
+                    state.copy(removeAfterAutocopyEntriesWithTags = canonical?.removeEntryAfterTagAutocopy == true)
+                } else {
+                    state
+                }
             }
         }
     }

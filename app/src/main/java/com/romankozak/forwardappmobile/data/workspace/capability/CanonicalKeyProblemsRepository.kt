@@ -8,8 +8,10 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.KeyProblemsCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.KeyProblemsCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.validateKeyProblemsContract
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblem
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblemAttachmentRef
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceProblemStatus
@@ -19,11 +21,18 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 data class CanonicalWorkspaceProblemItem(
     val problem: WorkspaceProblem,
     val relatedWorkspaceIds: List<String>,
     val relatedAttachmentIds: List<String>,
+)
+
+data class KeyProblemsCapabilityState(
+    val lifecycleState: WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: KeyProblemsCapabilityConfigurationV1,
 )
 
 /**
@@ -54,6 +63,31 @@ class CanonicalKeyProblemsRepository
             workspaceId: String,
             now: Long = System.currentTimeMillis(),
         ) = instanceStore.disable(SPEC, workspaceId, now)
+
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
+        suspend fun hasEstablishedInstance(workspaceId: String): Boolean =
+            instanceStore.hasEstablishedInstance(SPEC, workspaceId)
+
+        fun observeEstablishedInstance(workspaceId: String): Flow<Boolean> =
+            instanceStore.observeEstablishedInstance(SPEC, workspaceId)
+
+        suspend fun getState(workspaceId: String): KeyProblemsCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toKeyProblemsCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<KeyProblemsCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toKeyProblemsCapabilityState() }.getOrNull() }
+            }
 
         suspend fun archive(
             workspaceId: String,
@@ -532,6 +566,14 @@ class CanonicalKeyProblemsRepository
                 )
         }
     }
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+    .toKeyProblemsCapabilityState() =
+    KeyProblemsCapabilityState(
+        lifecycleState = WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = KeyProblemsCapabilityConfigurationCodec.decode(configurationVersion, configuration),
+    )
 
 private fun normalizeIds(
     values: List<String>,

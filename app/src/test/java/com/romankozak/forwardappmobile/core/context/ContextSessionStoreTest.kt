@@ -112,4 +112,139 @@ class ContextSessionStoreTest {
         assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("dashboard"))
         assertThat(state.currentView).isEqualTo(ContextViewMode.BACKLOG)
     }
+
+    @Test
+    fun `canonical System capability overrides win over contradictory legacy config`() {
+        val store = createStore()
+        val config =
+            ContextConfiguration(
+                id = "cfg",
+                contextId = SystemContexts.INBOX.raw,
+                enableInbox = true,
+                enableAttachments = true,
+                experimentalCapabilityIds =
+                    listOf(
+                        CapabilityId("direction"),
+                        CapabilityId("inbox_sorting"),
+                        CapabilityId("key_problems"),
+                    ),
+                enableBacklog = true,
+            )
+
+        val state =
+            store.syncFromConfig(
+                contextId = SystemContexts.INBOX.raw,
+                config = config,
+                preferredViewName = ContextViewMode.INBOX.name,
+                currentView = ContextViewMode.BACKLOG,
+                canonicalCapabilityOverrides =
+                    mapOf(
+                        CapabilityId("inbox") to false,
+                        CapabilityId("direction") to false,
+                        CapabilityId("connections") to false,
+                        CapabilityId("inbox_sorting") to false,
+                        CapabilityId("key_problems") to false,
+                        CapabilityId("backlog") to false,
+                    ),
+            )
+
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("inbox"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("direction"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("connections"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("inbox_sorting"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("key_problems"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("backlog"))
+        assertThat(state.canonicalCapabilityOverrides)
+            .containsExactly(
+                CapabilityId("inbox"),
+                false,
+                CapabilityId("direction"),
+                false,
+                CapabilityId("connections"),
+                false,
+                CapabilityId("inbox_sorting"),
+                false,
+                CapabilityId("key_problems"),
+                false,
+                CapabilityId("backlog"),
+                false,
+            )
+        assertThat(state.availableViews).doesNotContain(ContextViewMode.BACKLOG)
+        assertThat(state.currentView).isEqualTo(ContextViewMode.BACKLOG)
+    }
+
+    @Test
+    fun `canonical System Backlog active survives legacy override mode and false flag`() {
+        val store = createStore()
+        val state =
+            store.syncFromConfig(
+                contextId = SystemContexts.INBOX.raw,
+                config =
+                    ContextConfiguration(
+                        id = "cfg",
+                        contextId = SystemContexts.INBOX.raw,
+                        basePresetCode = "management",
+                        applyMode = "OVERRIDE",
+                        enableBacklog = false,
+                    ),
+                preferredViewName = ContextViewMode.BACKLOG.name,
+                currentView = ContextViewMode.DASHBOARD,
+                canonicalCapabilityOverrides = mapOf(CapabilityId("backlog") to true),
+                suppressPresetCapabilityDerivation = true,
+            )
+
+        assertThat(state.enabledCapabilities).contains(CapabilityId("backlog"))
+        assertThat(state.availableViews).contains(ContextViewMode.BACKLOG)
+        assertThat(state.currentView).isEqualTo(ContextViewMode.BACKLOG)
+    }
+
+    @Test
+    fun `canonical System Backlog disabled beats role preset`() {
+        val store = createStore()
+        val state =
+            store.syncFromConfig(
+                contextId = SystemContexts.INBOX.raw,
+                config =
+                    ContextConfiguration(
+                        id = "cfg",
+                        contextId = SystemContexts.INBOX.raw,
+                        basePresetCode = "management",
+                    ),
+                preferredViewName = ContextViewMode.BACKLOG.name,
+                currentView = ContextViewMode.BACKLOG,
+                canonicalCapabilityOverrides = mapOf(CapabilityId("backlog") to false),
+                suppressPresetCapabilityDerivation = true,
+            )
+
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("backlog"))
+        assertThat(state.availableViews).doesNotContain(ContextViewMode.BACKLOG)
+        assertThat(state.canonicalCapabilityOverrides).containsEntry(CapabilityId("backlog"), false)
+        assertThat(state.suppressPresetCapabilityDerivation).isTrue()
+    }
+
+    @Test
+    fun `promoted System preset metadata is inert while residual experimental ids remain live`() {
+        val store = createStore()
+        val residual = CapabilityId("unrelated")
+
+        val state =
+            store.syncFromConfig(
+                contextId = SystemContexts.INBOX.raw,
+                config =
+                    ContextConfiguration(
+                        id = "cfg",
+                        contextId = SystemContexts.INBOX.raw,
+                        basePresetCode = "management",
+                        applyMode = "ADDITIVE",
+                        experimentalCapabilityIds = listOf(residual),
+                    ),
+                preferredViewName = ContextViewMode.BACKLOG.name,
+                currentView = ContextViewMode.DASHBOARD,
+                suppressPresetCapabilityDerivation = true,
+            )
+
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("inbox"))
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("backlog"))
+        assertThat(state.enabledCapabilities).contains(residual)
+    }
 }

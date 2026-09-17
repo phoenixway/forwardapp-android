@@ -4,18 +4,36 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.logicalProjectId
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TacticalMissionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMission(mission: TacticalMission): Long
+    suspend fun insertMissionRaw(mission: TacticalMission): Long
 
     @Update
-    suspend fun updateMission(mission: TacticalMission)
+    suspend fun updateMissionRaw(mission: TacticalMission)
+
+    @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
+    suspend fun getOperationalProjectWorkspace(workspaceId: String): WorkspaceEntity?
+
+    @Transaction
+    suspend fun insertMission(mission: TacticalMission): Long =
+        insertMissionRaw(routeProjectForPersistence(mission))
+
+    @Transaction
+    suspend fun updateMission(mission: TacticalMission) {
+        updateMissionRaw(routeProjectForPersistence(mission))
+    }
 
     @Query("DELETE FROM tactical_missions WHERE id = :missionId")
     suspend fun deleteMissionById(missionId: Long)
@@ -23,7 +41,8 @@ interface TacticalMissionDao {
     @Query(
         """
         SELECT * FROM tactical_missions
-        WHERE projectId = :projectId AND is_deleted = 0
+        WHERE (projectId = :projectId OR project_workspace_id = :projectId)
+            AND is_deleted = 0
         ORDER BY mission_order ASC, deadline DESC
         """,
     )
@@ -103,7 +122,13 @@ interface TacticalMissionDao {
     suspend fun deleteAllMissionAttachmentCrossRefs()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMissions(missions: List<TacticalMission>)
+    suspend fun insertMissionsRaw(missions: List<TacticalMission>)
+
+    @Transaction
+    suspend fun insertMissions(missions: List<TacticalMission>) {
+        if (missions.isEmpty()) return
+        insertMissionsRaw(missions.map { routeProjectForPersistence(it) })
+    }
 
     @Query("SELECT * FROM tactical_mission_attachment_cross_ref")
     suspend fun getAllMissionAttachmentsSync(): List<TacticalMissionAttachmentCrossRef>
@@ -122,4 +147,53 @@ interface TacticalMissionDao {
         missionId: Long,
         order: Long,
     )
+}
+
+private suspend fun TacticalMissionDao.routeProjectForPersistence(
+    mission: TacticalMission,
+): TacticalMission {
+    val contextProjectId = mission.projectId
+    val workspaceProjectId = mission.projectWorkspaceId
+
+    require(
+        contextProjectId == null ||
+            workspaceProjectId == null ||
+            contextProjectId == workspaceProjectId,
+    ) {
+        "TacticalMission ${mission.id} has conflicting project ids: " +
+            "context=$contextProjectId workspace=$workspaceProjectId"
+    }
+
+    val logicalProjectId =
+        mission.logicalProjectId
+            ?: return mission.copy(
+                projectId = null,
+                projectWorkspaceId = null,
+            )
+
+    return if (SystemContexts.isSystem(ContextId(logicalProjectId))) {
+        val workspace =
+            requireNotNull(getOperationalProjectWorkspace(logicalProjectId)) {
+                "Reserved TacticalMission project $logicalProjectId has no same-id Workspace"
+            }
+
+        require(
+            !workspace.isDeleted &&
+                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                workspace.sourceContextId == null,
+        ) {
+            "Reserved TacticalMission project $logicalProjectId " +
+                "is not a live CANONICAL_ONLY Workspace"
+        }
+
+        mission.copy(
+            projectId = null,
+            projectWorkspaceId = logicalProjectId,
+        )
+    } else {
+        mission.copy(
+            projectId = logicalProjectId,
+            projectWorkspaceId = null,
+        )
+    }
 }

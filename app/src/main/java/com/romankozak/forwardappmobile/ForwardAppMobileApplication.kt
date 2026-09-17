@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWor
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +36,8 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper
 
     @Inject lateinit var canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper
+
+    @Inject lateinit var databaseInitializer: DatabaseInitializer
 
     @Inject lateinit var executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge
 
@@ -74,6 +77,15 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
         }
 
         appScope.launch(Dispatchers.IO) {
+            // Same-id canonical Workspaces own reserved System runtime
+            // metadata/hierarchy. Historical Context rows, when present, are
+            // bounded upgrade evidence rather than startup materialization.
+            runCatching {
+                databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+            }.onFailure {
+                Timber.e(it, "Failed to ensure canonical System Workspace ownership")
+            }
+
             runCatching {
                 canonicalDayThemeBootstrapper.ensureBootstrapped()
             }.onSuccess { report ->

@@ -150,19 +150,11 @@ install-exp-arm64:
 		rm -f "$$TMP_ERR"; \
 	else \
 		if grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE" "$$TMP_ERR"; then \
-			echo "⚠️  Встановлена несумісна версія $(PACKAGE_NAME)."; \
-			echo "Увага: uninstall видалить локальні дані застосунку на пристрої."; \
-			printf "Підтвердити видалення і перевстановлення? [y/N] "; \
-			read ANSWER; \
-			if [ "$$ANSWER" = "y" ] || [ "$$ANSWER" = "Y" ]; then \
-				adb $(DEVICE_FLAG) uninstall $(PACKAGE_NAME) || true; \
-				adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk; \
-				rm -f "$$TMP_ERR"; \
-			else \
-				echo "Скасовано користувачем."; \
-				rm -f "$$TMP_ERR"; \
-				exit 1; \
-			fi; \
+			echo "❌ Встановлена версія $(PACKAGE_NAME) має несумісний підпис."; \
+			echo "Відмовляюсь виконувати uninstall: це видалило б локальні дані застосунку."; \
+			cat "$$TMP_ERR" >&2; \
+			rm -f "$$TMP_ERR"; \
+			exit 1; \
 		else \
 			cat "$$TMP_ERR" >&2; \
 			rm -f "$$TMP_ERR"; \
@@ -224,19 +216,20 @@ check-exp-signature-match: check-release-signing
 	TMP_APK=/tmp/forwardapp-installed-base.apk; \
 	rm -f "$$TMP_APK"; \
 	adb $(DEVICE_FLAG) pull "$$INSTALLED_APK_PATH" "$$TMP_APK" >/dev/null; \
-	LOCAL_FP=$$(keytool -list -v -keystore "$$STORE_FILE" -storepass "$$STORE_PASSWORD" -alias "$$KEY_ALIAS" 2>/dev/null | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'); \
-	INSTALLED_FP=$$("$$APKSIGNER_BIN" verify --print-certs "$$TMP_APK" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'); \
+	LOCAL_FP=$$(keytool -list -v -keystore "$$STORE_FILE" -storepass "$$STORE_PASSWORD" -alias "$$KEY_ALIAS" 2>/dev/null | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d '[:space:]:' | tr '[:upper:]' '[:lower:]'); \
+	INSTALLED_FP=$$("$$APKSIGNER_BIN" verify --print-certs "$$TMP_APK" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]:' | tr '[:upper:]' '[:lower:]'); \
 	rm -f "$$TMP_APK"; \
 	if [ -z "$$LOCAL_FP" ] || [ -z "$$INSTALLED_FP" ]; then \
-		echo "⚠️  Не вдалося прочитати SHA-256 fingerprint для локального або встановленого APK. Продовжую без жорсткої перевірки."; \
-		exit 0; \
+		echo "❌ Не вдалося надійно прочитати SHA-256 fingerprint локального або встановленого APK."; \
+		echo "Відмовляюсь оновлювати пакет $(PACKAGE_NAME), щоб не ризикувати його даними."; \
+		exit 1; \
 	fi; \
 	if [ "$$LOCAL_FP" != "$$INSTALLED_FP" ]; then \
-		echo "⚠️  Підпис не збігається."; \
+		echo "❌ Підпис не збігається."; \
 		echo "Локальний keystore : $$LOCAL_FP"; \
 		echo "Встановлений APK   : $$INSTALLED_FP"; \
-		echo "Ймовірно знадобиться uninstall перед перевстановленням. Продовжую."; \
-		exit 0; \
+		echo "Відмовляюсь оновлювати або видаляти $(PACKAGE_NAME)."; \
+		exit 1; \
 	fi; \
 	echo "✅ Підпис збігається. Можна оновлювати встановлений $(PACKAGE_NAME)."
 

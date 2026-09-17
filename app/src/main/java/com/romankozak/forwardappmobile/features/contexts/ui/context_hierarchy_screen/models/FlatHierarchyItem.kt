@@ -1,14 +1,16 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 
 /**
- * Represents a single project inside the flattened hierarchy list along with its depth level.
+ * Read-only normal-hierarchy display item.
+ *
+ * Its project is never a Room Context and must not be routed into Context
+ * mutation APIs. Legacy actions are enabled separately by stable-id backing
+ * capability; the display payload remains presentation-only.
  */
-data class FlatHierarchyItem(
-    val project: Context,
+data class FlatHierarchyPresentationItem(
+    val project: HierarchyContextPresentationNode,
     val level: Int,
     val isLinkedAppearance: Boolean = false,
     val isCanonicalWorkspace: Boolean = false,
@@ -24,7 +26,9 @@ sealed interface OrientationHierarchyNode {
     val title: String
 
     sealed interface ProjectLike : OrientationHierarchyNode {
-        val contextProjection: Context
+        /** Read-only presentation; never reconstructed as a persistable Context. */
+        val presentation: HierarchyContextPresentationNode
+
         val linkedBeaconIds: Set<String>
         val isLinkedAppearance: Boolean
         val isCanonicalWorkspace: Boolean
@@ -54,34 +58,22 @@ sealed interface OrientationHierarchyNode {
     }
 
     data class ContextNode(
-        val context: Context,
+        override val presentation: HierarchyContextPresentationNode,
         override val linkedBeaconIds: Set<String>,
         override val isLinkedAppearance: Boolean = false,
     ) : ProjectLike {
-        override val id: String = context.id
-        override val title: String = context.name
-        override val contextProjection: Context = context
+        override val id: String = presentation.id
+        override val title: String = presentation.name
         override val isCanonicalWorkspace: Boolean = false
     }
 
     data class WorkspaceNode(
-        val workspace: WorkspaceEntity,
+        override val presentation: HierarchyContextPresentationNode,
         override val linkedBeaconIds: Set<String>,
         override val isLinkedAppearance: Boolean = false,
     ) : ProjectLike {
-        override val id: String = workspace.id
-        override val title: String =
-            workspace.nameOverride?.trim()?.takeIf { it.isNotEmpty() } ?: workspace.id
-        override val contextProjection: Context =
-            Context(
-                id = workspace.id,
-                name = title,
-                description = workspace.descriptionOverride,
-                parentId = workspace.parentWorkspaceId,
-                createdAt = workspace.createdAt,
-                updatedAt = workspace.updatedAt,
-                order = workspace.workspaceOrder,
-            )
+        override val id: String = presentation.id
+        override val title: String = presentation.name
         override val isCanonicalWorkspace: Boolean = true
     }
 }

@@ -7,10 +7,18 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV2
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -21,6 +29,159 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalBacklogRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `typed v2 authoring is idempotent and requires active lifecycle`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            val repository = repository(database)
+            assertEquals(BacklogCapabilityConfigurationV1, repository.getState("owner")?.configuration)
+
+            repository.migrateV1Configuration(
+                "owner",
+                BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = false),
+                now = 10L,
+            )
+            repository.updateConfiguration(
+                "owner",
+                BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = true),
+                now = 11L,
+            )
+            val once = database.orientationDao().getAllWorkspaceCapabilities().single()
+            repository.updateConfiguration(
+                "owner",
+                BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = true),
+                now = 12L,
+            )
+            assertEquals(once, database.orientationDao().getAllWorkspaceCapabilities().single())
+            assertEquals(
+                BacklogCapabilityConfigurationV2(removeEntryAfterTagAutocopy = true),
+                repository.getState("owner")?.configuration,
+            )
+
+            repository.disable("owner", now = 13L)
+            assertTrue(
+                runCatching {
+                    repository.updateConfiguration(
+                        "owner",
+                        BacklogCapabilityConfigurationV2(false),
+                        now = 14L,
+                    )
+                }.isFailure,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `v1 migration preserves archived lifecycle identity and is idempotent`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            val repository = repository(database)
+            repository.archive("owner", now = 5L)
+            val before = database.orientationDao().getAllWorkspaceCapabilities().single()
+
+            assertTrue(
+                repository.migrateV1Configuration(
+                    "owner",
+                    BacklogCapabilityConfigurationV2(true),
+                    now = 10L,
+                ),
+            )
+            val migrated = database.orientationDao().getAllWorkspaceCapabilities().single()
+            assertEquals(before.id, migrated.id)
+            assertEquals(before.workspaceId, migrated.workspaceId)
+            assertEquals(before.capabilityOrder, migrated.capabilityOrder)
+            assertEquals(before.state, migrated.state)
+            assertEquals(before.isDeleted, migrated.isDeleted)
+            assertEquals(WorkspaceCapabilityState.ARCHIVED, repository.getState("owner")?.lifecycleState)
+            assertEquals(2, migrated.configurationVersion)
+            assertFalse(
+                repository.migrateV1Configuration(
+                    "owner",
+                    BacklogCapabilityConfigurationV2(true),
+                    now = 11L,
+                ),
+            )
+            assertEquals(migrated, database.orientationDao().getAllWorkspaceCapabilities().single())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `v1 migration preserves deleted lifecycle`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            val repository = repository(database)
+            repository.deleteCapability("owner", now = 5L)
+            val before = database.orientationDao().getAllWorkspaceCapabilities().single()
+
+            assertTrue(repository.migrateV1Configuration("owner", BacklogCapabilityConfigurationV2(true), now = 10L))
+
+            val migrated = database.orientationDao().getAllWorkspaceCapabilities().single()
+            assertEquals(before.id, migrated.id)
+            assertEquals(before.state, migrated.state)
+            assertTrue(migrated.isDeleted)
+            assertEquals(2, migrated.configurationVersion)
+            assertEquals(BacklogCapabilityConfigurationV2(true), repository.getState("owner")?.configuration)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `malformed established configuration is not migration-seed absence`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            val malformed = database.orientationDao().getAllWorkspaceCapabilities().single()
+                .copy(configurationVersion = 999, configuration = "{}")
+            database.orientationDao().upsertWorkspaceCapabilities(listOf(malformed))
+            val repository = repository(database)
+
+            assertTrue(repository.hasEstablishedInstance("owner"))
+            assertTrue(runCatching { repository.getState("owner") }.isFailure)
+            assertTrue(
+                runCatching {
+                    repository.migrateV1Configuration("owner", BacklogCapabilityConfigurationV2(true), now = 10L)
+                }.isFailure,
+            )
+            assertEquals(malformed, database.orientationDao().getAllWorkspaceCapabilities().single())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `typed state observation follows canonical configuration mutations`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            val repository = repository(database)
+            val observed = CompletableDeferred<Unit>()
+            val observation = launch {
+                repository.observeState("owner").collect { state ->
+                    if (state?.configuration == BacklogCapabilityConfigurationV2(true)) {
+                        observed.complete(Unit)
+                    }
+                }
+            }
+            try {
+                repository.migrateV1Configuration("owner", BacklogCapabilityConfigurationV2(false), now = 10L)
+                repository.updateConfiguration("owner", BacklogCapabilityConfigurationV2(true), now = 11L)
+                withTimeout(5_000L) { observed.await() }
+            } finally {
+                observation.cancelAndJoin()
+            }
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `add reorder tombstone and resurrect preserve one logical placement`() = runBlocking {

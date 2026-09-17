@@ -84,6 +84,23 @@ class EnhancedNavigationManager(
         )
     }
 
+    /**
+     * Reveals a Workspace-owned project through hierarchy read navigation.
+     *
+     * Unlike [navigateToProject], this deliberately does not target a
+     * Context-detail route or require a legacy Context shell.
+     */
+    fun navigateToWorkspaceRead(
+        projectId: String,
+        projectName: String,
+    ) {
+        navigate(
+            target = NavTarget.ContextHierarchy(projectIdToReveal = projectId),
+            recordInHistory = true,
+            historyTitle = projectName,
+        )
+    }
+
     fun navigateToGlobalSearch(query: String) {
         navigate(
             target = NavTarget.GlobalSearch(query),
@@ -162,7 +179,7 @@ class EnhancedNavigationManager(
         val command =
             when (entry.type) {
                 NavigationType.PROJECT_HIERARCHY_SCREEN ->
-                    NavigationCommand.Navigate("goal_lists_screen") {
+                    NavigationCommand.Navigate(entry.route) {
                         popUpTo("goal_lists_screen") { inclusive = false }
                     }
 
@@ -213,9 +230,9 @@ class EnhancedNavigationManager(
             is NavTarget.ContextHierarchy ->
                 NavigationEntry(
                     type = NavigationType.PROJECT_HIERARCHY_SCREEN,
-                    id = "main",
+                    id = target.projectIdToReveal ?: "main",
                     title = titleOverride ?: "Orientations",
-                    route = NavigationRoutes.GOAL_LISTS,
+                    route = route,
                 )
 
             is NavTarget.ContextDetail ->

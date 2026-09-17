@@ -1,12 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import android.util.Log
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
@@ -17,8 +16,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.navigation.RevealResult
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPresentationPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldUseHierarchyFocusModeForBreadcrumbNames
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
@@ -38,22 +36,24 @@ import javax.inject.Inject
 class SearchUseCase
     @Inject
     constructor(
-        private val contextRepository: ContextRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : PlanningSearchAdapter {
         private lateinit var scope: CoroutineScope
         private lateinit var uiEventChannel: Channel<ProjectUiEvent>
-        private lateinit var allProjectsFlat: StateFlow<List<Context>>
+        private lateinit var onProjectAccess: suspend (String) -> Unit
+        private lateinit var hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>
 
         fun initialize(
             scope: CoroutineScope,
             uiEventChannel: Channel<ProjectUiEvent>,
-            allProjectsFlat: StateFlow<List<Context>>,
+            onProjectAccess: suspend (String) -> Unit,
+            hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>,
         ) {
             this.scope = scope
             this.uiEventChannel = uiEventChannel
-            this.allProjectsFlat = allProjectsFlat
+            this.onProjectAccess = onProjectAccess
+            this.hierarchyPresentationFlat = hierarchyPresentationFlat
             initializeSearchState()
         }
 
@@ -174,11 +174,17 @@ class SearchUseCase
                         }
                     }
 
-                    val projectLookup = allProjectsFlat.value.associateBy { it.id }
-                    val ancestorIds = mutableSetOf<String>()
-                    findAncestorsRecursive(projectId, projectLookup, ancestorIds, mutableSetOf())
-
-                    val breadcrumbNames = buildBreadcrumbNames(projectId, projectLookup)
+                    val presentationLookup =
+                        hierarchyPresentationFlat.value.associateBy { it.id }
+                    if (projectId !in presentationLookup) {
+                        Log.w(TAG, "Reveal rejected: $projectId is absent from the presentation universe")
+                        return@withContext RevealResult.Failure
+                    }
+                    val breadcrumbNames =
+                        buildBreadcrumbNames(
+                            projectId,
+                            presentationLookup,
+                        )
                     val shouldFocus =
                         shouldUseHierarchyFocusModeForBreadcrumbNames(
                             breadcrumbNames = breadcrumbNames,
@@ -203,7 +209,7 @@ class SearchUseCase
 
         private fun buildBreadcrumbNames(
             projectId: String,
-            projectLookup: Map<String, Context>,
+            projectLookup: Map<String, HierarchyContextPresentationNode>,
         ): List<String> {
             val names = mutableListOf<String>()
             val visited = mutableSetOf<String>()
@@ -220,14 +226,21 @@ class SearchUseCase
 
         fun navigateToProject(
             projectId: String,
-            currentHierarchy: ContextHierarchyData,
+            currentHierarchy: HierarchyPresentationData,
             breadcrumbPrefix: List<BreadcrumbItem> = emptyList(),
         ) {
             scope.launch {
-                val targetProject = contextRepository.getContextById(projectId)
-                targetProject?.let { recentItemsRepository.logProjectAccess(it) }
+                onProjectAccess(projectId)
 
-                val path = buildPathToProject(projectId, currentHierarchy)
+                val path =
+                    buildPresentationPathToProject(projectId, currentHierarchy)
+                        .mapIndexed { index, project ->
+                            BreadcrumbItem(
+                                id = project.id,
+                                name = project.name,
+                                level = index,
+                            )
+                        }
                 currentBreadcrumbs.value =
                     if (breadcrumbPrefix.isEmpty()) {
                         path
@@ -243,8 +256,7 @@ class SearchUseCase
             breadcrumbs: List<BreadcrumbItem>,
         ) {
             scope.launch {
-                val targetProject = contextRepository.getContextById(projectId)
-                targetProject?.let { recentItemsRepository.logProjectAccess(it) }
+                onProjectAccess(projectId)
                 currentBreadcrumbs.value =
                     breadcrumbs.mapIndexed { index, breadcrumb ->
                         breadcrumb.copy(level = index)
@@ -298,11 +310,12 @@ class SearchUseCase
 
         fun onSearchResultClick(
             projectId: String,
-            currentHierarchy: ContextHierarchyData,
+            currentHierarchy: HierarchyPresentationData,
         ) {
             scope.launch {
                     when (val result = revealProjectInHierarchy(projectId)) {
                         is RevealResult.Success -> {
+                            enterProjectFocus(result.projectId)
                             navigateToProject(
                                 result.projectId,
                                 currentHierarchy,
@@ -420,7 +433,7 @@ class SearchUseCase
         }
 
         fun handleBackNavigation(
-            currentHierarchy: ContextHierarchyData,
+            currentHierarchy: HierarchyPresentationData,
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
@@ -467,8 +480,7 @@ class SearchUseCase
         fun handleNavigationResult(
             key: String,
             value: String,
-            projectHierarchy: ContextHierarchyData,
-            onProjectToReveal: (String) -> Unit,
+            projectHierarchy: HierarchyPresentationData,
         ) {
             when (key) {
                 "project_to_reveal" -> {
@@ -477,7 +489,7 @@ class SearchUseCase
 
                         when (val result = revealProjectInHierarchy(value)) {
                             is RevealResult.Success -> {
-                                enterProjectFocus(value)
+                                enterProjectFocus(result.projectId)
                                 navigateToProject(
                                     result.projectId,
                                     projectHierarchy,

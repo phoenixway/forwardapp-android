@@ -8,7 +8,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyGlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -99,7 +99,7 @@ interface ContextDao {
       AND subproject.name LIKE :query
     """,
     )
-    suspend fun searchSubprojectsGlobal(query: String): List<GlobalSubcontextSearchResult>
+    suspend fun searchSubprojectsGlobal(query: String): List<LegacyGlobalSubcontextSearchResult>
 
     @Query(
         """

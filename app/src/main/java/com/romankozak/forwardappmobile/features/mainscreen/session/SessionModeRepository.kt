@@ -8,11 +8,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
-import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -32,8 +31,7 @@ class SessionModeRepository
     constructor(
         @ApplicationContext private val context: Context,
         private val activityRecordDao: ActivityRecordDao,
-        private val contextLogRepository: ContextLogRepository,
-        private val systemContextEnsurer: SystemContextEnsurer,
+        private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     ) {
         companion object {
             private val currentModeKey = stringPreferencesKey("current_mode")
@@ -55,7 +53,6 @@ class SessionModeRepository
             }
 
         suspend fun setMode(newMode: SessionMode): SessionModeChangeResult {
-            ensureSessionSystemContextsExist()
             val previousState = sessionModeState.first()
             if (previousState.mode == newMode) {
                 return SessionModeChangeResult(previousMode = null, newMode = newMode)
@@ -91,7 +88,6 @@ class SessionModeRepository
             mode: SessionMode,
             text: String,
         ) {
-            ensureSessionSystemContextsExist()
             val trimmed = text.trim()
             if (trimmed.isEmpty() || mode == SessionMode.UNSET) return
 
@@ -100,13 +96,11 @@ class SessionModeRepository
                 targetType = SESSION_RESULT_TARGET_TYPE,
                 mode = mode,
             )
-            mode.systemContextId?.let { contextId ->
-                contextLogRepository.addSystemContextLogEntry(
-                    contextId = contextId,
-                    type = "COMMENT",
-                    description = "Підсумок сесії ${mode.title}: $trimmed",
-                )
-            }
+            createSystemModeLog(
+                mode = mode,
+                type = "COMMENT",
+                description = "Підсумок сесії ${mode.title}: $trimmed",
+            )
             activityRecordDao.deleteByTargetTypeKeepingNewest(
                 targetType = SESSION_RESULT_TARGET_TYPE,
                 keepCount = SESSION_RESULT_KEEP_COUNT,
@@ -117,7 +111,6 @@ class SessionModeRepository
             mode: SessionMode,
             text: String,
         ) {
-            ensureSessionSystemContextsExist()
             val trimmed = text.trim()
             if (trimmed.isEmpty() || mode == SessionMode.UNSET) return
 
@@ -127,13 +120,11 @@ class SessionModeRepository
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 mode = mode,
             )
-            mode.systemContextId?.let { contextId ->
-                contextLogRepository.addSystemContextLogEntry(
-                    contextId = contextId,
-                    type = "SESSION_REASON",
-                    description = fullText,
-                )
-            }
+            createSystemModeLog(
+                mode = mode,
+                type = "SESSION_REASON",
+                description = fullText,
+            )
             activityRecordDao.deleteByTargetTypeKeepingNewest(
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 keepCount = SESSION_EVENT_KEEP_COUNT,
@@ -150,13 +141,11 @@ class SessionModeRepository
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 mode = mode,
             )
-            mode.systemContextId?.let { contextId ->
-                contextLogRepository.addSystemContextLogEntry(
-                    contextId = contextId,
-                    type = "SESSION_START",
-                    description = text,
-                )
-            }
+            createSystemModeLog(
+                mode = mode,
+                type = "SESSION_START",
+                description = text,
+            )
             activityRecordDao.deleteByTargetTypeKeepingNewest(
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 keepCount = SESSION_EVENT_KEEP_COUNT,
@@ -176,14 +165,12 @@ class SessionModeRepository
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 mode = mode,
             )
-            mode.systemContextId?.let { contextId ->
-                contextLogRepository.addSystemContextLogEntry(
-                    contextId = contextId,
-                    type = "SESSION_END",
-                    description = text,
-                    details = "Тривалість: ${formatDuration(endedAt - startedAt)}",
-                )
-            }
+            createSystemModeLog(
+                mode = mode,
+                type = "SESSION_END",
+                description = text,
+                details = "Тривалість: ${formatDuration(endedAt - startedAt)}",
+            )
             activityRecordDao.deleteByTargetTypeKeepingNewest(
                 targetType = SESSION_EVENT_TARGET_TYPE,
                 keepCount = SESSION_EVENT_KEEP_COUNT,
@@ -214,8 +201,19 @@ class SessionModeRepository
             )
         }
 
-        private suspend fun ensureSessionSystemContextsExist() {
-            systemContextEnsurer.ensureAllSystemContextsExist()
+        private suspend fun createSystemModeLog(
+            mode: SessionMode,
+            type: String,
+            description: String,
+            details: String? = null,
+        ) {
+            val workspaceId = mode.systemContextId ?: return
+            canonicalExecutionLogRepository.createSystemLog(
+                workspaceId = workspaceId,
+                type = type,
+                description = description,
+                details = details,
+            )
         }
 
         private fun MutablePreferences.clearActiveMode() {

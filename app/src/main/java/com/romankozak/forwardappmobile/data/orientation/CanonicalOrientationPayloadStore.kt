@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
@@ -153,6 +155,16 @@ private fun WorkspaceEntity.normalizeProvenanceForPersistence(): WorkspaceEntity
         WorkspaceProvenance.CANONICAL_ONLY.name -> {
             require(sourceContextId == null) {
                 "Canonical-only Workspace $id must not have sourceContextId"
+            }
+            this
+        }
+
+        WorkspaceProvenance.STANDALONE.name -> {
+            require(!SystemContexts.isSystem(ContextId(id))) {
+                "Reserved System Workspace $id cannot use standalone provenance"
+            }
+            require(sourceContextId == null) {
+                "Standalone Workspace $id must not have sourceContextId"
             }
             this
         }

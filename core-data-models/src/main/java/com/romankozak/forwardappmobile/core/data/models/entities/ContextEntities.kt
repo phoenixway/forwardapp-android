@@ -194,7 +194,26 @@ data class GlobalLinkSearchResult(
     val pathSegments: List<String>,
 )
 
-data class GlobalSubcontextSearchResult(
+/**
+ * Read-only Context-shaped data exposed by active global-search results.
+ *
+ * This deliberately carries presentation and ranking data only; it is not a
+ * persistable [Context] and cannot be used as a Context mutation payload.
+ */
+data class GlobalSearchContextPresentation(
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("parentId") val parentId: String?,
+    @SerializedName("tags") val tags: List<String>,
+    @SerializedName("rankingTimestamp") val rankingTimestamp: Long,
+)
+
+/**
+ * Legacy Room-only projection retained for the dormant Context DAO query.
+ * Active global search uses [GlobalSubcontextSearchResult] instead.
+ */
+data class LegacyGlobalSubcontextSearchResult(
     @Embedded @SerializedName("subcontext")
     val subcontext: Context,
     @SerializedName("parentContextId") val parentContextId: String,
@@ -203,9 +222,16 @@ data class GlobalSubcontextSearchResult(
     val pathSegments: List<String>,
 )
 
+data class GlobalSubcontextSearchResult(
+    @SerializedName("presentation") val presentation: GlobalSearchContextPresentation,
+    @SerializedName("parentContextId") val parentContextId: String,
+    @SerializedName("parentContextName") val parentContextName: String,
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
+    val pathSegments: List<String>,
+)
+
 data class GlobalContextSearchResult(
-    @Embedded @SerializedName("context")
-    val context: Context,
+    @SerializedName("presentation") val presentation: GlobalSearchContextPresentation,
     @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
     @SerializedName("matchedTags")
@@ -259,16 +285,16 @@ sealed class GlobalSearchResultItem {
         @SerializedName("searchResult") val searchResult: GlobalSubcontextSearchResult,
         @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
     ) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.subcontext.updatedAt ?: searchResult.subcontext.createdAt
-        override val uniqueId: String get() = "sublist_${searchResult.subcontext.id}_${searchResult.parentContextId}"
+        override val timestamp: Long get() = searchResult.presentation.rankingTimestamp
+        override val uniqueId: String get() = "sublist_${searchResult.presentation.id}_${searchResult.parentContextId}"
     }
 
     data class ContextItem(
         @SerializedName("searchResult") val searchResult: GlobalContextSearchResult,
         @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
     ) : GlobalSearchResultItem() {
-        override val timestamp: Long get() = searchResult.context.updatedAt ?: searchResult.context.createdAt
-        override val uniqueId: String get() = "context_${searchResult.context.id}"
+        override val timestamp: Long get() = searchResult.presentation.rankingTimestamp
+        override val uniqueId: String get() = "context_${searchResult.presentation.id}"
     }
 
     data class ActivityItem(

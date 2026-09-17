@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Sav
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 
 data class CanonicalExecutionLogSyncVersion(
     val id: String,
@@ -72,10 +73,17 @@ data class CanonicalOrientationSyncPayload(
     val workspaces: List<WorkspaceEntity> = emptyList(),
     val workspaceBindings: List<WorkspaceBindingEntity> = emptyList(),
     val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity> = emptyList(),
+    val workspaceTagRefs: List<WorkspaceTagRefEntity> = emptyList(),
     val savedViews: List<SavedOrientationViewEntity> = emptyList(),
 )
 
 data class CanonicalOrientationSyncVersion(val id: String, val version: Long)
+
+data class CanonicalWorkspaceTagRefSyncVersion(
+    val workspaceId: String,
+    val normalizedTag: String,
+    val version: Long,
+)
 
 data class CanonicalOrientationSyncAck(
     val managedSubjects: List<CanonicalOrientationSyncVersion> = emptyList(),
@@ -87,6 +95,7 @@ data class CanonicalOrientationSyncAck(
     val workspaces: List<CanonicalOrientationSyncVersion> = emptyList(),
     val workspaceBindings: List<CanonicalOrientationSyncVersion> = emptyList(),
     val workspaceCapabilities: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val workspaceTagRefs: List<CanonicalWorkspaceTagRefSyncVersion> = emptyList(),
     val savedViews: List<CanonicalOrientationSyncVersion> = emptyList(),
 )
 
@@ -159,6 +168,10 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalWorkspaceBacklogChangedSince(timestamp: Long): List<WorkspaceBacklogEntrySnapshot>
 
     suspend fun markCanonicalWorkspaceBacklogSynced(entries: List<WorkspaceBacklogEntrySyncVersion>)
+
+    suspend fun loadCanonicalWorkspaceTagsChangedSince(
+        timestamp: Long,
+    ): List<WorkspaceTagRefEntity>
 
     suspend fun restoreSettings(settings: Map<String, String>)
 

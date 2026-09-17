@@ -6,15 +6,16 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import java.util.UUID
 
 @Entity(
     tableName = "system_apps",
     foreignKeys = [
         ForeignKey(
-            entity = Context::class,
+            entity = WorkspaceEntity::class,
             parentColumns = ["id"],
-            childColumns = ["context_id"],
+            childColumns = ["workspace_id"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
@@ -26,7 +27,7 @@ import java.util.UUID
     ],
     indices = [
         Index(value = ["system_key"], unique = true),
-        Index(value = ["context_id"]),
+        Index(value = ["workspace_id"]),
         Index(value = ["note_document_id"]),
     ],
 )
@@ -35,8 +36,8 @@ data class SystemAppEntity(
     @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "system_key") @SerializedName("systemKey") val systemKey: String,
     @ColumnInfo(name = "app_type") @SerializedName("appType") val appType: String = SystemAppType.NOTE_DOCUMENT.name,
-    @SerializedName(value = "contextId", alternate = ["projectId"])
-    @ColumnInfo(name = "context_id") val contextId: String = "",
+    @SerializedName("workspaceId")
+    @ColumnInfo(name = "workspace_id") val workspaceId: String = "",
     @ColumnInfo(name = "note_document_id") @SerializedName("noteDocumentId") val noteDocumentId: String? = null,
     @ColumnInfo(name = "createdAt") @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "updatedAt") @SerializedName("updatedAt") val updatedAt: Long = System.currentTimeMillis(),

@@ -30,5 +30,5 @@ data class WorkspaceEntity(
     val version: Long,
     @ColumnInfo(defaultValue = "'CONTEXT_BACKED'")
     val provenance: String = "CONTEXT_BACKED",
-    val sourceContextId: String? = if (provenance == "CANONICAL_ONLY") null else id,
+    val sourceContextId: String? = if (provenance == "CONTEXT_BACKED") id else null,
 )

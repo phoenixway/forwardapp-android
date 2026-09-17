@@ -28,6 +28,25 @@ abstract class AttachmentDao {
     )
     abstract fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>>
 
+    /**
+     * Canonical-only owners have no source Context id to use for the legacy
+     * compatibility projection. The returned context id is the stable owner
+     * Workspace id, not a manufactured Context row.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT a.*, c.workspaceId AS context_id, c.connectionOrder AS attachment_order
+        FROM attachments AS a
+        INNER JOIN workspace_connections AS c ON c.attachmentId = a.id
+        WHERE c.workspaceId = :workspaceId
+          AND c.isDeleted = 0
+          AND a.isDeleted = 0
+        ORDER BY c.connectionOrder ASC, a.createdAt DESC
+        """,
+    )
+    abstract fun getAttachmentsForCanonicalWorkspace(workspaceId: String): Flow<List<AttachmentWithContext>>
+
     @Query("SELECT * FROM attachments WHERE id = :attachmentId LIMIT 1")
     abstract suspend fun getAttachmentById(attachmentId: String): AttachmentEntity?
 

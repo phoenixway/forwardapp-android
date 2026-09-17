@@ -4,18 +4,49 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationBeaconInput
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationHierarchyBuilder
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyPresentationTreeBuilder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbsToContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class OrientationHierarchyBuilderTest {
     private val builder = OrientationHierarchyBuilder()
+
+    private fun legacyFixtureBuild(
+        rawContexts: List<Context>,
+        beacons: List<OrientationBeaconInput>,
+        groups: List<MainBeaconGroup> = emptyList(),
+        parentLinks: List<ContextParentLink> = emptyList(),
+        beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
+        workspaces: List<WorkspaceEntity> = emptyList(),
+        presentationHierarchy: HierarchyPresentationData =
+            HierarchyPresentationTreeBuilder().build(
+                rawContexts.map(Context::toHierarchyPresentationNode),
+            ),
+    ): List<OrientationHierarchyItem> =
+        builder.build(
+            presentationHierarchy = presentationHierarchy,
+            rawBackedProjectIds = rawContexts.mapTo(linkedSetOf()) { it.id },
+            beacons = beacons,
+            groups = groups,
+            parentLinks = parentLinks,
+            beaconParentLinks = beaconParentLinks,
+            workspaces = workspaces,
+        )
 
     @Test
     fun buildsBeaconRootsAndNoBeaconFallback() {
@@ -42,7 +73,7 @@ class OrientationHierarchyBuilderTest {
                 relatedContexts = listOf(beaconRoot),
             )
 
-        val items = builder.build(hierarchy = hierarchy, beacons = listOf(beacon))
+        val items = legacyFixtureBuild(rawContexts = hierarchy.allProjects, beacons = listOf(beacon))
 
         assertEquals(
             listOf(
@@ -78,7 +109,7 @@ class OrientationHierarchyBuilderTest {
                 relatedContexts = listOf(linkedChild),
             )
 
-        val items = builder.build(hierarchy = hierarchy, beacons = listOf(beacon))
+        val items = legacyFixtureBuild(rawContexts = hierarchy.allProjects, beacons = listOf(beacon))
 
         assertEquals(
             listOf(
@@ -110,8 +141,8 @@ class OrientationHierarchyBuilderTest {
             )
 
         val items =
-            builder.build(
-                hierarchy = hierarchy,
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
                 beacons = emptyList(),
                 parentLinks =
                     listOf(
@@ -153,8 +184,8 @@ class OrientationHierarchyBuilderTest {
             )
 
         val items =
-            builder.build(
-                hierarchy = hierarchy,
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
                 beacons =
                     listOf(
                         beacon(
@@ -179,7 +210,7 @@ class OrientationHierarchyBuilderTest {
 
 
     @Test
-    fun contextBackedWorkspaceOwnsPlacementWithoutReplacingContextPayload() {
+    fun contextBackedWorkspaceOwnsPlacementWithoutReplacingPresentationPayload() {
         val legacyParent = context(id = "legacy-parent", order = 0)
         val workspaceParent = context(id = "workspace-parent", order = 1)
         val child = context(id = "child", parentId = "legacy-parent", order = 0)
@@ -207,8 +238,8 @@ class OrientationHierarchyBuilderTest {
             )
 
         val items =
-            builder.build(
-                hierarchy = hierarchy,
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
                 beacons = emptyList(),
                 workspaces = listOf(childWorkspace),
             )
@@ -218,22 +249,84 @@ class OrientationHierarchyBuilderTest {
 
         val childIndex = items.indexOf(childItem)
         assertEquals("workspace-parent", items[childIndex - 1].node.id)
-        assertEquals("legacy-parent", childNode.context.parentId)
+        assertEquals("legacy-parent", childNode.presentation.parentId)
         assertEquals(2, childItem.level)
     }
 
     @Test
-    fun canonicalWorkspaceRemainsVisibleUnderLiveContextParent() {
-        val parent = context(id = "parent", order = 0)
+    fun canonicalSystemDisplayUsesCanonicalPresentationWithoutEmbeddingRawContext() {
+        val rawSystem =
+            context(
+                id = SystemContexts.INBOX.raw,
+                parentId = "legacy-parent",
+                order = 1,
+            ).copy(name = "Legacy System name")
+        val legacyParent = context(id = "legacy-parent", order = 0)
+        val canonicalParent = context(id = "canonical-parent", order = 2)
+        val workspace =
+            canonicalWorkspace(
+                id = rawSystem.id,
+                parentId = canonicalParent.id,
+                order = 7L,
+            ).copy(nameOverride = "Canonical System name")
+        val canonicalPresentation =
+            HierarchyContextPresentationNode(
+                id = rawSystem.id,
+                name = "Canonical System name",
+                description = null,
+                parentId = canonicalParent.id,
+                order = 7L,
+                roleCode = null,
+                tags = emptyList(),
+            )
         val hierarchy =
             ContextHierarchyData(
-                allProjects = listOf(parent),
+                allProjects = listOf(legacyParent, canonicalParent, rawSystem),
+                topLevelProjects = listOf(legacyParent, canonicalParent),
+                childMap = mapOf(legacyParent.id to listOf(rawSystem)),
+            )
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
+                beacons = emptyList(),
+                workspaces = listOf(workspace),
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects =
+                            listOf(
+                                legacyParent.toHierarchyPresentationNode(),
+                                canonicalParent.toHierarchyPresentationNode(),
+                                canonicalPresentation,
+                            ),
+                        topLevelProjects =
+                            listOf(
+                                legacyParent.toHierarchyPresentationNode(),
+                                canonicalParent.toHierarchyPresentationNode(),
+                            ),
+                        childMap = mapOf(canonicalParent.id to listOf(canonicalPresentation)),
+                    ),
+            )
+
+        val systemNode =
+            items.single { it.node.id == rawSystem.id }.node as OrientationHierarchyNode.WorkspaceNode
+        assertEquals("Canonical System name", systemNode.title)
+        assertEquals(canonicalParent.id, systemNode.presentation.parentId)
+    }
+
+    @Test
+    fun normalOrientationDisplayIncludesShellFreeReservedSystemUnderCanonicalParent() {
+        val parent = context(id = "parent", order = 0)
+        val ordinarySibling = context(id = "ordinary-sibling", parentId = parent.id, order = 1)
+        val hierarchy =
+            ContextHierarchyData(
+                allProjects = listOf(parent, ordinarySibling),
                 topLevelProjects = listOf(parent),
-                childMap = emptyMap(),
+                childMap = mapOf(parent.id to listOf(ordinarySibling)),
             )
         val workspace =
             WorkspaceEntity(
-                id = "migrated-child",
+                id = SystemContexts.INBOX.raw,
                 nameOverride = "Migrated child",
                 descriptionOverride = "Preserved description",
                 parentWorkspaceId = "parent",
@@ -248,34 +341,341 @@ class OrientationHierarchyBuilderTest {
                 sourceContextId = null,
             )
 
+        val shellFreeSystem =
+            HierarchyContextPresentationNode(
+                id = SystemContexts.INBOX.raw,
+                name = "Migrated child",
+                description = "Preserved description",
+                parentId = parent.id,
+                order = 3L,
+                roleCode = null,
+                tags = emptyList(),
+            )
         val items =
-            builder.build(
-                hierarchy = hierarchy,
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
                 beacons = emptyList(),
                 workspaces = listOf(workspace),
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects =
+                            listOf(
+                                parent.toHierarchyPresentationNode(),
+                                ordinarySibling.toHierarchyPresentationNode(),
+                                shellFreeSystem,
+                            ),
+                        topLevelProjects = listOf(parent.toHierarchyPresentationNode()),
+                        childMap =
+                            mapOf(
+                                parent.id to
+                                    listOf(
+                                        ordinarySibling.toHierarchyPresentationNode(),
+                                        shellFreeSystem,
+                                    ),
+                            ),
+                    ),
             )
 
         assertEquals(
-            listOf("virtual:no-beacon", "parent", "migrated-child"),
+            listOf("virtual:no-beacon", "parent", "ordinary-sibling", SystemContexts.INBOX.raw),
             items.map { it.node.id },
         )
-        assertEquals(listOf(0, 1, 2), items.map { it.level })
+        assertEquals(listOf(0, 1, 2, 2), items.map { it.level })
         val migratedNode = items.last().node as OrientationHierarchyNode.WorkspaceNode
         assertEquals("Migrated child", migratedNode.title)
-        assertEquals("parent", migratedNode.workspace.parentWorkspaceId)
-
+        assertEquals("parent", migratedNode.presentation.parentId)
         // A CANONICAL_ONLY Workspace is still a ProjectLike hierarchy node.
         // Explicit reveal/navigation must therefore resolve the operational
         // parent path even though the legacy Context row no longer exists.
         val breadcrumbs =
             buildOrientationBreadcrumbsToContext(
                 items = items,
-                contextId = "migrated-child",
+                contextId = SystemContexts.INBOX.raw,
             )
         assertEquals(
-            listOf("parent", "migrated-child"),
+            listOf("parent", SystemContexts.INBOX.raw),
             breadcrumbs.takeLast(2).map { it.id },
         )
+    }
+
+    @Test
+    fun shellFreeSystemParentAndChildUseCanonicalPresentationOrderInsideNoBeacon() {
+        val parent =
+            HierarchyContextPresentationNode(
+                id = SystemContexts.STRATEGIC.raw,
+                name = "Canonical parent",
+                description = null,
+                parentId = null,
+                order = 2L,
+                roleCode = "parent-role",
+                tags = listOf("parent-tag"),
+            )
+        val child =
+            HierarchyContextPresentationNode(
+                id = SystemContexts.INBOX.raw,
+                name = "Canonical child",
+                description = "Canonical child description",
+                parentId = parent.id,
+                order = 1L,
+                roleCode = "child-role",
+                tags = listOf("child-tag"),
+            )
+        val workspaces =
+            listOf(
+                canonicalWorkspace(id = parent.id, parentId = null, order = parent.order),
+                canonicalWorkspace(id = child.id, parentId = parent.id, order = child.order),
+            )
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = emptyList(),
+                beacons = emptyList(),
+                workspaces = workspaces,
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects = listOf(parent, child),
+                        topLevelProjects = listOf(parent),
+                        childMap = mapOf(parent.id to listOf(child)),
+                    ),
+            )
+
+        assertEquals(
+            listOf("virtual:no-beacon", parent.id, child.id),
+            items.map { it.node.id },
+        )
+        assertEquals(listOf(0, 1, 2), items.map { it.level })
+        val parentNode = items[1].node as OrientationHierarchyNode.WorkspaceNode
+        val childNode = items[2].node as OrientationHierarchyNode.WorkspaceNode
+        assertEquals("Canonical parent", parentNode.presentation.name)
+        assertEquals("Canonical child", childNode.presentation.name)
+        assertEquals(parent.id, childNode.presentation.parentId)
+        assertEquals(listOf("child-tag"), childNode.presentation.tags)
+    }
+
+    @Test
+    fun standaloneWorkspaceWithoutRawContextIsAdmittedButArbitraryCanonicalWorkspaceIsNot() {
+        val standalonePresentation =
+            HierarchyContextPresentationNode(
+                id = "standalone-user-workspace",
+                name = "Standalone",
+                description = null,
+                parentId = null,
+                order = 0L,
+                roleCode = null,
+                tags = listOf("operations"),
+            )
+        val arbitraryCanonicalPresentation =
+            HierarchyContextPresentationNode(
+                id = "canonical-non-system",
+                name = "Must stay hidden",
+                description = null,
+                parentId = null,
+                order = 1L,
+                roleCode = null,
+                tags = emptyList(),
+            )
+
+        val standaloneWorkspace =
+            canonicalWorkspace(
+                id = standalonePresentation.id,
+                parentId = null,
+                order = standalonePresentation.order,
+            ).copy(
+                provenance = "STANDALONE",
+                sourceContextId = null,
+            )
+        val arbitraryCanonicalWorkspace =
+            canonicalWorkspace(
+                id = arbitraryCanonicalPresentation.id,
+                parentId = null,
+                order = arbitraryCanonicalPresentation.order,
+            )
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = emptyList(),
+                beacons = emptyList(),
+                workspaces = listOf(
+                    standaloneWorkspace,
+                    arbitraryCanonicalWorkspace,
+                ),
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects =
+                            listOf(
+                                standalonePresentation,
+                                arbitraryCanonicalPresentation,
+                            ),
+                        topLevelProjects =
+                            listOf(
+                                standalonePresentation,
+                                arbitraryCanonicalPresentation,
+                            ),
+                        childMap = emptyMap(),
+                    ),
+            )
+
+        assertEquals(
+            listOf(
+                "virtual:no-beacon",
+                standalonePresentation.id,
+            ),
+            items.map { it.node.id },
+        )
+
+        val standaloneNode =
+            items.single { it.node.id == standalonePresentation.id }.node
+                as OrientationHierarchyNode.WorkspaceNode
+        assertEquals("Standalone", standaloneNode.presentation.name)
+        assertEquals(listOf("operations"), standaloneNode.presentation.tags)
+    }
+
+    @Test
+    fun beaconRetainsShellFreeStandaloneWorkspaceButNotArbitraryCanonicalWorkspace() {
+        val standalonePresentation =
+            HierarchyContextPresentationNode(
+                id = "standalone-beacon-owner",
+                name = "Standalone beacon owner",
+                description = null,
+                parentId = null,
+                order = 0L,
+                roleCode = null,
+                tags = emptyList(),
+            )
+        val arbitraryCanonicalPresentation =
+            HierarchyContextPresentationNode(
+                id = "canonical-non-system-beacon-owner",
+                name = "Must stay excluded",
+                description = null,
+                parentId = null,
+                order = 1L,
+                roleCode = null,
+                tags = emptyList(),
+            )
+        val standaloneWorkspace =
+            canonicalWorkspace(
+                id = standalonePresentation.id,
+                parentId = null,
+                order = standalonePresentation.order,
+            ).copy(
+                provenance = "STANDALONE",
+                sourceContextId = null,
+            )
+        val arbitraryCanonicalWorkspace =
+            canonicalWorkspace(
+                id = arbitraryCanonicalPresentation.id,
+                parentId = null,
+                order = arbitraryCanonicalPresentation.order,
+            )
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = emptyList(),
+                beacons =
+                    listOf(
+                        OrientationBeaconInput(
+                            id = "beacon-1",
+                            title = "Health",
+                            order = 0L,
+                            readinessStatus = MainBeaconReadinessStatus.READY,
+                            parentBeaconId = null,
+                            relatedOwnerIds = listOf(
+                                standalonePresentation.id,
+                                arbitraryCanonicalPresentation.id,
+                            ),
+                            groupIds = emptyList(),
+                        ),
+                    ),
+                workspaces = listOf(standaloneWorkspace, arbitraryCanonicalWorkspace),
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects = listOf(standalonePresentation, arbitraryCanonicalPresentation),
+                        topLevelProjects = listOf(standalonePresentation, arbitraryCanonicalPresentation),
+                        childMap = emptyMap(),
+                    ),
+            )
+
+        assertEquals(
+            listOf("virtual:no-group", "beacon-1", standalonePresentation.id),
+            items.map { it.node.id },
+        )
+    }
+
+    @Test
+    fun excludesArbitraryCanonicalWorkspaceAndKeepsNonReservedSysContextRawBacked() {
+        val ordinarySysContext = context(id = "sys_custom", order = 0)
+        val hierarchy =
+            ContextHierarchyData(
+                allProjects = listOf(ordinarySysContext),
+                topLevelProjects = listOf(ordinarySysContext),
+                childMap = emptyMap(),
+            )
+        val unrelatedCanonicalWorkspace =
+            WorkspaceEntity(
+                id = "canonical-non-system",
+                nameOverride = "Must not appear",
+                descriptionOverride = null,
+                parentWorkspaceId = null,
+                roleCode = null,
+                workspaceOrder = 0L,
+                createdAt = 0L,
+                updatedAt = 0L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+                provenance = "CANONICAL_ONLY",
+                sourceContextId = null,
+            )
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = hierarchy.allProjects,
+                beacons = emptyList(),
+                workspaces = listOf(unrelatedCanonicalWorkspace),
+            )
+
+        assertEquals(listOf("virtual:no-beacon", "sys_custom"), items.map { it.node.id })
+        val node = items.last().node as OrientationHierarchyNode.ContextNode
+        assertEquals("sys_custom", node.presentation.id)
+    }
+
+    @Test
+    fun malformedOrDeletedCanonicalSystemPresentationDoesNotBecomeProjectLikeNode() {
+        val systemPresentation =
+            HierarchyContextPresentationNode(
+                id = SystemContexts.INBOX.raw,
+                name = "Must fail closed",
+                description = null,
+                parentId = null,
+                order = 0L,
+                roleCode = null,
+                tags = emptyList(),
+            )
+        val malformed =
+            canonicalWorkspace(id = systemPresentation.id, parentId = null, order = 0L)
+                .copy(sourceContextId = systemPresentation.id)
+        val deleted =
+            canonicalWorkspace(id = systemPresentation.id, parentId = null, order = 0L)
+                .copy(isDeleted = true)
+
+        listOf(malformed, deleted).forEach { workspace ->
+            val items =
+                legacyFixtureBuild(
+                    rawContexts = emptyList(),
+                    beacons = emptyList(),
+                    workspaces = listOf(workspace),
+                    presentationHierarchy =
+                        HierarchyPresentationData(
+                            allProjects = listOf(systemPresentation),
+                            topLevelProjects = listOf(systemPresentation),
+                        ),
+                )
+
+            assertEquals(
+                emptyList<String>(),
+                items.filter { it.node is OrientationHierarchyNode.ProjectLike }.map { it.node.id },
+            )
+        }
     }
 
     private fun context(
@@ -293,6 +693,27 @@ class OrientationHierarchyBuilderTest {
             order = order,
         )
 
+    private fun canonicalWorkspace(
+        id: String,
+        parentId: String?,
+        order: Long,
+    ) =
+        WorkspaceEntity(
+            id = id,
+            nameOverride = id,
+            descriptionOverride = null,
+            parentWorkspaceId = parentId,
+            roleCode = null,
+            workspaceOrder = order,
+            createdAt = 0L,
+            updatedAt = 0L,
+            syncedAt = null,
+            isDeleted = false,
+            version = 1L,
+            provenance = "CANONICAL_ONLY",
+            sourceContextId = null,
+        )
+
     private fun beacon(
         id: String,
         title: String,
@@ -306,7 +727,7 @@ class OrientationHierarchyBuilderTest {
             order = order,
             readinessStatus = MainBeaconReadinessStatus.READY,
             parentBeaconId = null,
-            relatedContexts = relatedContexts,
+            relatedOwnerIds = relatedContexts.map { it.id },
             groupIds = groupIds,
         )
 }

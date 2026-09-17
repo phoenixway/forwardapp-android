@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
@@ -34,6 +36,56 @@ class SelectiveImportCoordinatorCanonicalBacklogTest {
         assertEquals(setOf("placement"), capturedSelection.captured.selectedWorkspaceBacklogEntryIds)
         coVerify(exactly = 1) { repository.importSelectedSnapshotBundle(filtered) }
     }
+
+    @Test
+    fun `selected System owned Script is forwarded without selecting a legacy Context shell`() =
+        runBlocking {
+            val repository = mockk<SyncRepository>()
+            val capturedSelection = slot<WorkspaceSelectiveImportSelection>()
+            val source = SnapshotBundle(version = 2)
+
+            every {
+                repository.filterSnapshotBundleForSelectiveImport(
+                    source,
+                    capture(capturedSelection),
+                )
+            } returns source
+            coEvery {
+                repository.importSelectedSnapshotBundle(source)
+            } returns Result.success("imported")
+
+            val script =
+                ScriptEntity(
+                    id = "script-system",
+                    contextId = SystemContexts.INBOX.raw,
+                    name = "System script",
+                    content = "echo test",
+                )
+            val state =
+                SelectiveImportState(
+                    backupContent =
+                        SelectableDatabaseContent(
+                            scripts =
+                                listOf(
+                                    SelectableDiffItem(
+                                        item = script,
+                                        status = DiffStatus.NEW,
+                                        isSelected = true,
+                                    ),
+                                ),
+                        ),
+                    sourceSnapshotBundle = source,
+                )
+
+            val result = SelectiveImportCoordinator(repository).importSelection(state)
+
+            assertTrue(result.isSuccess)
+            assertEquals(
+                setOf("script-system"),
+                capturedSelection.captured.selectedScriptIds,
+            )
+            assertTrue(capturedSelection.captured.selectedContextIds.isEmpty())
+        }
 
     @Test
     fun `coordinator returns filtering failure without invoking import`() = runBlocking {

@@ -23,6 +23,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.*
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionIds
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
@@ -148,6 +154,11 @@ class ContextScreenViewModel
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val capabilityViewActionRegistry: CapabilityViewActionRegistry,
         private val orientationDao: OrientationDao,
+        private val systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
+        private val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
+        private val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
         InputHandler.ResultListener,
@@ -177,7 +188,13 @@ class ContextScreenViewModel
         val contextSessionState: StateFlow<com.romankozak.forwardappmobile.core.context.ContextSessionState> =
             contextSessionStore.state
         internal val stateManager = ContextStateManager(viewModelScope)
-        private val tagManager = TagManager(contextRepository, viewModelScope)
+        private val tagManager =
+            TagManager(
+                contextRepository = contextRepository,
+                systemWorkspacePresentationContextProjector =
+                    systemWorkspacePresentationContextProjector,
+                scope = viewModelScope,
+            )
         private val activityManager = ActivityManager(activityRepository, viewModelScope)
         private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
         private val initialTagQuery: String? = savedStateHandle.get<String>("initialTagQuery")
@@ -247,10 +264,9 @@ class ContextScreenViewModel
         private var pendingLinkedContextReplace: Boolean = false
         private val navigationActions by lazy {
             NavigationActions(
-                contextRepository = contextRepository,
                 recentItemsRepository = recentItemsRepository,
                 settingsRepository = settingsRepository,
-                ioDispatcher = ioDispatcher,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
                 handleLinkClickRoute = HANDLE_LINK_CLICK_ROUTE,
             )
         }
@@ -293,10 +309,15 @@ class ContextScreenViewModel
                 listItemRepository = listItemRepository,
                 contextRepository = contextRepository,
                 backlogClipboardUseCase = backlogClipboardUseCase,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
             )
         }
         private val listChooserFlowActions by lazy {
-            ListChooserFlowActions(contextRepository = contextRepository, directionRepository = directionRepository)
+            ListChooserFlowActions(
+                contextRepository = contextRepository,
+                directionRepository = directionRepository,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
+            )
         }
         private val listChooserOrchestrationActions = ListChooserOrchestrationActions()
         private val listChooserPendingStateActions = ListChooserPendingStateActions()
@@ -344,7 +365,12 @@ class ContextScreenViewModel
                 scope = viewModelScope,
             )
         }
-        private val recentItemActions by lazy { RecentItemActions(settingsRepository = settingsRepository) }
+        private val recentItemActions by lazy {
+            RecentItemActions(
+                settingsRepository = settingsRepository,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
+            )
+        }
         private val inputSuggestionActions = InputSuggestionActions()
         private val uiStateActions by lazy { UiStateActions(stateManager = stateManager) }
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -388,14 +414,15 @@ class ContextScreenViewModel
                         ),
                     ),
                 )
-        private val _allProjects =
-            contextRepository
-                .getAllContextsFlow()
+        private val _pickerPresentations =
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-        val allContextsForPicker: StateFlow<List<Context>> = _allProjects
-        val subprojectChildren: StateFlow<Map<String?, List<Context>>> =
-            _allProjects
-                .map { allProjects -> allProjects.groupBy { it.parentId } }
+        val allContextsForPicker: StateFlow<List<ContextPresentation>> =
+            _pickerPresentations
+        val subprojectChildren: StateFlow<Map<String?, List<ContextPresentation>>> =
+            _pickerPresentations
+                .map { presentations -> presentations.groupBy { it.parentId } }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
         val contextTimeMetrics: StateFlow<ContextTimeMetrics?> =
             contextIdFlow
@@ -489,6 +516,10 @@ class ContextScreenViewModel
                         noteRepository = noteRepository,
                         goalRepository = goalRepository,
                         orientationDao = orientationDao,
+                        systemInboxDirectionAccess = systemInboxDirectionAccess,
+                        systemRemainingCapabilityAccess = systemRemainingCapabilityAccess,
+                        systemBacklogLifecycleAccess = systemBacklogLifecycleAccess,
+                        systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
                     ),
                 mapper = contextScreenDataMapper,
             )
@@ -562,6 +593,7 @@ class ContextScreenViewModel
                 repositories =
                     ContextPickerRepositories(
                         contextRepository = contextRepository,
+                        canonicalWorkspaceRepository = canonicalWorkspaceRepository,
                         contextKeyProblemsRepository = contextKeyProblemsRepository,
                         focusContextRepository = focusContextRepository,
                         noteDocumentRepository = noteDocumentRepository,
@@ -569,6 +601,7 @@ class ContextScreenViewModel
                         checklistRepository = checklistRepository,
                     ),
                 listChooserFlowActions = listChooserFlowActions,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
                 loggerTag = TAG,
             )
         }
@@ -682,8 +715,15 @@ class ContextScreenViewModel
 
         override fun onForwardPressed(id: String) {
             viewModelScope.launch {
+                val presentation =
+                    systemWorkspacePresentationContextProjector
+                        .resolvePresentation(id)
+                        ?: return@launch
                 withNavigationManager { manager ->
-                    manager.navigateToProject(id, "Context")
+                    manager.navigateToProject(
+                        presentation.id,
+                        presentation.name,
+                    )
                 }
             }
         }
@@ -752,7 +792,9 @@ class ContextScreenViewModel
         }
 
         fun onToggleAttachmentsExpanded() =
-            viewModelScope.launch(ioDispatcher) { currentContextActions.toggleAttachmentsExpanded(uiState.value.context) }
+            viewModelScope.launch(ioDispatcher) {
+                currentContextActions.toggleAttachmentsExpanded(contextIdFlow.value)
+            }
 
         fun onDashboardTabSelected(tab: ContextManagementTab) = uiControlActions.selectDashboardTab(tab)
 
@@ -1092,7 +1134,15 @@ class ContextScreenViewModel
             }
         }
 
-        fun onSetReminderForProject() = viewModelScope.launch { reminderActions.onSetReminderForProject(project.value) }
+        fun onSetReminderForProject() =
+            viewModelScope.launch {
+                val presentation = uiState.value.presentation ?: return@launch
+                reminderActions.onSetReminderForProject(
+                    projectId = presentation.id,
+                    projectName = presentation.name,
+                    projectCreatedAt = uiState.value.context?.createdAt ?: 0L,
+                )
+            }
 
         fun onImportFromMarkdownRequest() = markdownActions.onImportFromMarkdownRequest()
 
@@ -1469,7 +1519,7 @@ class ContextScreenViewModel
             subproject: Context,
             completed: Boolean,
         ) = viewModelScope.launch {
-            backlogItemActions.updateSubprojectCompleted(subproject, completed)
+            backlogItemActions.updateSubprojectCompleted(subproject.id, completed)
             forceRefresh()
         }
 

@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -59,12 +60,15 @@ class GoalSettingsViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val goalId: String? = savedStateHandle["goalId"]
         private val initialProjectId: String? = savedStateHandle["projectId"]
         private val allContexts =
-            contextRepository.getAllContextsFlow()
+            systemWorkspacePresentationContextProjector.observePresentationUniverse(
+                contextRepository.getAllContextsFlow(),
+            )
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
         private val allAttachmentOptions =
             attachmentsRepository.getAttachmentLibraryItems()
@@ -341,7 +345,10 @@ class GoalSettingsViewModel
 
         private fun onAddProjectAssociation(projectId: String) {
             viewModelScope.launch {
-                val projectName = contextRepository.getContextById(projectId)?.name
+                val projectName =
+                    systemWorkspacePresentationContextProjector
+                        .resolvePresentation(projectId)
+                        ?.name
                 val newLink =
                     RelatedLink(
                         type = LinkType.CONTEXT,

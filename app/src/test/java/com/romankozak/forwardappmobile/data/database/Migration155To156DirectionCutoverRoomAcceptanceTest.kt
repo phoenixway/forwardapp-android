@@ -44,6 +44,8 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
                     MIGRATION_163_164,
                     MIGRATION_164_165,
                     MIGRATION_165_166,
+                    MIGRATION_166_167,
+                    MIGRATION_167_168,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -51,7 +53,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "direction_items"))
 
             // One canonical placement exists for every legacy Direction row,
@@ -189,6 +191,8 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
                     MIGRATION_163_164,
                     MIGRATION_164_165,
                     MIGRATION_165_166,
+                    MIGRATION_166_167,
+                    MIGRATION_167_168,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -196,7 +200,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "direction_items"))
 
             db.query(

@@ -8,11 +8,13 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrie
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
+import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,6 +78,44 @@ class BacklogCanonicalTargetResolverTest {
         val failure = runCatching { resolver.resolveLegacy("GOAL", "goal-1") }.exceptionOrNull()
 
         assertTrue(failure is IllegalArgumentException)
+    }
+
+    @Test
+    fun `read-only GOAL lookup returns null while mapping is MATERIALIZED`() = runTest {
+        val orientationDao = mockk<OrientationDao>()
+        val workspaceDao = mockk<WorkspaceDao>()
+        coEvery {
+            orientationDao.getLegacyMapping(
+                LegacyOrientationSourceType.GOAL.name,
+                "goal-1",
+            )
+        } returns mapping(state = LegacySubjectMappingState.MATERIALIZED.name)
+
+        val resolver = BacklogCanonicalTargetResolver(orientationDao, workspaceDao)
+
+        assertNull(resolver.resolveGoalIfCutOver("goal-1"))
+    }
+
+    @Test
+    fun `read-only GOAL lookup returns canonical target once CUT_OVER`() = runTest {
+        val orientationDao = mockk<OrientationDao>()
+        val workspaceDao = mockk<WorkspaceDao>()
+        coEvery {
+            orientationDao.getLegacyMapping(
+                LegacyOrientationSourceType.GOAL.name,
+                "goal-1",
+            )
+        } returns mapping(state = LegacySubjectMappingState.CUT_OVER.name)
+
+        val resolver = BacklogCanonicalTargetResolver(orientationDao, workspaceDao)
+
+        assertEquals(
+            WorkspaceBacklogTargetRef(
+                WorkspaceBacklogTargetKind.ORIENTATION,
+                "orientation-1",
+            ),
+            resolver.resolveGoalIfCutOver("goal-1"),
+        )
     }
 
     @Test

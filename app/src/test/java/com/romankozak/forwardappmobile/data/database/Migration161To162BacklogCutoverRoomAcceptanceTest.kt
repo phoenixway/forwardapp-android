@@ -30,6 +30,8 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
             MIGRATION_163_164,
             MIGRATION_164_165,
             MIGRATION_165_166,
+            MIGRATION_166_167,
+            MIGRATION_167_168,
         )
 
     @Test
@@ -51,7 +53,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             assertEquals(
                 1L,
@@ -230,7 +232,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             db.query(
                 """
@@ -334,7 +336,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             db.query(
                 """
@@ -519,7 +521,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             db.query(
                 """
@@ -589,7 +591,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
 
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertEquals(
                 "LEGACY_NOTE",
                 scalarString(
@@ -635,7 +637,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             db.query(
                 """
@@ -703,7 +705,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             assertEquals(
                 1L,
@@ -794,7 +796,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
             assertEquals(
                 1L,
@@ -852,7 +854,7 @@ class Migration161To162BacklogCutoverRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertEquals(
                 0L,
                 scalarLong(

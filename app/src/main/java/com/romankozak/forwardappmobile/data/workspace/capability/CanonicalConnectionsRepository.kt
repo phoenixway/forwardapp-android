@@ -5,10 +5,20 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.ConnectionsCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.ConnectionsCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.canonicalWorkspaceConnectionId
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+data class ConnectionsCapabilityState(
+    val lifecycleState: WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: ConnectionsCapabilityConfigurationV1,
+)
 
 @Singleton
 class CanonicalConnectionsRepository
@@ -23,6 +33,31 @@ class CanonicalConnectionsRepository
 
         suspend fun disable(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.disable(SPEC, workspaceId, now)
+
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
+        suspend fun hasEstablishedInstance(workspaceId: String): Boolean =
+            instanceStore.hasEstablishedInstance(SPEC, workspaceId)
+
+        fun observeEstablishedInstance(workspaceId: String): Flow<Boolean> =
+            instanceStore.observeEstablishedInstance(SPEC, workspaceId)
+
+        suspend fun getState(workspaceId: String): ConnectionsCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toConnectionsCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<ConnectionsCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toConnectionsCapabilityState() }.getOrNull() }
+            }
 
         suspend fun archive(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.archive(SPEC, workspaceId, now)
@@ -44,31 +79,44 @@ class CanonicalConnectionsRepository
             now: Long = System.currentTimeMillis(),
         ): String =
             database.withTransaction {
-                val capability = instanceStore.requireActiveInstance(SPEC, workspaceId)
-                val id = canonicalWorkspaceConnectionId(capability.id, attachmentId)
-                val current = connectionDao.getById(id)
-                val next =
-                    current?.copy(
-                        connectionOrder = nextOrder(workspaceId),
-                        updatedAt = now,
-                        syncedAt = null,
-                        isDeleted = false,
-                        version = current.version + 1L,
-                    ) ?: WorkspaceConnectionEntity(
-                        id = id,
-                        workspaceId = workspaceId,
-                        capabilityInstanceId = capability.id,
-                        attachmentId = attachmentId,
-                        connectionOrder = nextOrder(workspaceId),
-                        createdAt = now,
-                        updatedAt = now,
-                        syncedAt = null,
-                        isDeleted = false,
-                        version = 1L,
-                    )
-                connectionDao.upsert(listOf(next))
-                id
+                linkAttachmentInTransaction(workspaceId, attachmentId, now)
             }
+
+        /**
+         * Canonical placement primitive for a caller that already owns the
+         * enclosing [AppDatabase] transaction. It deliberately keeps id,
+         * lifecycle, order, and version authority in this repository.
+         */
+        internal suspend fun linkAttachmentInTransaction(
+            workspaceId: String,
+            attachmentId: String,
+            now: Long = System.currentTimeMillis(),
+        ): String {
+            val capability = instanceStore.requireActiveInstance(SPEC, workspaceId)
+            val id = canonicalWorkspaceConnectionId(capability.id, attachmentId)
+            val current = connectionDao.getById(id)
+            val next =
+                current?.copy(
+                    connectionOrder = nextOrder(workspaceId),
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = current.version + 1L,
+                ) ?: WorkspaceConnectionEntity(
+                    id = id,
+                    workspaceId = workspaceId,
+                    capabilityInstanceId = capability.id,
+                    attachmentId = attachmentId,
+                    connectionOrder = nextOrder(workspaceId),
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                )
+            connectionDao.upsert(listOf(next))
+            return id
+        }
 
         suspend fun unlinkAttachment(
             workspaceId: String,
@@ -150,3 +198,11 @@ class CanonicalConnectionsRepository
 
 private fun WorkspaceConnectionEntity.bump(now: Long) =
     copy(updatedAt = now, syncedAt = null, version = version + 1L)
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+    .toConnectionsCapabilityState() =
+    ConnectionsCapabilityState(
+        lifecycleState = WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = ConnectionsCapabilityConfigurationCodec.decode(configurationVersion, configuration),
+    )

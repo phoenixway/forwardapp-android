@@ -340,8 +340,8 @@ internal fun resultTitle(item: GlobalSearchResultItem): String =
         is GlobalSearchResultItem.LinkItem ->
             item.searchResult.link.linkData.displayName
                 ?: item.searchResult.link.linkData.target
-        is GlobalSearchResultItem.SubcontextItem -> item.searchResult.subcontext.name
-        is GlobalSearchResultItem.ContextItem -> item.searchResult.context.name
+        is GlobalSearchResultItem.SubcontextItem -> item.searchResult.presentation.name
+        is GlobalSearchResultItem.ContextItem -> item.searchResult.presentation.name
         is GlobalSearchResultItem.ActivityItem -> item.record.text
         is GlobalSearchResultItem.InboxItem -> item.record.text
         is GlobalSearchResultItem.AttachmentItem -> item.searchResult.title

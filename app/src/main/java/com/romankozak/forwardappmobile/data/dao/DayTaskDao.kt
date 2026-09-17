@@ -6,28 +6,79 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DayTaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(task: DayTask)
+    suspend fun insertRaw(task: DayTask)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(tasks: List<DayTask>)
+    suspend fun insertAllRaw(tasks: List<DayTask>)
+
+    @Update
+    suspend fun updateRaw(task: DayTask)
+
+    @Update
+    suspend fun updateAllRaw(tasks: List<DayTask>)
+
+    @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
+    suspend fun getOperationalProjectWorkspace(workspaceId: String): WorkspaceEntity?
+
+    @Transaction
+    suspend fun insert(task: DayTask) {
+        insertRaw(
+            routeDayTaskProjectForPersistence(task) { workspaceId ->
+                getOperationalProjectWorkspace(workspaceId)
+            },
+        )
+    }
+
+    @Transaction
+    suspend fun insertAll(tasks: List<DayTask>) {
+        if (tasks.isEmpty()) return
+        insertAllRaw(
+            tasks.map { task ->
+                routeDayTaskProjectForPersistence(task) { workspaceId ->
+                    getOperationalProjectWorkspace(workspaceId)
+                }
+            },
+        )
+    }
+
+    @Transaction
+    suspend fun update(task: DayTask) {
+        updateRaw(
+            routeDayTaskProjectForPersistence(task) { workspaceId ->
+                getOperationalProjectWorkspace(workspaceId)
+            },
+        )
+    }
+
+    @Transaction
+    suspend fun updateAll(tasks: List<DayTask>) {
+        if (tasks.isEmpty()) return
+        updateAllRaw(
+            tasks.map { task ->
+                routeDayTaskProjectForPersistence(task) { workspaceId ->
+                    getOperationalProjectWorkspace(workspaceId)
+                }
+            },
+        )
+    }
 
     @Query("SELECT * FROM day_tasks WHERE id = :taskId LIMIT 1")
     suspend fun getByIdForCanonicalRecurrenceSync(taskId: String): DayTask?
-
-    @Update
-    suspend fun update(task: DayTask)
-
-    @Update
-    suspend fun updateAll(tasks: List<DayTask>)
 
     @Delete
     suspend fun delete(task: DayTask)
@@ -60,7 +111,7 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE goalId = :goalId ORDER BY createdAt DESC")
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE projectId = :projectId ORDER BY createdAt DESC")
+    @Query("SELECT * FROM day_tasks WHERE (projectId = :projectId OR project_workspace_id = :projectId) ORDER BY createdAt DESC")
     fun getTasksForProject(projectId: String): Flow<List<DayTask>>
 
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND status = :status AND isDeleted = 0 ORDER BY `order` ASC")
@@ -208,6 +259,65 @@ interface DayTaskDao {
     @Query("DELETE FROM day_tasks")
     suspend fun deleteAllTasks()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTasks(tasks: List<DayTask>)
+    @Transaction
+    suspend fun insertTasks(tasks: List<DayTask>) {
+        if (tasks.isEmpty()) return
+        insertAllRaw(
+            tasks.map { task ->
+                routeDayTaskProjectForPersistence(task) { workspaceId ->
+                    getOperationalProjectWorkspace(workspaceId)
+                }
+            },
+        )
+    }
+}
+
+internal suspend fun routeDayTaskProjectForPersistence(
+    task: DayTask,
+    workspaceLookup: suspend (String) -> WorkspaceEntity?,
+): DayTask {
+    val contextProjectId = task.projectId
+    val workspaceProjectId = task.projectWorkspaceId
+
+    require(
+        contextProjectId == null ||
+            workspaceProjectId == null ||
+            contextProjectId == workspaceProjectId,
+    ) {
+        "DayTask ${task.id} has conflicting project ids: " +
+            "context=$contextProjectId workspace=$workspaceProjectId"
+    }
+
+    val logicalProjectId =
+        task.logicalProjectId
+            ?: return task.copy(
+                projectId = null,
+                projectWorkspaceId = null,
+            )
+
+    return if (SystemContexts.isSystem(ContextId(logicalProjectId))) {
+        val workspace =
+            requireNotNull(workspaceLookup(logicalProjectId)) {
+                "Reserved DayTask project $logicalProjectId has no same-id Workspace"
+            }
+
+        require(
+            !workspace.isDeleted &&
+                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                workspace.sourceContextId == null,
+        ) {
+            "Reserved DayTask project $logicalProjectId " +
+                "is not a live CANONICAL_ONLY Workspace"
+        }
+
+        task.copy(
+            projectId = null,
+            projectWorkspaceId = logicalProjectId,
+        )
+    } else {
+        task.copy(
+            projectId = logicalProjectId,
+            projectWorkspaceId = null,
+        )
+    }
 }

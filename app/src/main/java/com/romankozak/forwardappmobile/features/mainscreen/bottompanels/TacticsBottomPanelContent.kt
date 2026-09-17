@@ -41,7 +41,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
@@ -77,7 +77,7 @@ internal fun TacticsBottomPanelContent(
     iterationStatus: TacticalIterationStatus?,
     iterationDurationDays: Int?,
     iterationDurationHours: Int?,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
     canPasteAsMissions: Boolean,
@@ -218,7 +218,7 @@ private fun TacticsControlPanel(
     missionStreamCounts: Map<String, Int>,
     iterationDurationDays: Int?,
     iterationDurationHours: Int?,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
     canPasteAsMissions: Boolean,
@@ -789,7 +789,7 @@ private fun formatTacticalDeadline(timestamp: Long): String =
 private fun TacticsPlanControlRows(
     missionStreams: List<MissionStream>,
     selectedMissionStreamId: String,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
     onMissionStreamSelected: (String) -> Unit,
@@ -841,7 +841,7 @@ private data class PlanSelectorOption(
 
 private fun resolvePlanningContextTitle(
     selectedPlanningContextId: String?,
-    activitySlotContexts: List<Context>,
+    activitySlotContexts: List<ContextPresentation>,
     projectOptions: List<ProjectOption>,
 ): String =
     when {

@@ -11,6 +11,7 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -115,6 +116,12 @@ data class DayThemeDocumentEntity(
             onDelete = ForeignKey.SET_NULL,
         ),
         ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["project_workspace_id"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
+        ForeignKey(
             entity = ActivityRecord::class,
             parentColumns = ["id"],
             childColumns = ["activityRecordId"],
@@ -125,6 +132,7 @@ data class DayThemeDocumentEntity(
         Index("dayPlanId"),
         Index("goalId"),
         Index("projectId"),
+        Index("project_workspace_id"),
         Index("activityRecordId"),
         Index("scheduledTime"),
         Index(value = ["recurrenceSeriesId", "recurrenceOccurrenceDayKey"]),
@@ -169,7 +177,13 @@ data class DayTask(
     @SerializedName("version") val version: Long = 0,
     @SerializedName("completedAt") val completedAt: Long? = null,
     @ColumnInfo(defaultValue = "0") @SerializedName("points") val points: Int = 0,
+    @ColumnInfo(name = "project_workspace_id")
+    @SerializedName("projectWorkspaceId")
+    val projectWorkspaceId: String? = null,
 )
+
+val DayTask.logicalProjectId: String?
+    get() = projectWorkspaceId ?: projectId
 
 @Entity(
     tableName = "day_focus_items",

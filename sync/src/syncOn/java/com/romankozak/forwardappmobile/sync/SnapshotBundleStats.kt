@@ -17,7 +17,6 @@ internal fun SnapshotBundle.importItemCount(): Int =
         checklistItems.size +
         scripts.size +
         attachments.size +
-        crossRefs.size +
         inbox.size +
         logs.size +
         canonicalExecutionLogs.orEmpty().size +

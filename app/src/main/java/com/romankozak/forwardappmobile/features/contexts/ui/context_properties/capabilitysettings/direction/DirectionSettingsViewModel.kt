@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +21,7 @@ data class DirectionSettingsUiState(
     val contextId: String? = null,
     val autoAddChildContextToDirectionFront: Boolean = true,
     val isSaving: Boolean = false,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
@@ -26,6 +30,7 @@ class DirectionSettingsViewModel
     constructor(
         private val contextStructureRepository: ContextStructureRepository,
         private val contextRepository: ContextRepository,
+        private val systemCapabilityAccess: SystemContextCanonicalInboxDirectionAccess,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DirectionSettingsUiState())
         val uiState: StateFlow<DirectionSettingsUiState> = _uiState.asStateFlow()
@@ -37,9 +42,20 @@ class DirectionSettingsViewModel
             if (currentContextId == contextId && observeJob?.isActive == true) return
 
             observeJob?.cancel()
-            _uiState.update { it.copy(contextId = contextId) }
+            _uiState.update { it.copy(contextId = contextId, errorMessage = null) }
             observeJob =
                 viewModelScope.launch {
+                    if (systemCapabilityAccess.handles(contextId)) {
+                        systemCapabilityAccess.observeState(contextId).collectLatest { canonical ->
+                            _uiState.update { state ->
+                                if (state.isSaving) state else state.copy(
+                                    autoAddChildContextToDirectionFront =
+                                        canonical?.direction?.configuration?.autoLinkChildWorkspaces == true,
+                                )
+                            }
+                        }
+                        return@launch
+                    }
                     contextStructureRepository.observeStructureOnly(contextId).collectLatest { structure ->
                         if (structure == null) {
                             contextStructureRepository.ensureStructure(contextId)
@@ -62,18 +78,56 @@ class DirectionSettingsViewModel
         fun onAutoAddChildContextToDirectionFrontChanged(enabled: Boolean) {
             val contextId = _uiState.value.contextId ?: return
             viewModelScope.launch {
-                _uiState.update { it.copy(isSaving = true, autoAddChildContextToDirectionFront = enabled) }
-                val structure = contextStructureRepository.ensureStructure(contextId)
-                contextStructureRepository.updateStructure(
-                    structure.copy(
-                        enableAutoLinkSubprojects = enabled,
-                        updatedAt = System.currentTimeMillis(),
-                    ),
-                )
-                if (enabled) {
-                    contextRepository.ensureDirectionFrontLinksForExistingChildren(contextId)
+                _uiState.update {
+                    it.copy(
+                        isSaving = true,
+                        autoAddChildContextToDirectionFront = enabled,
+                        errorMessage = null,
+                    )
                 }
-                _uiState.update { it.copy(isSaving = false) }
+                try {
+                    val handled =
+                        systemCapabilityAccess.updateDirectionConfiguration(
+                            contextId = contextId,
+                            configuration = DirectionCapabilityConfigurationV1(enabled),
+                        )
+                    if (!handled) {
+                        val structure = contextStructureRepository.ensureStructure(contextId)
+                        contextStructureRepository.updateStructure(
+                            structure.copy(
+                                enableAutoLinkSubprojects = enabled,
+                                updatedAt = System.currentTimeMillis(),
+                            ),
+                        )
+                    }
+                    if (enabled) {
+                        contextRepository.ensureDirectionFrontLinksForExistingChildren(contextId)
+                    }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    val restored = loadCurrentValue(contextId)
+                    _uiState.update { state ->
+                        if (state.contextId != contextId) state else state.copy(
+                            autoAddChildContextToDirectionFront = restored,
+                            errorMessage = error.message ?: "Не вдалося зберегти налаштування Direction",
+                        )
+                    }
+                } finally {
+                    _uiState.update { state ->
+                        if (state.contextId != contextId) state else state.copy(isSaving = false)
+                    }
+                }
             }
         }
+
+        private suspend fun loadCurrentValue(contextId: String): Boolean =
+            if (systemCapabilityAccess.handles(contextId)) {
+                systemCapabilityAccess.getState(contextId)
+                    ?.direction
+                    ?.configuration
+                    ?.autoLinkChildWorkspaces == true
+            } else {
+                contextStructureRepository.getStructureByContext(contextId)
+                    ?.enableAutoLinkSubprojects ?: true
+            }
     }

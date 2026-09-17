@@ -10,6 +10,7 @@ import com.google.gson.annotations.SerializedName
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 
 const val NO_DEADLINE = Long.MAX_VALUE
 const val GENERAL_MISSION_STREAM_ID = "general"
@@ -23,9 +24,16 @@ const val GENERAL_MISSION_STREAM_ID = "general"
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL,
         ),
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["project_workspace_id"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
     indices = [
         Index(value = ["projectId"]),
+        Index(value = ["project_workspace_id"]),
         Index(value = ["week_key"]),
         Index(value = ["iteration_id"]),
         Index(value = ["mission_stream_id"]),
@@ -104,7 +112,13 @@ data class TacticalMission(
     @ColumnInfo(name = "version", defaultValue = "0")
     @SerializedName("version")
     val version: Long = 0L,
+    @ColumnInfo(name = "project_workspace_id")
+    @SerializedName("projectWorkspaceId")
+    val projectWorkspaceId: String? = null,
 )
+
+val TacticalMission.logicalProjectId: String?
+    get() = projectWorkspaceId ?: projectId
 
 fun TacticalMission.hasDeadline(): Boolean = deadline != NO_DEADLINE
 

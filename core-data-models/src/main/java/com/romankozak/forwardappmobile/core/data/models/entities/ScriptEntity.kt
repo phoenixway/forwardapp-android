@@ -1,25 +1,20 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
+/**
+ * contextId is a stable logical association id, not Context-row ownership.
+ * It may refer to an ordinary Context or an exact canonical System Workspace.
+ */
 @Entity(
     tableName = "scripts",
     indices = [
         Index(value = ["contextId"], name = "index_scripts_contextId"),
         Index(value = ["name"], name = "index_scripts_name"),
-    ],
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["contextId"],
-            onDelete = ForeignKey.Companion.SET_NULL,
-        ),
     ],
 )
 data class ScriptEntity(

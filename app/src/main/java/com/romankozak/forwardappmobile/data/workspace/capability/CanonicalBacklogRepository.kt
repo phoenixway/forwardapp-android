@@ -5,15 +5,24 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfiguration
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV2
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Canonical-only BACKLOG repository before Context-backed authority cutover. */
+data class BacklogCapabilityState(
+    val lifecycleState: com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: BacklogCapabilityConfiguration,
+)
+
+/** Canonical BACKLOG lifecycle, typed configuration, and placement owner. */
 @Singleton
 class CanonicalBacklogRepository
     @Inject
@@ -29,6 +38,17 @@ class CanonicalBacklogRepository
         suspend fun disable(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.disable(SPEC, workspaceId, now)
 
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
         suspend fun archive(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.archive(SPEC, workspaceId, now)
 
@@ -42,6 +62,48 @@ class CanonicalBacklogRepository
         suspend fun requireActive(workspaceId: String) {
             instanceStore.requireActiveInstance(SPEC, workspaceId)
         }
+
+        suspend fun hasEstablishedInstance(workspaceId: String): Boolean =
+            instanceStore.hasEstablishedInstance(SPEC, workspaceId)
+
+        suspend fun getState(workspaceId: String): BacklogCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toBacklogCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<BacklogCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toBacklogCapabilityState() }.getOrNull() }
+            }
+
+        fun observeEstablishedInstance(workspaceId: String): Flow<Boolean> =
+            instanceStore.observeEstablishedInstance(SPEC, workspaceId)
+
+        suspend fun updateConfiguration(
+            workspaceId: String,
+            configuration: BacklogCapabilityConfigurationV2,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            instanceStore.updateConfiguration(
+                spec = SPEC,
+                workspaceId = workspaceId,
+                configurationVersion = BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
+                configuration = BacklogCapabilityConfigurationCodec.encode(configuration),
+                now = now,
+            )
+        }
+
+        suspend fun migrateV1Configuration(
+            workspaceId: String,
+            configuration: BacklogCapabilityConfigurationV2,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean =
+            instanceStore.migrateConfigurationVersionPreservingLifecycle(
+                spec = SPEC,
+                workspaceId = workspaceId,
+                fromVersion = 1,
+                configurationVersion = BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
+                configuration = BacklogCapabilityConfigurationCodec.encode(configuration),
+                now = now,
+            )
 
         fun observeEntries(workspaceId: String): Flow<List<WorkspaceBacklogEntryEntity>> =
             entryDao.observeLive(workspaceId)
@@ -526,4 +588,13 @@ private fun WorkspaceBacklogEntryEntity.targetRef() =
     WorkspaceBacklogTargetRef(
         kind = com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind.valueOf(targetKind),
         id = targetId,
+    )
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+    .toBacklogCapabilityState() =
+    BacklogCapabilityState(
+        lifecycleState =
+            com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = BacklogCapabilityConfigurationCodec.decode(configurationVersion, configuration),
     )

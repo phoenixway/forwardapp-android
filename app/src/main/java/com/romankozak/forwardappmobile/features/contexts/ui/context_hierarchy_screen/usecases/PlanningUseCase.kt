@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import android.util.Log
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
@@ -56,12 +56,12 @@ class PlanningUseCase
         val filterStateFlow: StateFlow<FilterState> = _filterStateFlow.asStateFlow()
 
         val planningMode = planningModeManager.planningMode
-        private val lastNonEmptyProjects = MutableStateFlow<List<Context>>(emptyList())
+        private val lastNonEmptyProjects = MutableStateFlow<List<HierarchyContextPresentationNode>>(emptyList())
 
         private fun shouldUseCachedProjects(
             state: FilterState,
             ready: Boolean,
-            cachedProjects: List<Context>,
+            cachedProjects: List<HierarchyContextPresentationNode>,
         ): Boolean =
             state.flatList.isEmpty() &&
                 cachedProjects.isNotEmpty() &&
@@ -72,7 +72,7 @@ class PlanningUseCase
         @OptIn(FlowPreview::class)
         fun initialize(
             scope: CoroutineScope,
-            allProjectsFlat: StateFlow<List<Context>>,
+            allProjectsFlat: StateFlow<List<HierarchyContextPresentationNode>>,
         ) {
             if (isInitialized) return
             isInitialized = true

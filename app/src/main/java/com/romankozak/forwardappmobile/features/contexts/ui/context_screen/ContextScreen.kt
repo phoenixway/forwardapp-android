@@ -610,6 +610,7 @@ private fun ProjectBottomBar(
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
                 enabledCapabilitiesOverride = sessionState.enabledCapabilities,
+                canonicalCapabilityOverrides = sessionState.canonicalCapabilityOverrides,
                 // ------------------------------------
                 modifier =
                     Modifier

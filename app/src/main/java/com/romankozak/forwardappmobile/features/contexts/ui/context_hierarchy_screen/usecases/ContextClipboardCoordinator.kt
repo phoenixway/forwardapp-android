@@ -213,10 +213,13 @@ class ContextClipboardCoordinator
         }
 
         suspend fun pasteIntoContext(
-            targetContext: Context,
+            targetContextId: String,
             allProjects: List<Context>,
         ): ContextClipboardResult {
             val current = payload.value ?: return ContextClipboardResult("Буфер порожній", dismissDialog = true)
+            val targetContext =
+                allProjects.firstOrNull { it.id == targetContextId }
+                    ?: return ContextClipboardResult("Цільовий контекст більше не існує", dismissDialog = true)
             val sources = resolveClipboardContexts(allProjects, current)
             if (sources.isEmpty()) {
                 clear()
@@ -238,8 +241,8 @@ class ContextClipboardCoordinator
                                     )
                                 }
                             }
-                            contextRepository.moveContext(
-                                contextToMove = source,
+                            contextRepository.moveContextById(
+                                contextId = source.id,
                                 newParentId = targetContext.id,
                                 allowSystemMoves = true,
                             )
@@ -397,7 +400,7 @@ class ContextClipboardCoordinator
         }
 
         suspend fun addContextAppearance(
-            parentContext: Context,
+            parentContextId: String,
             allProjects: List<Context>,
         ): ContextClipboardResult {
             val current = payload.value ?: return ContextClipboardResult("Буфер порожній", dismissDialog = true)
@@ -409,7 +412,7 @@ class ContextClipboardCoordinator
 
             val addedCount =
                 contextActionsUseCase.addAdditionalParentLinks(
-                    parentContextId = parentContext.id,
+                    parentContextId = parentContextId,
                     childContextIds = sources.mapTo(linkedSetOf()) { it.id },
                     allProjects = allProjects,
                 )
@@ -507,8 +510,8 @@ class ContextClipboardCoordinator
                 )
             }
             if (source.parentId != null) {
-                contextRepository.moveContext(
-                    contextToMove = source,
+                contextRepository.moveContextById(
+                    contextId = source.id,
                     newParentId = null,
                     allowSystemMoves = true,
                 )

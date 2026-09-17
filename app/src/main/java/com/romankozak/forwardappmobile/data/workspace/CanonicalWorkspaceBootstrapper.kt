@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.workspace
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
@@ -14,19 +16,20 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.orientationCapabilityRegistry
-import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
-import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV2
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DashboardCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxOwnerVisibility
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSortingCapabilityConfigurationCodec
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import java.util.Locale
 import java.util.UUID
@@ -44,6 +47,13 @@ data class WorkspaceBootstrapReport(
     val projectedCapabilities: Int,
     val issues: List<WorkspaceBootstrapIssueEntity>,
     val performed: Boolean,
+)
+
+private data class CapabilityProjectionSource(
+    val id: String,
+    val roleCode: String?,
+    val createdAt: Long,
+    val isDeleted: Boolean,
 )
 
 /**
@@ -70,6 +80,102 @@ class CanonicalWorkspaceBootstrapper
                 }
             }
 
+        /**
+         * Explicit compatibility ingress for a pre-canonical backup whose
+         * workspaceCapabilityInstances field is absent.
+         *
+         * This is deliberately not used by startup or ordinary Context writes.
+         * Only reserved System Context ids actually present in the imported
+         * payload are eligible. Locally materialized compatibility shells are
+         * not import evidence. Promoted System Workspaces may seed only genuinely
+         * missing canonical instances; established canonical rows remain authoritative.
+         */
+        suspend fun ingestLegacySystemCapabilityProjection(
+            importedContextIds: Set<String>,
+            now: Long = System.currentTimeMillis(),
+        ): WorkspaceBootstrapReport {
+            val importedSystemContextIds =
+                importedContextIds.filterTo(hashSetOf()) { id ->
+                    SystemContexts.isSystem(ContextId(id))
+                }
+            val persistedById =
+                contextDao.getAll()
+                    .associateBy { it.id }
+            val legacyContextEvidence =
+                importedSystemContextIds.mapNotNull { id ->
+                    persistedById[id]?.let { context ->
+                        SystemWorkspaceLegacyContextEvidence(
+                            id = context.id,
+                            name = context.name,
+                            description = context.description,
+                            parentId = context.parentId,
+                            roleCode = context.roleCode,
+                            order = context.order,
+                            createdAt = context.createdAt,
+                            updatedAt = context.updatedAt,
+                            isDeleted = context.isDeleted,
+                            version = context.version,
+                        )
+                    }
+                }
+
+            return ingestLegacySystemCapabilityProjection(
+                legacyContextEvidence = legacyContextEvidence,
+                now = now,
+            )
+        }
+
+        /**
+         * Shell-free import-only compatibility boundary.
+         *
+         * Reserved System Context snapshots are transient evidence only. They
+         * may seed genuinely missing canonical capability instances for an
+         * already-live same-id canonical Workspace, but are never persisted as
+         * Context rows and can never overwrite established canonical state.
+         */
+        suspend fun ingestLegacySystemCapabilityProjection(
+            legacyContextEvidence: List<SystemWorkspaceLegacyContextEvidence>,
+            legacyConfigurationEvidence: List<ContextConfiguration> = emptyList(),
+            now: Long = System.currentTimeMillis(),
+        ): WorkspaceBootstrapReport {
+            val systemEvidenceById =
+                legacyContextEvidence
+                    .asSequence()
+                    .filter { evidence ->
+                        SystemContexts.isSystem(ContextId(evidence.id))
+                    }
+                    .associateBy { it.id }
+
+            if (coroutineContext[WorkspaceMutationContext] != null) {
+                return refreshInCurrentTransaction(
+                    now = now,
+                    promotedSystemLegacyCapabilityEvidence = systemEvidenceById,
+                    promotedSystemLegacyConfigurationEvidence =
+                        legacyConfigurationEvidence
+                            .asSequence()
+                            .filter { configuration ->
+                                SystemContexts.isSystem(ContextId(configuration.contextId))
+                            }
+                            .associateBy { it.contextId },
+                )
+            }
+            return mutex.withLock {
+                database.withTransaction {
+                    refreshInCurrentTransaction(
+                        now = now,
+                        promotedSystemLegacyCapabilityEvidence = systemEvidenceById,
+                        promotedSystemLegacyConfigurationEvidence =
+                            legacyConfigurationEvidence
+                                .asSequence()
+                                .filter { configuration ->
+                                    SystemContexts.isSystem(ContextId(configuration.contextId))
+                                }
+                                .associateBy { it.contextId },
+                    )
+                }
+            }
+        }
+
         internal suspend fun <T> mutateAndRefresh(
             now: Long = System.currentTimeMillis(),
             mutation: suspend () -> T,
@@ -86,9 +192,55 @@ class CanonicalWorkspaceBootstrapper
             }
         }
 
-        private suspend fun refreshInCurrentTransaction(now: Long): WorkspaceBootstrapReport {
+        internal suspend fun <T> mutateAndAfterRefresh(
+            now: Long = System.currentTimeMillis(),
+            mutation: suspend () -> T,
+            afterRefresh: suspend (T) -> Unit,
+        ): T {
+            if (coroutineContext[WorkspaceMutationContext] != null) {
+                val result = mutation()
+                refreshInCurrentTransaction(now)
+                afterRefresh(result)
+                return result
+            }
+            return mutex.withLock {
+                withContext(WorkspaceMutationContext()) {
+                    database.withTransaction {
+                        val result = mutation()
+                        refreshInCurrentTransaction(now)
+                        afterRefresh(result)
+                        result
+                    }
+                }
+            }
+        }
+
+        private suspend fun refreshInCurrentTransaction(
+            now: Long,
+            promotedSystemLegacyCapabilityEvidence:
+                Map<String, SystemWorkspaceLegacyContextEvidence> = emptyMap(),
+            promotedSystemLegacyConfigurationEvidence: Map<String, ContextConfiguration> = emptyMap(),
+        ): WorkspaceBootstrapReport {
             val contexts = contextDao.getAll()
-            val configurations = contextStructureDao.getAllSync().associateBy { it.contextId }
+            val configurationRows = contextStructureDao.getAllSync()
+            val persistedConfigurations =
+                configurationRows
+                    .filterNot { it.isDeleted }
+                    .associateBy { it.contextId }
+            val configurations =
+                persistedConfigurations +
+                    promotedSystemLegacyConfigurationEvidence.filterNot { it.value.isDeleted }
+            val deletedConfigurationContextIds =
+                configurationRows
+                    .asSequence()
+                    .filter { it.isDeleted }
+                    .mapTo(hashSetOf()) { it.contextId }
+                    .apply {
+                        promotedSystemLegacyConfigurationEvidence
+                            .filterValues { it.isDeleted }
+                            .keys
+                            .forEach(::add)
+                    }
             val issues = mutableListOf<WorkspaceBootstrapIssueEntity>()
             val cutOverContextIds =
                 orientationDao.getAllLegacyMappings()
@@ -100,8 +252,73 @@ class CanonicalWorkspaceBootstrapper
                     }
                     .mapTo(hashSetOf()) { it.sourceId }
             val compatibilityContexts = contexts.filterNot { it.id in cutOverContextIds }
-            val desiredWorkspaces = projectWorkspaces(compatibilityContexts, issues, now)
+            val promotedSystemLegacyCapabilityIngressIds =
+                promotedSystemLegacyCapabilityEvidence.keys
+            val capabilityProjectionSourcesById =
+                compatibilityContexts
+                    .associate { context ->
+                        context.id to
+                            CapabilityProjectionSource(
+                                id = context.id,
+                                roleCode = context.roleCode,
+                                createdAt = context.createdAt,
+                                isDeleted = context.isDeleted,
+                            )
+                    }.toMutableMap()
+            promotedSystemLegacyCapabilityEvidence.values.forEach { evidence ->
+                capabilityProjectionSourcesById[evidence.id] =
+                    CapabilityProjectionSource(
+                        id = evidence.id,
+                        roleCode = evidence.roleCode,
+                        createdAt = evidence.createdAt,
+                        isDeleted = evidence.isDeleted,
+                    )
+            }
+            val capabilityProjectionSources = capabilityProjectionSourcesById.values.toList()
             val existingWorkspaces = workspaceDao.getAll()
+            val canonicalCutOverWorkspaceIds =
+                existingWorkspaces
+                    .asSequence()
+                    .filter {
+                        !it.isDeleted &&
+                            it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                            it.id in cutOverContextIds
+                    }
+                    .mapTo(hashSetOf()) { it.id }
+
+            /*
+             * A live reserved System Context may temporarily coexist with its
+             * same-id canonical Workspace after ownership cutover.
+             *
+             * Promoted System capability state is canonical. Ordinary startup,
+             * refresh and Context writes never project ContextConfiguration
+             * into it. Legacy capability input is accepted only when the
+             * explicit pre-canonical-backup ingress requests it.
+             */
+            val promotedSystemWorkspaceIds =
+                existingWorkspaces
+                    .asSequence()
+                    .filter {
+                        !it.isDeleted &&
+                            SystemContexts.isSystem(ContextId(it.id)) &&
+                            it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                            it.sourceContextId == null
+                    }
+                    .mapTo(hashSetOf()) { it.id }
+
+            val metadataProjectionContexts =
+                compatibilityContexts.filterNot { context ->
+                    SystemContexts.isSystem(ContextId(context.id))
+                }
+
+            val desiredWorkspaces =
+                projectWorkspaces(
+                    contexts = metadataProjectionContexts,
+                    canonicalCutOverWorkspaceIds =
+                        canonicalCutOverWorkspaceIds + promotedSystemWorkspaceIds,
+                    issues = issues,
+                    now = now,
+                )
             val desiredWorkspaceIds = desiredWorkspaces.mapTo(hashSetOf()) { it.id }
             val blockedContextIds =
                 existingWorkspaces
@@ -115,6 +332,7 @@ class CanonicalWorkspaceBootstrapper
                     val parentId = projected.parentWorkspaceId
                     if (
                         projected.id !in blockedContextIds &&
+                        !SystemContexts.isSystem(ContextId(projected.id)) &&
                         parentId != null &&
                         parentId in blockedContextIds
                     ) {
@@ -138,20 +356,29 @@ class CanonicalWorkspaceBootstrapper
                     now = now,
                     protectedContextBackedIds = cutOverContextIds,
                 )
-            val contextBackedWorkspaceIds =
+            val legacyCapabilityProjectionWorkspaceIds =
                 existingWorkspaces
                     .filter {
                         it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                            it.id !in cutOverContextIds
+                            it.id !in cutOverContextIds &&
+                            !SystemContexts.isSystem(ContextId(it.id))
                     }
                     .mapTo(hashSetOf()) { it.id } +
-                    desiredWorkspaceIds.filterNot { it in blockedContextIds }
+                    desiredWorkspaceIds.filterNot { it in blockedContextIds } +
+                    promotedSystemWorkspaceIds.intersect(
+                        promotedSystemLegacyCapabilityIngressIds,
+                    )
             val capabilityChanges =
                 projectCapabilityChanges(
-                    contexts = compatibilityContexts,
+                    sources = capabilityProjectionSources,
                     configurations = configurations,
                     existing = orientationDao.getAllWorkspaceCapabilities(),
-                    contextBackedWorkspaceIds = contextBackedWorkspaceIds,
+                    legacyCapabilityProjectionWorkspaceIds =
+                        legacyCapabilityProjectionWorkspaceIds,
+                    promotedSystemWorkspaceIds = promotedSystemWorkspaceIds,
+                    promotedSystemLegacyCapabilityIngressIds =
+                        promotedSystemLegacyCapabilityIngressIds,
+                    deletedConfigurationContextIds = deletedConfigurationContextIds,
                     blockedContextIds = blockedContextIds,
                     issues = issues,
                     now = now,
@@ -179,15 +406,28 @@ class CanonicalWorkspaceBootstrapper
 
         private fun projectWorkspaces(
             contexts: List<Context>,
+            canonicalCutOverWorkspaceIds: Set<String>,
             issues: MutableList<WorkspaceBootstrapIssueEntity>,
             now: Long,
         ): List<WorkspaceEntity> {
             val ids = contexts.mapTo(hashSetOf()) { it.id }
             val parentById =
                 contexts.associate { context ->
-                    val parent = context.parentId?.takeIf { it in ids }
+                    val parent =
+                        context.parentId?.takeIf { parentId ->
+                            parentId in ids ||
+                                (
+                                    SystemContexts.isSystem(ContextId(context.id)) &&
+                                        parentId in canonicalCutOverWorkspaceIds
+                                )
+                        }
                     if (context.parentId != null && parent == null) {
-                        issues += issue(context.id, "UNKNOWN_PARENT", "Missing Context parent ${context.parentId}", now)
+                        issues += issue(
+                            context.id,
+                            "UNKNOWN_PARENT",
+                            "Missing Context parent ${context.parentId}",
+                            now,
+                        )
                     }
                     context.id to parent
                 }
@@ -261,10 +501,13 @@ class CanonicalWorkspaceBootstrapper
         }
 
         private fun projectCapabilityChanges(
-            contexts: List<Context>,
+            sources: List<CapabilityProjectionSource>,
             configurations: Map<String, ContextConfiguration>,
             existing: List<WorkspaceCapabilityInstanceEntity>,
-            contextBackedWorkspaceIds: Set<String>,
+            legacyCapabilityProjectionWorkspaceIds: Set<String>,
+            promotedSystemWorkspaceIds: Set<String>,
+            promotedSystemLegacyCapabilityIngressIds: Set<String>,
+            deletedConfigurationContextIds: Set<String>,
             blockedContextIds: Set<String>,
             issues: MutableList<WorkspaceBootstrapIssueEntity>,
             now: Long,
@@ -272,7 +515,54 @@ class CanonicalWorkspaceBootstrapper
             val existingByLogical = existing.associateBy { Triple(it.workspaceId, it.capabilityType, it.instanceKey) }
             val desiredKeys = mutableSetOf<Triple<String, String, String>>()
             val changes = mutableListOf<WorkspaceCapabilityInstanceEntity>()
-            contexts.filterNot { it.isDeleted || it.id in blockedContextIds }.forEach { context ->
+
+            // Canonical System ownership is established by the live promoted
+            // Workspace, not by the lifecycle of its compatibility Context.
+            // Any existing logical row is established state, including a
+            // disabled, archived, or deleted instance, and must survive generic
+            // legacy cleanup unchanged. A missing row is intentionally not
+            // seeded from a deleted/absent compatibility Context below.
+            promotedSystemWorkspaceIds.forEach { workspaceId ->
+                listOf(
+                    WorkspaceCapabilityType.INBOX,
+                    WorkspaceCapabilityType.CONNECTIONS,
+                    WorkspaceCapabilityType.DIRECTION,
+                    WorkspaceCapabilityType.INBOX_SORTING,
+                    WorkspaceCapabilityType.KEY_PROBLEMS,
+                ).forEach { type ->
+                    val key = Triple(workspaceId, type.name, DEFAULT_INSTANCE_KEY)
+                    if (existingByLogical[key] != null) desiredKeys += key
+                }
+            }
+            // A tombstoned compatibility configuration is an explicit absence
+            // of live seed input, not a request to apply default capability
+            // values or clean up already-persisted canonical state.
+            deletedConfigurationContextIds.forEach { contextId ->
+                existing.asSequence()
+                    .filter {
+                        it.workspaceId == contextId &&
+                            it.instanceKey == DEFAULT_INSTANCE_KEY
+                    }
+                    .forEach {
+                        desiredKeys += Triple(it.workspaceId, it.capabilityType, it.instanceKey)
+                    }
+            }
+            sources.filterNot { it.isDeleted || it.id in blockedContextIds }.forEach { context ->
+                if (context.id in deletedConfigurationContextIds) return@forEach
+
+                val isReservedSystem = SystemContexts.isSystem(ContextId(context.id))
+                if (isReservedSystem) {
+                    // Normal bootstrap never derives canonical System capability
+                    // state from compatibility ContextConfiguration. The only
+                    // allowed legacy ingress is an explicit pre-canonical backup,
+                    // and it requires an already-live canonical same-id Workspace.
+                    if (context.id !in promotedSystemLegacyCapabilityIngressIds) {
+                        return@forEach
+                    }
+                    require(context.id in promotedSystemWorkspaceIds) {
+                        "Legacy System capability ingress requires canonical Workspace: ${context.id}"
+                    }
+                }
                 val config =
                     configurations[context.id]?.let {
                         if (it.basePresetCode == null) it.copy(basePresetCode = context.roleCode) else it
@@ -317,6 +607,8 @@ class CanonicalWorkspaceBootstrapper
                 )
                 seedBacklogAfterCutover(
                     context = context,
+                    contextConfiguration = config,
+                    isPromotedSystem = context.id in promotedSystemWorkspaceIds,
                     mapped = mapped,
                     existingByLogical = existingByLogical,
                     desiredKeys = desiredKeys,
@@ -326,6 +618,43 @@ class CanonicalWorkspaceBootstrapper
                 mapped -= WorkspaceCapabilityType.DASHBOARD
                 mapped -= WorkspaceCapabilityType.EXECUTION_LOG
                 mapped -= WorkspaceCapabilityType.BACKLOG
+                if (context.id in promotedSystemWorkspaceIds) {
+                    preserveExistingCanonicalSystemCapability(
+                        contextId = context.id,
+                        type = WorkspaceCapabilityType.INBOX,
+                        mapped = mapped,
+                        existingByLogical = existingByLogical,
+                        desiredKeys = desiredKeys,
+                    )
+                    preserveExistingCanonicalSystemCapability(
+                        contextId = context.id,
+                        type = WorkspaceCapabilityType.DIRECTION,
+                        mapped = mapped,
+                        existingByLogical = existingByLogical,
+                        desiredKeys = desiredKeys,
+                    )
+                    preserveExistingCanonicalSystemCapability(
+                        contextId = context.id,
+                        type = WorkspaceCapabilityType.CONNECTIONS,
+                        mapped = mapped,
+                        existingByLogical = existingByLogical,
+                        desiredKeys = desiredKeys,
+                    )
+                    preserveExistingCanonicalSystemCapability(
+                        contextId = context.id,
+                        type = WorkspaceCapabilityType.INBOX_SORTING,
+                        mapped = mapped,
+                        existingByLogical = existingByLogical,
+                        desiredKeys = desiredKeys,
+                    )
+                    preserveExistingCanonicalSystemCapability(
+                        contextId = context.id,
+                        type = WorkspaceCapabilityType.KEY_PROBLEMS,
+                        mapped = mapped,
+                        existingByLogical = existingByLogical,
+                        desiredKeys = desiredKeys,
+                    )
+                }
                 mapped.sortedBy { capabilityOrder.getValue(it) }.forEach { type ->
                     val key = Triple(context.id, type.name, DEFAULT_INSTANCE_KEY)
                     desiredKeys += key
@@ -335,7 +664,7 @@ class CanonicalWorkspaceBootstrapper
                 }
             }
             val liveContextBackedOwnerIds =
-                contexts
+                sources
                     .filterNot { it.isDeleted || it.id in blockedContextIds }
                     .mapTo(hashSetOf()) { it.id }
 
@@ -343,7 +672,7 @@ class CanonicalWorkspaceBootstrapper
                 it.instanceKey == DEFAULT_INSTANCE_KEY &&
                     it.capabilityType == WorkspaceCapabilityType.EXECUTION_LOG.name &&
                     !it.isDeleted &&
-                    it.workspaceId in contextBackedWorkspaceIds &&
+                    it.workspaceId in legacyCapabilityProjectionWorkspaceIds &&
                     it.workspaceId !in liveContextBackedOwnerIds
             }.forEach { current ->
                 changes +=
@@ -359,7 +688,7 @@ class CanonicalWorkspaceBootstrapper
                 it.instanceKey == DEFAULT_INSTANCE_KEY &&
                     it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name &&
                     !it.isDeleted &&
-                    it.workspaceId in contextBackedWorkspaceIds &&
+                    it.workspaceId in legacyCapabilityProjectionWorkspaceIds &&
                     it.workspaceId !in liveContextBackedOwnerIds
             }.forEach { current ->
                 changes +=
@@ -377,7 +706,7 @@ class CanonicalWorkspaceBootstrapper
                     it.capabilityType != WorkspaceCapabilityType.EXECUTION_LOG.name &&
                     !it.isDeleted &&
                     Triple(it.workspaceId, it.capabilityType, it.instanceKey) !in desiredKeys &&
-                    it.workspaceId in contextBackedWorkspaceIds
+                    it.workspaceId in legacyCapabilityProjectionWorkspaceIds
             }.forEach { current ->
                 changes +=
                     current.copy(
@@ -390,8 +719,25 @@ class CanonicalWorkspaceBootstrapper
             return changes
         }
 
+        /**
+         * Import-only compatibility: a pre-canonical backup may seed a missing
+         * promoted-System instance. Established canonical state always wins.
+         */
+        private fun preserveExistingCanonicalSystemCapability(
+            contextId: String,
+            type: WorkspaceCapabilityType,
+            mapped: MutableSet<WorkspaceCapabilityType>,
+            existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
+            desiredKeys: MutableSet<Triple<String, String, String>>,
+        ) {
+            val key = Triple(contextId, type.name, DEFAULT_INSTANCE_KEY)
+            if (existingByLogical[key] == null) return
+            desiredKeys += key
+            mapped -= type
+        }
+
         private fun seedDashboardAfterCutover(
-            context: Context,
+            context: CapabilityProjectionSource,
             mapped: Set<WorkspaceCapabilityType>,
             existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
             desiredKeys: MutableSet<Triple<String, String, String>>,
@@ -430,7 +776,7 @@ class CanonicalWorkspaceBootstrapper
         }
 
         private fun seedExecutionLogAfterCutover(
-            context: Context,
+            context: CapabilityProjectionSource,
             mapped: Set<WorkspaceCapabilityType>,
             existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
             desiredKeys: MutableSet<Triple<String, String, String>>,
@@ -473,7 +819,9 @@ class CanonicalWorkspaceBootstrapper
         }
 
         private fun seedBacklogAfterCutover(
-            context: Context,
+            context: CapabilityProjectionSource,
+            contextConfiguration: ContextConfiguration,
+            isPromotedSystem: Boolean,
             mapped: Set<WorkspaceCapabilityType>,
             existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
             desiredKeys: MutableSet<Triple<String, String, String>>,
@@ -483,9 +831,39 @@ class CanonicalWorkspaceBootstrapper
             val key = Triple(context.id, WorkspaceCapabilityType.BACKLOG.name, DEFAULT_INSTANCE_KEY)
             val current = existingByLogical[key]
             val desiredOrder = capabilityOrder.getValue(WorkspaceCapabilityType.BACKLOG).toLong()
+            val promotedSystemConfiguration =
+                BacklogCapabilityConfigurationV2(
+                    removeEntryAfterTagAutocopy =
+                        contextConfiguration.removeBacklogEntryAfterTagAutocopy == true,
+                )
 
             if (current != null) {
                 desiredKeys += key
+                if (isPromotedSystem && current.configurationVersion == 1) {
+                    val validV1 =
+                        runCatching {
+                            BacklogCapabilityConfigurationCodec.validate(
+                                current.configurationVersion,
+                                current.configuration,
+                            )
+                        }.isSuccess
+                    if (validV1) {
+                        changes +=
+                            current.copy(
+                                configurationVersion = BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
+                                configuration = BacklogCapabilityConfigurationCodec.encode(promotedSystemConfiguration),
+                                updatedAt = now,
+                                syncedAt = null,
+                                version = current.version + 1L,
+                            )
+                    }
+                    return
+                }
+                if (isPromotedSystem) {
+                    // Existing v2, unsupported, and malformed canonical state is
+                    // established authority. Legacy configuration cannot rewrite it.
+                    return
+                }
                 if (current.capabilityOrder != desiredOrder) {
                     changes +=
                         current.copy(
@@ -513,7 +891,12 @@ class CanonicalWorkspaceBootstrapper
                             WorkspaceCapabilityState.DISABLED.name
                         },
                     configurationVersion = BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
-                    configuration = BacklogCapabilityConfigurationCodec.encodeDefault(),
+                    configuration =
+                        if (isPromotedSystem) {
+                            BacklogCapabilityConfigurationCodec.encode(promotedSystemConfiguration)
+                        } else {
+                            BacklogCapabilityConfigurationCodec.encodeDefault()
+                        },
                     createdAt = context.createdAt,
                     updatedAt = now,
                     syncedAt = null,
@@ -523,7 +906,7 @@ class CanonicalWorkspaceBootstrapper
         }
 
         private fun desiredCapability(
-            context: Context,
+            context: CapabilityProjectionSource,
             contextConfiguration: ContextConfiguration,
             type: WorkspaceCapabilityType,
             current: WorkspaceCapabilityInstanceEntity?,

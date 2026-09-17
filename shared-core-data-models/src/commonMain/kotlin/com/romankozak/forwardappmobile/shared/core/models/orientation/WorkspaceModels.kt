@@ -9,6 +9,7 @@ import kotlin.js.JsExport
 enum class WorkspaceProvenance {
     CONTEXT_BACKED,
     CANONICAL_ONLY,
+    STANDALONE,
 }
 
 @JsExport

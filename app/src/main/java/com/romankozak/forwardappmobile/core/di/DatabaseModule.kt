@@ -19,6 +19,8 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeedStateDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
@@ -199,6 +201,20 @@ object DatabaseModule {
 
     @Provides
     fun provideWorkspaceDao(appDatabase: AppDatabase): WorkspaceDao = appDatabase.workspaceDao()
+
+
+    @Provides
+    @Singleton
+    fun provideWorkspaceTagRefDao(appDatabase: AppDatabase): WorkspaceTagRefDao =
+        appDatabase.workspaceTagRefDao()
+
+    @Provides
+    @Singleton
+    fun provideSystemWorkspaceTagSeedStateDao(
+        appDatabase: AppDatabase,
+    ): SystemWorkspaceTagSeedStateDao =
+        appDatabase.systemWorkspaceTagSeedStateDao()
+
 
     @Provides
     @Singleton

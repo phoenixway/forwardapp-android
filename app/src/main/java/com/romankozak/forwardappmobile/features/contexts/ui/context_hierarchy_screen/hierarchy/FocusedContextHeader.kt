@@ -17,11 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 
 @Composable
 fun FocusedProjectHeader(
-    project: Context,
+    project: HierarchyContextPresentationNode,
     onMoreActionsClick: () -> Unit,
     onProjectClick: () -> Unit,
     modifier: Modifier = Modifier,

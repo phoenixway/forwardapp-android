@@ -2,6 +2,9 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+
 import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
 import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceInboxRecordDao
 
@@ -80,7 +83,13 @@ class SyncLocalDataSourceImpl
         private val mainBeaconDao: MainBeaconDao,
     ) : SyncLocalDataSource {
         override suspend fun getUnsyncedSelection(): LocalSyncSelection {
-            val projects = contextDao.getAll()
+            val retiredContextIds = db.canonicalRetiredContextIds()
+            val projects =
+                contextDao.getAll()
+                    .filterNot { context ->
+                        SystemContexts.isSystem(ContextId(context.id)) ||
+                            (!context.isDeleted && context.id in retiredContextIds)
+                    }
             val goals = goalDao.getAll()
             val legacyNotes = legacyNoteDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
@@ -128,7 +137,6 @@ class SyncLocalDataSourceImpl
                 logs = emptyList(),
                 scripts = versions(scripts, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 attachments = versions(attachments, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
-                crossRefs = emptyList(),
                 dayPlans = versions(dayPlans, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
                 dayFocusItems = versions(dayFocusItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
                 dayTasks = versions(dayTasks, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
@@ -141,7 +149,13 @@ class SyncLocalDataSourceImpl
         }
 
         override suspend fun getChangesSince(timestamp: Long): SnapshotBundle {
-            val projects = contextDao.getAll()
+            val retiredContextIds = db.canonicalRetiredContextIds()
+            val projects =
+                contextDao.getAll()
+                    .filterNot { context ->
+                        SystemContexts.isSystem(ContextId(context.id)) ||
+                            (!context.isDeleted && context.id in retiredContextIds)
+                    }
             val contextParentLinks = contextParentLinkDao.getAllRaw()
             val goals = goalDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
@@ -177,7 +191,12 @@ class SyncLocalDataSourceImpl
             val lifeSystemStates = lifeSystemStateDao.getAllSync()
             val contextRoleProfiles = structurePresetDao.getAllSync()
             val contextRoleProfileItems = structurePresetItemDao.getAllSync()
-            val contextConfigurations = contextStructureDao.getAllSync()
+            val contextConfigurations =
+                contextStructureDao
+                    .getAllSync()
+                    .filterNot { configuration ->
+                        SystemContexts.isSystem(ContextId(configuration.contextId))
+                    }
             val projectStructureItems = contextStructureDao.getAllItemsSync()
 
             val changedAttachments =
@@ -190,6 +209,10 @@ class SyncLocalDataSourceImpl
                 contextParentLinks =
                     contextParentLinks
                         .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .filterNot { link ->
+                            link.parentContextId in retiredContextIds ||
+                                link.childContextId in retiredContextIds
+                        }
                         .map { it.toSnapshot() },
                 goals = goals.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 backlogItems = emptyList(),
@@ -199,7 +222,6 @@ class SyncLocalDataSourceImpl
                 musicNotes =
                     musicNotes.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 attachments = changedAttachments.map { it.toSnapshot() },
-                crossRefs = emptyList(),
                 inbox = emptyList(),
                 scripts =
                     scripts.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
@@ -329,9 +351,15 @@ class SyncLocalDataSourceImpl
 
         override suspend fun acknowledge(selection: LocalSyncSelection) {
             val ts = System.currentTimeMillis()
+            val retiredContextIds = db.canonicalRetiredContextIds()
 
             db.withTransaction {
-                val projects = contextDao.getAll()
+                val projects =
+                contextDao.getAll()
+                    .filterNot { context ->
+                        SystemContexts.isSystem(ContextId(context.id)) ||
+                            (!context.isDeleted && context.id in retiredContextIds)
+                    }
                 val goals = goalDao.getAll()
                 val legacyNotes = legacyNoteDao.getAll()
                 val documents = noteDocumentDao.getAllDocuments()

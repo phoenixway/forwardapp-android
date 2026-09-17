@@ -1,31 +1,36 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.RawContextHierarchyBacking
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextRoleOption
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
@@ -35,12 +40,12 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +54,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -69,6 +75,7 @@ class ProjectHierarchyScreenStateUseCase
         private val mainBeaconRepository: MainBeaconRepository,
         private val contextParentLinkDao: ContextParentLinkDao,
         private val workspaceDao: WorkspaceDao,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val orientationHierarchyBuilder: OrientationHierarchyBuilder,
     ) {
         data class NavigationSnapshot(
@@ -78,18 +85,33 @@ class ProjectHierarchyScreenStateUseCase
         )
 
         private val defaultUiState = MutableStateFlow(ProjectHierarchyScreenUiState())
-        private val defaultHierarchy = MutableStateFlow(ContextHierarchyData())
+        private val defaultPresentationHierarchy = MutableStateFlow(HierarchyPresentationData())
         private val defaultSearchResults = MutableStateFlow(emptyList<SearchResult>())
 
         private var uiStateInternal: StateFlow<ProjectHierarchyScreenUiState> = defaultUiState
-        private var projectHierarchyInternal: StateFlow<ContextHierarchyData> = defaultHierarchy
+        private var presentationHierarchyInternal: StateFlow<HierarchyPresentationData> = defaultPresentationHierarchy
         private var searchResultsInternal: StateFlow<List<SearchResult>> = defaultSearchResults
 
         private var isInitialized = false
 
+        /**
+         * Canonical read universe for hierarchy presentation. Exact reserved
+         * System Workspaces may exist here without any Context shell.
+         */
+        internal fun observeHierarchyPresentationUniverse(
+            contexts: Flow<List<Context>>,
+        ) =
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contexts)
+                .map { presentations ->
+                    presentations.map { presentation ->
+                        presentation.toHierarchyPresentationNode()
+                    }
+                }
+
         fun initialize(
             scope: CoroutineScope,
-            allProjectsFlat: StateFlow<List<Context>>,
+            rawContextsFlat: StateFlow<List<Context>>,
             showRecentListsSheet: StateFlow<Boolean>,
             isBottomNavExpanded: StateFlow<Boolean>,
             showSearchDialog: StateFlow<Boolean>,
@@ -106,18 +128,42 @@ class ProjectHierarchyScreenStateUseCase
                     .obsidianVaultNameFlow
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
-            val hierarchyState =
+            val presentationHierarchyState =
                 HierarchyStateBuilder(hierarchyUseCase)
                     .buildHierarchyState(
                         scope = scope,
                         filterStates = planningUseCase.filterStateFlow,
                     )
+
+            // Raw Context backing for focused and mutation-adjacent paths.
+            // Normal hierarchy rendering consumes presentation nodes directly;
+            // this only joins stable IDs to existing raw rows.
+            val rawContextBackingState =
+                combine(
+                    presentationHierarchyState,
+                    rawContextsFlat,
+                ) { presentationHierarchy, contexts ->
+                    buildRawContextHierarchyBacking(
+                        presentationHierarchy = presentationHierarchy,
+                        contexts = contexts,
+                    )
+                }.stateIn(
+                    scope,
+                    SharingStarted.Eagerly,
+                    RawContextHierarchyBacking(),
+                )
+
             val hierarchyProjectionFlow =
                 combine(
-                    hierarchyState,
+                    rawContextBackingState,
+                    presentationHierarchyState,
                     workspaceDao.observeAll(),
-                ) { hierarchy, workspaces ->
-                    hierarchy to workspaces
+                ) { rawContextBacking, presentationHierarchy, workspaces ->
+                    HierarchyProjection(
+                        rawContextBacking = rawContextBacking,
+                        presentationHierarchy = presentationHierarchy,
+                        workspaces = workspaces,
+                    )
                 }
 
             val mainBeaconDetailsFlow =
@@ -152,9 +198,11 @@ class ProjectHierarchyScreenStateUseCase
                 }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), OrientationHierarchyInputs())
 
             scope.launch {
-                hierarchyState.collect { hierarchy ->
+                combine(rawContextBackingState, presentationHierarchyState) { rawBacking, presentation ->
+                    rawBacking to presentation
+                }.collect { (rawBacking, presentation) ->
                     HierarchyDebugLogger.d {
-                        "coreHierarchyFlow emit -> topLevel=${hierarchy.topLevelProjects.size}, childParents=${hierarchy.childMap.size}"
+                        "coreHierarchyFlow emit -> presentation=${presentation.allProjects.size}, admittedRaw=${rawBacking.rawContexts.size}"
                     }
                 }
             }
@@ -167,7 +215,10 @@ class ProjectHierarchyScreenStateUseCase
             }
 
             val searchResultsFlow =
-                combine(planningUseCase.filterStateFlow, hierarchyState) { filterState, hierarchy ->
+                combine(
+                    planningUseCase.filterStateFlow,
+                    presentationHierarchyState,
+                ) { filterState, hierarchy ->
                     if (!filterState.isReady) {
                         emptyList()
                     } else {
@@ -202,15 +253,17 @@ class ProjectHierarchyScreenStateUseCase
                     orientationHierarchyInputsFlow,
                     searchUseCase.currentBreadcrumbs,
                 ) { subStateStack, searchQuery, hierarchyProjection, orientationHierarchyInputs, breadcrumbs ->
-                    val hierarchy = hierarchyProjection.first
-                    val workspaces = hierarchyProjection.second
+                    val rawContextBacking = hierarchyProjection.rawContextBacking
+                    val presentationHierarchy = hierarchyProjection.presentationHierarchy
+                    val workspaces = hierarchyProjection.workspaces
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
-                        projectHierarchy = hierarchy,
+                        rawContextBacking = rawContextBacking,
                         orientationHierarchy =
                             orientationHierarchyBuilder.build(
-                                hierarchy = hierarchy,
+                                presentationHierarchy = presentationHierarchy,
+                                rawBackedProjectIds = rawContextBacking.rawContextsById.keys,
                                 beacons = orientationHierarchyInputs.beacons,
                                 groups = orientationHierarchyInputs.groups,
                                 parentLinks = orientationHierarchyInputs.parentLinks,
@@ -220,12 +273,8 @@ class ProjectHierarchyScreenStateUseCase
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,
                         searchResultSort = SearchResultSort.Relevance,
-                        flattenedHierarchy =
-                            flattenHierarchyWithLevels(
-                                hierarchy.topLevelProjects,
-                                hierarchy.childMap,
-                            ),
-                        longDescendantsMap = createHierarchyDescendantOverflowMap(hierarchy),
+                        presentationHierarchy = presentationHierarchy,
+                        longDescendantsMap = createHierarchyDescendantOverflowMap(presentationHierarchy),
                     )
                 }
 
@@ -238,7 +287,10 @@ class ProjectHierarchyScreenStateUseCase
                 }
 
             val coreUiStateFlow =
-                combine(baseCoreUiStateFlow, searchControlsFlow) { baseCoreState, searchControls ->
+                combine(
+                    baseCoreUiStateFlow,
+                    searchControlsFlow,
+                ) { baseCoreState, searchControls ->
                     baseCoreState.copy(
                         searchResultFilter = searchControls.first,
                         searchResultSort = searchControls.second,
@@ -319,8 +371,9 @@ class ProjectHierarchyScreenStateUseCase
                         subStateStack = coreState.subStateStack,
                         searchQuery = coreState.searchQuery,
                         searchHistory = searchHistory,
-                        projectHierarchy = coreState.projectHierarchy,
-                        flattenedHierarchy = coreState.flattenedHierarchy,
+                        rawContextsById = coreState.rawContextBacking.rawContextsById,
+                        rawChildMap = coreState.rawContextBacking.rawChildMap,
+                        presentationHierarchy = coreState.presentationHierarchy,
                         orientationHierarchy = coreState.orientationHierarchy,
                         longDescendantsMap = coreState.longDescendantsMap,
                         currentBreadcrumbs = coreState.currentBreadcrumbs,
@@ -359,17 +412,16 @@ class ProjectHierarchyScreenStateUseCase
                 }
                     .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())
 
-            projectHierarchyInternal = hierarchyState
+            presentationHierarchyInternal = presentationHierarchyState
             searchResultsInternal = searchResultsFlow
-
             isInitialized = true
         }
 
         val uiState: StateFlow<ProjectHierarchyScreenUiState>
             get() = uiStateInternal
 
-        val projectHierarchy: StateFlow<ContextHierarchyData>
-            get() = projectHierarchyInternal
+        val presentationHierarchy: StateFlow<HierarchyPresentationData>
+            get() = presentationHierarchyInternal
 
         val searchResults: StateFlow<List<SearchResult>>
             get() = searchResultsInternal
@@ -388,7 +440,7 @@ class ProjectHierarchyScreenStateUseCase
                 order = beacon.order,
                 readinessStatus = beacon.readinessStatus,
                 parentBeaconId = beacon.parentBeaconId,
-                relatedContexts = relatedContexts,
+                relatedOwnerIds = relatedOwnerIds,
                 groupIds = groupIds,
                 groupOrders = groupOrders,
             )
@@ -396,13 +448,19 @@ class ProjectHierarchyScreenStateUseCase
         private data class CoreUiState(
             val subStateStack: List<ProjectHierarchyScreenSubState>,
             val searchQuery: TextFieldValue,
-            val projectHierarchy: ContextHierarchyData,
+            val rawContextBacking: RawContextHierarchyBacking,
             val orientationHierarchy: List<OrientationHierarchyItem>,
             val currentBreadcrumbs: List<BreadcrumbItem>,
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,
-            val flattenedHierarchy: List<FlatHierarchyItem>,
+            val presentationHierarchy: HierarchyPresentationData,
             val longDescendantsMap: Map<String, Boolean>,
+        )
+
+        private data class HierarchyProjection(
+            val rawContextBacking: RawContextHierarchyBacking,
+            val presentationHierarchy: HierarchyPresentationData,
+            val workspaces: List<WorkspaceEntity>,
         )
 
         private data class DialogUiState(
@@ -446,16 +504,54 @@ class ProjectHierarchyScreenStateUseCase
  *
  * Логи `HierarchyDebug` залишено без змін, аби не втратити діагностику, якою користується команда.
  */
+
+/**
+ * Raw Context backing bridge for focused and mutation-adjacent paths.
+ *
+ * This deliberately does not project presentation metadata onto Context. Each
+ * presentation ID resolves only to the original Context object already in
+ * [contexts]. Missing raw objects fail closed and are omitted.
+ */
+internal fun buildRawContextHierarchyBacking(
+    presentationHierarchy: HierarchyPresentationData,
+    contexts: List<Context>,
+): RawContextHierarchyBacking {
+    val repositoryContextsById = contexts.associateBy { it.id }
+
+    val rawContexts =
+        presentationHierarchy.allProjects.mapNotNull { node ->
+            repositoryContextsById[node.id]
+        }
+    val rawContextsById = rawContexts.associateBy { it.id }
+
+    val rawChildMap =
+        buildMap<String, List<Context>> {
+            presentationHierarchy.childMap.forEach { (parentId, children) ->
+                if (rawContextsById[parentId] == null) return@forEach
+                val resolvedChildren = children.mapNotNull { child -> rawContextsById[child.id] }
+                if (resolvedChildren.isNotEmpty()) {
+                    put(parentId, resolvedChildren)
+                }
+            }
+        }
+
+    return RawContextHierarchyBacking(
+        rawContexts = rawContexts,
+        rawContextsById = rawContextsById,
+        rawChildMap = rawChildMap,
+    )
+}
+
 internal class HierarchyStateBuilder(
     private val hierarchyUseCase: HierarchyUseCase,
 ) {
-    private var lastNonEmptyFlatList: List<Context> = emptyList()
-    private var lastNonEmptyHierarchy: ContextHierarchyData? = null
+    private var lastNonEmptyFlatList: List<HierarchyContextPresentationNode> = emptyList()
+    private var lastNonEmptyHierarchy: HierarchyPresentationData? = null
 
     fun buildHierarchyState(
         scope: CoroutineScope,
         filterStates: StateFlow<FilterState>,
-    ): StateFlow<ContextHierarchyData> {
+    ): StateFlow<HierarchyPresentationData> {
         val readyFilterState = prepareReadyFilterState(filterStates)
 
         return readyFilterState.map { filterState ->
@@ -480,10 +576,10 @@ internal class HierarchyStateBuilder(
                 hierarchy
             }
         }
-            .stateIn(scope, SharingStarted.Eagerly, ContextHierarchyData())
+            .stateIn(scope, SharingStarted.Eagerly, HierarchyPresentationData())
     }
 
-    internal fun prepareReadyFilterState(filterStates: StateFlow<FilterState>) =
+    internal fun prepareReadyFilterState(filterStates: StateFlow<FilterState>): Flow<FilterState> =
         filterStates
             .onEach { state ->
                 HierarchyDebugLogger.d {

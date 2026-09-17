@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyStateBuilder
@@ -35,7 +36,7 @@ class HierarchyStateBuilderTest {
             advanceUntilIdle()
 
             val result = awaited.await()
-            assertEquals(projects, result.flatList)
+            assertEquals(projects.map { it.id }, result.flatList.map { it.id })
         }
 
     @Test
@@ -58,7 +59,7 @@ class HierarchyStateBuilderTest {
             advanceUntilIdle()
 
             val fallback = readyFlow.first()
-            assertEquals(projects, fallback.flatList)
+            assertEquals(projects.map { it.id }, fallback.flatList.map { it.id })
         }
 
     @Test
@@ -81,7 +82,7 @@ class HierarchyStateBuilderTest {
 
     private fun baseFilterState(flatList: List<Context> = emptyList()): FilterState =
         FilterState(
-            flatList = flatList,
+            flatList = flatList.map { it.toHierarchyPresentationNode() },
             query = "",
             searchActive = false,
             mode = PlanningMode.All,

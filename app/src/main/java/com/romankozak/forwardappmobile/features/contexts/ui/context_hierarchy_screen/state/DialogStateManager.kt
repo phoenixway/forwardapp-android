@@ -20,23 +20,32 @@ class DialogStateManager
             _dialogState.value = DialogState.AddProject(null)
         }
 
-        fun onAddSubprojectRequest(parentProject: Context) {
-            _dialogState.value = DialogState.AddProject(parentProject.id)
+        fun onAddSubprojectRequest(parentProjectId: String) {
+            _dialogState.value = DialogState.AddProject(parentProjectId)
         }
 
         fun onMenuRequested(
-            project: Context,
+            projectId: String,
+            projectName: String,
             canPasteContextLinks: Boolean = false,
         ) {
             _dialogState.value =
                 DialogState.ProjectMenu(
-                    project = project,
+                    projectId = projectId,
+                    projectName = projectName,
                     canPasteContextLinks = canPasteContextLinks,
                 )
         }
 
-        fun onDeleteRequest(project: Context) {
-            _dialogState.value = DialogState.ConfirmDelete(project)
+        fun onDeleteRequest(
+            projectId: String,
+            projectName: String,
+        ) {
+            _dialogState.value =
+                DialogState.ConfirmDelete(
+                    projectId = projectId,
+                    projectName = projectName,
+                )
         }
 
         fun showContextMigration(state: DialogState.ContextMigration) {

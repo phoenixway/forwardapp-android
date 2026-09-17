@@ -71,6 +71,18 @@ class MainBeaconRepository
                             compareBy<Context> { contextOrders[it.id] ?: Long.MAX_VALUE }
                                 .thenBy { it.name.lowercase() },
                         )
+                    val ownerOrders =
+                        buildList {
+                            row.contextCrossRefs.forEach { add(it.contextId to it.order) }
+                            row.workspaceCrossRefs.forEach { add(it.workspaceId to it.order) }
+                        }
+                    require(ownerOrders.map { it.first }.distinct().size == ownerOrders.size) {
+                        "Main Beacon ${row.beacon.id} has duplicate operational-owner refs"
+                    }
+                    val relatedOwnerIds =
+                        ownerOrders
+                            .sortedWith(compareBy<Pair<String, Long>> { it.second }.thenBy { it.first })
+                            .map { it.first }
                     val relatedAttachments =
                         row.relatedAttachments.sortedWith(
                             compareByDescending<AttachmentEntity> { it.updatedAt }
@@ -82,6 +94,7 @@ class MainBeaconRepository
                     MainBeaconWithRelations(
                         beacon = beacon,
                         relatedContexts = relatedContexts,
+                        relatedOwnerIds = relatedOwnerIds,
                         relatedAttachments = relatedAttachments,
                         levelStatuses = ensuredStatuses,
                         groupIds = groupIds,
@@ -447,7 +460,12 @@ class MainBeaconRepository
             val source = mainBeaconDao.getBeaconById(sourceBeaconId) ?: return false
             val now = System.currentTimeMillis()
             val targetId = java.util.UUID.randomUUID().toString()
-            val sourceContexts = mainBeaconDao.getContextsForBeacon(sourceBeaconId).mapTo(linkedSetOf()) { it.id }
+            val sourceContexts =
+                mainBeaconDao
+                    .getAllContextCrossRefsSync()
+                    .asSequence()
+                    .filter { it.beaconId == sourceBeaconId }
+                    .mapTo(linkedSetOf()) { it.contextId }
             val sourceAttachments =
                 mainBeaconDao.getAttachmentsForBeacon(sourceBeaconId).mapTo(linkedSetOf()) { it.id }
             val sourceStatuses =

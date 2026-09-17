@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
@@ -90,14 +89,18 @@ class SelectiveImportCoordinator @Inject constructor(
         val selectedScripts: List<ScriptEntity>,
         val filteredScripts: List<ScriptEntity>,
         val selectedAttachments: List<AttachmentEntity>,
-        val filteredCrossRefs: List<ContextAttachmentCrossRef>,
         val snapshotSelection: WorkspaceSelectiveImportSelection,
     ) {
         companion object {
             fun from(content: SelectableDatabaseContent): PreparedSelection {
                 val rawSelection = RawSelection.from(content)
                 val projectSelection = buildProjectSelection(content, rawSelection.selectedProjects)
-                val dependentSelection = buildDependentSelection(content, rawSelection, projectSelection.selectedContextIds)
+                val dependentSelection =
+                    buildDependentSelection(
+                        content = content,
+                        rawSelection = rawSelection,
+                        selectedContextIds = projectSelection.selectedContextIds,
+                    )
                 val snapshotSelection = buildSnapshotSelection(rawSelection)
 
                 return PreparedSelection(
@@ -116,7 +119,6 @@ class SelectiveImportCoordinator @Inject constructor(
                     selectedScripts = rawSelection.selectedScripts,
                     filteredScripts = dependentSelection.filteredScripts,
                     selectedAttachments = rawSelection.selectedAttachments,
-                    filteredCrossRefs = dependentSelection.filteredCrossRefs,
                     snapshotSelection = snapshotSelection,
                 )
             }
@@ -150,14 +152,9 @@ class SelectiveImportCoordinator @Inject constructor(
                 selectedContextIds: Set<String>,
             ): DependentSelection {
                 val selectedChecklistIds = rawSelection.selectedChecklists.map { it.id }.toSet()
-                val selectedAttachmentIds = rawSelection.selectedAttachments.map { it.id }.toSet()
 
                 val filteredChecklistItems =
                     content.checklistItems.map { it.item }.filter { it.checklistId in selectedChecklistIds }
-                val filteredCrossRefs =
-                    content.allContextAttachmentCrossRefs.filter { crossRef ->
-                        crossRef.contextId in selectedContextIds && crossRef.attachmentId in selectedAttachmentIds
-                    }
                 val filteredScripts =
                     rawSelection.selectedScripts.filter { script ->
                         script.contextId == null || script.contextId in selectedContextIds
@@ -165,7 +162,6 @@ class SelectiveImportCoordinator @Inject constructor(
 
                 return DependentSelection(
                     filteredChecklistItems = filteredChecklistItems,
-                    filteredCrossRefs = filteredCrossRefs,
                     filteredScripts = filteredScripts,
                 )
             }
@@ -258,7 +254,6 @@ class SelectiveImportCoordinator @Inject constructor(
 
     private data class DependentSelection(
         val filteredChecklistItems: List<ChecklistItemEntity>,
-        val filteredCrossRefs: List<ContextAttachmentCrossRef>,
         val filteredScripts: List<ScriptEntity>,
     )
 }

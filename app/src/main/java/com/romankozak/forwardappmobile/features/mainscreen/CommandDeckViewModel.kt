@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -17,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -57,10 +56,10 @@ class CommandDeckViewModel
         private val submitContextInputUseCase: SubmitContextInputUseCase,
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
         private val sessionModeRepository: SessionModeRepository,
-        private val systemContextEnsurer: SystemContextEnsurer,
         private val contextLogRepository: ContextLogRepository,
         private val importExportHandler: CommandDeckImportExportHandler,
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
@@ -117,9 +116,6 @@ class CommandDeckViewModel
                 scope = viewModelScope,
                 application = application,
             )
-            viewModelScope.launch {
-                systemContextEnsurer.ensureAllSystemContextsExist()
-            }
         }
 
         fun isCategoryExpanded(
@@ -307,7 +303,6 @@ class CommandDeckViewModel
             onOpen: (String) -> Unit,
         ) {
             viewModelScope.launch {
-                systemContextEnsurer.ensureAllSystemContextsExist()
                 onOpen(contextId)
             }
         }
@@ -316,18 +311,13 @@ class CommandDeckViewModel
             val contextName = name.trim()
             if (contextName.isBlank()) return
             viewModelScope.launch {
-                val contextId = UUID.randomUUID().toString()
-                contextRepository.createContextWithId(
-                    id = contextId,
-                    name = contextName,
-                    parentId = null,
-                )
+                canonicalWorkspaceRepository.create(nameOverride = contextName)
                 _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage("Контекст створено"))
             }
         }
 
         suspend fun createAttachmentFromCommandDeck(request: NewDocumentDraft): String? {
-            val inboxContextId = resolveInboxContextId() ?: return null
+            val inboxContextId = SystemContexts.INBOX.raw
             return when (request) {
                 is NewDocumentDraft.Note -> {
                     val documentId =
@@ -448,14 +438,6 @@ class CommandDeckViewModel
             }
         }
 
-        private suspend fun resolveInboxContextId(): String? {
-            systemContextEnsurer.ensureAllSystemContextsExist()
-            val allContexts = contextRepository.getAllContextsFlow().first()
-            return allContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
-                ?: allContexts.firstOrNull {
-                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
-                }?.id
-        }
     }
 
 sealed interface CommandDeckEvent {

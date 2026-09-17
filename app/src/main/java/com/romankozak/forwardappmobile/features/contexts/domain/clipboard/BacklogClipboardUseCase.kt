@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -95,6 +96,7 @@ class BacklogClipboardUseCase
         private val dayManagementRepository: DayManagementRepository,
         private val missionRepository: MissionRepository,
         private val inboxRepository: InboxRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         val clipboardPayload: StateFlow<EntityClipboardPayload?> get() = clipboardService.payload
 
@@ -565,8 +567,7 @@ class BacklogClipboardUseCase
 
             val contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>()
             contextRefs.forEach { ref ->
-                val context = contextRepository.getContextById(ref.contextId)
-                val title = context?.name?.trim().orEmpty()
+                val title = currentContextName(ref.contextId)
                 if (title.isBlank()) {
                     skippedInvalid += 1
                 } else {
@@ -711,7 +712,7 @@ class BacklogClipboardUseCase
                 val title =
                     when (item.itemType) {
                         BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId)?.text?.trim().orEmpty()
-                        BacklogItemTypeValues.SUBLIST -> contextRepository.getContextById(item.entityId)?.name?.trim().orEmpty()
+                        BacklogItemTypeValues.SUBLIST -> currentContextName(item.entityId)
                         else -> ""
                     }
                 if (title.isBlank()) {
@@ -1403,7 +1404,7 @@ class BacklogClipboardUseCase
                     skippedDuplicates += 1
                 } else {
                     val linkedName =
-                        contextRepository.getContextById(contextId)?.name?.trim().orEmpty().ifBlank { "Контекст" }
+                        currentContextName(contextId).ifBlank { "Контекст" }
                     itemsToCreate += linkedName to contextId
                     existingLinked += contextId
                 }
@@ -1536,7 +1537,7 @@ class BacklogClipboardUseCase
                         skippedDuplicates += 1
                     } else {
                         val linkedName =
-                            contextRepository.getContextById(contextId)?.name?.trim().orEmpty().ifBlank { "Контекст" }
+                            currentContextName(contextId).ifBlank { "Контекст" }
                         itemsToCreate += linkedName to contextId
                         existingLinked += contextId
                     }
@@ -1572,12 +1573,7 @@ class BacklogClipboardUseCase
                             skippedDuplicates += 1
                         } else {
                             val linkedName =
-                                contextRepository
-                                    .getContextById(linkedContextId)
-                                    ?.name
-                                    ?.trim()
-                                    .orEmpty()
-                                    .ifBlank { "Контекст" }
+                                currentContextName(linkedContextId).ifBlank { "Контекст" }
                             itemsToCreate += linkedName to linkedContextId
                             existingLinked += linkedContextId
                             backlogItemsToDelete += item.id
@@ -1850,7 +1846,7 @@ class BacklogClipboardUseCase
                 } else if (contextId in existingTargets) {
                     duplicates += 1
                 } else {
-                    val contextName = contextRepository.getContextById(contextId)?.name?.trim().orEmpty()
+                    val contextName = currentContextName(contextId)
                     val link =
                         RelatedLink(
                             type = LinkType.CONTEXT,
@@ -1912,7 +1908,7 @@ class BacklogClipboardUseCase
             val inboxById = loadInboxRecords(inboxRefs).associateBy { it.id }
             val backlogItemsById = listItemRepository.getItemsByIds(backlogItemRefs.map { it.listItemId }).associateBy { it.id }
             val goalTexts = backlogGoalRefs.associate { it.goalId to goalRepository.getGoalById(it.goalId)?.text.orEmpty() }
-            val contextNames = contextRefs.associate { it.contextId to contextRepository.getContextById(it.contextId)?.name.orEmpty() }
+            val contextNames = contextRefs.associate { it.contextId to currentContextName(it.contextId) }
 
             dayTaskRefs.forEach { ref ->
                 val task = dayManagementRepository.getTaskById(ref.taskId) ?: return@forEach
@@ -1963,7 +1959,7 @@ class BacklogClipboardUseCase
                         if (text.isNotBlank()) result += StructuredTextClipboardItem(text = text)
                     }
                     BacklogItemTypeValues.SUBLIST -> {
-                        val text = contextRepository.getContextById(item.entityId)?.name?.trim().orEmpty()
+                        val text = currentContextName(item.entityId)
                         if (text.isNotBlank()) result += StructuredTextClipboardItem(text = text)
                     }
                 }
@@ -2011,7 +2007,7 @@ class BacklogClipboardUseCase
             targetContextId: String,
         ) {
             if (sourceContextId.isBlank() || sourceContextId == targetContextId) return
-            val sourceContextName = contextRepository.getContextById(sourceContextId)?.name?.trim().orEmpty()
+            val sourceContextName = currentContextName(sourceContextId)
             val sourceContextLink =
                 RelatedLink(
                     type = LinkType.CONTEXT,
@@ -2030,6 +2026,13 @@ class BacklogClipboardUseCase
                 )
             }
         }
+
+        internal suspend fun currentContextName(contextId: String): String =
+            systemWorkspacePresentationContextProjector
+                .resolvePresentation(contextId)
+                ?.name
+                ?.trim()
+                .orEmpty()
 
         private fun isAttachmentType(itemType: String): Boolean =
             itemType == BacklogItemTypeValues.LINK_ITEM ||

@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.sync
 import android.net.Uri
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.models.sync.*
-import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
@@ -15,7 +14,6 @@ class SyncRepository @Inject constructor(
     private val wifiSyncService: SyncWifiService,
     private val mergeRepository: MergeRepository,
     private val attachmentsRepository: AttachmentsRepository,
-    private val systemContextEnsurer: SystemContextEnsurer,
     private val fullBackupLocalDataSource: FullBackupLocalDataSource,
 ) : SyncApi {
     private val selectiveImportFilter = SnapshotBundleSelectiveImportFilter()
@@ -93,17 +91,11 @@ class SyncRepository @Inject constructor(
         pendingSettingsFromLastSyncReport = null
     }
 
-    suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> {
-        val result = mergeRepository.applyServerChanges(changes)
-        systemContextEnsurer.ensureAllSystemContextsExist()
-        return result
-    }
+    suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> =
+        mergeRepository.applyServerChanges(changes)
 
-    suspend fun importBackupJsonString(jsonString: String): Result<Int> {
-        val result = fileService.importBackupJsonString(jsonString)
-        if (result.isSuccess) systemContextEnsurer.ensureAllSystemContextsExist()
-        return result
-    }
+    suspend fun importBackupJsonString(jsonString: String): Result<Int> =
+        fileService.importBackupJsonString(jsonString)
 
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
         mergeRepository.createBackupDiff(incoming)
@@ -127,11 +119,8 @@ class SyncRepository @Inject constructor(
             )
         }
 
-    suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> {
-        val result = mergeRepository.importSelectedSnapshotBundle(bundle)
-        systemContextEnsurer.ensureAllSystemContextsExist()
-        return result
-    }
+    suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> =
+        mergeRepository.importSelectedSnapshotBundle(bundle)
 
     fun filterSnapshotBundleForSelectiveImport(
         bundle: SnapshotBundle,

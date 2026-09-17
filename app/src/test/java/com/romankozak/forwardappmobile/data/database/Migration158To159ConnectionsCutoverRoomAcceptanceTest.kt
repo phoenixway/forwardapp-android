@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
-    private val migrations158To166 =
+    private val migrations158ToCurrent =
         arrayOf(
             MIGRATION_158_159,
             MIGRATION_159_160,
@@ -31,6 +31,12 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             MIGRATION_163_164,
             MIGRATION_164_165,
             MIGRATION_165_166,
+            MIGRATION_166_167,
+            MIGRATION_167_168,
+            MIGRATION_168_169,
+            MIGRATION_169_170,
+            MIGRATION_170_171,
+            MIGRATION_171_172,
         )
 
     @Test
@@ -48,12 +54,12 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158To166)
+                .addMigrations(*migrations158ToCurrent)
                 .allowMainThreadQueries()
                 .build()
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_connections"))
             assertEquals(
@@ -78,7 +84,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `158 to 166 tombstones live placement when target Attachment is already deleted`() {
+    fun `158 to current tombstones live placement when target Attachment is already deleted`() {
         val dbName = "migration_158_166_connections_deleted_target"
         createFixture(dbName) { db ->
             insertContext(db, "owner")
@@ -89,14 +95,14 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158To166)
+                .addMigrations(*migrations158ToCurrent)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
 
             db.query(
@@ -129,7 +135,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `158 to 166 tombstones placement and capability when owner Workspace is already deleted`() {
+    fun `158 to current tombstones placement and capability when owner Workspace is already deleted`() {
         val dbName = "migration_158_166_connections_deleted_owner"
         createFixture(dbName) { db ->
             insertContext(db, "owner", deleted = true)
@@ -147,14 +153,14 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158To166)
+                .addMigrations(*migrations158ToCurrent)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
 
             db.query(
@@ -211,7 +217,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
     }
 
     @Test
-    fun `158 to 166 materializes missing deleted owner Workspace and tombstones its placement`() {
+    fun `158 to current materializes missing deleted owner Workspace and tombstones its placement`() {
         val dbName = "migration_158_166_connections_missing_deleted_owner"
         createFixture(dbName) { db ->
             insertContext(db, "parent")
@@ -244,14 +250,14 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158To166)
+                .addMigrations(*migrations158ToCurrent)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(166L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
 
             db.query(

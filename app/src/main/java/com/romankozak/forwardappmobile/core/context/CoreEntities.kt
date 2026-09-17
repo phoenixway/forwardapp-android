@@ -31,3 +31,15 @@ interface ContextState : ConfigurableState {
     val views: ViewSet
     // override val config: ContextConfiguration // успадковується
 }
+
+/** Capability ids whose current lifecycle is canonical even when disabled. */
+interface CanonicalCapabilityOverrideState {
+    val canonicalCapabilityOverrides: Set<com.romankozak.forwardappmobile.core.capability.CapabilityId>
+
+    /**
+     * True when persisted preset metadata is descriptive only and canonical
+     * capability instances own effective lifecycle.
+     */
+    val suppressPresetCapabilityDerivation: Boolean
+        get() = false
+}

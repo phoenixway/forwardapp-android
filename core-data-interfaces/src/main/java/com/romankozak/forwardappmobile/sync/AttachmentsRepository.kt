@@ -15,6 +15,8 @@ interface AttachmentsRepository {
     suspend fun importAttachmentsFromFile(uri: Uri): Result<String>
 
     // --- Методи бізнес-логіки (Додаємо ці методи!) ---
+    suspend fun requireAttachmentPlacementAuthoring(contextId: String)
+
     suspend fun ensureAttachmentLinkedToContext(
         attachmentType: String,
         entityId: String,

@@ -9,6 +9,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -32,7 +34,10 @@ sealed class ReminderListItem {
 
     data class GoalReminder(override val reminder: Reminder, val goal: Goal) : ReminderListItem()
 
-    data class ProjectReminder(override val reminder: Reminder, val project: Context) : ReminderListItem()
+    data class ProjectReminder(
+        override val reminder: Reminder,
+        val project: ContextPresentation,
+    ) : ReminderListItem()
 
     data class SimpleReminder(override val reminder: Reminder) : ReminderListItem()
 }
@@ -44,6 +49,7 @@ class ReminderViewModel
         private val reminderRepository: ReminderRepository,
         private val contextRepository: ContextRepository,
         private val goalRepository: GoalRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _reminders = MutableStateFlow<List<ReminderListItem>>(emptyList())
@@ -80,7 +86,12 @@ class ReminderViewModel
                                 goal?.let { ReminderListItem.GoalReminder(reminder, it) }
                             }
                             "PROJECT" -> {
-                                val project = contextRepository.getContextById(reminder.entityId)
+                                val rawContext = contextRepository.getContextById(reminder.entityId)
+                                val project =
+                                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                                        contextId = reminder.entityId,
+                                        context = rawContext,
+                                    )
                                 project?.let { ReminderListItem.ProjectReminder(reminder, it) }
                             }
                             else -> ReminderListItem.SimpleReminder(reminder)

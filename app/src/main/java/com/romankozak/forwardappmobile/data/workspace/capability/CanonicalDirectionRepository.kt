@@ -1,12 +1,14 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryProvenance
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AssessmentRevisionSource
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubject
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -15,6 +17,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.Orientatio
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationNode
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.emptyApplicableAssessment
 import java.util.UUID
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
@@ -22,8 +25,15 @@ import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class DirectionCapabilityState(
+    val lifecycleState: WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: DirectionCapabilityConfigurationV1,
+)
 
 @Singleton
 class CanonicalDirectionRepository
@@ -55,6 +65,39 @@ class CanonicalDirectionRepository
             workspaceId: String,
             now: Long = System.currentTimeMillis(),
         ) = instanceStore.disable(SPEC, workspaceId, now)
+
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
+        suspend fun updateConfiguration(
+            workspaceId: String,
+            configuration: DirectionCapabilityConfigurationV1,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            instanceStore.updateConfiguration(
+                spec = SPEC,
+                workspaceId = workspaceId,
+                configurationVersion = DirectionCapabilityConfigurationCodec.CURRENT_VERSION,
+                configuration = DirectionCapabilityConfigurationCodec.encode(configuration),
+                now = now,
+            )
+        }
+
+        suspend fun getState(workspaceId: String): DirectionCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toDirectionCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<DirectionCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toDirectionCapabilityState() }.getOrNull() }
+            }
 
         suspend fun archive(
             workspaceId: String,
@@ -448,6 +491,13 @@ class CanonicalDirectionRepository
                 }
         }
     }
+
+private fun WorkspaceCapabilityInstanceEntity.toDirectionCapabilityState() =
+    DirectionCapabilityState(
+        lifecycleState = WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = DirectionCapabilityConfigurationCodec.decode(configurationVersion, configuration),
+    )
 
 enum class CanonicalDirectionItemKind {
     SEMANTIC,

@@ -52,6 +52,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity.ActivityRecordSnapshot
 
@@ -310,7 +311,7 @@ fun SystemAppEntity.toSnapshot(): SystemAppSnapshot = SystemAppSnapshot(
     id = id,
     systemKey = systemKey,
     appType = appType,
-    contextId = contextId,
+    workspaceId = workspaceId,
     noteDocumentId = noteDocumentId,
     createdAt = createdAt,
     updatedAt = updatedAt,
@@ -318,17 +319,43 @@ fun SystemAppEntity.toSnapshot(): SystemAppSnapshot = SystemAppSnapshot(
     isDeleted = isDeleted
 )
 
-fun SystemAppSnapshot.toEntity(): SystemAppEntity = SystemAppEntity(
+fun SystemAppSnapshot.toEntity(workspaceId: String): SystemAppEntity = SystemAppEntity(
     id = id,
     systemKey = systemKey,
     appType = appType,
-    contextId = contextId,
+    workspaceId = workspaceId,
     noteDocumentId = noteDocumentId,
     createdAt = createdAt,
     updatedAt = updatedAt,
     version = version,
     isDeleted = isDeleted
 )
+
+/**
+ * Resolves SystemApp transport only through a proven live Workspace owner.
+ * `legacyContextId` is accepted solely by the bounded full-backup path, and
+ * only when the same stable id already resolves to a live Workspace.
+ */
+fun SystemAppSnapshot.toWorkspaceOwnedEntityOrNull(
+    liveWorkspaceIds: Set<String>,
+    validDocumentIds: Set<String>,
+    allowLegacyContextOwner: Boolean,
+): SystemAppEntity? {
+    val canonicalWorkspaceId = workspaceId?.takeIf { it.isNotBlank() }
+    val historicalWorkspaceId =
+        legacyContextId
+            ?.takeIf { allowLegacyContextOwner && it.isNotBlank() }
+    val resolvedWorkspaceId = canonicalWorkspaceId ?: historicalWorkspaceId ?: return null
+    if (resolvedWorkspaceId !in liveWorkspaceIds) return null
+
+    return toEntity(resolvedWorkspaceId).let { entity ->
+        if (entity.noteDocumentId != null && entity.noteDocumentId !in validDocumentIds) {
+            entity.copy(noteDocumentId = null)
+        } else {
+            entity
+        }
+    }
+}
 fun LifeSystemStateEntity.toSnapshot(): LifeSystemStateSnapshot =
     LifeSystemStateSnapshot(id, loadLevel, executionMode, stability, entropy, updatedAt)
 fun LifeSystemStateSnapshot.toEntity(): LifeSystemStateEntity =
@@ -343,7 +370,7 @@ fun TacticalMission.toSnapshot(): TacticalMissionSnapshot = TacticalMissionSnaps
     deadline = deadline,
     status = status.name,
     priority = priority.name,
-    projectId = projectId,
+    projectId = logicalProjectId,
     linkedProjectIds = linkedProjectIds,
     linkedAttachmentIds = linkedAttachmentIds,
     order = order,

@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.sync.SyncLocalDataSourceImpl
 import com.romankozak.forwardappmobile.core.sync.SyncSettingsSourceImpl
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.repository.*
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
@@ -50,12 +51,6 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncApi(impl: SyncRepository): SyncApi
-
-    @Binds
-    @Singleton
-    abstract fun bindSystemContextEnsurer(
-        impl: com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer,
-    ): com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 
     // ========================================================================
     // PROVIDES (Логіка створення та складні репозиторії)
@@ -111,15 +106,18 @@ abstract class RepositoryModule {
         @Singleton
         fun provideSystemAppRepository(
             systemAppDao: SystemAppDao,
-            contextDao: ContextDao,
+            workspaceDao: WorkspaceDao,
             noteDocumentDao: NoteDocumentDao,
-            attachmentsRepository: AttachmentsRepository,
+            attachmentDao: com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao,
+            canonicalConnectionsRepository:
+                com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository,
         ): SystemAppRepository =
             SystemAppRepository(
                 systemAppDao,
-                contextDao,
+                workspaceDao,
                 noteDocumentDao,
-                attachmentsRepository,
+                attachmentDao,
+                canonicalConnectionsRepository,
             )
 
         @Provides

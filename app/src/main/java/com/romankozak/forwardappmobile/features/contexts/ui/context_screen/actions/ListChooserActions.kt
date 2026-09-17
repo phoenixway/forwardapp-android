@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
@@ -13,6 +14,7 @@ class ListChooserActions(
     private val listItemRepository: ListItemRepository,
     private val contextRepository: ContextRepository,
     private val backlogClipboardUseCase: BacklogClipboardUseCase,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
 ) {
     data class PendingActionNavigation(
         val target: NavTarget.ListChooser,
@@ -82,7 +84,9 @@ class ListChooserActions(
                 )
 
             GoalActionType.AddLinkToList -> {
-                val targetProject = contextRepository.getContextById(targetContextId)
+                val targetProject =
+                    systemWorkspacePresentationContextProjector
+                        .resolvePresentation(targetContextId)
                 val link =
                     RelatedLink(
                         type = LinkType.CONTEXT,

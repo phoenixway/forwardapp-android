@@ -9,6 +9,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.sync.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -21,6 +23,7 @@ class AttachmentsLibraryViewModel
     constructor(
         private val attachmentRepository: AttachmentsRepository,
         private val contextDao: ContextDao,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : ViewModel() {
         private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()
         val events = _events.asSharedFlow()
@@ -34,12 +37,12 @@ class AttachmentsLibraryViewModel
             combine(
                 attachmentRepository.getAttachmentLibraryItems(),
                 attachmentRepository.getAllAttachmentLinks(),
-                contextDao.getAllContextsFlow(),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextDao.getAllContextsFlow()),
                 queryState,
                 filterState,
             ) { queryResults: List<AttachmentLibraryQueryResult>,
                 links: List<ContextAttachmentCrossRef>,
-                contexts: List<Context>,
+                contexts: List<ContextPresentation>,
                 query: String,
                 filter: AttachmentLibraryFilter,
                 ->

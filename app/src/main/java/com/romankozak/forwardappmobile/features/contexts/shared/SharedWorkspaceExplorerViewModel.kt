@@ -6,6 +6,10 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerIntent
@@ -32,8 +36,12 @@ class SharedWorkspaceExplorerViewModel
         goalRepository: GoalRepository,
         contextStructureRepository: ContextStructureRepository,
         canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+        systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
+        systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
+        systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
+        systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
     ) : ViewModel() {
         private val adapter =
             AndroidWorkspaceRepositoryAdapter(
@@ -41,8 +49,12 @@ class SharedWorkspaceExplorerViewModel
                 goalRepository = goalRepository,
                 contextStructureRepository = contextStructureRepository,
                 canonicalWorkspaceBootstrapper = canonicalWorkspaceBootstrapper,
+                systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
                 canonicalDashboardCapabilityRepository = canonicalDashboardCapabilityRepository,
                 canonicalExecutionLogRepository = canonicalExecutionLogRepository,
+                systemInboxDirectionAccess = systemInboxDirectionAccess,
+                systemRemainingCapabilityAccess = systemRemainingCapabilityAccess,
+                systemBacklogLifecycleAccess = systemBacklogLifecycleAccess,
             )
 
         private val store =

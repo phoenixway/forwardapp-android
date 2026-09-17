@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
@@ -26,6 +27,8 @@ import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
@@ -60,6 +63,7 @@ class DayManagementRepository
         private val taskExecutionTimingCalculator: TaskExecutionTimingCalculator,
         private val taskExecutionAlarmCoordinator: TaskExecutionAlarmCoordinator,
         private val aiEventRepository: AiEventRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         private companion object {
@@ -195,8 +199,8 @@ class DayManagementRepository
                 ),
             )
         }
-        suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask =
-            withContext(ioDispatcher) {
+        suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask {
+            return withContext(ioDispatcher) {
                 val order =
                     params.order ?: run {
                         val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
@@ -241,6 +245,7 @@ class DayManagementRepository
                 )
                 task
             }
+        }
 
         @Transaction
         suspend fun addGoalToDayPlan(
@@ -282,19 +287,22 @@ class DayManagementRepository
             scheduledTime: Long? = null,
         ): DayTask =
             withContext(ioDispatcher) {
-                val project =
-                    contextDao.getContextById(projectId)
-                        ?: throw NoSuchElementException("Project with id $projectId not found")
+                val rawProject = contextDao.getContextById(projectId)
+                val presentation =
+                    systemWorkspacePresentationContextProjector.resolvePresentation(
+                        contextId = projectId,
+                        context = rawProject,
+                    ) ?: throw NoSuchElementException("Project with id $projectId not found")
 
                 val taskParams =
                     NewTaskParameters(
                         dayPlanId = dayPlanId,
-                        title = project.name,
-                        description = project.description,
+                        title = presentation.name,
+                        description = presentation.description,
                         projectId = projectId,
                         linkedProjectIds = listOf(projectId),
                         scheduledTime = scheduledTime,
-                        priority = mapImportanceToPriority(project.valueImportance),
+                        priority = mapImportanceToPriority(rawProject?.valueImportance ?: 0f),
                         taskType = BacklogItemTypeValues.SUBLIST,
                     )
                 addTaskToDayPlan(taskParams)
@@ -311,7 +319,7 @@ class DayManagementRepository
                         title = taskToCopy.title,
                         description = taskToCopy.description,
                         goalId = taskToCopy.goalId,
-                        projectId = taskToCopy.projectId,
+                        projectId = taskToCopy.logicalProjectId,
                         priority = taskToCopy.priority,
                         scheduledTime = null,
                         estimatedDurationMinutes = taskToCopy.estimatedDurationMinutes,
@@ -443,7 +451,18 @@ class DayManagementRepository
                     dueTime = timing.dueTime,
                     executionStrictness = params.executionStrictness,
                     points = params.points,
-                    projectId = if (params.updateContextLinks) params.projectId else task.projectId,
+                    projectId =
+                        if (params.updateContextLinks) {
+                            params.projectId
+                        } else {
+                            task.projectId
+                        },
+                    projectWorkspaceId =
+                        if (params.updateContextLinks) {
+                            null
+                        } else {
+                            task.projectWorkspaceId
+                        },
                     linkedProjectIds =
                         if (params.updateContextLinks) {
                             params.linkedProjectIds.orEmpty()
@@ -465,7 +484,7 @@ class DayManagementRepository
                 val now = System.currentTimeMillis()
 
                 val gId = task.goalId
-                val pId = task.projectId
+                val pId = task.logicalProjectId
 
                 val activityRecord =
                     when {
@@ -478,7 +497,7 @@ class DayManagementRepository
                     val entityLinks =
                         buildList {
                             add(ActivityEntityLink(task.id, ActivityEntityType.DAY_TASK, task.dayPlanId))
-                            task.projectId?.let { contextId ->
+                            task.logicalProjectId?.let { contextId ->
                                 add(ActivityEntityLink(contextId, ActivityEntityType.CONTEXT))
                             }
                             task.goalId?.let { goalId ->
@@ -488,7 +507,7 @@ class DayManagementRepository
                     activityRepository.updateRecord(
                         it.copy(
                             entityLinks = entityLinks,
-                            contextId = task.projectId,
+                            contextId = task.logicalProjectId,
                             goalId = task.goalId,
                         ),
                     )
@@ -710,9 +729,13 @@ class DayManagementRepository
             }
         }
 
-        suspend fun getProject(id: String): Context? {
+        suspend fun getProjectPresentation(id: String): ContextPresentation? {
             return withContext(ioDispatcher) {
-                contextDao.getContextById(id)
+                val context = contextDao.getContextById(id)
+                systemWorkspacePresentationContextProjector.resolvePresentation(
+                    contextId = id,
+                    context = context,
+                )
             }
         }
 

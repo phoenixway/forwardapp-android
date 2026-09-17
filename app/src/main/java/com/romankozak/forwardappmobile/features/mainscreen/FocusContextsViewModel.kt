@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +20,7 @@ class FocusContextsViewModel
     constructor(
         private val focusContextRepository: FocusContextRepository,
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val activityRepository: ActivityRepository,
     ) : ViewModel() {
         data class FocusedContextUi(
@@ -30,7 +32,9 @@ class FocusContextsViewModel
         val focusedContexts: StateFlow<List<FocusedContextUi>> =
             combine(
                 focusContextRepository.observeActiveFocusContexts(),
-                contextRepository.getAllContextsFlow(),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(
+                    contextRepository.getAllContextsFlow(),
+                ),
             ) { focused, contexts ->
                 val nameById = contexts.associateBy({ it.id }, { it.name })
                 focused.mapNotNull { row ->

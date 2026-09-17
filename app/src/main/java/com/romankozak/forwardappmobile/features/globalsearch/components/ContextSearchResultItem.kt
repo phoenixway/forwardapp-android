@@ -65,7 +65,7 @@ fun ProjectSearchResultItem(
         shape = RoundedCornerShape(16.dp),
     ) {
         Column {
-            ContextResultTitle(title = result.context.name)
+            ContextResultTitle(title = result.presentation.name)
             if (result.pathSegments.isNotEmpty()) {
                 ContextResultPath(pathText = result.pathSegments.joinToString(" → "))
             }

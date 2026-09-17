@@ -87,6 +87,8 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalWorkspaceBacklogSynced(
         entries: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion>,
     ) { /* no-op */ }
+    override suspend fun loadCanonicalWorkspaceTagsChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity>()
     override suspend fun restoreSettings(settings: Map<String, String>) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreSettings called")
     }

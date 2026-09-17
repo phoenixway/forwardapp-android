@@ -2,21 +2,18 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.navigation.ContextRouteResolver
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.net.URLEncoder
 
 class NavigationActions(
-    private val contextRepository: ContextRepository,
     private val recentItemsRepository: RecentItemsRepository,
     private val settingsRepository: SettingsRepository,
-    private val ioDispatcher: CoroutineDispatcher,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     handleLinkClickRoute: String,
 ) {
     private val routeResolver = ContextRouteResolver(handleLinkClickRoute)
@@ -121,7 +118,8 @@ class NavigationActions(
                 it.target == target || runCatching { URLEncoder.encode(it.target, "UTF-8") }.getOrNull() == rawTarget
             }
         val obsidianNoteTarget = extractObsidianNoteTarget(target)
-        val context = withContext(ioDispatcher) { contextRepository.getContextById(target) }
+        val context =
+            systemWorkspacePresentationContextProjector.resolvePresentation(target)
 
         return when {
             link != null -> HandleLinkClickResult.ExistingLink(link)
@@ -136,9 +134,10 @@ class NavigationActions(
 
     suspend fun resolveGoalDetail(contextId: String): GoalDetailNavigation {
         val contextName =
-            withContext(ioDispatcher) {
-                contextRepository.getContextById(contextId)?.name ?: "Context"
-            }
+            systemWorkspacePresentationContextProjector
+                .resolvePresentation(contextId)
+                ?.name
+                ?: "Context"
         return GoalDetailNavigation(contextId = contextId, contextName = contextName)
     }
 

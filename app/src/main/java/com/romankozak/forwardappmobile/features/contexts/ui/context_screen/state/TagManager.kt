@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
  */
 class TagManager(
     private val contextRepository: ContextRepository,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     private val scope: CoroutineScope,
 ) {
     private val _allTags = MutableStateFlow<List<String>>(emptyList())
@@ -25,23 +27,23 @@ class TagManager(
      */
     fun loadTags() {
         scope.launch {
-            contextRepository.getAllContextsFlow().collect { contexts ->
-                // Збираємо унікальні теги з усіх контекстів
-                val tags =
-                    contexts
-                        .flatMap { it.tags ?: emptyList() }
-                        .distinct()
-                        .sorted()
-                _allTags.value = tags
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .collect { presentations ->
+                    val tags =
+                        presentations
+                            .flatMap { it.tags ?: emptyList() }
+                            .distinct()
+                            .sorted()
+                    _allTags.value = tags
 
-                // Збираємо назви контекстів
-                val contextNames =
-                    contexts
-                        .map { it.name }
-                        .distinct()
-                        .sorted()
-                _allContexts.value = contextNames
-            }
+                    val contextNames =
+                        presentations
+                            .map { it.name }
+                            .distinct()
+                            .sorted()
+                    _allContexts.value = contextNames
+                }
         }
     }
 

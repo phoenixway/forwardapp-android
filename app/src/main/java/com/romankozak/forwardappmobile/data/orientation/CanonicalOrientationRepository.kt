@@ -218,19 +218,42 @@ class CanonicalOrientationRepository
          * imposing migration-specific revision provenance.
          */
         suspend fun requireCompleteActiveOrientationAggregate(subjectId: String) {
-            val subject =
-                requireNotNull(dao.getManagedSubject(subjectId)) {
+            requireCompleteActiveOrientationAggregate(
+                subjectId = subjectId,
+                subject = dao.getManagedSubject(subjectId),
+                orientationNodes =
+                    dao.getAllOrientations().filter { it.subjectId == subjectId },
+                currents =
+                    dao.getAllAssessments().filter { it.orientationId == subjectId },
+                revisions = dao.getAllAssessmentRevisions(),
+            )
+        }
+
+        /**
+         * The same canonical aggregate gate over an already-loaded read snapshot.
+         *
+         * This exists so migration review can validate many adoption candidates
+         * without re-reading whole Room tables for every candidate. It is still
+         * the canonical validation owner and performs no writes.
+         */
+        internal fun requireCompleteActiveOrientationAggregate(
+            subjectId: String,
+            subject: ManagedSubjectEntity?,
+            orientationNodes: List<OrientationEntity>,
+            currents: List<OrientationAssessmentEntity>,
+            revisions: List<OrientationAssessmentRevisionEntity>,
+        ) {
+            val requiredSubject =
+                requireNotNull(subject) {
                     "Existing Orientation subject does not exist"
                 }
             require(
-                subject.subjectType == ManagedSubjectType.ORIENTATION.name &&
-                    !subject.isDeleted,
+                requiredSubject.subjectType == ManagedSubjectType.ORIENTATION.name &&
+                    !requiredSubject.isDeleted,
             ) {
                 "Existing Orientation subject is not active"
             }
 
-            val orientationNodes =
-                dao.getAllOrientations().filter { it.subjectId == subjectId }
             require(orientationNodes.size == 1) {
                 "Existing Orientation aggregate must contain exactly one Orientation node"
             }
@@ -240,8 +263,6 @@ class CanonicalOrientationRepository
                         throw IllegalArgumentException("Existing Orientation kind is invalid", it)
                     }
 
-            val currents =
-                dao.getAllAssessments().filter { it.orientationId == subjectId }
             require(currents.size == 1) {
                 "Existing Orientation aggregate must contain exactly one current assessment"
             }
@@ -250,12 +271,12 @@ class CanonicalOrientationRepository
                 "Existing Orientation current assessment is deleted"
             }
 
-            val revisions =
-                dao.getAllAssessmentRevisions().filter { it.id == current.revisionId }
-            require(revisions.size == 1) {
+            val matchingRevisions =
+                revisions.filter { it.id == current.revisionId }
+            require(matchingRevisions.size == 1) {
                 "Existing Orientation current assessment revision is missing or duplicated"
             }
-            val revision = revisions.single()
+            val revision = matchingRevisions.single()
             require(!revision.isDeleted && revision.orientationId == subjectId) {
                 "Existing Orientation current assessment references an invalid revision"
             }

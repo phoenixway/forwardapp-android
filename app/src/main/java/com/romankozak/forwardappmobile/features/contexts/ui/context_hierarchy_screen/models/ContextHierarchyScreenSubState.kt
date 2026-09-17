@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.os.Parcelable
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.orientation.ContextClassificationPreview
 import com.romankozak.forwardappmobile.data.orientation.ContextMigrationCandidate
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
@@ -38,12 +37,14 @@ sealed class DialogState {
     data class AddProject(val parentId: String?) : DialogState()
 
     data class ProjectMenu(
-        val project: Context,
+        val projectId: String,
+        val projectName: String,
         val canPasteContextLinks: Boolean = false,
     ) : DialogState()
 
     data class ContextMigration(
-        val context: Context,
+        val projectId: String,
+        val projectName: String,
         val preview: ContextClassificationPreview,
         val aspectCandidates: List<ContextMigrationCandidate>,
         val orientationCandidates: List<ContextMigrationCandidate>,
@@ -56,9 +57,10 @@ sealed class DialogState {
         val errorMessage: String? = null,
     ) : DialogState()
 
-    data class ConfirmDelete(val project: Context) : DialogState()
-
-    data class EditProject(val project: Context) : DialogState()
+    data class ConfirmDelete(
+        val projectId: String,
+        val projectName: String,
+    ) : DialogState()
 
     data class ConfirmImport(val uri: Uri) : DialogState()
 

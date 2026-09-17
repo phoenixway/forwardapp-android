@@ -4,11 +4,20 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceInboxRecordEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class InboxCapabilityState(
+    val lifecycleState: WorkspaceCapabilityState,
+    val isDeleted: Boolean,
+    val configuration: InboxCapabilityConfigurationV1,
+)
 
 @Singleton
 class CanonicalInboxRepository
@@ -24,6 +33,17 @@ class CanonicalInboxRepository
         suspend fun disable(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.disable(SPEC, workspaceId, now)
 
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) = instanceStore.setEnabled(SPEC, workspaceId, enabled, now)
+
+        suspend fun establishDisabledIfMissing(
+            workspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = instanceStore.establishDisabledIfMissing(SPEC, workspaceId, now)
+
         suspend fun archive(workspaceId: String, now: Long = System.currentTimeMillis()) =
             instanceStore.archive(SPEC, workspaceId, now)
 
@@ -36,6 +56,28 @@ class CanonicalInboxRepository
 
         suspend fun requireActive(workspaceId: String) {
             instanceStore.requireActiveInstance(SPEC, workspaceId)
+        }
+
+        suspend fun getState(workspaceId: String): InboxCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId)?.toInboxCapabilityState()
+
+        fun observeState(workspaceId: String): Flow<InboxCapabilityState?> =
+            instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
+                instance?.let { runCatching { it.toInboxCapabilityState() }.getOrNull() }
+            }
+
+        suspend fun updateConfiguration(
+            workspaceId: String,
+            configuration: InboxCapabilityConfigurationV1,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            instanceStore.updateConfiguration(
+                spec = SPEC,
+                workspaceId = workspaceId,
+                configurationVersion = InboxCapabilityConfigurationCodec.CURRENT_VERSION,
+                configuration = InboxCapabilityConfigurationCodec.encode(configuration),
+                now = now,
+            )
         }
 
         fun observeRecords(workspaceId: String): Flow<List<WorkspaceInboxRecordEntity>> =
@@ -188,6 +230,14 @@ class CanonicalInboxRepository
                 )
         }
     }
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+    .toInboxCapabilityState() =
+    InboxCapabilityState(
+        lifecycleState = WorkspaceCapabilityState.valueOf(state),
+        isDeleted = isDeleted,
+        configuration = InboxCapabilityConfigurationCodec.decode(configurationVersion, configuration),
+    )
 
 private fun WorkspaceInboxRecordEntity.bump(now: Long) =
     copy(updatedAt = now, syncedAt = null, version = version + 1L)

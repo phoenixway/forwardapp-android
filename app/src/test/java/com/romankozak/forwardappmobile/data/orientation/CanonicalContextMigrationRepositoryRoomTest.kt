@@ -14,8 +14,10 @@ import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -37,6 +39,170 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalContextMigrationRepositoryRoomTest {
     private val androidContext: AndroidContext = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `preflight existing Orientation is write free`() = runBlocking {
+        val database = database()
+        try {
+            database.contextDao().insert(context("leaf"))
+            val bootstrapper = bootstrapper(database)
+            bootstrapper.ensureBootstrapped(now = 10L)
+
+            val orientationId =
+                createExistingOrientation(
+                    database = database,
+                    id = "preflight-existing-orientation",
+                    kind = OrientationKind.DIRECTION,
+                    now = 15L,
+                )
+            val repository = repository(database, bootstrapper)
+
+            val contextBefore =
+                requireNotNull(database.contextDao().getContextById("leaf"))
+            val workspacesBefore =
+                database.workspaceDao().getAll()
+                    .sortedBy { it.id }
+            val capabilitiesBefore =
+                database.orientationDao().getAllWorkspaceCapabilities()
+                    .sortedBy { it.id }
+            val subjectsBefore =
+                database.orientationDao().getAllManagedSubjects()
+                    .sortedBy { it.id }
+            val orientationsBefore =
+                database.orientationDao().getAllOrientations()
+                    .sortedBy { it.subjectId }
+            val assessmentsBefore =
+                database.orientationDao().getAllAssessments()
+                    .sortedBy { it.orientationId }
+            val revisionsBefore =
+                database.orientationDao().getAllAssessmentRevisions()
+                    .sortedBy { it.id }
+            val mappingsBefore =
+                database.orientationDao().getAllLegacyMappings()
+                    .sortedBy { it.id }
+            val bindingsBefore =
+                database.orientationDao().getAllWorkspaceBindings()
+                    .sortedBy { it.id }
+
+            val result =
+                repository.preflightContextMigration(
+                    contextId = "leaf",
+                    target =
+                        ContextMigrationTarget.ExistingOrientationWithExistingWorkspace(
+                            orientationId = orientationId,
+                        ),
+                )
+
+            assertTrue(result.ready)
+            assertNull(result.reason)
+
+            assertEquals(
+                contextBefore,
+                database.contextDao().getContextById("leaf"),
+            )
+            assertEquals(
+                workspacesBefore,
+                database.workspaceDao().getAll()
+                    .sortedBy { it.id },
+            )
+            assertEquals(
+                capabilitiesBefore,
+                database.orientationDao().getAllWorkspaceCapabilities()
+                    .sortedBy { it.id },
+            )
+            assertEquals(
+                subjectsBefore,
+                database.orientationDao().getAllManagedSubjects()
+                    .sortedBy { it.id },
+            )
+            assertEquals(
+                orientationsBefore,
+                database.orientationDao().getAllOrientations()
+                    .sortedBy { it.subjectId },
+            )
+            assertEquals(
+                assessmentsBefore,
+                database.orientationDao().getAllAssessments()
+                    .sortedBy { it.orientationId },
+            )
+            assertEquals(
+                revisionsBefore,
+                database.orientationDao().getAllAssessmentRevisions()
+                    .sortedBy { it.id },
+            )
+            assertEquals(
+                mappingsBefore,
+                database.orientationDao().getAllLegacyMappings()
+                    .sortedBy { it.id },
+            )
+            assertEquals(
+                bindingsBefore,
+                database.orientationDao().getAllWorkspaceBindings()
+                    .sortedBy { it.id },
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `preflight and migrate reject the same non-leaf target`() = runBlocking {
+        val database = database()
+        try {
+            database.contextDao().insert(context("parent"))
+            database.contextDao().insert(
+                context(
+                    id = "child",
+                    parentId = "parent",
+                ),
+            )
+            val bootstrapper = bootstrapper(database)
+            bootstrapper.ensureBootstrapped(now = 10L)
+            val repository = repository(database, bootstrapper)
+            val target =
+                ContextMigrationTarget.NewAspectWithExistingWorkspace()
+
+            val contextBefore =
+                requireNotNull(database.contextDao().getContextById("parent"))
+            val workspaceBefore =
+                requireNotNull(database.workspaceDao().getById("parent"))
+
+            val preflight =
+                repository.preflightContextMigration(
+                    contextId = "parent",
+                    target = target,
+                )
+
+            assertFalse(preflight.ready)
+            assertTrue(
+                requireNotNull(preflight.reason)
+                    .contains("requires a leaf Context"),
+            )
+
+            val failure =
+                runCatching {
+                    repository.migrateContext(
+                        contextId = "parent",
+                        target = target,
+                        now = 20L,
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertEquals(preflight.reason, failure?.message)
+
+            assertEquals(
+                contextBefore,
+                database.contextDao().getContextById("parent"),
+            )
+            assertEquals(
+                workspaceBefore,
+                database.workspaceDao().getById("parent"),
+            )
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `system Context migration rejects every target before mutation`() = runBlocking {
@@ -163,6 +329,67 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 },
             )
             assertFalse(requireNotNull(database.workspaceDao().getById("leaf")).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `ordinary cutover transfers tags to canonical Workspace ownership`() = runBlocking {
+        val database = database()
+        try {
+            database.contextDao().insert(
+                context("tagged").copy(
+                    tags = listOf("#Focus", " beta ", "FOCUS"),
+                ),
+            )
+            val bootstrapper = bootstrapper(database)
+            bootstrapper.ensureBootstrapped(now = 10L)
+            val repository = repository(database, bootstrapper)
+
+            val result =
+                repository.migrateContext(
+                    contextId = "tagged",
+                    target = ContextMigrationTarget.WorkspaceOnly,
+                    now = 20L,
+                )
+
+            assertTrue(result.changed)
+            assertTrue(
+                requireNotNull(
+                    database.contextDao().getContextById("tagged"),
+                ).isDeleted,
+            )
+
+            val workspace =
+                requireNotNull(database.workspaceDao().getById("tagged"))
+            assertEquals(
+                WorkspaceProvenance.CANONICAL_ONLY.name,
+                workspace.provenance,
+            )
+            assertNull(workspace.sourceContextId)
+
+            val canonicalTags = CanonicalWorkspaceTagRepository(database)
+            assertEquals(
+                listOf("beta", "focus"),
+                canonicalTags.getTags("tagged"),
+            )
+
+            // The retired Context is compatibility/history only. Mutating its
+            // stale tag payload directly must not change canonical read truth.
+            val retired =
+                requireNotNull(database.contextDao().getContextById("tagged"))
+            database.contextDao().insert(
+                retired.copy(
+                    tags = listOf("legacy-only"),
+                    updatedAt = 30L,
+                ),
+            )
+
+            assertEquals(
+                listOf("beta", "focus"),
+                canonicalTags.getTags("tagged"),
+            )
         } finally {
             database.close()
         }
@@ -1669,6 +1896,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
                     workspaceDao = database.workspaceDao(),
                 ),
             workspaceWriteThrough = ContextWorkspaceWriteThrough(bootstrapper),
+            canonicalWorkspaceTagRepository = CanonicalWorkspaceTagRepository(database),
         )
 
     private suspend fun createExistingOrientation(
@@ -1716,6 +1944,261 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 ),
         )
         return id
+    }
+
+    @Test
+    fun `legacy System child does not block regular parent cutover or rewrite canonical System topology`() =
+        runBlocking {
+            val database = database()
+            try {
+                val systemChildId = SystemContexts.LEVELS.raw
+                val canonicalSystemParentId = SystemContexts.PERSONAL_MANAGEMENT.raw
+
+                database.contextDao().insert(context("parent"))
+                database.contextDao().insert(
+                    context(
+                        id = systemChildId,
+                        parentId = "parent",
+                    ),
+                )
+                seedCanonicalSystemWorkspace(
+                    database = database,
+                    id = canonicalSystemParentId,
+                    parentId = null,
+                    name = "personal-management",
+                )
+                seedCanonicalSystemWorkspace(
+                    database = database,
+                    id = systemChildId,
+                    parentId = canonicalSystemParentId,
+                    name = "levels",
+                )
+
+                val bootstrapper = bootstrapper(database)
+                bootstrapper.ensureBootstrapped(now = 10L)
+                val repository = repository(database, bootstrapper)
+
+                val childBefore =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+                assertEquals(
+                    WorkspaceProvenance.CANONICAL_ONLY.name,
+                    childBefore.provenance,
+                )
+                assertNull(childBefore.sourceContextId)
+                assertEquals(
+                    canonicalSystemParentId,
+                    childBefore.parentWorkspaceId,
+                )
+
+                val result =
+                    repository.migrateContext(
+                        contextId = "parent",
+                        target =
+                            ContextMigrationTarget
+                                .NewAspectWithExistingWorkspace(),
+                        now = 20L,
+                    )
+
+                assertTrue(result.changed)
+                assertTrue(
+                    requireNotNull(
+                        database.contextDao().getContextById("parent"),
+                    ).isDeleted,
+                )
+
+                // Legacy reserved Context metadata remains compatibility
+                // evidence only and is not promoted into canonical topology.
+                assertFalse(
+                    requireNotNull(
+                        database.contextDao().getContextById(systemChildId),
+                    ).isDeleted,
+                )
+
+                val parentWorkspace =
+                    requireNotNull(database.workspaceDao().getById("parent"))
+                assertEquals(
+                    WorkspaceProvenance.CANONICAL_ONLY.name,
+                    parentWorkspace.provenance,
+                )
+                assertNull(parentWorkspace.sourceContextId)
+
+                val childAfterCutover =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+                assertEquals(childBefore, childAfterCutover)
+
+                val report = bootstrapper.ensureBootstrapped(now = 30L)
+                val childAfterBootstrap =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+
+                assertEquals(childBefore, childAfterBootstrap)
+                assertEquals(
+                    canonicalSystemParentId,
+                    childAfterBootstrap.parentWorkspaceId,
+                )
+                assertTrue(
+                    report.issues.none {
+                        it.contextId == systemChildId &&
+                            it.code == "WORKSPACE_PARENT_COLLISION"
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `regular compatibility child under canonical parent still gets parent collision quarantine`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.contextDao().insert(context("parent"))
+                database.contextDao().insert(
+                    context(
+                        id = "child",
+                        parentId = "parent",
+                    ),
+                )
+
+                val bootstrapper = bootstrapper(database)
+                bootstrapper.ensureBootstrapped(now = 10L)
+
+                val parentWorkspace =
+                    requireNotNull(database.workspaceDao().getById("parent"))
+                        .copy(
+                            provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                            sourceContextId = null,
+                            updatedAt = 20L,
+                            version = 2L,
+                        )
+                database.workspaceDao().upsert(listOf(parentWorkspace))
+
+                val report = bootstrapper.ensureBootstrapped(now = 30L)
+                val childWorkspace =
+                    requireNotNull(database.workspaceDao().getById("child"))
+
+                assertNull(childWorkspace.parentWorkspaceId)
+                assertTrue(
+                    report.issues.any {
+                        it.contextId == "child" &&
+                            it.code == "WORKSPACE_PARENT_COLLISION"
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `Workspace-only parent cutover preserves canonical System topology over legacy child metadata`() =
+        runBlocking {
+            val database = database()
+            try {
+                val systemChildId = SystemContexts.LEVELS.raw
+                val canonicalSystemParentId = SystemContexts.PERSONAL_MANAGEMENT.raw
+
+                database.contextDao().insert(context("parent"))
+                database.contextDao().insert(
+                    context(
+                        id = systemChildId,
+                        parentId = "parent",
+                    ),
+                )
+                seedCanonicalSystemWorkspace(
+                    database = database,
+                    id = canonicalSystemParentId,
+                    parentId = null,
+                    name = "personal-management",
+                )
+                seedCanonicalSystemWorkspace(
+                    database = database,
+                    id = systemChildId,
+                    parentId = canonicalSystemParentId,
+                    name = "levels",
+                )
+
+                val bootstrapper = bootstrapper(database)
+                bootstrapper.ensureBootstrapped(now = 10L)
+                val repository = repository(database, bootstrapper)
+
+                val childBefore =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+
+                val result =
+                    repository.migrateContext(
+                        contextId = "parent",
+                        target = ContextMigrationTarget.WorkspaceOnly,
+                        now = 20L,
+                    )
+
+                assertTrue(result.changed)
+                assertTrue(
+                    requireNotNull(
+                        database.contextDao().getContextById("parent"),
+                    ).isDeleted,
+                )
+                assertFalse(
+                    requireNotNull(
+                        database.contextDao().getContextById(systemChildId),
+                    ).isDeleted,
+                )
+
+                val parentWorkspace =
+                    requireNotNull(database.workspaceDao().getById("parent"))
+                assertEquals(
+                    WorkspaceProvenance.CANONICAL_ONLY.name,
+                    parentWorkspace.provenance,
+                )
+                assertNull(parentWorkspace.sourceContextId)
+
+                val childAfterCutover =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+                assertEquals(childBefore, childAfterCutover)
+                assertEquals(
+                    canonicalSystemParentId,
+                    childAfterCutover.parentWorkspaceId,
+                )
+
+                val report = bootstrapper.ensureBootstrapped(now = 30L)
+                val childAfterBootstrap =
+                    requireNotNull(database.workspaceDao().getById(systemChildId))
+
+                assertEquals(childBefore, childAfterBootstrap)
+                assertTrue(
+                    report.issues.none {
+                        it.contextId == systemChildId &&
+                            it.code == "WORKSPACE_PARENT_COLLISION"
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    private suspend fun seedCanonicalSystemWorkspace(
+        database: AppDatabase,
+        id: String,
+        parentId: String?,
+        name: String,
+    ) {
+        database.workspaceDao().upsert(
+            listOf(
+                WorkspaceEntity(
+                    id = id,
+                    nameOverride = name,
+                    descriptionOverride = null,
+                    parentWorkspaceId = parentId,
+                    roleCode = null,
+                    workspaceOrder = 0L,
+                    createdAt = 1L,
+                    updatedAt = 1L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                    provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                    sourceContextId = null,
+                ),
+            ),
+        )
     }
 
     private fun bootstrapper(database: AppDatabase) =

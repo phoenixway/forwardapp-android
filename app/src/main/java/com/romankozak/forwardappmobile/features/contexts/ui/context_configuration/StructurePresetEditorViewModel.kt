@@ -34,7 +34,7 @@ data class StructurePresetEditorUiState(
     val description: String = "",
     val enableInbox: Boolean = true,
     val enableLog: Boolean = true,
-    val enableAdvanced: Boolean = false,
+    val historicalEnableAdvanced: Boolean? = null,
     val enableDashboard: Boolean = true,
     val enableBacklog: Boolean = true,
     val enableAttachments: Boolean = true,
@@ -86,7 +86,7 @@ class StructurePresetEditorViewModel
                     description = preset.description ?: "",
                     enableInbox = preset.enableInbox ?: true,
                     enableLog = preset.enableLog ?: true,
-                    enableAdvanced = preset.enableAdvanced ?: false,
+                    historicalEnableAdvanced = preset.enableAdvanced,
                     enableDashboard = preset.enableDashboard ?: true,
                     enableBacklog = preset.enableBacklog ?: true,
                     enableAttachments = preset.enableAttachments ?: true,
@@ -144,7 +144,7 @@ class StructurePresetEditorViewModel
                         description = state.description.ifBlank { null },
                         enableInbox = state.enableInbox,
                         enableLog = state.enableLog,
-                        enableAdvanced = state.enableAdvanced,
+                        enableAdvanced = state.historicalEnableAdvanced,
                         enableDashboard = state.enableDashboard,
                         enableBacklog = state.enableBacklog,
                         enableAttachments = state.enableAttachments,
@@ -172,7 +172,6 @@ class StructurePresetEditorViewModel
 enum class PresetToggle {
     INBOX,
     LOG,
-    ADVANCED,
     DASHBOARD,
     BACKLOG,
     ATTACHMENTS,
@@ -186,7 +185,6 @@ enum class PresetToggle {
         return when (this) {
             INBOX -> state.copy(enableInbox = value)
             LOG -> state.copy(enableLog = value)
-            ADVANCED -> state.copy(enableAdvanced = value)
             DASHBOARD -> state.copy(enableDashboard = value)
             BACKLOG -> state.copy(enableBacklog = value)
             ATTACHMENTS -> state.copy(enableAttachments = value)

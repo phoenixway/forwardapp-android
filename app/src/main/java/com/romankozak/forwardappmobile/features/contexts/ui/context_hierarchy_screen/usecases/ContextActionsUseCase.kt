@@ -7,13 +7,14 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.data.repository.ContextHierarchyUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.NO_GROUP_NODE_ID
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantIdsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -44,17 +45,18 @@ class ContextActionsUseCase
         }
 
         suspend fun onDeleteProjectConfirmed(
-            project: Context,
+            projectId: String,
             childMap: Map<String, List<Context>>,
         ) = withContext(ioDispatcher) {
-            val projectsToDelete = findDescendantsForDeletion(project.id, childMap)
-            contextRepository.deleteContextsAndSubContexts(listOf(project) + projectsToDelete)
+            val descendantIds = findDescendantIdsForDeletion(projectId, childMap)
+            contextRepository.deleteContextsByIds(listOf(projectId) + descendantIds)
         }
 
         fun getMoveProjectRoute(
-            project: Context,
+            projectId: String,
             allProjects: List<Context>,
-        ): NavTarget.ListChooser {
+        ): NavTarget.ListChooser? {
+            val project = allProjects.firstOrNull { it.id == projectId } ?: return null
             val title = "Move '${project.name}'"
             val projectsById = allProjects.associateBy { it.id }
             val childMap =
@@ -90,7 +92,11 @@ class ContextActionsUseCase
                 return@withContext
             }
 
-            contextRepository.moveContext(projectToMove, finalNewParentId, allowSystemMoves = true)
+            contextRepository.moveContextById(
+                contextId = projectToMove.id,
+                newParentId = finalNewParentId,
+                allowSystemMoves = true,
+            )
         }
 
         suspend fun onProjectReorder(
@@ -120,7 +126,6 @@ class ContextActionsUseCase
                 return@withContext // Prevent cycles
             }
 
-            val now = System.currentTimeMillis()
             val sourceParentId = fromProject.displayParentId(projectsById)
             val sourceSiblings =
                 allProjects
@@ -141,16 +146,18 @@ class ContextActionsUseCase
                     DropPosition.AFTER -> targetIndex + 1
                 }.coerceIn(0, targetList.size)
 
-            val movedProject = fromProject.copy(parentId = newParentId)
-            targetList.add(insertionIndex, movedProject)
+            targetList.add(insertionIndex, fromProject)
 
-            val updates = mutableListOf<Context>()
+            val updates = mutableListOf<ContextHierarchyUpdate>()
 
             if (newParentId == sourceParentId) {
                 val reordered =
                     targetList.mapIndexed { index, project ->
-                        val base = if (project.id == fromId) movedProject else project
-                        base.copy(order = index.toLong(), updatedAt = now)
+                        ContextHierarchyUpdate(
+                            id = project.id,
+                            parentId = sourceParentId,
+                            order = index.toLong(),
+                        )
                     }
                 updates.addAll(reordered)
             } else {
@@ -158,13 +165,20 @@ class ContextActionsUseCase
                     sourceSiblings
                         .filterNot { it.id == fromId }
                         .mapIndexed { index, project ->
-                            project.copy(order = index.toLong(), updatedAt = now)
+                            ContextHierarchyUpdate(
+                                id = project.id,
+                                parentId = sourceParentId,
+                                order = index.toLong(),
+                            )
                         }
 
                 val targetWithOrder =
                     targetList.mapIndexed { index, project ->
-                        val base = if (project.id == fromId) movedProject else project
-                        base.copy(parentId = newParentId, order = index.toLong(), updatedAt = now)
+                        ContextHierarchyUpdate(
+                            id = project.id,
+                            parentId = newParentId,
+                            order = index.toLong(),
+                        )
                     }
 
                 updates.addAll(sourceWithout)
@@ -172,7 +186,7 @@ class ContextActionsUseCase
             }
 
             if (updates.isNotEmpty()) {
-                contextRepository.updateContexts(updates)
+                contextRepository.applyHierarchyUpdates(updates)
             }
         }
 
@@ -197,12 +211,17 @@ class ContextActionsUseCase
                     }
                     .orEmpty()
             val now = System.currentTimeMillis()
-            val contextUpdates = mutableListOf<Context>()
+            val contextUpdates = mutableListOf<ContextHierarchyUpdate>()
 
             orderedContextIds.forEachIndexed { index, contextId ->
                 val context = contextsById[contextId] ?: return@forEachIndexed
                 if (context.parentId == parentContextId) {
-                    contextUpdates += context.copy(order = index.toLong(), updatedAt = now)
+                    contextUpdates +=
+                        ContextHierarchyUpdate(
+                            id = context.id,
+                            parentId = parentContextId,
+                            order = index.toLong(),
+                        )
                 } else if (parentContextId != null && contextId in linkedChildIds) {
                     contextParentLinkDao.updateOrder(
                         parentContextId = parentContextId,
@@ -214,7 +233,7 @@ class ContextActionsUseCase
             }
 
             if (contextUpdates.isNotEmpty()) {
-                contextRepository.updateContexts(contextUpdates)
+                contextRepository.applyHierarchyUpdates(contextUpdates)
             }
         }
 

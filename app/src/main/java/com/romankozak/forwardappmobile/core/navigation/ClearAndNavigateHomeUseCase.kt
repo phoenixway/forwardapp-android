@@ -1,15 +1,11 @@
 package com.romankozak.forwardappmobile.core.navigation
 import android.util.Log
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.ProjectHierarchyScreenPlanningModeManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenPlanningUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ProjectHierarchyScreenSearchUseCase
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +20,6 @@ sealed interface ClearCommand {
 
     data class NavigateToProject(val projectId: String, val projectName: String) : ClearCommand
 
-    data object CollapseAll : ClearCommand
 }
 
 sealed class ClearResult {
@@ -34,7 +29,6 @@ sealed class ClearResult {
 }
 
 data class ClearExecutionContext(
-    val currentProjects: List<Context>,
     val subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
     val searchUseCase: ProjectHierarchyScreenSearchUseCase,
     val planningUseCase: ProjectHierarchyScreenPlanningUseCase?,
@@ -46,10 +40,7 @@ data class ClearExecutionContext(
 @Singleton
 class ClearAndNavigateHomeUseCase
     @Inject
-    constructor(
-        private val contextRepository: ContextRepository,
-        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    ) {
+    constructor() {
         companion object {
             private const val TAG = "ClearNavigateUseCase"
         }
@@ -65,7 +56,6 @@ class ClearAndNavigateHomeUseCase
                     is ClearCommand.Home -> executeHomeNavigation(context)
                     is ClearCommand.CloseSearch -> executeCloseSearch(context)
                     is ClearCommand.NavigateToProject -> executeProjectNavigation(command, context)
-                    is ClearCommand.CollapseAll -> executeCollapseAll(context)
                 }
 
                 Log.d(TAG, "Command executed successfully: $command")
@@ -77,7 +67,6 @@ class ClearAndNavigateHomeUseCase
 
         private suspend fun executeHomeNavigation(context: ClearExecutionContext) {
             clearUIStateToHome(context)
-            collapseExpandedProjects(context.currentProjects)
             resetPlanningModeToDefault(context)
             navigateToHome(context)
             scrollToTop(context)
@@ -85,7 +74,6 @@ class ClearAndNavigateHomeUseCase
 
         private suspend fun executeCloseSearch(context: ClearExecutionContext) {
             clearUIStateToHome(context)
-            collapseExpandedProjects(context.currentProjects)
             resetPlanningModeToDefault(context)
             navigateToHome(context)
             scrollToTop(context)
@@ -101,12 +89,6 @@ class ClearAndNavigateHomeUseCase
             context.enhancedNavigationManager?.navigateToProject(command.projectId, command.projectName)
         }
 
-        private suspend fun executeCollapseAll(context: ClearExecutionContext) {
-            collapseExpandedProjects(context.currentProjects)
-            clearSearchAndNavigation(context)
-            resetSubStateToHierarchy(context)
-            scrollToTop(context)
-        }
 
         private suspend fun clearUIStateToHome(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
@@ -131,18 +113,6 @@ class ClearAndNavigateHomeUseCase
             }
         }
 
-        private suspend fun collapseExpandedProjects(currentProjects: List<Context>) {
-            withContext(ioDispatcher) {
-                val expandedProjects = currentProjects.filter { it.isExpanded }
-                Log.d(TAG, "Found ${expandedProjects.size} expanded projects to collapse")
-
-                if (expandedProjects.isNotEmpty()) {
-                    val collapsedProjects = expandedProjects.map { it.copy(isExpanded = false) }
-                    contextRepository.updateContexts(collapsedProjects)
-                    Log.d(TAG, "Collapsed ${collapsedProjects.size} projects")
-                }
-            }
-        }
 
         private suspend fun resetPlanningModeToDefault(context: ClearExecutionContext) {
             withContext(Dispatchers.Main.immediate) {
@@ -169,41 +139,9 @@ class ClearAndNavigateHomeUseCase
             }
         }
 
-        @Deprecated("Use execute() with ClearCommand instead")
-        suspend operator fun invoke(
-            currentProjects: List<Context>,
-            onComplete: () -> Unit,
-        ) {
-            collapseExpandedProjects(currentProjects)
-            withContext(Dispatchers.Main.immediate) {
-                onComplete()
-            }
-        }
-
-        @Deprecated("Use execute() with ClearCommand instead")
-        suspend operator fun invoke(
-            currentProjects: List<Context>,
-            onSubStateCleared: () -> Unit,
-            onNavigationCleared: () -> Unit,
-            onNavigateHome: () -> Unit,
-            onScrollToTop: () -> Unit,
-        ) {
-            withContext(Dispatchers.Main.immediate) {
-                onSubStateCleared()
-                onNavigationCleared()
-            }
-
-            collapseExpandedProjects(currentProjects)
-
-            withContext(Dispatchers.Main.immediate) {
-                onNavigateHome()
-                onScrollToTop()
-            }
-        }
     }
 
 fun createClearExecutionContext(
-    currentProjects: List<Context>,
     subStateStack: StateFlow<List<ProjectHierarchyScreenSubState>>,
     searchUseCase: ProjectHierarchyScreenSearchUseCase,
     planningUseCase: ProjectHierarchyScreenPlanningUseCase? = null,
@@ -212,7 +150,6 @@ fun createClearExecutionContext(
     uiEventChannel: Channel<ProjectUiEvent>,
 ): ClearExecutionContext =
     ClearExecutionContext(
-        currentProjects = currentProjects,
         subStateStack = subStateStack,
         searchUseCase = searchUseCase,
         planningUseCase = planningUseCase,

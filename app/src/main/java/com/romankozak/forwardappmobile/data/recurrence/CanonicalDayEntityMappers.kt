@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan as AndroidDayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask as AndroidDayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.shared.core.models.day.DayFocusItem as CanonicalDayFocusItem
 import com.romankozak.forwardappmobile.shared.core.models.day.DayFocusType as CanonicalDayFocusType
 import com.romankozak.forwardappmobile.shared.core.models.day.DayPlan as CanonicalDayPlan
@@ -52,7 +53,7 @@ fun AndroidDayTask.toCanonicalDayTask(): CanonicalDayTask =
         title = title,
         description = description,
         goalId = goalId,
-        projectId = projectId,
+        projectId = logicalProjectId,
         linkedProjectIds = linkedProjectIds.orEmpty(),
         linkedAttachmentIds = linkedAttachmentIds.orEmpty(),
         activityRecordId = activityRecordId,

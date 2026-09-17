@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterCenterFocus
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ArrowOutward
@@ -76,12 +78,12 @@ import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyPresentationItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -179,6 +181,8 @@ fun BeaconRootHeaderRow(
     node: OrientationHierarchyNode.Beacon,
     level: Int,
     childCount: Int = 0,
+    isExpanded: Boolean = true,
+    onToggleExpansion: (() -> Unit)? = null,
     onClick: () -> Unit = {},
     onEditBeacon: (() -> Unit)? = null,
     onDeleteBeacon: (() -> Unit)? = null,
@@ -196,6 +200,8 @@ fun BeaconRootHeaderRow(
         level = level,
         childCount = childCount,
         showChildCountBadge = false,
+        isExpanded = isExpanded,
+        onToggleExpansion = onToggleExpansion,
         onClick = onClick,
         actionMenu = {
             BeaconHeaderActionMenu(
@@ -216,6 +222,8 @@ fun BeaconGroupRootHeaderRow(
     node: OrientationHierarchyNode.Group,
     level: Int,
     childCount: Int = 0,
+    isExpanded: Boolean = true,
+    onToggleExpansion: (() -> Unit)? = null,
     onClick: () -> Unit = {},
     onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -227,6 +235,8 @@ fun BeaconGroupRootHeaderRow(
         tint = MaterialTheme.colorScheme.primary,
         level = level,
         childCount = childCount,
+        isExpanded = isExpanded,
+        onToggleExpansion = onToggleExpansion,
         onClick = onClick,
         actionMenu = {
             PasteBeaconHeaderActionMenu(onPasteBeacon = onPasteBeacon)
@@ -239,6 +249,8 @@ fun BeaconGroupRootHeaderRow(
 fun NoGroupRootHeaderRow(
     level: Int,
     childCount: Int = 0,
+    isExpanded: Boolean = true,
+    onToggleExpansion: (() -> Unit)? = null,
     onClick: () -> Unit = {},
     onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -250,6 +262,8 @@ fun NoGroupRootHeaderRow(
         tint = MaterialTheme.colorScheme.secondary,
         level = level,
         childCount = childCount,
+        isExpanded = isExpanded,
+        onToggleExpansion = onToggleExpansion,
         onClick = onClick,
         actionMenu = {
             PasteBeaconHeaderActionMenu(onPasteBeacon = onPasteBeacon)
@@ -262,6 +276,8 @@ fun NoGroupRootHeaderRow(
 fun NoBeaconRootHeaderRow(
     level: Int,
     childCount: Int = 0,
+    isExpanded: Boolean = true,
+    onToggleExpansion: (() -> Unit)? = null,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -272,6 +288,8 @@ fun NoBeaconRootHeaderRow(
         tint = MaterialTheme.colorScheme.outline,
         level = level,
         childCount = childCount,
+        isExpanded = isExpanded,
+        onToggleExpansion = onToggleExpansion,
         onClick = onClick,
         modifier = modifier,
     )
@@ -286,6 +304,8 @@ private fun RootHeaderRow(
     level: Int,
     childCount: Int,
     showChildCountBadge: Boolean = true,
+    isExpanded: Boolean = true,
+    onToggleExpansion: (() -> Unit)? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     actionMenu: (@Composable () -> Unit)? = null,
@@ -348,6 +368,24 @@ private fun RootHeaderRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (childCount > 0 && onToggleExpansion != null) {
+                IconButton(onClick = onToggleExpansion) {
+                    Icon(
+                        imageVector =
+                            if (isExpanded) {
+                                Icons.Filled.KeyboardArrowUp
+                            } else {
+                                Icons.Filled.KeyboardArrowDown
+                            },
+                        contentDescription =
+                            if (isExpanded) {
+                                "Collapse hierarchy section"
+                            } else {
+                                "Expand hierarchy section"
+                            },
+                    )
+                }
             }
             actionMenu?.invoke()
         }
@@ -419,14 +457,14 @@ private fun readinessTint(status: MainBeaconReadinessStatus): Color =
 
 @Composable
 fun ProjectRow(
-    project: Context,
+    project: HierarchyContextPresentationNode,
     level: Int,
     hasChildren: Boolean,
     childCount: Int,
     isLinkedAppearance: Boolean = false,
     isCanonicalWorkspace: Boolean = false,
     onProjectClick: (String) -> Unit,
-    onProjectFocus: (Context) -> Unit,
+    onProjectFocus: (String) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
@@ -439,6 +477,8 @@ fun ProjectRow(
     isSelected: Boolean = false,
     onToggleSelection: ((String) -> Unit)? = null,
     onStartSelection: ((String) -> Unit)? = null,
+    isExpanded: Boolean = false,
+    onToggleExpansion: ((String) -> Unit)? = null,
 ) {
     val highlightColor by animateColorAsState(
         targetValue =
@@ -505,7 +545,7 @@ fun ProjectRow(
                                 if (isSelectionMode) {
                                     onToggleSelection?.invoke(project.id)
                                 } else {
-                                    onProjectFocus(project)
+                                    onProjectFocus(project.id)
                                 }
                             },
                             onLongClick = {
@@ -526,6 +566,14 @@ fun ProjectRow(
                     Spacer(modifier = Modifier.width(4.dp))
                 }
                 if (hasChildren) {
+                    onToggleExpansion?.let { toggle ->
+                        IconButton(onClick = { toggle(project.id) }) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = if (isExpanded) "Згорнути підпроєкти" else "Розгорнути підпроєкти",
+                            )
+                        }
+                    }
                     Surface(
                         shape = RoundedCornerShape(999.dp),
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
@@ -581,22 +629,22 @@ fun ProjectRow(
 
 @Composable
 fun SwipeableProjectRow(
-    project: Context,
+    project: HierarchyContextPresentationNode,
     level: Int,
     hasChildren: Boolean,
     childCount: Int,
     isLinkedAppearance: Boolean = false,
     isCanonicalWorkspace: Boolean = false,
     onProjectClick: (String) -> Unit,
-    onProjectFocus: (Context) -> Unit,
+    onProjectFocus: (String) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
     dragHandle: @Composable (() -> Unit)? = null,
-    onAddSubproject: (project: Context) -> Unit,
-    onDelete: (project: Context) -> Unit,
-    onEdit: (project: Context) -> Unit,
+    onAddSubproject: (projectId: String) -> Unit,
+    onDelete: (projectId: String) -> Unit,
+    onEdit: (projectId: String) -> Unit,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
@@ -604,6 +652,8 @@ fun SwipeableProjectRow(
     isSelected: Boolean = false,
     onToggleSelection: ((String) -> Unit)? = null,
     onStartSelection: ((String) -> Unit)? = null,
+    isExpanded: Boolean = false,
+    onToggleExpansion: ((String) -> Unit)? = null,
 ) {
     val contextId = remember(project.id) { ContextId(project.id) }
     val isSystemContext = remember(project.id) { SystemContexts.isSystem(contextId) }
@@ -689,7 +739,7 @@ fun SwipeableProjectRow(
                         contentDescription = "Фокус",
                         color = MaterialTheme.colorScheme.primary,
                     ) {
-                        onProjectFocus(project)
+                        onProjectFocus(project.id)
                         resetSwipe()
                     }
                     ProjectSwipeActionButton(
@@ -697,7 +747,7 @@ fun SwipeableProjectRow(
                         contentDescription = "Додати підпроєкт",
                         color = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
-                        onAddSubproject(project)
+                        onAddSubproject(project.id)
                         resetSwipe()
                     }
                 }
@@ -730,7 +780,7 @@ fun SwipeableProjectRow(
                         contentDescription = "Видалити проєкт",
                         color = MaterialTheme.colorScheme.error,
                     ) {
-                        onDelete(project)
+                        onDelete(project.id)
                         resetSwipe()
                     }
                     ProjectSwipeActionButton(
@@ -738,7 +788,7 @@ fun SwipeableProjectRow(
                         contentDescription = "Редагувати проєкт",
                         color = MaterialTheme.colorScheme.primary,
                     ) {
-                        onEdit(project)
+                        onEdit(project.id)
                         resetSwipe()
                     }
                 }
@@ -766,6 +816,8 @@ fun SwipeableProjectRow(
             isSelected = isSelected,
             onToggleSelection = onToggleSelection,
             onStartSelection = onStartSelection,
+            isExpanded = isExpanded,
+            onToggleExpansion = onToggleExpansion,
         )
     }
 }
@@ -943,18 +995,12 @@ fun BreadcrumbNavigation(
     }
 }
 
-internal fun buildVisibleHierarchy(
-    flattenedHierarchy: List<FlatHierarchyItem>,
-    childMap: Map<String, List<Context>>,
-    longDescendantsMap: Map<String, Boolean>,
-): List<FlatHierarchyItem> = flattenedHierarchy
-
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HierarchyListItem(
-    item: FlatHierarchyItem,
-    childMap: Map<String, List<Context>>,
-    dragAndDropState: DragAndDropState<Context>,
+    item: FlatHierarchyPresentationItem,
+    childCount: Int,
+    dragAndDropState: DragAndDropState<String>,
     isSearchActive: Boolean,
     highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
@@ -966,12 +1012,14 @@ fun HierarchyListItem(
     onProjectClick: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
-    onMenuRequested: (Context) -> Unit,
+    onMenuRequested: (String) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Context) -> Unit,
-    onAddSubproject: (Context) -> Unit,
-    onDeleteProject: (Context) -> Unit,
-    onEditProject: (Context) -> Unit,
+    onFocusProject: (String) -> Unit,
+    onAddSubproject: (String) -> Unit,
+    onDeleteProject: (String) -> Unit,
+    onEditProject: (String) -> Unit,
+    isExpanded: Boolean = false,
+    onToggleExpansion: ((String) -> Unit)? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     legacyContextActionsEnabled: Boolean = true,
@@ -980,20 +1028,20 @@ fun HierarchyListItem(
     @Suppress("UNUSED_VARIABLE")
     val unusedInputs = Triple(settings, longDescendantsMap, animatedVisibilityScope)
     val project = item.project
-    val children = childMap[project.id].orEmpty()
-    val hasChildren = children.isNotEmpty()
-    val draggedProject = dragAndDropState.draggedItem?.data
-    val isCurrentlyDragging = draggedProject?.id == project.id
+    val hasChildren = childCount > 0
+    val draggedProjectId = dragAndDropState.draggedItem?.data
+    val isCurrentlyDragging = draggedProjectId == project.id
 
+    val presentationName = project.name
     val displayName =
         if (isSearchActive && searchQuery.isNotEmpty()) {
             if (searchQuery.length > SHORT_QUERY_THRESHOLD) {
-                highlightFuzzy(text = project.name, query = searchQuery)
+                highlightFuzzy(text = presentationName, query = searchQuery)
             } else {
-                highlightSubstring(text = project.name, query = searchQuery)
+                highlightSubstring(text = presentationName, query = searchQuery)
             }
         } else {
-            AnnotatedString(project.name)
+            AnnotatedString(presentationName)
         }
 
     val isFocused = project.id == focusedProjectId
@@ -1001,8 +1049,8 @@ fun HierarchyListItem(
 
     with(sharedTransitionScope) {
         val isDropAllowed =
-            remember(draggedProject, project) {
-                draggedProject == null || draggedProject.id != project.id
+            remember(draggedProjectId, project.id) {
+                draggedProjectId == null || draggedProjectId != project.id
             }
 
         val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
@@ -1024,7 +1072,7 @@ fun HierarchyListItem(
                 project = project,
                 level = item.level,
                 hasChildren = hasChildren,
-                childCount = children.size,
+                childCount = childCount,
                 isLinkedAppearance = item.isLinkedAppearance,
                 isCanonicalWorkspace = item.isCanonicalWorkspace,
                 onProjectClick = onProjectClick,
@@ -1046,11 +1094,11 @@ fun HierarchyListItem(
                             DraggableItem(
                                 state = dragAndDropState,
                                 key = project.id,
-                                data = project,
+                                data = project.id,
                                 dragAfterLongPress = true,
                             ) {
                                 IconButton(
-                                    onClick = { onMenuRequested(project) },
+                                    onClick = { onMenuRequested(project.id) },
                                     modifier = Modifier.padding(start = 2.dp).size(36.dp),
                                 ) {
                                     Icon(
@@ -1075,6 +1123,8 @@ fun HierarchyListItem(
                     if (legacyContextActionsEnabled) onToggleSelection else { _ -> },
                 onStartSelection =
                     if (legacyContextActionsEnabled) onStartSelection else { _ -> },
+                isExpanded = isExpanded,
+                onToggleExpansion = onToggleExpansion,
             )
 
             if (!isCurrentlyDragging && !isSelectionMode && legacyContextActionsEnabled) {
@@ -1086,7 +1136,7 @@ fun HierarchyListItem(
                             .then(
                                 if (isDropAllowed) {
                                     Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                        onProjectReorder(it.data.id, project.id, position)
+                                        onProjectReorder(it.data, project.id, position)
                                     }
                                 } else {
                                     Modifier
@@ -1097,6 +1147,97 @@ fun HierarchyListItem(
                     Box(modifier = dropModifier(DropPosition.AFTER))
                 }
             }
+        }
+    }
+}
+
+@Composable
+internal fun PresentationHierarchyRow(
+    item: FlatHierarchyPresentationItem,
+    childCount: Int,
+    isSearchActive: Boolean,
+    searchQuery: String,
+    isFocused: Boolean,
+    isHighlighted: Boolean,
+    onProjectClick: (String) -> Unit,
+    isExpanded: Boolean = false,
+    onToggleExpansion: (() -> Unit)? = null,
+) {
+    val project = item.project
+    val displayName =
+        when {
+            !isSearchActive || searchQuery.isBlank() -> AnnotatedString(project.name)
+            searchQuery.length > SHORT_QUERY_THRESHOLD -> highlightFuzzy(project.name, searchQuery)
+            else -> highlightSubstring(project.name, searchQuery)
+        }
+    val background =
+        when {
+            isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
+            isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
+            else -> MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+                alpha = (0.86f - (item.level * 0.06f)).coerceIn(HIERARCHY_MIN_CARD_ALPHA, HIERARCHY_MAX_CARD_ALPHA),
+            )
+        }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = (item.level * HIERARCHY_LEVEL_INDENT_DP).dp + 14.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(background)
+                .border(
+                    width = 0.8.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                .clickable { onProjectClick(project.id) }
+                .padding(vertical = 8.dp, horizontal = 16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (childCount > 0) {
+                onToggleExpansion?.let { toggle ->
+                    IconButton(onClick = toggle) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = if (isExpanded) "Згорнути підпроєкти" else "Розгорнути підпроєкти",
+                        )
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                ) {
+                    Text(
+                        text = childCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            HierarchyOriginBadge(isCanonicalWorkspace = true)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = displayName,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        project.description?.takeIf { it.isNotBlank() }?.let { description ->
+            Text(
+                text = description,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 30.dp, top = 2.dp),
+            )
         }
     }
 }

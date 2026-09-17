@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
@@ -25,6 +27,9 @@ class LegacyNoteRepository
 
         @androidx.room.Transaction
         suspend fun saveNote(note: LegacyNoteEntity) {
+            require(!SystemContexts.isSystem(ContextId(note.contextId))) {
+                "LegacyNote cannot target reserved System Context ${note.contextId}"
+            }
             val existingNote = legacyNoteDao.getNoteById(note.id)
             if (existingNote == null) {
                 val now = System.currentTimeMillis()

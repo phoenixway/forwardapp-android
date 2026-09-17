@@ -106,7 +106,6 @@ class ContextDataApplyActions(
             config.applyMode,
             config.enableInbox.toString(),
             config.enableLog.toString(),
-            config.enableAdvanced.toString(),
             config.enableDashboard.toString(),
             config.enableBacklog.toString(),
             config.enableAttachments.toString(),
@@ -116,9 +115,12 @@ class ContextDataApplyActions(
     }
 
     private fun logProjectAccess(data: ContextData.Loaded) {
-        data.context?.let { project ->
+        data.presentation?.let { presentation ->
             scope.launch {
-                recentItemsRepository.logProjectAccess(project)
+                recentItemsRepository.logProjectAccess(
+                    projectId = presentation.id,
+                    displayName = presentation.name,
+                )
             }
         }
     }
@@ -127,14 +129,25 @@ class ContextDataApplyActions(
         data: ContextData.Loaded,
         currentState: ContextUiState,
     ) = with(data) {
-        val contextId = context?.id ?: currentState.context?.id.orEmpty()
+        val contextId =
+            presentation?.id
+                ?: context?.id
+                ?: currentState.presentation?.id
+                ?: currentState.context?.id.orEmpty()
         val preferredViewName = context?.defaultViewModeName
         val configFingerprint = buildStableConfigFingerprint(config)
+        val capabilityAuthorityFingerprint =
+            listOf(
+                "dashboardOverride=${dashboardEnabledOverride()}",
+                "executionLogOverride=$executionLogEnabledOverride",
+                "canonicalOverrides=$canonicalCapabilityOverrides",
+                "suppressPresetCapabilityDerivation=$suppressPresetCapabilityDerivation",
+            ).joinToString("|")
         val syncKey =
             Triple(
                 contextId,
                 preferredViewName,
-                "$configFingerprint|dashboardOverride=${dashboardEnabledOverride()}|executionLogOverride=$executionLogEnabledOverride",
+                "$configFingerprint|$capabilityAuthorityFingerprint",
             )
         if (lastSyncKey == syncKey) {
             contextSessionStore.state.value
@@ -148,6 +161,8 @@ class ContextDataApplyActions(
                     currentView = currentState.currentViewMode,
                     dashboardEnabledOverride = dashboardEnabledOverride(),
                     executionLogEnabledOverride = executionLogEnabledOverride,
+                    canonicalCapabilityOverrides = canonicalCapabilityOverrides,
+                    suppressPresetCapabilityDerivation = suppressPresetCapabilityDerivation,
                 ),
             )
         }

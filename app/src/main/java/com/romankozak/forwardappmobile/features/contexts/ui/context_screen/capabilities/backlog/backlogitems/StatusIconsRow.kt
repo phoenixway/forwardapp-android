@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLinkProjectReadModel
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -168,7 +169,7 @@ fun StatusIconsRow(
 
 @Composable
 fun StatusIconsRow(
-    project: Context,
+    project: ContextLinkProjectReadModel,
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,

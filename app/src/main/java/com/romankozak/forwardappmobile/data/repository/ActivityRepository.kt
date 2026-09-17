@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordK
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
 import com.romankozak.forwardappmobile.domain.userawareness.ContextStateMinutes
@@ -47,6 +48,7 @@ class ActivityRepository
         private val appDatabase: AppDatabase,
         private val userAwarenessRepository: UserAwarenessRepository,
         private val stateSlashCommandParser: StateSlashCommandParser,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
@@ -234,13 +236,18 @@ class ActivityRepository
         }
 
         suspend fun startContextActivity(contextId: String): ActivityRecord? {
-            val context = contextDao.getContextById(contextId) ?: return null
+            val rawContext = contextDao.getContextById(contextId)
+            val presentation =
+                systemWorkspacePresentationContextProjector.resolvePresentation(
+                    contextId = contextId,
+                    context = rawContext,
+                ) ?: return null
             val now = System.currentTimeMillis()
             val newRecord =
                 ActivityRecord(
-                    text = context.name,
-                    rawNoteText = context.name,
-                    noteText = context.name,
+                    text = presentation.name,
+                    rawNoteText = presentation.name,
+                    noteText = presentation.name,
                     recordKind = ActivityRecordKind.TIMED_ACTIVITY,
                     startTime = now,
                     contextId = contextId,

@@ -1,9 +1,12 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases
 
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLinkProjectReadModel
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -18,6 +21,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEnt
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
+import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityLifecycleState
+import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleState
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.canonicalSystemBacklogLifecycleOverrides
+import com.romankozak.forwardappmobile.data.workspace.canonicalSystemInboxDirectionOverrides
+import com.romankozak.forwardappmobile.data.workspace.canonicalSystemRemainingCapabilityOverrides
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
@@ -45,9 +55,47 @@ class ContextScreenDataMapper {
             notes = snapshot.notes,
             enabledCapabilityOverrides = snapshot.enabledCapabilityOverrides(),
             executionLogEnabledOverride = snapshot.executionLogEnabledOverride(),
+            canonicalCapabilityOverrides =
+                canonicalSystemInboxDirectionOverrides(contextId, snapshot.systemInboxDirectionState) +
+                    canonicalSystemRemainingCapabilityOverrides(
+                        contextId,
+                        snapshot.systemRemainingCapabilityState,
+                    ) +
+                    canonicalSystemBacklogLifecycleOverrides(
+                        contextId,
+                        snapshot.systemBacklogLifecycleState,
+                    ),
+            suppressPresetCapabilityDerivation =
+                snapshot.hasPromotedSystemCapabilityAuthority(contextId),
+            presentation = snapshot.presentation,
         )
     }
 }
+
+internal data class ContextScreenContextReadModel(
+    val presentation: ContextPresentation?,
+    val rawContext: Context?,
+    val presentationUniverse: List<ContextPresentation>,
+    val rawContexts: List<Context>,
+)
+
+internal fun contextScreenReadModel(
+    contextId: String,
+    presentations: List<ContextPresentation>,
+    contexts: List<Context>,
+): ContextScreenContextReadModel =
+    ContextScreenContextReadModel(
+        presentation = presentations.firstOrNull { it.id == contextId },
+        rawContext = contexts.firstOrNull { it.id == contextId },
+        presentationUniverse = presentations,
+        rawContexts = contexts,
+    )
+
+private fun ContextScreenDataSnapshot.hasPromotedSystemCapabilityAuthority(contextId: String): Boolean =
+    SystemContexts.isSystem(ContextId(contextId)) &&
+        systemInboxDirectionState?.isCanonicalOwnerAvailable == true &&
+        systemRemainingCapabilityState?.isCanonicalOwnerAvailable == true &&
+        systemBacklogLifecycleState?.isCanonicalOwnerAvailable == true
 
 data class ContextScreenDataSnapshot(
     val context: Context?,
@@ -58,21 +106,26 @@ data class ContextScreenDataSnapshot(
     val noteDocuments: List<NoteDocumentEntity>,
     val musicNotes: List<MusicNoteEntity>,
     val directionItems: List<DirectionItemEntity>,
-    val allContexts: List<Context>,
     val attachments: List<AttachmentWithContext>,
     val linkItems: List<LinkItemEntity>,
     val reminders: List<Reminder>,
     val recentItems: List<RecentItem>,
     val notes: List<LegacyNoteEntity>,
     val goals: List<Goal>,
-    val subprojects: List<Context>,
     val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity>,
+    val systemInboxDirectionState: SystemInboxDirectionState?,
+    val systemRemainingCapabilityState: SystemRemainingCapabilityLifecycleState? = null,
+    val systemBacklogLifecycleState: SystemBacklogLifecycleState? = null,
+    val presentation: ContextPresentation? = null,
+    val presentationUniverse: List<ContextPresentation> = emptyList(),
+    val rawContexts: List<Context> = emptyList(),
 ) {
     companion object {
         @Suppress("UNCHECKED_CAST")
         fun fromArgs(args: Array<Any?>): ContextScreenDataSnapshot {
+            val contextReadModel = args[CONTEXT_INDEX] as? ContextScreenContextReadModel
             return ContextScreenDataSnapshot(
-                context = args[CONTEXT_INDEX] as? Context,
+                context = contextReadModel?.rawContext ?: args[CONTEXT_INDEX] as? Context,
                 rawItems = args.itemsAt<BacklogItem>(RAW_ITEMS_INDEX),
                 config = args[CONFIG_INDEX] as? ContextConfiguration,
                 logs = args.itemsAt<ContextLog>(LOGS_INDEX),
@@ -80,15 +133,24 @@ data class ContextScreenDataSnapshot(
                 noteDocuments = args.itemsAt<NoteDocumentEntity>(NOTE_DOCUMENTS_INDEX),
                 musicNotes = args.itemsAt<MusicNoteEntity>(MUSIC_NOTES_INDEX),
                 directionItems = args.itemsAt<DirectionItemEntity>(DIRECTION_ITEMS_INDEX),
-                allContexts = args.itemsAt<Context>(ALL_CONTEXTS_INDEX),
                 attachments = args.itemsAt<AttachmentWithContext>(ATTACHMENTS_INDEX),
                 linkItems = args.itemsAt<LinkItemEntity>(LINK_ITEMS_INDEX),
                 reminders = args.itemsAt<Reminder>(REMINDERS_INDEX),
                 recentItems = args.itemsAt<RecentItem>(RECENT_ITEMS_INDEX),
                 notes = args.itemsAt<LegacyNoteEntity>(NOTES_INDEX),
                 goals = args.itemsAt<Goal>(GOALS_INDEX),
-                subprojects = args.itemsAt<Context>(SUBPROJECTS_INDEX),
                 workspaceCapabilities = args.itemsAt<WorkspaceCapabilityInstanceEntity>(WORKSPACE_CAPABILITIES_INDEX),
+                systemInboxDirectionState =
+                    args.getOrNull(SYSTEM_INBOX_DIRECTION_STATE_INDEX) as? SystemInboxDirectionState,
+                systemRemainingCapabilityState =
+                    args.getOrNull(SYSTEM_REMAINING_CAPABILITY_STATE_INDEX)
+                        as? SystemRemainingCapabilityLifecycleState,
+                systemBacklogLifecycleState =
+                    args.getOrNull(SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX)
+                        as? SystemBacklogLifecycleState,
+                presentation = contextReadModel?.presentation,
+                presentationUniverse = contextReadModel?.presentationUniverse.orEmpty(),
+                rawContexts = contextReadModel?.rawContexts.orEmpty(),
             )
         }
     }
@@ -135,8 +197,8 @@ private data class ContextScreenMappingSupport(
     val musicNotesById: Map<String, MusicNoteEntity>,
     val checklistsById: Map<String, ChecklistEntity>,
     val goalsById: Map<String, Goal>,
-    val contextsById: Map<String, Context>,
-    val subprojectsById: Map<String, Context>,
+    val presentationsById: Map<String, ContextPresentation>,
+    val rawContextsById: Map<String, Context>,
     val remindersByEntityId: Map<String, List<Reminder>>,
 )
 
@@ -148,8 +210,8 @@ private fun ContextScreenDataSnapshot.toMappingSupport(): ContextScreenMappingSu
         musicNotesById = musicNotes.associateBy { it.id },
         checklistsById = checklists.associateBy { it.id },
         goalsById = goals.associateBy { it.id },
-        contextsById = allContexts.associateBy { it.id },
-        subprojectsById = subprojects.associateBy { it.id },
+        presentationsById = presentationUniverse.associateBy { it.id },
+        rawContextsById = rawContexts.associateBy { it.id },
         remindersByEntityId = reminders.groupBy { it.entityId },
     )
 }
@@ -237,7 +299,7 @@ private fun AttachmentWithContext.toAttachmentItem(
 
 private fun ContextScreenDataSnapshot.buildLinkedContextNames(): Map<String, String> {
     val linkedIds = directionItems.mapNotNull { it.linkedContextId }.toSet()
-    val namesById = allContexts.associateBy({ it.id }, { it.name })
+    val namesById = presentationUniverse.associateBy({ it.id }, { it.name })
     return linkedIds.takeIf { it.isNotEmpty() }
         ?.associateWith { id -> namesById[id] ?: DEFAULT_CONTEXT_NAME }
         ?: emptyMap()
@@ -260,14 +322,30 @@ private fun BacklogItem.toContextLinkItemContent(
     support: ContextScreenMappingSupport,
     reminders: List<Reminder>,
 ): BacklogItemContent? {
-    val linkedContext = support.contextsById[entityId] ?: support.subprojectsById[entityId]
-    return linkedContext?.let { project ->
-        BacklogItemContent.ContextLinkItem(
-            project = project,
-            backlogItem = this,
-            reminders = reminders,
-        )
-    }
+    val presentation = support.presentationsById[entityId] ?: return null
+    val legacyProject = support.rawContextsById[entityId]
+
+    return BacklogItemContent.ContextLinkItem(
+        project =
+            ContextLinkProjectReadModel(
+                id = presentation.id,
+                name = presentation.name,
+                description = presentation.description,
+                parentId = presentation.parentId,
+                order = presentation.order,
+                roleCode = presentation.roleCode,
+                tags = presentation.tags,
+                isCompleted = legacyProject?.isCompleted ?: false,
+                createdAt = legacyProject?.createdAt ?: 0L,
+                relatedLinks = legacyProject?.relatedLinks,
+                scoringStatus = legacyProject?.scoringStatus
+                    ?: com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues.NOT_ASSESSED,
+                displayScore = legacyProject?.displayScore ?: 0,
+            ),
+        backlogItem = this,
+        reminders = reminders,
+        legacyProject = legacyProject,
+    )
 }
 
 private fun BacklogItem.toAttachmentBackedItemContent(
@@ -311,15 +389,16 @@ private const val CHECKLISTS_INDEX = 4
 private const val NOTE_DOCUMENTS_INDEX = 5
 private const val MUSIC_NOTES_INDEX = 6
 private const val DIRECTION_ITEMS_INDEX = 7
-private const val ALL_CONTEXTS_INDEX = 8
-private const val ATTACHMENTS_INDEX = 9
-private const val LINK_ITEMS_INDEX = 10
-private const val REMINDERS_INDEX = 11
-private const val RECENT_ITEMS_INDEX = 12
-private const val NOTES_INDEX = 13
-private const val GOALS_INDEX = 14
-private const val SUBPROJECTS_INDEX = 15
-private const val WORKSPACE_CAPABILITIES_INDEX = 16
+private const val ATTACHMENTS_INDEX = 8
+private const val LINK_ITEMS_INDEX = 9
+private const val REMINDERS_INDEX = 10
+private const val RECENT_ITEMS_INDEX = 11
+private const val NOTES_INDEX = 12
+private const val GOALS_INDEX = 13
+private const val WORKSPACE_CAPABILITIES_INDEX = 14
+private const val SYSTEM_INBOX_DIRECTION_STATE_INDEX = 15
+private const val SYSTEM_REMAINING_CAPABILITY_STATE_INDEX = 16
+private const val SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX = 17
 private const val PROJECT_ITEM_TYPE = "PROJECT"
 private const val LEGACY_LINK_ITEM_TYPE = "LINK"
 private const val DEFAULT_CONTEXT_NAME = "Context"

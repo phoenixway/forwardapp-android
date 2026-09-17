@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
@@ -19,20 +18,24 @@ class ReminderActions(
     private val showSnackbar: (String, String?) -> Unit,
     private val forceRefresh: () -> Unit,
 ) {
-    suspend fun onSetReminderForProject(project: Context?) {
-        project?.let { proj ->
-            val reminders = reminderRepository.getRemindersForEntityFlow(proj.id).firstOrNull().orEmpty()
-            val record =
-                ActivityRecord(
-                    id = proj.id,
-                    text = proj.name,
-                    reminderTime = reminders.firstOrNull()?.reminderTime,
-                    createdAt = proj.createdAt,
-                    contextId = proj.id,
-                    goalId = null,
-                )
-            stateManager.updateState { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
-        }
+    suspend fun onSetReminderForProject(
+        projectId: String,
+        projectName: String,
+        projectCreatedAt: Long,
+    ) {
+        if (projectId.isBlank()) return
+
+        val reminders = reminderRepository.getRemindersForEntityFlow(projectId).firstOrNull().orEmpty()
+        val record =
+            ActivityRecord(
+                id = projectId,
+                text = projectName,
+                reminderTime = reminders.firstOrNull()?.reminderTime,
+                createdAt = projectCreatedAt,
+                contextId = projectId,
+                goalId = null,
+            )
+        stateManager.updateState { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
     }
 
     suspend fun onSetReminderForItem(item: BacklogItemContent) {

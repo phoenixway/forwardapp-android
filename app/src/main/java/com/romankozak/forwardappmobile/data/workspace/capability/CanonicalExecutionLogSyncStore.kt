@@ -63,6 +63,7 @@ class CanonicalExecutionLogSyncStore
 
                 require(
                     workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||
+                        workspace.provenance == WorkspaceProvenance.STANDALONE.name ||
                         workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name,
                 ) {
                     "Canonical EXECUTION_LOG ${candidate.id} references unsupported Workspace provenance"

@@ -1,212 +1,44 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.data.workspace.SystemContextShellRetirer
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceLegacyContextEvidence
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeed
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Canonical reserved-System Workspace ownership convergence boundary.
+ *
+ * This initializer never creates or repairs reserved System Context rows.
+ * Fresh databases materialize canonical System Workspaces directly. Existing
+ * historical Context rows remain bounded upgrade/old-backup evidence only.
+ */
 @Singleton
 class DatabaseInitializer
     @Inject
     constructor(
-        private val contextDao: ContextDao,
-        private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
-        // private val systemAppRepository: SystemAppRepository, // Removed to break cycle
-    ) : SystemContextEnsurer { // Implement SystemContextEnsurer
-        override suspend fun ensureAllSystemContextsExist() { // Renamed from prePopulate
-            workspaceWriteThrough.mutate { prePopulateProjects(contextDao) }
-            // prePopulateSystemApps() // Removed to break cycle
-        }
-
-        private suspend fun prePopulateProjects(contextDao: ContextDao) {
-            val personalManagementProjectId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.PERSONAL_MANAGEMENT.raw,
-                    name = "personal-management",
-                    parentId = null,
-                )
-            val strategicGroupId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.STRATEGIC.raw,
-                    name = "strategic",
-                    parentId = personalManagementProjectId,
-                )
-            val levelsProjectId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.LEVELS.raw,
-                    name = "levels",
-                    parentId = personalManagementProjectId,
-                )
-            val weekProjectId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.WEEK.raw,
-                    name = "week",
-                    parentId = personalManagementProjectId,
-                )
-            val todayProjectId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.TODAY.raw,
-                    name = "day-management",
-                    parentId = levelsProjectId,
-                )
-
-            createSystemProjects(
-                contextDao = contextDao,
-                projectDefinitions =
-                    buildSystemProjectDefinitions(
-                        personalManagementProjectId = personalManagementProjectId,
-                        strategicGroupId = strategicGroupId,
-                        weekProjectId = weekProjectId,
-                        todayProjectId = todayProjectId,
-                    ),
-            )
-        }
-
-        private fun buildSystemProjectDefinitions(
-            personalManagementProjectId: String,
-            strategicGroupId: String,
-            weekProjectId: String,
-            todayProjectId: String,
-        ): List<SystemProjectDefinition> =
-            listOf(
-                SystemProjectDefinition(
-                    id = SystemContexts.ABOUT_MODES.raw,
-                    name = "mode-about",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.SESSION_IMPROVE.raw,
-                    name = "mode-improve",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.SESSION_EXECUTION.raw,
-                    name = "mode-execution",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.SESSION_CONTROL.raw,
-                    name = "mode-control",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.SESSION_RECOVERY.raw,
-                    name = "mode-recovery",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.SESSION_EMERGENCY.raw,
-                    name = "mode-emergency",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.MAIN_BEACONS.raw,
-                    name = "main-beacons",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.MISSION.raw,
-                    name = "mission",
-                    parentId = strategicGroupId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.LONG_TERM_STRATEGY.raw,
-                    name = "long-term-strategy",
-                    parentId = strategicGroupId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.STRATEGIC_PROGRAMS.raw,
-                    name = "strategic-programs",
-                    parentId = strategicGroupId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.MEDIUM_TERM_STRATEGY.raw,
-                    name = "medium-term-strategy",
-                    parentId = personalManagementProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.ACTIVE_QUESTS.raw,
-                    name = "active-quests",
-                    parentId = weekProjectId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.STRATEGIC_INBOX.raw,
-                    name = "strategic-inbox",
-                    parentId = strategicGroupId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.STRATEGIC_REVIEW.raw,
-                    name = "strategic-review",
-                    parentId = strategicGroupId,
-                ),
-                SystemProjectDefinition(
-                    id = SystemContexts.INBOX.raw,
-                    name = "inbox",
-                    parentId = todayProjectId,
-                ),
-            )
-
-        private suspend fun createSystemProjects(
-            contextDao: ContextDao,
-            projectDefinitions: List<SystemProjectDefinition>,
+        private val systemWorkspaceMaterializer: SystemWorkspaceMaterializer,
+        private val systemWorkspaceTagSeed: SystemWorkspaceTagSeed,
+        private val systemContextShellRetirer: SystemContextShellRetirer,
+    ) {
+        suspend fun ensureCanonicalSystemWorkspaceOwnership(
+            legacyContextEvidence: Collection<SystemWorkspaceLegacyContextEvidence> = emptyList(),
         ) {
-            projectDefinitions.forEach { projectDefinition ->
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = projectDefinition.id,
-                    name = projectDefinition.name,
-                    parentId = projectDefinition.parentId,
-                )
-            }
-        }
+            // Fresh identities, persisted historical evidence, and transient
+            // old-backup evidence all converge directly to canonical System
+            // Workspace ownership. No reserved Context shell is created.
+            systemWorkspaceMaterializer.materializeAll(
+                legacyContextEvidence = legacyContextEvidence,
+            )
 
-        private suspend fun ensureProjectExists(
-            contextDao: ContextDao,
-            id: String,
-            name: String,
-            parentId: String?,
-        ): String {
-            val existingProject = contextDao.getContextById(id)
-            if (existingProject != null) {
-                val canRenameOrMove = SystemContexts.canRenameOrMove(com.romankozak.forwardappmobile.core.context.ContextId(id))
-                if (!canRenameOrMove && (existingProject.name != name || existingProject.parentId != parentId)) {
-                    contextDao.update(
-                        existingProject.copy(
-                            name = name,
-                            parentId = parentId,
-                            updatedAt = System.currentTimeMillis(),
-                        ),
-                    )
-                }
-                return existingProject.id
-            }
+            // Establish canonical tag collections before consuming the final
+            // persisted reserved-System Context compatibility evidence.
+            systemWorkspaceTagSeed.seedMissingCanonicalCollections()
 
-            val newProject =
-                Context(
-                    id = id,
-                    name = name,
-                    parentId = parentId,
-                    isExpanded = false,
-                    description = null,
-                    createdAt = System.currentTimeMillis(),
-                    updatedAt = null,
-                    tags = null,
-                )
-            contextDao.insert(newProject)
-            return newProject.id
+            // Step 11: once every exact reserved identity has a valid canonical
+            // owner and established canonical tag collection, active legacy
+            // Context shells are no longer authoritative or required.
+            systemContextShellRetirer.retireActiveReservedShells()
         }
     }
-
-private data class SystemProjectDefinition(
-    val id: String,
-    val name: String,
-    val parentId: String?,
-)

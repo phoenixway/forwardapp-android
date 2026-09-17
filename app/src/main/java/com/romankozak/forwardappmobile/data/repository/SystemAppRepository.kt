@@ -1,11 +1,14 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppType
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
+import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,37 +18,41 @@ class SystemAppRepository
     @Inject
     constructor(
         private val systemAppDao: SystemAppDao,
-        private val contextDao: ContextDao,
+        private val workspaceDao: WorkspaceDao,
         private val noteDocumentDao: NoteDocumentDao,
-        private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
+        private val attachmentDao: AttachmentDao,
+        private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
     ) {
-        suspend fun getSystemApp(systemKey: String): SystemAppEntity? = systemAppDao.getBySystemKey(systemKey)
+        suspend fun getSystemApp(systemKey: String): SystemAppEntity? =
+            systemAppDao.getBySystemKey(systemKey)
 
         suspend fun ensureNoteApp(
             systemKey: String,
             projectSystemKey: String,
             documentName: String,
         ): SystemAppEntity {
-            val contextId =
-                contextDao.getContextById("sys_$projectSystemKey")?.id
-                    ?: throw IllegalStateException("System project $projectSystemKey не знайдено")
+            val workspaceId = "sys_$projectSystemKey"
+            requireLiveWorkspace(workspaceId)
 
             val existingApp = systemAppDao.getBySystemKey(systemKey)
+            require(existingApp == null || existingApp.workspaceId == workspaceId) {
+                "SystemApp $systemKey already belongs to another Workspace"
+            }
+
             val documentId =
                 existingApp?.noteDocumentId?.let { noteDocumentId ->
                     val existingDocument = noteDocumentDao.getDocumentById(noteDocumentId)
-                    existingDocument?.id ?: createNoteDocument(documentName, contextId)
-                } ?: createNoteDocument(documentName, contextId)
+                    existingDocument?.id ?: createNoteDocument(documentName, workspaceId)
+                } ?: createNoteDocument(documentName, workspaceId)
 
             val systemApp =
                 (
                     existingApp ?: SystemAppEntity(
                         systemKey = systemKey,
                         appType = SystemAppType.NOTE_DOCUMENT.name,
-                        contextId = contextId,
+                        workspaceId = workspaceId,
                     )
                 ).copy(
-                    contextId = contextId,
                     noteDocumentId = documentId,
                     updatedAt = System.currentTimeMillis(),
                 )
@@ -55,7 +62,9 @@ class SystemAppRepository
         }
 
         suspend fun getSystemNote(systemKey: String): NoteDocumentEntity? =
-            systemAppDao.getBySystemKey(systemKey)?.noteDocumentId?.let { noteDocumentDao.getDocumentById(it) }
+            systemAppDao.getBySystemKey(systemKey)?.noteDocumentId?.let {
+                noteDocumentDao.getDocumentById(it)
+            }
 
         suspend fun linkSystemNoteToProject(
             systemKey: String,
@@ -63,34 +72,67 @@ class SystemAppRepository
         ) {
             val systemApp = systemAppDao.getBySystemKey(systemKey) ?: return
             val noteId = systemApp.noteDocumentId ?: return
-            val targetcontextId = contextDao.getContextById("sys_$targetProjectSystemKey")?.id ?: return
+            val targetWorkspaceId = "sys_$targetProjectSystemKey"
+            requireLiveWorkspace(targetWorkspaceId)
 
-            attachmentRepository.ensureAttachmentLinkedToContext(
-                attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
-                entityId = noteId,
-                contextId = targetcontextId,
-                ownerContextId = systemApp.contextId,
-                createdAt = System.currentTimeMillis(), // Додано обов'язковий параметр
+            val attachment =
+                ensureNoteAttachment(
+                    entityId = noteId,
+                    ownerWorkspaceId = systemApp.workspaceId,
+                    createdAt = System.currentTimeMillis(),
+                )
+            canonicalConnectionsRepository.linkAttachment(
+                workspaceId = targetWorkspaceId,
+                attachmentId = attachment.id,
             )
         }
 
         private suspend fun createNoteDocument(
             name: String,
-            contextId: String,
+            workspaceId: String,
         ): String {
             val noteDocument =
                 NoteDocumentEntity(
                     name = name,
-                    contextId = contextId,
+                    contextId = workspaceId,
                 )
             noteDocumentDao.insertDocument(noteDocument)
-            attachmentRepository.ensureAttachmentLinkedToContext(
-                attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+
+            ensureNoteAttachment(
                 entityId = noteDocument.id,
-                contextId = contextId,
-                ownerContextId = contextId,
+                ownerWorkspaceId = workspaceId,
                 createdAt = noteDocument.createdAt,
             )
             return noteDocument.id
+        }
+
+        private suspend fun ensureNoteAttachment(
+            entityId: String,
+            ownerWorkspaceId: String,
+            createdAt: Long,
+        ): AttachmentEntity {
+            attachmentDao.findAttachmentByEntity(
+                BacklogItemTypeValues.NOTE_DOCUMENT,
+                entityId,
+            )?.let { return it }
+
+            val attachment =
+                AttachmentEntity(
+                    attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                    entityId = entityId,
+                    ownerContextId = ownerWorkspaceId,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                    version = 1L,
+                )
+            attachmentDao.insertAttachment(attachment)
+            return attachment
+        }
+
+        private suspend fun requireLiveWorkspace(workspaceId: String) {
+            val workspace = workspaceDao.getById(workspaceId)
+            require(workspace != null && !workspace.isDeleted) {
+                "System Workspace $workspaceId не знайдено або видалено"
+            }
         }
     }

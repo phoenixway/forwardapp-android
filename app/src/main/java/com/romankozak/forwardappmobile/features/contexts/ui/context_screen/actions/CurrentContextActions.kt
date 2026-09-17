@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ActivityManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
 
@@ -19,8 +18,8 @@ class CurrentContextActions(
         projectId?.let(activityManager::startActivity)
     }
 
-    suspend fun toggleAttachmentsExpanded(context: Context?) {
-        context?.let { contextSettingsActions.toggleAttachmentsExpanded(it) }
+    suspend fun toggleAttachmentsExpanded(contextId: String?) {
+        contextId?.takeIf { it.isNotBlank() }?.let { contextSettingsActions.toggleAttachmentsExpanded(it) }
     }
 
     suspend fun toggleProjectManagement(

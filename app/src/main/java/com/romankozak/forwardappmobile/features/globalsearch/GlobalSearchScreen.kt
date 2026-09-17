@@ -255,11 +255,17 @@ fun MagicBoxScreen(
             }
             is GlobalSearchResultItem.SubcontextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(result.searchResult.subcontext.id, result.searchResult.subcontext.name)
+                viewModel.navigateToProjectForResult(
+                    result.searchResult.presentation.id,
+                    result.searchResult.presentation.name,
+                )
             }
             is GlobalSearchResultItem.ContextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(result.searchResult.context.id, result.searchResult.context.name)
+                viewModel.navigateToProjectForResult(
+                    result.searchResult.presentation.id,
+                    result.searchResult.presentation.name,
+                )
             }
             is GlobalSearchResultItem.ActivityItem -> {
                 val contextId = result.record.contextId

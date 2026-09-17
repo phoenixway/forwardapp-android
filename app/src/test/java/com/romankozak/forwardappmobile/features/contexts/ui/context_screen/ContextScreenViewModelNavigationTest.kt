@@ -2,7 +2,6 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
-import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
@@ -16,9 +15,12 @@ import com.romankozak.forwardappmobile.core.context.ViewId
 import com.romankozak.forwardappmobile.core.context.ViewSet
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
@@ -36,17 +38,25 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionStreamRepository
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -85,14 +95,114 @@ class ContextScreenViewModelNavigationTest {
             }
         }
 
-    private fun createFixture(): Fixture {
+    @Test
+    fun `picker includes retired ordinary canonical Workspace without live Context shell`() =
+        runTest {
+            val retiredId = "retired-picker-project"
+            val activeContext =
+                Context(
+                    id = contextId,
+                    name = "Test",
+                    description = null,
+                    parentId = null,
+                    createdAt = 0L,
+                    updatedAt = 0L,
+                    tags = emptyList(),
+                    relatedLinks = emptyList(),
+                )
+            val retiredTombstone =
+                Context(
+                    id = retiredId,
+                    name = "stale tombstone title",
+                    description = "stale tombstone description",
+                    parentId = "stale-parent",
+                    createdAt = 1L,
+                    updatedAt = 2L,
+                    tags = listOf("stale-tag"),
+                    relatedLinks = emptyList(),
+                    isDeleted = true,
+                )
+            val canonicalWorkspace =
+                WorkspaceEntity(
+                    id = retiredId,
+                    nameOverride = "Canonical picker project",
+                    descriptionOverride = "Canonical description",
+                    parentWorkspaceId = null,
+                    roleCode = "canonical-role",
+                    workspaceOrder = 7L,
+                    createdAt = 1L,
+                    updatedAt = 3L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 4L,
+                    provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                    sourceContextId = null,
+                )
+
+            val fixture =
+                createFixture(
+                    pickerActiveContexts = listOf(activeContext),
+                    pickerAllContextRows = listOf(activeContext, retiredTombstone),
+                    pickerWorkspaces = listOf(canonicalWorkspace),
+                    pickerTagsByWorkspace = mapOf(retiredId to listOf("canonical-tag")),
+                )
+
+            val picker =
+                fixture.viewModel.allContextsForPicker.first { presentations ->
+                    presentations.any { it.id == retiredId }
+                }
+            val retired = picker.single { it.id == retiredId }
+
+            assertThat(retired.name).isEqualTo("Canonical picker project")
+            assertThat(retired.description).isEqualTo("Canonical description")
+            assertThat(retired.parentId).isNull()
+            assertThat(retired.roleCode).isEqualTo("canonical-role")
+            assertThat(retired.order).isEqualTo(7L)
+            assertThat(retired.tags).containsExactly("canonical-tag")
+        }
+
+    private fun createFixture(
+        pickerActiveContexts: List<Context> = emptyList(),
+        pickerAllContextRows: List<Context> = emptyList(),
+        pickerWorkspaces: List<WorkspaceEntity> = emptyList(),
+        pickerTagsByWorkspace: Map<String, List<String>> = emptyMap(),
+    ): Fixture {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val config = createConfig()
         stubFlows(contextRepository, config)
+        every { contextRepository.getAllContextsFlow() } returns
+            flowOf(pickerActiveContexts)
         val orientationDao = mockk<OrientationDao>(relaxed = true)
         every { orientationDao.observeWorkspaceCapabilities(contextId) } returns flowOf(emptyList())
+        val systemInboxDirectionAccess = mockk<SystemContextCanonicalInboxDirectionAccess>(relaxed = true)
+        every { systemInboxDirectionAccess.observeState(contextId) } returns flowOf(null)
         val missionStreamRepository = mockk<MissionStreamRepository>(relaxed = true)
         every { missionStreamRepository.observeActiveStreams() } returns flowOf(emptyList())
+        val workspaceDao = mockk<WorkspaceDao>(relaxed = true)
+        every { workspaceDao.observeAll() } returns flowOf(pickerWorkspaces)
+        val presentationContextDao = mockk<ContextDao>(relaxed = true)
+        every { presentationContextDao.getAllContextsFlow() } returns
+            flowOf(pickerAllContextRows)
+
+        val canonicalWorkspaceTagRepository =
+            mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
+        every {
+            canonicalWorkspaceTagRepository.observeLiveTagsByWorkspace()
+        } returns flowOf(pickerTagsByWorkspace)
+
+        val systemWorkspaceTagAuthority =
+            mockk<SystemWorkspaceTagAuthority>(relaxed = true)
+        every {
+            systemWorkspaceTagAuthority.observeEffectiveOwners(any())
+        } returns flowOf(emptyList())
+
+        val presentationProjector =
+            SystemWorkspacePresentationContextProjector(
+                workspaceDao = workspaceDao,
+                systemWorkspaceTagAuthority = systemWorkspaceTagAuthority,
+                canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
+                contextDao = presentationContextDao,
+            )
 
         val contextSessionStore = createContextSessionStore(config)
         val viewModel =
@@ -133,6 +243,17 @@ class ContextScreenViewModelNavigationTest {
                 backlogClipboardUseCase = mockk<BacklogClipboardUseCase>(relaxed = true),
                 capabilityViewActionRegistry = mockk<CapabilityViewActionRegistry>(relaxed = true),
                 orientationDao = orientationDao,
+                systemInboxDirectionAccess = systemInboxDirectionAccess,
+                systemRemainingCapabilityAccess =
+                    mockk<com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess> {
+                        every { observeState(any()) } returns flowOf(null)
+                    },
+                systemBacklogLifecycleAccess =
+                    mockk<com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess> {
+                        every { observeState(any()) } returns flowOf(null)
+                    },
+                canonicalWorkspaceRepository = mockk(relaxed = true),
+                systemWorkspacePresentationContextProjector = presentationProjector,
             )
         return Fixture(viewModel, contextSessionStore, contextRepository)
     }

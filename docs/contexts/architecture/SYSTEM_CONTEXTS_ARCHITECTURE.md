@@ -1,3 +1,26 @@
+# Status: HISTORICAL
+
+This document describes the former Context-row-owned System Context
+architecture and is retained only for historical reference.
+
+It is **not** the current implementation contract. In the current architecture:
+
+- stable reserved System ids are canonical same-id Workspace identities;
+- `SystemContextEnsurer` is retired;
+- `DatabaseInitializer` does not create or repair reserved System Context rows;
+- `SystemWorkspaceMaterializer` owns reserved-System canonical Workspace
+  convergence;
+- exact reserved System Context snapshots are transient import evidence only and
+  are not persisted back into `contexts`;
+- current classification uses the exact `SystemContexts` set, never a `sys_*`
+  prefix;
+- physical reserved Context shells are being retired under roadmap Step 11.
+
+Use `docs/project/STATE.md`, `docs/project/ROADMAP.md`, `docs/project/NEXT.md`
+and `docs/project/DECISIONS.md` as the canonical current sources.
+
+---
+
 # Архітектура Системних Контекстів
 
 Дата: 31 січня 2026

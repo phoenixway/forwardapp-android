@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalFocusRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.DayFocusesRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
@@ -60,6 +61,7 @@ class DayFocusesViewModel
         private val canonicalFocusRecurrenceAuthoringAdapter: CanonicalFocusRecurrenceAuthoringAdapter,
         private val dayManagementRepository: DayManagementRepository,
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
@@ -70,7 +72,7 @@ class DayFocusesViewModel
         private val pendingDeleteItemFlow = MutableStateFlow<DayFocusItem?>(null)
 
         private val allContextsFlow =
-            contextRepository.getAllContextsFlow()
+            systemWorkspacePresentationContextProjector.observePresentationUniverse(contextRepository.getAllContextsFlow())
                 .map { contexts ->
                     contexts.map { context ->
                         ProjectOption(

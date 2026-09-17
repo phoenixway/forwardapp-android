@@ -248,9 +248,9 @@ fun CoreLevelScreen(
     }
 
     val allContextOptions =
-        remember(uiState.allProjects) {
-            uiState.allProjects.map { contextItem ->
-                MainBeaconSelectableItem(id = contextItem.id, label = contextItem.name)
+        remember(uiState.ownerLabels) {
+            uiState.ownerLabels.map { (id, label) ->
+                MainBeaconSelectableItem(id = id, label = label)
             }
         }
     val allDocumentOptions =
@@ -395,7 +395,7 @@ fun CoreLevelScreen(
                                     items(groupRootBeacons, key = { "${group.id}-${it.id}" }) { beacon ->
                                         MainBeaconCardFromUi(
                                             beacon = beacon,
-                                            allProjects = uiState.allProjects,
+                                            ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
                                             isExpanded = beacon.isExpanded,
@@ -411,7 +411,7 @@ fun CoreLevelScreen(
                                         NestedBeaconCards(
                                             parentBeaconId = beacon.id,
                                             beacons = groupBeacons,
-                                            allProjects = uiState.allProjects,
+                                            ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
                                             onEditBeacon = { beaconId ->
@@ -448,7 +448,7 @@ fun CoreLevelScreen(
                                     items(noGroupRootBeacons, key = { "no-group-${it.id}" }) { beacon ->
                                         MainBeaconCardFromUi(
                                             beacon = beacon,
-                                            allProjects = uiState.allProjects,
+                                            ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
                                             isExpanded = beacon.isExpanded,
@@ -464,7 +464,7 @@ fun CoreLevelScreen(
                                         NestedBeaconCards(
                                             parentBeaconId = beacon.id,
                                             beacons = noGroupBeacons,
-                                            allProjects = uiState.allProjects,
+                                            ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
                                             onEditBeacon = { beaconId ->
@@ -491,8 +491,8 @@ fun CoreLevelScreen(
             buildList {
                 addAll(
                     editor.relatedContextIds.mapNotNull { id ->
-                        uiState.allProjects.firstOrNull { it.id == id }?.let {
-                            ConnectionItemUi(id = it.id, title = it.name, type = ConnectionType.CONTEXT)
+                        uiState.ownerLabels[id]?.let { label ->
+                            ConnectionItemUi(id = id, title = label, type = ConnectionType.CONTEXT)
                         }
                     },
                 )
@@ -1020,7 +1020,7 @@ private fun MainBeaconGroupHeader(
 private fun NestedBeaconCards(
     parentBeaconId: String,
     beacons: List<MainBeaconCardUi>,
-    allProjects: List<com.romankozak.forwardappmobile.core.data.models.entities.Context>,
+    ownerLabels: Map<String, String>,
     attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
     connectionItems: List<ConnectionItemUi>,
     onEditBeacon: (String) -> Unit,
@@ -1049,7 +1049,7 @@ private fun NestedBeaconCards(
         childBeacons.forEach { beacon ->
             MainBeaconCardFromUi(
                 beacon = beacon,
-                allProjects = allProjects,
+                ownerLabels = ownerLabels,
                 attachmentOptions = attachmentOptions,
                 connectionItems = connectionItems,
                 isExpanded = beacon.isExpanded,
@@ -1063,7 +1063,7 @@ private fun NestedBeaconCards(
             NestedBeaconCards(
                 parentBeaconId = beacon.id,
                 beacons = beacons,
-                allProjects = allProjects,
+                ownerLabels = ownerLabels,
                 attachmentOptions = attachmentOptions,
                 connectionItems = connectionItems,
                 onEditBeacon = onEditBeacon,
@@ -1080,7 +1080,7 @@ private fun NestedBeaconCards(
 @Composable
 private fun MainBeaconCardFromUi(
     beacon: MainBeaconCardUi,
-    allProjects: List<com.romankozak.forwardappmobile.core.data.models.entities.Context>,
+    ownerLabels: Map<String, String>,
     attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
     connectionItems: List<ConnectionItemUi>,
     isExpanded: Boolean,
@@ -1091,10 +1091,10 @@ private fun MainBeaconCardFromUi(
 ) {
     val relatedContexts =
         beacon.relatedContextIds.mapNotNull { relatedId ->
-            allProjects.firstOrNull { it.id == relatedId }?.let { contextItem ->
+            ownerLabels[relatedId]?.let { label ->
                 MainBeaconCardLinkUi(
-                    id = contextItem.id,
-                    title = contextItem.name,
+                    id = relatedId,
+                    title = label,
                 )
             }
         }

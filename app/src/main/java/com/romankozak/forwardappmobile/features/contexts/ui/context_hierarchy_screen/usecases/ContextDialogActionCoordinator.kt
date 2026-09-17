@@ -29,9 +29,7 @@ class ContextDialogActionCoordinator
             currentSubState: MainSubState,
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
-            allProjects: List<Context>,
         ) {
-            val projectsById = allProjects.associateBy { it.id }
             val focusedContextId =
                 (currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)?.projectId
                     ?: currentBreadcrumbs.lastOrNull { it.target == BreadcrumbTarget.Context }?.id
@@ -45,33 +43,38 @@ class ContextDialogActionCoordinator
                         orientationHierarchy = orientationHierarchy,
                     )
                 }
-            val parentProject = focusedContextId?.let(projectsById::get)
-            dialogUseCase.onAddProjectRequest(parentProject)
+            dialogUseCase.onAddProjectRequest(focusedContextId)
         }
 
-        fun requestAddSubcontext(parentProject: Context) {
-            dialogUseCase.onAddProjectRequest(parentProject)
+        fun requestAddSubcontext(parentProjectId: String) {
+            dialogUseCase.onAddProjectRequest(parentProjectId)
         }
 
-        fun requestDelete(project: Context) {
-            dialogUseCase.onDeleteRequest(project)
+        fun requestDelete(
+            projectId: String,
+            projectName: String,
+        ) {
+            dialogUseCase.onDeleteRequest(
+                projectId = projectId,
+                projectName = projectName,
+            )
         }
 
         suspend fun requestMove(
-            project: Context,
+            projectId: String,
             allProjects: List<Context>,
-        ): ProjectUiEvent.Navigate {
-            val target = contextActionsUseCase.getMoveProjectRoute(project, allProjects)
-            savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = project.id
+        ): ProjectUiEvent.Navigate? {
+            val target = contextActionsUseCase.getMoveProjectRoute(projectId, allProjects) ?: return null
+            savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = projectId
             dialogUseCase.dismissDialog()
             return ProjectUiEvent.Navigate(target)
         }
 
         suspend fun confirmDelete(
-            project: Context,
+            projectId: String,
             childMap: Map<String, List<Context>>,
         ) {
-            contextActionsUseCase.onDeleteProjectConfirmed(project, childMap)
+            contextActionsUseCase.onDeleteProjectConfirmed(projectId, childMap)
             dialogUseCase.dismissDialog()
         }
 

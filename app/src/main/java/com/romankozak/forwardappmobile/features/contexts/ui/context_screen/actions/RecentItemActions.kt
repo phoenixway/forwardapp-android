@@ -4,11 +4,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.flow.first
 import java.net.URLEncoder
 
 class RecentItemActions(
     private val settingsRepository: SettingsRepository,
+    private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
 ) {
     sealed class Result {
         data class NavigateToProject(
@@ -28,9 +30,13 @@ class RecentItemActions(
     suspend fun resolve(item: RecentItem): Result {
         return when (item.type) {
             RecentItemType.PROJECT -> {
+                val presentation =
+                    systemWorkspacePresentationContextProjector
+                        .resolvePresentation(item.target)
+                        ?: return Result.None
                 Result.NavigateToProject(
-                    contextId = item.target,
-                    contextName = item.displayName ?: "Context",
+                    contextId = presentation.id,
+                    contextName = presentation.name,
                 )
             }
 

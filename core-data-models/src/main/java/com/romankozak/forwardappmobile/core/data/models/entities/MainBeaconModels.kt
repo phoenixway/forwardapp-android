@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -220,6 +222,40 @@ data class MainBeaconContextCrossRef(
     @ColumnInfo(name = "context_id")
     @SerializedName("contextId")
     val contextId: String,
+    @ColumnInfo(name = "ref_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
+)
+
+@Entity(
+    tableName = "main_beacon_workspace_cross_ref",
+    primaryKeys = ["beacon_id", "workspace_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = MainBeacon::class,
+            parentColumns = ["id"],
+            childColumns = ["beacon_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["workspace_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index(value = ["workspace_id"]),
+        Index(value = ["beacon_id", "ref_order"]),
+    ],
+)
+data class MainBeaconWorkspaceCrossRef(
+    @ColumnInfo(name = "beacon_id")
+    @SerializedName("beaconId")
+    val beaconId: String,
+    @ColumnInfo(name = "workspace_id")
+    @SerializedName("workspaceId")
+    val workspaceId: String,
     @ColumnInfo(name = "ref_order", defaultValue = "0")
     @SerializedName("order")
     val order: Long = 0L,

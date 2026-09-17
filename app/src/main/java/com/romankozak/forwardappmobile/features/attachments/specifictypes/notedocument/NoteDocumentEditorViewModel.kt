@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,19 +30,24 @@ class NoteDocumentEditorViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val contextRepository: ContextRepository,
+        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val recentItemsRepository: RecentItemsRepository,
         private val application: Application,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val universalEditorViewModel = UniversalEditorViewModel(application)
         private var listId: String? = null
+        private val presentedContexts =
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         val linkSuggestions =
             combine(
                 noteDocumentRepository.getAllDocumentsAsFlow(),
                 musicNoteRepository.getAllMusicNotesAsFlow(),
                 checklistRepository.getAllChecklistsAsFlow(),
-                contextRepository.getAllContextsFlow(),
+                presentedContexts,
             ) { docs, musicNotes, checklists, contexts ->
                 (
                     docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
@@ -55,7 +61,7 @@ class NoteDocumentEditorViewModel
                 .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
         val contextSuggestions =
-            contextRepository.getAllContextsFlow()
+            presentedContexts
                 .map { contexts ->
                     contexts.map { it.name }
                         .filter { it.isNotBlank() }
@@ -108,8 +114,7 @@ class NoteDocumentEditorViewModel
         suspend fun findChecklistIdByName(name: String): String? = checklistRepository.findByName(name)?.id
 
         suspend fun findContextIdByName(name: String): String? =
-            contextRepository
-                .getAllContextsFlow()
+            presentedContexts
                 .first()
                 .firstOrNull { it.name.equals(name, ignoreCase = true) }
                 ?.id

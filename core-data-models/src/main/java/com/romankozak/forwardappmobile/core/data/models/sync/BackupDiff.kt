@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiInsi
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.MusicNoteSnapshot
@@ -61,7 +60,6 @@ data class BackupDiff(
     val contextLogs: DiffResult<ContextLogSnapshot> = DiffResult(),
     val scripts: DiffResult<ScriptSnapshot> = DiffResult(),
     val attachments: DiffResult<AttachmentSnapshot> = DiffResult(),
-    val contextAttachmentCrossRefs: DiffResult<ContextAttachmentCrossRefSnapshot> = DiffResult(),
     val dayPlans: DiffResult<DayPlanSnapshot> = DiffResult(),
     val dayTasks: DiffResult<DayTaskSnapshot> = DiffResult(),
     val dailyMetrics: DiffResult<DailyMetricSnapshot> = DiffResult(),

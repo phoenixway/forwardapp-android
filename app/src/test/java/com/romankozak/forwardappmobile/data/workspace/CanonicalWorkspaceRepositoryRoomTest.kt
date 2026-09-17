@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.data.workspace
 
 import android.content.Context
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.Context as LegacyContext
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
@@ -33,12 +35,101 @@ class CanonicalWorkspaceRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `canonical-only lifecycle preserves hierarchy and rejects Context-backed mutation`() = runBlocking {
+    fun `live canonical Workspace ancestry presentation is shell-free and read-only`() =
+        runBlocking {
+            val database = database()
+            try {
+                val rootId = "workspace-root"
+                val parentId = "workspace-parent"
+                val systemId = SystemContexts.INBOX.raw
+                val root = canonicalOnly(rootId, name = "Canonical root")
+                val parent = canonicalOnly(parentId, name = "Canonical parent", parentId = rootId)
+                val system =
+                    canonicalOnly(
+                        id = systemId,
+                        name = "Canonical Inbox",
+                        parentId = parentId,
+                    )
+                database.workspaceDao().upsert(listOf(root, parent, system))
+                val repository = repository(database)
+
+                val resolvedSystem =
+                    requireNotNull(repository.getLiveCanonicalAncestryPresentation(systemId))
+                val resolvedParent =
+                    requireNotNull(repository.getLiveCanonicalAncestryPresentation(parentId))
+                val resolvedRoot =
+                    requireNotNull(repository.getLiveCanonicalAncestryPresentation(rootId))
+
+                assertEquals("Canonical Inbox", resolvedSystem.name)
+                assertEquals(parentId, resolvedSystem.parentWorkspaceId)
+                assertEquals("Canonical parent", resolvedParent.name)
+                assertEquals(rootId, resolvedParent.parentWorkspaceId)
+                assertEquals("Canonical root", resolvedRoot.name)
+                assertNull(resolvedRoot.parentWorkspaceId)
+                assertNull(database.contextDao().getContextById(systemId))
+                assertNull(database.contextDao().getContextById(parentId))
+                assertNull(database.contextDao().getContextById(rootId))
+                assertEquals(system, database.workspaceDao().getById(systemId))
+                assertEquals(parent, database.workspaceDao().getById(parentId))
+                assertEquals(root, database.workspaceDao().getById(rootId))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `canonical ancestry presentation fails closed for deleted malformed and Context-backed Workspaces`() =
+        runBlocking {
+            val database = database()
+            try {
+                val deleted = canonicalOnly("deleted").copy(isDeleted = true)
+                val malformed = canonicalOnly("malformed").copy(sourceContextId = "legacy-context")
+                val contextBacked = contextBacked("legacy")
+                val nonReservedSystemShaped = canonicalOnly("sys_custom", name = "Standalone canonical")
+                database.workspaceDao().upsert(
+                    listOf(deleted, malformed, contextBacked, nonReservedSystemShaped),
+                )
+                val legacyContext = legacyContext(id = "legacy", name = "Legacy Context")
+                database.contextDao().insert(legacyContext)
+                val repository = repository(database)
+
+                assertNull(repository.getLiveCanonicalAncestryPresentation("missing"))
+                assertNull(repository.getLiveCanonicalAncestryPresentation("deleted"))
+                assertNull(repository.getLiveCanonicalAncestryPresentation("malformed"))
+                assertNull(repository.getLiveCanonicalAncestryPresentation("legacy"))
+                assertEquals(
+                    "Standalone canonical",
+                    repository.getLiveCanonicalAncestryPresentation("sys_custom")?.name,
+                )
+                assertEquals(deleted, database.workspaceDao().getById("deleted"))
+                assertEquals(malformed, database.workspaceDao().getById("malformed"))
+                assertEquals(contextBacked, database.workspaceDao().getById("legacy"))
+                assertNull(database.contextDao().getContextById("deleted"))
+                assertNull(database.contextDao().getContextById("malformed"))
+                assertEquals(legacyContext, database.contextDao().getContextById("legacy"))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `standalone Workspace lifecycle preserves hierarchy and rejects Context-backed mutation`() = runBlocking {
         val database = database()
         try {
             val repository = repository(database)
             val parentId = repository.create("Operations", now = 10L)
             val childId = repository.create("Delivery", parentWorkspaceId = parentId, now = 11L)
+
+            assertEquals(
+                WorkspaceProvenance.STANDALONE.name,
+                database.workspaceDao().getById(parentId)?.provenance,
+            )
+            assertNull(database.workspaceDao().getById(parentId)?.sourceContextId)
+            assertNull(database.contextDao().getContextById(parentId))
+            val parentCapabilities = database.orientationDao().getAllWorkspaceCapabilities()
+            assertTrue(
+                parentCapabilities.none { it.workspaceId == parentId },
+            )
 
             repository.updateDetails(childId, "Delivery desk", "Operational", "project", now = 20L)
             assertEquals("Delivery desk", database.workspaceDao().getById(childId)?.nameOverride)
@@ -63,6 +154,42 @@ class CanonicalWorkspaceRepositoryRoomTest {
                 }.exceptionOrNull()
             assertTrue(ownershipFailure is IllegalArgumentException)
             assertEquals("Legacy", database.workspaceDao().getById("legacy")?.nameOverride)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `move preserving order keeps canonical current order and validates hierarchy`() = runBlocking {
+        val database = database()
+        try {
+            val root = canonicalOnly("root", order = 11L)
+            val child = canonicalOnly("child", parentId = root.id, order = 37L, version = 4L)
+            val target = canonicalOnly("target", order = 12L)
+            val targetSibling = canonicalOnly("target-sibling", parentId = target.id, order = 5L)
+            val cycleParent = canonicalOnly("cycle-parent")
+            val cycleChild = canonicalOnly("cycle-child", parentId = cycleParent.id)
+            database.workspaceDao().upsert(
+                listOf(root, child, target, targetSibling, cycleParent, cycleChild),
+            )
+            val repository = repository(database)
+
+            repository.movePreservingOrder(child.id, target.id, now = 20L)
+
+            val moved = requireNotNull(database.workspaceDao().getById(child.id))
+            assertEquals(target.id, moved.parentWorkspaceId)
+            assertEquals(37L, moved.workspaceOrder)
+            assertEquals(5L, moved.version)
+            assertEquals(20L, moved.updatedAt)
+            assertNull(moved.syncedAt)
+            assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, moved.provenance)
+
+            val cycleFailure =
+                runCatching {
+                    repository.movePreservingOrder(cycleParent.id, cycleChild.id, now = 30L)
+                }.exceptionOrNull()
+            assertTrue(cycleFailure is IllegalArgumentException)
+            assertNull(database.workspaceDao().getById(cycleParent.id)?.parentWorkspaceId)
         } finally {
             database.close()
         }
@@ -303,6 +430,156 @@ class CanonicalWorkspaceRepositoryRoomTest {
         }
     }
 
+    @Test
+    fun `presentation batch updates canonical metadata and hierarchy as one projection`() = runBlocking {
+        val database = database()
+        try {
+            val repository = repository(database)
+            val parentId = repository.create("Parent", now = 10L)
+            val childId =
+                repository.create(
+                    nameOverride = "Child",
+                    parentWorkspaceId = parentId,
+                    roleCode = "development",
+                    now = 11L,
+                )
+
+            val before = requireNotNull(database.workspaceDao().getById(childId))
+
+            repository.updatePresentationBatchInCurrentTransaction(
+                updates =
+                    listOf(
+                        CanonicalWorkspacePresentationUpdate(
+                            id = childId,
+                            nameOverride = "  Delivery desk  ",
+                            descriptionOverride = "  Operational description  ",
+                            parentWorkspaceId = null,
+                            roleCode = "  project  ",
+                            workspaceOrder = 7L,
+                        ),
+                    ),
+                now = 20L,
+            )
+
+            val after = requireNotNull(database.workspaceDao().getById(childId))
+            assertEquals("Delivery desk", after.nameOverride)
+            assertEquals("Operational description", after.descriptionOverride)
+            assertNull(after.parentWorkspaceId)
+            assertEquals("project", after.roleCode)
+            assertEquals(7L, after.workspaceOrder)
+            assertEquals(before.version + 1L, after.version)
+            assertEquals(20L, after.updatedAt)
+            assertNull(after.syncedAt)
+            assertEquals(before.createdAt, after.createdAt)
+            assertEquals(WorkspaceProvenance.STANDALONE.name, before.provenance)
+            assertEquals(before.provenance, after.provenance)
+            assertNull(after.sourceContextId)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `presentation batch applies coherent sibling reorder together`() = runBlocking {
+        val database = database()
+        try {
+            val repository = repository(database)
+            val parentId = repository.create("Parent", now = 10L)
+            val firstId = repository.create("First", parentWorkspaceId = parentId, now = 11L)
+            val secondId = repository.create("Second", parentWorkspaceId = parentId, now = 12L)
+
+            val firstBefore = requireNotNull(database.workspaceDao().getById(firstId))
+            val secondBefore = requireNotNull(database.workspaceDao().getById(secondId))
+            assertEquals(0L, firstBefore.workspaceOrder)
+            assertEquals(1L, secondBefore.workspaceOrder)
+
+            repository.updatePresentationBatchInCurrentTransaction(
+                updates =
+                    listOf(
+                        CanonicalWorkspacePresentationUpdate(
+                            id = firstBefore.id,
+                            nameOverride = firstBefore.nameOverride,
+                            descriptionOverride = firstBefore.descriptionOverride,
+                            parentWorkspaceId = parentId,
+                            roleCode = firstBefore.roleCode,
+                            workspaceOrder = 1L,
+                        ),
+                        CanonicalWorkspacePresentationUpdate(
+                            id = secondBefore.id,
+                            nameOverride = secondBefore.nameOverride,
+                            descriptionOverride = secondBefore.descriptionOverride,
+                            parentWorkspaceId = parentId,
+                            roleCode = secondBefore.roleCode,
+                            workspaceOrder = 0L,
+                        ),
+                    ),
+                now = 30L,
+            )
+
+            val firstAfter = requireNotNull(database.workspaceDao().getById(firstId))
+            val secondAfter = requireNotNull(database.workspaceDao().getById(secondId))
+
+            assertEquals(parentId, firstAfter.parentWorkspaceId)
+            assertEquals(parentId, secondAfter.parentWorkspaceId)
+            assertEquals(1L, firstAfter.workspaceOrder)
+            assertEquals(0L, secondAfter.workspaceOrder)
+            assertEquals(firstBefore.version + 1L, firstAfter.version)
+            assertEquals(secondBefore.version + 1L, secondAfter.version)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `invalid presentation batch persists nothing`() = runBlocking {
+        val database = database()
+        try {
+            val repository = repository(database)
+            val parentId = repository.create("Parent", now = 10L)
+            val childId = repository.create("Child", parentWorkspaceId = parentId, now = 11L)
+
+            val parentBefore = requireNotNull(database.workspaceDao().getById(parentId))
+            val childBefore = requireNotNull(database.workspaceDao().getById(childId))
+
+            val failure =
+                runCatching {
+                    repository.updatePresentationBatchInCurrentTransaction(
+                        updates =
+                            listOf(
+                                CanonicalWorkspacePresentationUpdate(
+                                    id = parentId,
+                                    nameOverride = parentBefore.nameOverride,
+                                    descriptionOverride = parentBefore.descriptionOverride,
+                                    parentWorkspaceId = childId,
+                                    roleCode = parentBefore.roleCode,
+                                    workspaceOrder = parentBefore.workspaceOrder,
+                                ),
+                                CanonicalWorkspacePresentationUpdate(
+                                    id = childId,
+                                    nameOverride = "Changed but must roll back",
+                                    descriptionOverride = childBefore.descriptionOverride,
+                                    parentWorkspaceId = parentId,
+                                    roleCode = childBefore.roleCode,
+                                    workspaceOrder = childBefore.workspaceOrder,
+                                ),
+                            ),
+                        now = 30L,
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+
+            val parentAfter = requireNotNull(database.workspaceDao().getById(parentId))
+            val childAfter = requireNotNull(database.workspaceDao().getById(childId))
+
+            assertEquals(parentBefore, parentAfter)
+            assertEquals(childBefore, childAfter)
+        } finally {
+            database.close()
+        }
+    }
+
+
     private fun repository(database: AppDatabase) =
         CanonicalWorkspaceRepository(
             database = database,
@@ -431,6 +708,48 @@ class CanonicalWorkspaceRepositoryRoomTest {
             listOf(OrientationEntity(id, "GOAL", null, "UNSET")),
         )
     }
+
+    private fun canonicalOnly(
+        id: String,
+        name: String = "Canonical",
+        description: String? = null,
+        parentId: String? = null,
+        order: Long = 0L,
+        roleCode: String? = null,
+        version: Long = 1L,
+    ) = WorkspaceEntity(
+        id = id,
+        nameOverride = name,
+        descriptionOverride = description,
+        parentWorkspaceId = parentId,
+        roleCode = roleCode,
+        workspaceOrder = order,
+        createdAt = 1L,
+        updatedAt = 1L,
+        syncedAt = null,
+        isDeleted = false,
+        version = version,
+        provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+        sourceContextId = null,
+    )
+
+    private fun legacyContext(
+        id: String,
+        name: String,
+        description: String? = null,
+        parentId: String? = null,
+        order: Long = 0L,
+        roleCode: String? = null,
+    ) = LegacyContext(
+        id = id,
+        name = name,
+        description = description,
+        parentId = parentId,
+        createdAt = 1L,
+        updatedAt = 2L,
+        order = order,
+        roleCode = roleCode,
+    )
 
     private fun contextBacked(id: String) =
         WorkspaceEntity(

@@ -189,8 +189,6 @@ class WifiSyncServer(
                                 // ========== DEFECT #2 DEBUG: Log attachments in export ==========
                                 try {
                                     val attachmentsCount = backup.snapshotBundle?.attachments?.size ?: 0
-                                    val crossRefsCount =
-                                        backup.snapshotBundle?.crossRefs?.size ?: 0
                                     Log.i(
                                         "ForwardSync",
                                         "wifi export bytes=${backupJson.length} " +
@@ -201,7 +199,7 @@ class WifiSyncServer(
                                     )
                                     Log.d(
                                         DEBUG_TAG,
-                                        "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount, crossRefs=$crossRefsCount",
+                                        "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount",
                                     )
                                     if (attachmentsCount == 0) {
                                         Log.w(

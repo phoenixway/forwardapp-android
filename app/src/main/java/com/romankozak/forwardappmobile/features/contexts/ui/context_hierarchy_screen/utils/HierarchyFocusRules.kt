@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils
 
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 
 private const val FOCUS_SEGMENT_THRESHOLD = 3
@@ -37,7 +37,7 @@ internal fun shouldShowHierarchyFocusButton(
     hasOverflowingDescendants: Boolean,
 ): Boolean = hasChildren && (hasOverflowingDescendants || level >= FOCUS_DESCENDANT_DEPTH_THRESHOLD)
 
-internal fun createHierarchyDescendantOverflowMap(hierarchy: ContextHierarchyData): Map<String, Boolean> {
+internal fun createHierarchyDescendantOverflowMap(hierarchy: HierarchyPresentationData): Map<String, Boolean> {
     if (hierarchy.allProjects.isEmpty()) return emptyMap()
 
     val visibleProjects =
