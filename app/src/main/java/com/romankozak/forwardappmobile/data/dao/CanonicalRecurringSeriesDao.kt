@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
@@ -105,6 +106,9 @@ interface CanonicalRecurringSeriesDao {
     @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
     suspend fun getOperationalProjectWorkspaceForTask(workspaceId: String): WorkspaceEntity?
 
+    @Query("SELECT * FROM contexts WHERE id = :contextId LIMIT 1")
+    suspend fun getOperationalProjectContextForTask(contextId: String): Context?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTaskOccurrenceForAuthoring(task: DayTask)
 
@@ -137,9 +141,11 @@ interface CanonicalRecurringSeriesDao {
     ) {
         insert(series)
         insertTaskOccurrenceForAuthoring(
-            routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
-                getOperationalProjectWorkspaceForTask(workspaceId)
-            },
+            routeDayTaskProjectForPersistence(
+                task = occurrence,
+                contextLookup = { getOperationalProjectContextForTask(it) },
+                workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+            ),
         )
 
         val deletedCount =
@@ -174,9 +180,11 @@ interface CanonicalRecurringSeriesDao {
         if (occurrences.isNotEmpty()) {
             updateTaskOccurrences(
                 occurrences.map { occurrence ->
-                    routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
-                        getOperationalProjectWorkspaceForTask(workspaceId)
-                    }
+                    routeDayTaskProjectForPersistence(
+                        task = occurrence,
+                        contextLookup = { getOperationalProjectContextForTask(it) },
+                        workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+                    )
                 },
             )
         }
@@ -376,9 +384,11 @@ interface CanonicalRecurringSeriesDao {
         }
         insertTaskOccurrencesForSplit(
             listOf(
-                routeDayTaskProjectForPersistence(detachedTask) { workspaceId ->
-                    getOperationalProjectWorkspaceForTask(workspaceId)
-                },
+                routeDayTaskProjectForPersistence(
+                    task = detachedTask,
+                    contextLookup = { getOperationalProjectContextForTask(it) },
+                    workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+                ),
             ),
         )
     }
@@ -422,9 +432,11 @@ interface CanonicalRecurringSeriesDao {
         if (replacementOccurrences.isNotEmpty()) {
             insertTaskOccurrencesForSplit(
                 replacementOccurrences.map { occurrence ->
-                    routeDayTaskProjectForPersistence(occurrence) { workspaceId ->
-                        getOperationalProjectWorkspaceForTask(workspaceId)
-                    }
+                    routeDayTaskProjectForPersistence(
+                        task = occurrence,
+                        contextLookup = { getOperationalProjectContextForTask(it) },
+                        workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+                    )
                 },
             )
         }

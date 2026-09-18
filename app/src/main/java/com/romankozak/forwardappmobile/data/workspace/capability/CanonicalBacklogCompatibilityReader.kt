@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Leg
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -132,17 +131,13 @@ private fun WorkspaceBacklogEntryEntity.toCompatibilityItem(
                     requireNotNull(support.workspacesById[targetId]) {
                         "Canonical BACKLOG Workspace target $targetId does not exist"
                     }
-                require(targetWorkspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name) {
-                    "Canonical-only Workspace $targetId cannot be represented by legacy BacklogItem"
+                require(!targetWorkspace.isDeleted) {
+                    "Canonical BACKLOG Workspace target $targetId is deleted"
                 }
-                val sourceContextId =
-                    requireNotNull(targetWorkspace.sourceContextId?.takeIf(String::isNotBlank)) {
-                        "Context-backed Workspace $targetId has no source Context id"
-                    }
 
                 // PROJECT was an undeclared historical alias. Canonical WORKSPACE
                 // identity intentionally erases that spelling distinction.
-                BacklogItemTypeValues.SUBLIST to sourceContextId
+                BacklogItemTypeValues.SUBLIST to targetWorkspace.id
             }
 
             WorkspaceBacklogTargetKind.LINK_ITEM ->

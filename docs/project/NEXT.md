@@ -114,16 +114,39 @@ use it without creating `Context` or `ContextConfiguration` rows. Generic
 Workspace tags remain owned by `CanonicalWorkspaceTagRepository`; role-less
 quick-create creates no implicit capability instance.
 
-Before the current unverified Strategic/Core migration slice, six external
-`createContextWithId()` callers and the internal preset-driven `SUBCONTEXT`
-helper remain. Role/preset semantics, clipboard clone semantics,
-`AndroidWorkspaceRepositoryAdapter`, `ArcQuestSourceType.CONTEXT`, and
-`SUBCONTEXT` remain separate follow-up ownership decisions where additional
-current-product semantics must first be established.
+The Strategic/Core and hierarchy creation slices are now **CURRENT /
+VERIFIED**. Hierarchy add/create authors a canonical non-System `STANDALONE`
+Workspace, returns its canonical-generated id, initializes supported role/preset
+defaults directly through canonical capability owners, and performs parent
+auto-link only through active canonical `DIRECTION` configuration. It creates
+neither `Context` nor `ContextConfiguration`.
 
-Legacy `ArcQuestSourceType.CONTEXT` and preset-driven `SUBCONTEXT` creation
-remain narrow follow-up owner decisions and must not reintroduce generic Context
-creation.
+Three external production `createContextWithId()` callers remain:
+
+- `AndroidWorkspaceRepositoryAdapter`;
+- `StrategicArcViewModel`;
+- `ContextClipboardCoordinator`.
+
+The internal preset-driven `SUBCONTEXT` helper remains separate. Clipboard
+clone semantics, `AndroidWorkspaceRepositoryAdapter`, and `SUBCONTEXT` still
+require their own evidence-based ownership decisions rather than reintroducing
+generic Context creation.
+
+The Tactical Mission owner-routing blocker for Strategic Arc is now
+**CURRENT / VERIFIED**. Tactical Mission persistence routes valid live
+non-System `STANDALONE` Workspace owners through `project_workspace_id`, while
+ordinary Context-backed owners remain on the legacy `projectId` branch.
+Arbitrary non-System `CANONICAL_ONLY` ownership is not admitted. Transport and
+read-side behavior continue through the single logical project-owner id.
+
+`ArcQuestSourceType.CONTEXT` has been established as a retained persisted
+historical discriminator whose source id does not itself require a raw Context
+row. Its downstream Tactical Mission FK blocker is closed, so
+`StrategicArcViewModel` is now the next narrow ordinary-Context creation
+cutover candidate. The discriminator should remain unchanged during that
+creation migration unless separate evidence requires a data-contract migration.
+
+Preset-driven `SUBCONTEXT` creation remains a distinct follow-up owner decision.
 
 Do not introduce a `ContextPresentation -> Context` adapter, a new Context-like
 canonical entity, or another compatibility bridge merely to preserve unsupported

@@ -10,6 +10,9 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextHierarchyUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRolePresetInitializer
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.NO_GROUP_NODE_ID
@@ -28,6 +31,9 @@ class ContextActionsUseCase
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val canonicalWorkspaceRolePresetInitializer: CanonicalWorkspaceRolePresetInitializer,
+        private val canonicalDirectionRepository: CanonicalDirectionRepository,
         private val contextParentLinkDao: ContextParentLinkDao,
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
@@ -35,13 +41,46 @@ class ContextActionsUseCase
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         suspend fun addNewProject(
-            id: String,
             parentId: String?,
             name: String,
             roleCode: String? = null,
-        ) = withContext(ioDispatcher) {
-            if (name.isBlank()) return@withContext
-            contextRepository.createContextWithId(id, name, parentId, roleCode = roleCode)
+        ): String? = withContext(ioDispatcher) {
+            val normalizedName = name.trim()
+            if (normalizedName.isEmpty()) return@withContext null
+
+            val newWorkspaceId =
+                canonicalWorkspaceRepository.create(
+                    nameOverride = normalizedName,
+                    descriptionOverride = null,
+                    parentWorkspaceId = parentId,
+                    roleCode = roleCode,
+                )
+
+            canonicalWorkspaceRolePresetInitializer.apply(
+                workspaceId = newWorkspaceId,
+                roleCode = roleCode,
+            )
+
+            val normalizedParentId =
+                parentId?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+            if (normalizedParentId != null) {
+                val parentDirection = canonicalDirectionRepository.getState(normalizedParentId)
+                if (
+                    parentDirection != null &&
+                    !parentDirection.isDeleted &&
+                    parentDirection.lifecycleState ==
+                        com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState.ACTIVE &&
+                    parentDirection.configuration.autoLinkChildWorkspaces
+                ) {
+                    canonicalDirectionRepository.createWorkspaceLinkAtFront(
+                        workspaceId = normalizedParentId,
+                        targetWorkspaceId = newWorkspaceId,
+                        label = normalizedName,
+                    )
+                }
+            }
+
+            newWorkspaceId
         }
 
         suspend fun onDeleteProjectConfirmed(

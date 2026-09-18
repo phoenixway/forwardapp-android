@@ -37,6 +37,7 @@ class OrientationHierarchyBuilder
         fun build(
             presentationHierarchy: HierarchyPresentationData,
             rawBackedProjectIds: Set<String>,
+            retiredOrdinaryContextIds: Set<String> = emptySet(),
             beacons: List<OrientationBeaconInput>,
             groups: List<MainBeaconGroup> = emptyList(),
             parentLinks: List<ContextParentLink> = emptyList(),
@@ -49,35 +50,25 @@ class OrientationHierarchyBuilder
                     .filterNot { it.isDeleted }
                     .associateBy { it.id }
             val canonicalWorkspacesById =
-                liveWorkspacesById.filterValues {
-                    it.sourceContextId == null &&
-                        (
-                            it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||
-                                (
-                                    it.provenance == WorkspaceProvenance.STANDALONE.name &&
-                                        !SystemContexts.isSystem(ContextId(it.id))
-                                )
-                        )
+                liveWorkspacesById.filterValues { workspace ->
+                    val isSystem = SystemContexts.isSystem(ContextId(workspace.id))
+                    val isShellFree = workspace.sourceContextId == null
+                    val hasLiveContextAuthority = workspace.id in rawBackedProjectIds
+                    isShellFree &&
+                        when {
+                            isSystem -> workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name
+                            hasLiveContextAuthority -> false
+                            workspace.provenance == WorkspaceProvenance.STANDALONE.name -> true
+                            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name ->
+                                workspace.id in retiredOrdinaryContextIds
+
+                            else -> false
+                        }
                 }
             val basePresentationsById = presentationHierarchy.allProjects.associateBy { it.id }
             val operationalOwnerIds =
                 rawBackedProjectIds +
-                    liveWorkspacesById
-                        .values
-                        .asSequence()
-                        .filter { workspace ->
-                            workspace.sourceContextId == null &&
-                                (
-                                    (
-                                        SystemContexts.isSystem(ContextId(workspace.id)) &&
-                                            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name
-                                    ) ||
-                                        (
-                                            !SystemContexts.isSystem(ContextId(workspace.id)) &&
-                                                workspace.provenance == WorkspaceProvenance.STANDALONE.name
-                                        )
-                                )
-                        }.mapTo(linkedSetOf()) { it.id }
+                    canonicalWorkspacesById.keys
             val operationalOwnerPresentations =
                 presentationHierarchy.allProjects.filter { it.id in operationalOwnerIds }
             val operationalPlacementHierarchy =
@@ -504,21 +495,8 @@ class OrientationHierarchyBuilder
 
             val hasRawBacking = presentation.id in rawBackedProjectIds
             val canonicalWorkspace = canonicalWorkspacesById[presentation.id]
-            val isStandaloneWorkspace =
-                canonicalWorkspace != null &&
-                    !canonicalWorkspace.isDeleted &&
-                    canonicalWorkspace.provenance == WorkspaceProvenance.STANDALONE.name &&
-                    canonicalWorkspace.sourceContextId == null &&
-                    !SystemContexts.isSystem(ContextId(presentation.id))
-            val isCanonicalSystemWorkspace =
-                canonicalWorkspace != null &&
-                    SystemContexts.isSystem(ContextId(presentation.id))
-
             val node =
-                if (
-                    canonicalWorkspace != null &&
-                        (hasRawBacking || isCanonicalSystemWorkspace || isStandaloneWorkspace)
-                ) {
+                if (canonicalWorkspace != null) {
                     OrientationHierarchyNode.WorkspaceNode(
                         presentation = presentation,
                         linkedBeaconIds = beaconIdsByContextId[presentation.id].orEmpty(),

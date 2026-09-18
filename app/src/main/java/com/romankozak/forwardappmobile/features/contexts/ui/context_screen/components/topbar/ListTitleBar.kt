@@ -54,6 +54,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import kotlinx.coroutines.delay
 
 // Single StatusVisuals data class
@@ -374,6 +375,7 @@ private fun contextStatusIndicator(
 fun ListTitleBar(
     modifier: Modifier = Modifier,
     project: Context?,
+    presentation: ContextPresentation? = null,
     currentViewMode: ContextViewMode? = null,
     onInboxClick: () -> Unit,
     onPasteClick: (() -> Unit)? = null,
@@ -417,7 +419,7 @@ fun ListTitleBar(
                 horizontalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = project?.name ?: stringResource(id = R.string.loading),
+                    text = presentation?.name ?: project?.name ?: stringResource(id = R.string.loading),
                     modifier = Modifier.weight(1f, fill = false),
                     textAlign = TextAlign.Center,
                     style =

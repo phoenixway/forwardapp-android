@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import dagger.hilt.android.scopes.ViewModelScoped
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 
 @ViewModelScoped
@@ -116,15 +115,23 @@ class ContextDialogActionCoordinator
             parentId: String?,
             roleCode: String?,
         ) {
-            val newContextId = UUID.randomUUID().toString()
-            contextActionsUseCase.addNewProject(
-                id = newContextId,
-                name = name,
-                parentId = parentId,
-                roleCode = roleCode,
-            )
-            savedStateHandle.get<String>(PENDING_BEACON_FOR_NEW_CONTEXT_ID_KEY)
-                ?.let { beaconId -> mainBeaconRepository.addRelatedContexts(beaconId, setOf(newContextId)) }
+            val newWorkspaceId =
+                contextActionsUseCase.addNewProject(
+                    name = name,
+                    parentId = parentId,
+                    roleCode = roleCode,
+                )
+
+            if (newWorkspaceId != null) {
+                savedStateHandle.get<String>(PENDING_BEACON_FOR_NEW_CONTEXT_ID_KEY)
+                    ?.let { beaconId ->
+                        mainBeaconRepository.addRelatedContexts(
+                            beaconId,
+                            setOf(newWorkspaceId),
+                        )
+                    }
+            }
+
             savedStateHandle[PENDING_BEACON_FOR_NEW_CONTEXT_ID_KEY] = null
             dialogUseCase.dismissDialog()
         }

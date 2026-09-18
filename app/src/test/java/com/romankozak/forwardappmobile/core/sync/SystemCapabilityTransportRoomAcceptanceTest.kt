@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
@@ -49,6 +50,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.KeyProblemsC
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityAvailability
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncPayload
@@ -396,6 +398,199 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                         .single { it.id == TACTICAL_MISSION_ID }
 
                 assertEquals(TACTICAL_SYSTEM_ID, exportedAgain.projectId)
+            } finally {
+                source.close()
+                destination.close()
+            }
+        }
+
+    @Test
+    fun `full restore round trips standalone TacticalMission project through Workspace branch`() =
+        runBlocking {
+            val source = database()
+            val destination = database()
+            try {
+                source.workspaceDao().upsert(listOf(standaloneWorkspace(TACTICAL_STANDALONE_ID)))
+                source.tacticalMissionDao().insertMission(
+                    TacticalMission(
+                        id = TACTICAL_MISSION_ID,
+                        title = "Standalone-owned tactical mission",
+                        description = null,
+                        deadline = NO_DEADLINE,
+                        projectId = TACTICAL_STANDALONE_ID,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                val bundle = fullBackup(source).loadFullSnapshotBundle()
+                assertEquals(
+                    TACTICAL_STANDALONE_ID,
+                    bundle.tacticalMissions.single { it.id == TACTICAL_MISSION_ID }.projectId,
+                )
+
+                fullBackup(destination).applySnapshotBundle(bundle)
+
+                val restored =
+                    requireNotNull(
+                        destination.tacticalMissionDao().getMissionById(TACTICAL_MISSION_ID),
+                    )
+                assertNull(restored.projectId)
+                assertEquals(TACTICAL_STANDALONE_ID, restored.projectWorkspaceId)
+                assertEquals(TACTICAL_STANDALONE_ID, restored.logicalProjectId)
+            } finally {
+                source.close()
+                destination.close()
+            }
+        }
+
+    @Test
+    fun `full restore preserves standalone and retired ordinary operational owners`() =
+        runBlocking {
+            val source = database()
+            val destination = database()
+            try {
+                source.contextDao().insertContexts(listOf(retiredContext(RETIRED_OWNER_ID)))
+                source.workspaceDao().upsert(
+                    listOf(
+                        standaloneWorkspace(DAY_TASK_STANDALONE_ID),
+                        canonicalWorkspace(RETIRED_OWNER_ID),
+                    ),
+                )
+                source.dayPlanDao().insert(
+                    DayPlan(
+                        id = DAY_TASK_PLAN_ID,
+                        date = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+                source.dayTaskDao().insertTasks(
+                    listOf(
+                        DayTask(
+                            id = DAY_TASK_STANDALONE_ID,
+                            dayPlanId = DAY_TASK_PLAN_ID,
+                            title = "Standalone-owned task",
+                            projectId = DAY_TASK_STANDALONE_ID,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                        DayTask(
+                            id = DAY_TASK_RETIRED_ID,
+                            dayPlanId = DAY_TASK_PLAN_ID,
+                            title = "Retired-owner task",
+                            projectId = RETIRED_OWNER_ID,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                    ),
+                )
+                source.tacticalMissionDao().insertMission(
+                    TacticalMission(
+                        id = RETIRED_TACTICAL_MISSION_ID,
+                        title = "Retired-owner tactical mission",
+                        description = null,
+                        deadline = NO_DEADLINE,
+                        projectId = RETIRED_OWNER_ID,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                val bundle = fullBackup(source).loadFullSnapshotBundle()
+                assertEquals(
+                    DAY_TASK_STANDALONE_ID,
+                    bundle.dayTasks.single { it.id == DAY_TASK_STANDALONE_ID }.projectId,
+                )
+                assertEquals(
+                    RETIRED_OWNER_ID,
+                    bundle.dayTasks.single { it.id == DAY_TASK_RETIRED_ID }.projectId,
+                )
+                assertEquals(
+                    RETIRED_OWNER_ID,
+                    bundle.tacticalMissions.single { it.id == RETIRED_TACTICAL_MISSION_ID }.projectId,
+                )
+
+                fullBackup(destination).applySnapshotBundle(bundle)
+
+                val standaloneTask =
+                    requireNotNull(destination.dayTaskDao().getTaskById(DAY_TASK_STANDALONE_ID))
+                assertNull(standaloneTask.projectId)
+                assertEquals(DAY_TASK_STANDALONE_ID, standaloneTask.projectWorkspaceId)
+                assertEquals(DAY_TASK_STANDALONE_ID, standaloneTask.logicalProjectId)
+
+                val retiredTask =
+                    requireNotNull(destination.dayTaskDao().getTaskById(DAY_TASK_RETIRED_ID))
+                assertNull(retiredTask.projectId)
+                assertEquals(RETIRED_OWNER_ID, retiredTask.projectWorkspaceId)
+                assertEquals(RETIRED_OWNER_ID, retiredTask.logicalProjectId)
+
+                val mission =
+                    requireNotNull(destination.tacticalMissionDao().getMissionById(RETIRED_TACTICAL_MISSION_ID))
+                assertNull(mission.projectId)
+                assertEquals(RETIRED_OWNER_ID, mission.projectWorkspaceId)
+                assertEquals(RETIRED_OWNER_ID, mission.logicalProjectId)
+
+                val exportedAgain = fullBackup(destination).loadFullSnapshotBundle()
+                assertEquals(
+                    DAY_TASK_STANDALONE_ID,
+                    exportedAgain.dayTasks.single { it.id == DAY_TASK_STANDALONE_ID }.projectId,
+                )
+                assertEquals(
+                    RETIRED_OWNER_ID,
+                    exportedAgain.dayTasks.single { it.id == DAY_TASK_RETIRED_ID }.projectId,
+                )
+                assertEquals(
+                    RETIRED_OWNER_ID,
+                    exportedAgain.tacticalMissions.single { it.id == RETIRED_TACTICAL_MISSION_ID }.projectId,
+                )
+            } finally {
+                source.close()
+                destination.close()
+            }
+        }
+
+    @Test
+    fun `full restore does not legalize arbitrary canonical-only project owners`() =
+        runBlocking {
+            val source = database()
+            val destination = database()
+            try {
+                source.workspaceDao().upsert(listOf(canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID)))
+                source.dayPlanDao().insert(
+                    DayPlan(
+                        id = DAY_TASK_PLAN_ID,
+                        date = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+                source.dayTaskDao().insertRaw(
+                    DayTask(
+                        id = ARBITRARY_CANONICAL_ONLY_ID,
+                        dayPlanId = DAY_TASK_PLAN_ID,
+                        title = "Invalid canonical owner",
+                        projectId = null,
+                        projectWorkspaceId = ARBITRARY_CANONICAL_ONLY_ID,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                fullBackup(destination).applySnapshotBundle(fullBackup(source).loadFullSnapshotBundle())
+
+                val restored =
+                    requireNotNull(destination.dayTaskDao().getTaskById(ARBITRARY_CANONICAL_ONLY_ID))
+                assertNull(restored.projectId)
+                assertNull(restored.projectWorkspaceId)
+                assertNull(restored.logicalProjectId)
             } finally {
                 source.close()
                 destination.close()
@@ -945,13 +1140,52 @@ class SystemCapabilityTransportRoomAcceptanceTest {
             .allowMainThreadQueries()
             .build()
 
+    private fun standaloneWorkspace(id: String) =
+        canonicalWorkspace(id).copy(
+            provenance = WorkspaceProvenance.STANDALONE.name,
+        )
+
+    private fun canonicalWorkspace(id: String) =
+        WorkspaceEntity(
+            id = id,
+            nameOverride = id,
+            descriptionOverride = null,
+            parentWorkspaceId = null,
+            roleCode = null,
+            workspaceOrder = 0L,
+            createdAt = 1L,
+            updatedAt = 1L,
+            syncedAt = null,
+            isDeleted = false,
+            version = 1L,
+            provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+            sourceContextId = null,
+        )
+
+    private fun retiredContext(id: String) =
+        ContextEntity(
+            id = id,
+            name = id,
+            description = null,
+            parentId = null,
+            createdAt = 1L,
+            updatedAt = 1L,
+            isDeleted = true,
+        )
+
     private companion object {
         val SYSTEM_ID: String = SystemContexts.INBOX.raw
         val TACTICAL_SYSTEM_ID: String = SystemContexts.TODAY.raw
         const val TACTICAL_MISSION_ID = 9_001L
+        const val TACTICAL_STANDALONE_ID = "standalone-tactical-owner"
         val DAY_TASK_SYSTEM_ID: String = SystemContexts.TODAY.raw
         const val DAY_TASK_PLAN_ID = "system-transport-day-plan"
         const val DAY_TASK_ID = "system-transport-day-task"
+        const val DAY_TASK_STANDALONE_ID = "standalone-day-task-owner"
+        const val DAY_TASK_RETIRED_ID = "retired-day-task"
+        const val RETIRED_OWNER_ID = "retired-operational-owner"
+        const val RETIRED_TACTICAL_MISSION_ID = 9_002L
+        const val ARBITRARY_CANONICAL_ONLY_ID = "arbitrary-canonical-only-owner"
         val TARGET_TYPES: List<WorkspaceCapabilityType> =
             orientationCapabilityRegistry
                 .filter { it.availability == WorkspaceCapabilityAvailability.TARGET }

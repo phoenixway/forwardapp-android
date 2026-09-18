@@ -33,6 +33,7 @@ class OrientationHierarchyBuilderTest {
         parentLinks: List<ContextParentLink> = emptyList(),
         beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
         workspaces: List<WorkspaceEntity> = emptyList(),
+        retiredOrdinaryContextIds: Set<String> = emptySet(),
         presentationHierarchy: HierarchyPresentationData =
             HierarchyPresentationTreeBuilder().build(
                 rawContexts.map(Context::toHierarchyPresentationNode),
@@ -41,6 +42,7 @@ class OrientationHierarchyBuilderTest {
         builder.build(
             presentationHierarchy = presentationHierarchy,
             rawBackedProjectIds = rawContexts.mapTo(linkedSetOf()) { it.id },
+            retiredOrdinaryContextIds = retiredOrdinaryContextIds,
             beacons = beacons,
             groups = groups,
             parentLinks = parentLinks,
@@ -528,6 +530,74 @@ class OrientationHierarchyBuilderTest {
                 as OrientationHierarchyNode.WorkspaceNode
         assertEquals("Standalone", standaloneNode.presentation.name)
         assertEquals(listOf("operations"), standaloneNode.presentation.tags)
+    }
+
+    @Test
+    fun retiredOrdinaryCanonicalWorkspaceKeepsCanonicalPlacementAndBeaconAdmission() {
+        val parent = context(id = "legacy-parent", order = 0)
+        val retiredId = "retired-ordinary-owner"
+        val retiredPresentation =
+            HierarchyContextPresentationNode(
+                id = retiredId,
+                name = "Restored operational owner",
+                description = "Canonical description",
+                parentId = parent.id,
+                order = 7L,
+                roleCode = "operations",
+                tags = listOf("restored"),
+            )
+        val arbitraryCanonicalPresentation =
+            HierarchyContextPresentationNode(
+                id = "arbitrary-canonical-owner",
+                name = "Must stay hidden",
+                description = null,
+                parentId = null,
+                order = 1L,
+                roleCode = null,
+                tags = emptyList(),
+            )
+        val retiredWorkspace = canonicalWorkspace(retiredId, parent.id, retiredPresentation.order)
+        val arbitraryWorkspace = canonicalWorkspace(arbitraryCanonicalPresentation.id, null, 1L)
+
+        val items =
+            legacyFixtureBuild(
+                rawContexts = listOf(parent),
+                beacons =
+                    listOf(
+                        OrientationBeaconInput(
+                            id = "beacon-1",
+                            title = "Restored Beacon",
+                            order = 0L,
+                            readinessStatus = MainBeaconReadinessStatus.READY,
+                            parentBeaconId = null,
+                            relatedOwnerIds = listOf(retiredId, arbitraryCanonicalPresentation.id),
+                            groupIds = emptyList(),
+                        ),
+                    ),
+                workspaces = listOf(retiredWorkspace, arbitraryWorkspace),
+                retiredOrdinaryContextIds = setOf(retiredId),
+                presentationHierarchy =
+                    HierarchyPresentationData(
+                        allProjects =
+                            listOf(
+                                parent.toHierarchyPresentationNode(),
+                                retiredPresentation,
+                                arbitraryCanonicalPresentation,
+                            ),
+                        topLevelProjects = listOf(parent.toHierarchyPresentationNode(), arbitraryCanonicalPresentation),
+                        childMap = mapOf(parent.id to listOf(retiredPresentation)),
+                    ),
+            )
+
+        assertEquals(
+            listOf("virtual:no-group", "beacon-1", retiredId, "virtual:no-beacon", parent.id),
+            items.map { it.node.id },
+        )
+        val retiredNode = items.single { it.node.id == retiredId }.node as OrientationHierarchyNode.WorkspaceNode
+        assertEquals(parent.id, retiredNode.presentation.parentId)
+        assertEquals(7L, retiredNode.presentation.order)
+        assertEquals("Restored operational owner", retiredNode.presentation.name)
+        assertEquals(false, items.any { it.node.id == arbitraryCanonicalPresentation.id })
     }
 
     @Test

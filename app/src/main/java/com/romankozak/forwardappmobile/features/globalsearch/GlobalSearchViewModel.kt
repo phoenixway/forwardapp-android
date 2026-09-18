@@ -1275,7 +1275,7 @@ class GlobalSearchViewModel
                         enhancedNavigationManager.navigateToProject(projectId, rawContext.name)
 
                     presentation != null ->
-                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, presentation.name)
+                        enhancedNavigationManager.navigateToProject(projectId, presentation.name)
 
                     else -> Unit
                 }

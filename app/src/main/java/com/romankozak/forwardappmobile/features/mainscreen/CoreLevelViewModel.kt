@@ -533,7 +533,10 @@ class CoreLevelViewModel
                             return
                         }
                         if (rawContext != null) {
-                            rawContext.tags.orEmpty() to writeContextTags
+                            Pair<List<String>, suspend (List<String>) -> Unit>(
+                                rawContext.tags.orEmpty(),
+                                writeContextTags,
+                            )
                         } else {
                             systemWorkspacePresentationContextProjector
                                 .resolvePresentation(contextId, rawContext)
@@ -541,14 +544,16 @@ class CoreLevelViewModel
                                     val writeCanonicalTags: suspend (List<String>) -> Unit = { tags ->
                                         canonicalWorkspaceTagRepository.replaceTags(contextId, tags)
                                     }
-                                    canonicalWorkspaceTagRepository.getTags(contextId) to
-                                        writeCanonicalTags
+                                    Pair<List<String>, suspend (List<String>) -> Unit>(
+                                        canonicalWorkspaceTagRepository.getTags(contextId),
+                                        writeCanonicalTags,
+                                    )
                                 }
                         }
                     }
 
                     is SystemWorkspaceTagAuthority.Resolution.Canonical ->
-                        resolution.tags to writeContextTags
+                        Pair<List<String>, suspend (List<String>) -> Unit>(resolution.tags, writeContextTags)
                     SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
                 } ?: return
             val (current, writeTags) = currentAndWriter

@@ -35,10 +35,20 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                     listOf(
                         context(ORDINARY_ID),
                         context(HISTORICAL_SYS_PREFIX_ID),
+                        context(RETIRED_ID).copy(isDeleted = true),
                     ),
                 )
                 database.workspaceDao().upsert(
-                    listOf(canonicalWorkspace(SYSTEM_ID)),
+                    listOf(
+                        canonicalWorkspace(SYSTEM_ID),
+                        standaloneWorkspace(STANDALONE_ID),
+                        canonicalWorkspace(ORDINARY_ID),
+                        canonicalWorkspace(RETIRED_ID),
+                        canonicalWorkspace(HISTORICAL_SYS_PREFIX_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = HISTORICAL_SYS_PREFIX_ID,
+                        ),
+                    ),
                 )
 
                 dao.insertMissions(
@@ -46,6 +56,8 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                         mission(1L, SYSTEM_ID),
                         mission(2L, ORDINARY_ID),
                         mission(3L, HISTORICAL_SYS_PREFIX_ID),
+                        mission(4L, STANDALONE_ID),
+                        mission(5L, RETIRED_ID),
                     ),
                 )
 
@@ -66,6 +78,16 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                 assertNull(historicalMission.projectWorkspaceId)
                 assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalMission.logicalProjectId)
 
+                val standaloneMission = requireNotNull(stored[4L])
+                assertNull(standaloneMission.projectId)
+                assertEquals(STANDALONE_ID, standaloneMission.projectWorkspaceId)
+                assertEquals(STANDALONE_ID, standaloneMission.logicalProjectId)
+
+                val retiredMission = requireNotNull(stored[5L])
+                assertNull(retiredMission.projectId)
+                assertEquals(RETIRED_ID, retiredMission.projectWorkspaceId)
+                assertEquals(RETIRED_ID, retiredMission.logicalProjectId)
+
                 assertEquals(
                     listOf(1L),
                     dao.getMissionsForProject(SYSTEM_ID).first().map { it.id },
@@ -77,6 +99,14 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                 assertEquals(
                     listOf(3L),
                     dao.getMissionsForProject(HISTORICAL_SYS_PREFIX_ID).first().map { it.id },
+                )
+                assertEquals(
+                    listOf(4L),
+                    dao.getMissionsForProject(STANDALONE_ID).first().map { it.id },
+                )
+                assertEquals(
+                    listOf(5L),
+                    dao.getMissionsForProject(RETIRED_ID).first().map { it.id },
                 )
 
                 dao.updateMission(
@@ -92,8 +122,62 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                 assertNull(updated.projectId)
                 assertEquals(SYSTEM_ID, updated.projectWorkspaceId)
                 assertEquals(SYSTEM_ID, updated.logicalProjectId)
+
+                dao.updateMission(
+                    standaloneMission.copy(
+                        title = "Updated standalone",
+                        projectId = STANDALONE_ID,
+                        projectWorkspaceId = null,
+                    ),
+                )
+
+                val updatedStandalone = requireNotNull(dao.getMissionById(4L))
+                assertEquals("Updated standalone", updatedStandalone.title)
+                assertNull(updatedStandalone.projectId)
+                assertEquals(STANDALONE_ID, updatedStandalone.projectWorkspaceId)
+                assertEquals(STANDALONE_ID, updatedStandalone.logicalProjectId)
+
+                dao.updateMission(
+                    retiredMission.copy(
+                        projectId = RETIRED_ID,
+                        projectWorkspaceId = null,
+                    ),
+                )
+                val updatedRetired = requireNotNull(dao.getMissionById(5L))
+                assertNull(updatedRetired.projectId)
+                assertEquals(RETIRED_ID, updatedRetired.projectWorkspaceId)
             } finally {
                 database.close()
+            }
+        }
+
+    @Test
+    fun `non-System Workspace routing accepts only live standalone owners`() =
+        runBlocking {
+            listOf(
+                "canonical-only" to canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID),
+                "deleted-standalone" to standaloneWorkspace(DELETED_STANDALONE_ID).copy(isDeleted = true),
+                "malformed-standalone-source" to
+                    standaloneWorkspace(MALFORMED_STANDALONE_ID).copy(
+                        sourceContextId = ORDINARY_ID,
+                    ),
+            ).forEach { (case, workspace) ->
+                val database = database()
+                try {
+                    database.workspaceDao().upsert(listOf(workspace))
+
+                    val failure =
+                        runCatching {
+                            database.tacticalMissionDao().insertMission(
+                                mission(1L, workspace.id),
+                            )
+                        }.exceptionOrNull()
+
+                    assertTrue("$case must fail closed", failure is IllegalArgumentException)
+                    assertTrue(database.tacticalMissionDao().getAllMissionsSync().isEmpty())
+                } finally {
+                    database.close()
+                }
             }
         }
 
@@ -200,6 +284,11 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
             sourceContextId = null,
         )
 
+    private fun standaloneWorkspace(id: String) =
+        canonicalWorkspace(id).copy(
+            provenance = WorkspaceProvenance.STANDALONE.name,
+        )
+
     private fun database(): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
@@ -209,5 +298,10 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
         val SYSTEM_ID: String = SystemContexts.TODAY.raw
         const val ORDINARY_ID = "ordinary-context"
         const val HISTORICAL_SYS_PREFIX_ID = "sys_strategic-beacons"
+        const val STANDALONE_ID = "standalone-workspace"
+        const val RETIRED_ID = "retired-context-owner"
+        const val ARBITRARY_CANONICAL_ONLY_ID = "canonical-only-workspace"
+        const val DELETED_STANDALONE_ID = "deleted-standalone-workspace"
+        const val MALFORMED_STANDALONE_ID = "malformed-standalone-workspace"
     }
 }

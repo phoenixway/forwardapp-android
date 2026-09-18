@@ -527,6 +527,10 @@ class ContextScreenViewModel
             stateManager.uiState
                 .map { it.context }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        val projectPresentation =
+            stateManager.uiState
+                .map { it.presentation }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         val lastOngoingActivity =
             activityManager.currentActivity
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -810,7 +814,8 @@ class ContextScreenViewModel
 
         fun setReminderForOngoingActivity() = currentContextActions.setReminderForOngoingActivity(lastOngoingActivity.value)
 
-        fun onStartTrackingCurrentProject() = currentContextActions.startTrackingCurrentProject(project.value?.id)
+        fun onStartTrackingCurrentProject() =
+            currentContextActions.startTrackingCurrentProject(projectPresentation.value?.id)
 
         fun hasCapability(capabilityId: CapabilityId) = uiControlActions.hasCapability(capabilityId)
 
@@ -1128,7 +1133,7 @@ class ContextScreenViewModel
 
         fun onTransferBacklogToServerRequest() {
             viewModelScope.launch {
-                when (val result = backlogActions.transferBacklogToServer(project.value?.name, listContent.value)) {
+                when (val result = backlogActions.transferBacklogToServer(projectPresentation.value?.name, listContent.value)) {
                     is BacklogActions.TransferResult.Message -> showSnackbar(result.text, null)
                 }
             }

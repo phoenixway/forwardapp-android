@@ -21,7 +21,6 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
@@ -39,6 +38,7 @@ import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectio
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.InboxSortingLegacyFullBackupAdapter
+import com.romankozak.forwardappmobile.data.workspace.capability.LegacyInboxFullBackupAdapter
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogMigrationDryRunAdapter
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
@@ -131,6 +131,7 @@ class FullBackupLocalDataSourceImpl
         private val canonicalWorkspaceTagTransportStore: CanonicalWorkspaceTagTransportStore,
         private val systemWorkspaceTagSeed: SystemWorkspaceTagSeed,
         private val backlogMigrationDryRunAdapter: BacklogMigrationDryRunAdapter,
+        private val legacyInboxFullBackupAdapter: LegacyInboxFullBackupAdapter,
         private val inboxSortingLegacyFullBackupAdapter: InboxSortingLegacyFullBackupAdapter,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
@@ -626,7 +627,6 @@ class FullBackupLocalDataSourceImpl
                     "reserved System evidence: ${contextIngress.systemEvidence.size}",
             )
             contextDao.insertAll(contextSnapshotsForPersistence.map { it.toEntity() })
-            val validContextIds = contextSnapshotsForPersistence.map { it.id }.toSet()
 
             val ordinaryContextParentLinks =
                 bundle.contextParentLinks.filterNot { link ->
@@ -710,6 +710,22 @@ class FullBackupLocalDataSourceImpl
                 } else {
                     null
                 }
+            val transientSystemBacklogItems =
+                if (bundle.workspaceBacklogEntries == null) {
+                    bundle.backlogItems
+                        .filter { item -> isReservedSystemContextId(item.contextId) }
+                        .map { it.toEntity() }
+                } else {
+                    emptyList()
+                }
+            val transientSystemBacklogOrders =
+                if (bundle.workspaceBacklogEntries == null) {
+                    bundle.backlogOrders
+                        .filter { order -> isReservedSystemContextId(order.listId) }
+                        .map { it.toEntity() }
+                } else {
+                    emptyList()
+                }
             if (bundle.workspaceBacklogEntries != null &&
                 (bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty())
             ) {
@@ -720,7 +736,13 @@ class FullBackupLocalDataSourceImpl
                 backlogItemDao.insertAll(fallback.backlogItems)
             }
 
-            Log.d("SyncV2", "Ignoring legacy InboxRecords: ${bundle.inbox.size}")
+            val legacyInboxFallback =
+                bundle.inbox.takeIf {
+                    bundle.workspaceInboxRecords == null && it.isNotEmpty()
+                }
+            if (bundle.workspaceInboxRecords != null && bundle.inbox.isNotEmpty()) {
+                Log.d("SyncV2", "Ignoring legacy InboxRecords because canonical payload is present")
+            }
 
             Log.d("SyncV2", "Inserting LinkItems: ${bundle.linkItemEntities.size}")
             linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
@@ -812,22 +834,6 @@ class FullBackupLocalDataSourceImpl
                         sanitizedTask = sanitizedTask.copy(goalId = null)
                     }
 
-                    // Ordinary projects require a Context row.
-                    // Exact reserved System ids are logical owners and route
-                    // through their same-id canonical Workspace.
-                    val projectId = sanitizedTask.projectId
-                    if (
-                        projectId != null &&
-                        !SystemContexts.isSystem(ContextId(projectId)) &&
-                        projectId !in validContextIds
-                    ) {
-                        Log.w(
-                            "SyncData",
-                            "DayTask ${sanitizedTask.id} references non-existent Context $projectId. Setting projectId to null.",
-                        )
-                        sanitizedTask = sanitizedTask.copy(projectId = null)
-                    }
-
                     if (sanitizedTask.activityRecordId != null && sanitizedTask.activityRecordId !in validActivityRecordIds) {
                         Log.w(
                             "SyncData",
@@ -901,28 +907,30 @@ class FullBackupLocalDataSourceImpl
             // the prerequisite owner during restore.
             db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
 
-            val validCanonicalWorkspaceIdsForDayTasks =
-                db.workspaceDao().getAll()
-                    .asSequence()
-                    .filter { workspace ->
-                        !workspace.isDeleted &&
-                            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                            workspace.sourceContextId == null
-                    }
-                    .mapTo(hashSetOf()) { workspace -> workspace.id }
+            val contextsById = contextDao.getAllRaw().associateBy { it.id }
+            val workspacesById = db.workspaceDao().getAll().associateBy { it.id }
+
+            fun hasValidNonSystemOperationalProjectOwner(projectId: String): Boolean =
+                runCatching {
+                    classifyOperationalProjectOwner(
+                        logicalProjectId = projectId,
+                        context = contextsById[projectId],
+                        workspace = workspacesById[projectId],
+                    )
+                }.isSuccess
 
             val routedDayTasksToInsert =
                 dayTasksToInsert.map { snapshot ->
                     val projectId = snapshot.projectId
                     if (
                         projectId != null &&
-                        SystemContexts.isSystem(ContextId(projectId)) &&
-                        projectId !in validCanonicalWorkspaceIdsForDayTasks
+                        !SystemContexts.isSystem(ContextId(projectId)) &&
+                        !hasValidNonSystemOperationalProjectOwner(projectId)
                     ) {
                         Log.w(
                             "SyncData",
-                            "Dropping legacy System DayTask owner $projectId for ${snapshot.id}: " +
-                                "no live same-id CANONICAL_ONLY Workspace",
+                            "DayTask ${snapshot.id} references an invalid operational owner $projectId. " +
+                                "Setting projectId to null.",
                         )
                         snapshot.copy(projectId = null)
                     } else {
@@ -942,19 +950,20 @@ class FullBackupLocalDataSourceImpl
             )
 
             // TacticalMission keeps one logical primary-project id with typed
-            // Context / Workspace persistence branches. Canonical Workspaces
-            // must exist before exact reserved System projects are routed.
+            // Context / Workspace persistence branches. Canonical payload and
+            // Context retirement evidence now exist before owner routing.
             val missionsToInsert =
                 bundle.tacticalMissions.map { missionSnapshot ->
                     val projectId = missionSnapshot.projectId
                     if (
                         projectId != null &&
                         !SystemContexts.isSystem(ContextId(projectId)) &&
-                        projectId !in validContextIds
+                        !hasValidNonSystemOperationalProjectOwner(projectId)
                     ) {
                         Log.w(
                             "SyncData",
-                            "TacticalMission ${missionSnapshot.id} references non-existent Context $projectId. Setting projectId to null.",
+                            "TacticalMission ${missionSnapshot.id} references an invalid operational owner $projectId. " +
+                                "Setting projectId to null.",
                         )
                         missionSnapshot.copy(projectId = null)
                     } else {
@@ -1004,10 +1013,20 @@ class FullBackupLocalDataSourceImpl
                     legacyConfigurationEvidence = legacySystemConfigurationEvidence,
                 )
             }
-            if (legacyBacklogFallback != null) {
+            if (legacyBacklogFallback != null || transientSystemBacklogItems.isNotEmpty()) {
                 canonicalOrientationBootstrapper.ensureBootstrapped()
                 canonicalWorkspaceBootstrapper.ensureBootstrapped()
-                backlogMigrationDryRunAdapter.materializeLegacyFullBackup()
+                backlogMigrationDryRunAdapter.materializeLegacyFullBackup(
+                    transientItems = transientSystemBacklogItems,
+                    transientOrders = transientSystemBacklogOrders,
+                )
+            }
+            if (legacyInboxFallback != null) {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
+                canonicalWorkspaceBootstrapper.ensureBootstrapped()
+                legacyInboxFullBackupAdapter.materializeLegacyFullBackup(
+                    legacyInboxFallback.map { it.toEntity() },
+                )
             }
             if (legacyInboxSortingFallback) {
                 canonicalOrientationBootstrapper.ensureBootstrapped()

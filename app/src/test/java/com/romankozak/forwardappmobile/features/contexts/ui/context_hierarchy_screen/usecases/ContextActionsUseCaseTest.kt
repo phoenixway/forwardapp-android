@@ -6,6 +6,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLi
 import com.romankozak.forwardappmobile.data.repository.ContextHierarchyUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRolePresetInitializer
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.DirectionCapabilityState
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
@@ -20,6 +26,10 @@ import org.junit.Test
 
 class ContextActionsUseCaseTest {
     private val contextRepository = mockk<ContextRepository>(relaxed = true)
+    private val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
+    private val canonicalWorkspaceRolePresetInitializer =
+        mockk<CanonicalWorkspaceRolePresetInitializer>(relaxed = true)
+    private val canonicalDirectionRepository = mockk<CanonicalDirectionRepository>(relaxed = true)
     private val contextParentLinkDao = mockk<ContextParentLinkDao>(relaxed = true)
     private val syncRepository = mockk<SyncRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
@@ -28,12 +38,124 @@ class ContextActionsUseCaseTest {
     private val useCase =
         ContextActionsUseCase(
             contextRepository = contextRepository,
+            canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+            canonicalWorkspaceRolePresetInitializer = canonicalWorkspaceRolePresetInitializer,
+            canonicalDirectionRepository = canonicalDirectionRepository,
             contextParentLinkDao = contextParentLinkDao,
             syncRepository = syncRepository,
             settingsRepository = settingsRepository,
             mainBeaconRepository = mainBeaconRepository,
             ioDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
         )
+
+    @Test
+    fun addNewProjectCreatesStandaloneWorkspaceAndReturnsCanonicalId() = runTest {
+        coEvery {
+            canonicalWorkspaceRepository.create(
+                nameOverride = "Operations",
+                descriptionOverride = null,
+                parentWorkspaceId = "parent-workspace",
+                roleCode = "management",
+                now = any(),
+            )
+        } returns "workspace-generated-id"
+
+        coEvery { canonicalDirectionRepository.getState("parent-workspace") } returns
+            DirectionCapabilityState(
+                lifecycleState = WorkspaceCapabilityState.ACTIVE,
+                isDeleted = false,
+                configuration = DirectionCapabilityConfigurationV1(autoLinkChildWorkspaces = true),
+            )
+
+        val result =
+            useCase.addNewProject(
+                parentId = "parent-workspace",
+                name = "  Operations  ",
+                roleCode = "management",
+            )
+
+        assertEquals("workspace-generated-id", result)
+        coVerify(exactly = 1) {
+            canonicalWorkspaceRepository.create(
+                nameOverride = "Operations",
+                descriptionOverride = null,
+                parentWorkspaceId = "parent-workspace",
+                roleCode = "management",
+                now = any(),
+            )
+        }
+        coVerify(exactly = 1) {
+            canonicalWorkspaceRolePresetInitializer.apply(
+                workspaceId = "workspace-generated-id",
+                roleCode = "management",
+                now = any(),
+            )
+        }
+        coVerify(exactly = 1) {
+            canonicalDirectionRepository.createWorkspaceLinkAtFront(
+                workspaceId = "parent-workspace",
+                targetWorkspaceId = "workspace-generated-id",
+                label = "Operations",
+                now = any(),
+            )
+        }
+        coVerify(exactly = 0) {
+            contextRepository.createContextWithId(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun addNewProjectDoesNotAutoLinkWhenParentDirectionPolicyIsDisabled() = runTest {
+        coEvery {
+            canonicalWorkspaceRepository.create(
+                nameOverride = "Child",
+                descriptionOverride = null,
+                parentWorkspaceId = "parent-workspace",
+                roleCode = null,
+                now = any(),
+            )
+        } returns "child-workspace"
+
+        coEvery { canonicalDirectionRepository.getState("parent-workspace") } returns
+            DirectionCapabilityState(
+                lifecycleState = WorkspaceCapabilityState.ACTIVE,
+                isDeleted = false,
+                configuration = DirectionCapabilityConfigurationV1(autoLinkChildWorkspaces = false),
+            )
+
+        val result =
+            useCase.addNewProject(
+                parentId = "parent-workspace",
+                name = "Child",
+                roleCode = null,
+            )
+
+        assertEquals("child-workspace", result)
+        coVerify(exactly = 0) {
+            canonicalDirectionRepository.createWorkspaceLinkAtFront(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun addNewProjectBlankNameAuthorsNothing() = runTest {
+        val result =
+            useCase.addNewProject(
+                parentId = null,
+                name = "   ",
+                roleCode = "management",
+            )
+
+        assertNull(result)
+        coVerify(exactly = 0) {
+            canonicalWorkspaceRepository.create(any(), any(), any(), any(), any())
+        }
+        coVerify(exactly = 0) {
+            canonicalWorkspaceRolePresetInitializer.apply(any(), any(), any())
+        }
+        coVerify(exactly = 0) {
+            contextRepository.createContextWithId(any(), any(), any(), any())
+        }
+    }
 
     @Test
     fun getMoveProjectRouteTreatsOrphanedContextAsRoot() = runTest {

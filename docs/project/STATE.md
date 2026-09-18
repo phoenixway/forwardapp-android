@@ -2417,3 +2417,106 @@ Ordinary Context creation is not yet extinct. Before the current unverified
 Strategic/Core migration slice, the frontier is six external
 `createContextWithId()` callers plus the internal preset-driven `SUBCONTEXT`
 helper, which remains a separate owner decision.
+
+### Step 12D Strategic/Core standalone creation and Beacon ownership
+
+The StrategicManagement and CoreLevel ordinary-Context creation slice is
+**CURRENT / VERIFIED**.
+
+Both root-picker creation flows now author canonical non-System `STANDALONE`
+Workspaces instead of ordinary Context rows. They create neither Context nor
+ContextConfiguration.
+
+Standalone Workspace tag mutations in these flows use
+`CanonicalWorkspaceTagRepository`. Existing ordinary Context compatibility
+owners retain their legacy tag path, while exact reserved System ownership
+retains its established canonical System behavior.
+
+The operational Beacon owner universe now admits live shell-free non-System
+`STANDALONE` Workspaces in addition to existing raw-backed owners and valid
+exact-System canonical owners. Arbitrary shell-free non-System
+`CANONICAL_ONLY` Workspaces remain excluded.
+
+Focused host verification is green for production Kotlin compilation,
+standalone Workspace creation, canonical Workspace tags, Strategic/Core
+shell-free tag routing, and OrientationHierarchyBuilder Beacon admission.
+
+After this verified slice, four external production `createContextWithId()`
+callers remained, plus the internal preset-driven `SUBCONTEXT` helper.
+
+### Step 12D hierarchy standalone creation and canonical role/preset initialization
+
+The hierarchy add/create slice is **CURRENT / VERIFIED**.
+
+`ContextActionsUseCase.addNewProject()` now creates a canonical non-System
+`STANDALONE` Workspace through `CanonicalWorkspaceRepository.create()` and
+returns the canonical-generated Workspace id. The hierarchy dialog coordinator
+uses that returned id for follow-up Beacon ownership instead of generating a
+legacy Context id in the caller.
+
+This path creates neither an ordinary `Context` nor `ContextConfiguration`.
+Role/preset initialization is owned by
+`CanonicalWorkspaceRolePresetInitializer`, which maps the currently supported
+create-time role/preset semantics onto canonical capability instances. It does
+not materialize legacy Context structure, Aspect/Orientation state, or
+preset-driven `SUBCONTEXT` children.
+
+Parent auto-link behavior is also canonical: a newly created child is linked at
+the front only when the parent has an active canonical `DIRECTION` capability
+whose `autoLinkChildWorkspaces` configuration is enabled.
+
+Focused host verification is green for production Kotlin compilation,
+`ContextActionsUseCaseTest`, and
+`CanonicalWorkspaceRolePresetInitializerRoomTest`.
+
+After this verified slice, three external production
+`createContextWithId()` callers remain:
+
+- `AndroidWorkspaceRepositoryAdapter`;
+- `StrategicArcViewModel`;
+- `ContextClipboardCoordinator`.
+
+The internal preset-driven `SUBCONTEXT` helper remains a separate ownership
+decision.
+
+
+### Step 12D Tactical Mission standalone project-owner routing
+
+The Tactical Mission project-owner routing slice is **CURRENT / VERIFIED**.
+
+`TacticalMission` retains two physical persistence branches behind one logical
+project-owner id:
+
+- ordinary Context-backed owners persist through legacy `projectId`;
+- canonical Workspace-owned project references persist through
+  `project_workspace_id`.
+
+`TacticalMission.logicalProjectId` remains the read/transport-facing logical
+owner as `projectWorkspaceId ?: projectId`.
+
+The canonical Workspace branch now admits both:
+
+- valid exact reserved System Workspace owners under the existing exact-System
+  ownership rules;
+- live non-System `STANDALONE` Workspaces with `sourceContextId = null`.
+
+It explicitly does not admit arbitrary non-System `CANONICAL_ONLY` Workspaces.
+Deleted or malformed standalone ownership and invalid System ownership fail
+closed. Valid matching `CONTEXT_BACKED` ownership and ordinary Context-only
+ownership retain the legacy `projectId` branch.
+
+Mission insert/update/import routing is centralized through the Tactical Mission
+DAO boundary. Full-backup restore preserves a valid canonical Workspace logical
+owner so it can re-enter the same routing boundary rather than being cleared
+before persistence. Snapshot transport continues to expose one logical
+`projectId`.
+
+Focused host verification is green for production Kotlin compilation,
+`TacticalMissionDaoWorkspaceProjectRoomTest`, and
+`SystemCapabilityTransportRoomAcceptanceTest`.
+
+This removes the persistence/FK blocker that previously prevented a Strategic
+Arc `ArcQuestSourceType.CONTEXT` source id from referring to a newly created
+shell-free standalone Workspace and later creating a Tactical Mission from that
+Arc quest. `ArcQuestSourceType.CONTEXT` itself remains unchanged as a persisted
+historical discriminator.

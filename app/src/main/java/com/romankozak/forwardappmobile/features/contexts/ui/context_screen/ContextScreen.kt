@@ -33,7 +33,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -148,6 +147,7 @@ private fun ProjectScaffold(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val project by viewModel.project.collectAsStateWithLifecycle()
+    val projectPresentation by viewModel.projectPresentation.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
@@ -285,6 +285,7 @@ private fun ProjectScaffold(
                                     AdaptiveTopBarState(
                                         isSelectionModeActive = uiState.isSelectionModeActive,
                                         project = project,
+                                        presentation = projectPresentation,
                                         selectedCount = uiState.selectedItemIds.size,
                                         areAllSelected =
                                             draggableItems.isNotEmpty() &&
@@ -355,7 +356,7 @@ private fun ProjectScaffold(
                         canGoForward = canGoForward,
                         menuExpanded = menuExpanded,
                         onMenuExpandedChange = { menuExpanded = it },
-                        project = project,
+                        projectId = projectPresentation?.id ?: project?.id,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
                         navigationManager = navigationManager,
                         holdMenuController = holdMenuController,
@@ -399,7 +400,7 @@ private fun ProjectScaffold(
                     onShowProjectProperties = {
                         menuExpanded = false
                         navigationManager.navigate(
-                            target = NavTarget.ProjectSettings(projectId = project?.id),
+                            target = NavTarget.ProjectSettings(projectId = projectPresentation?.id ?: project?.id),
                         )
                     },
                     onSwitchView = viewModel::onProjectViewChange,
@@ -505,7 +506,7 @@ private fun ProjectBottomBar(
     canGoForward: Boolean,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
-    project: Context?,
+    projectId: String?,
     onShowDisplayPropertiesClick: () -> Unit,
     navigationManager: EnhancedNavigationManager,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
@@ -564,7 +565,7 @@ private fun ProjectBottomBar(
                 },
                 onAddNestedProjectClick = { showContextPicker = true },
                 onShowCurrentContextInHierarchyFocus = {
-                    val contextIdToReveal = project?.id ?: return@ModernInputPanel
+                    val contextIdToReveal = projectId ?: return@ModernInputPanel
                     navigationManager.navigate(
                         target = NavTarget.ContextHierarchy(projectIdToReveal = contextIdToReveal),
                         builder = {
@@ -583,7 +584,7 @@ private fun ProjectBottomBar(
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
                     navigationManager.navigate(
-                        target = NavTarget.ProjectSettings(projectId = project?.id),
+                        target = NavTarget.ProjectSettings(projectId = projectId),
                     )
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdown() },

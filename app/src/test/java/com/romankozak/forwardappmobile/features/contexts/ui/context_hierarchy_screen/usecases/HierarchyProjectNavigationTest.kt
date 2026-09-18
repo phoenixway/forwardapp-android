@@ -53,7 +53,7 @@ class HierarchyProjectNavigationTest {
     }
 
     @Test
-    fun missingOrNonReservedShellFreeIdentityFailsClosed() {
+    fun missingShellFreeIdentityFailsClosedButAdmittedNonSystemOwnerOpensDetail() {
         assertNull(
             resolveHierarchyProjectNavigation(
                 projectId = SystemContexts.INBOX.raw,
@@ -61,10 +61,11 @@ class HierarchyProjectNavigationTest {
                 hasLegacyBacking = false,
             ),
         )
-        assertNull(
+        assertEquals(
+            HierarchyProjectNavigation.ContextDetail("retired-owner", "Restored"),
             resolveHierarchyProjectNavigation(
-                projectId = "sys_custom",
-                presentation = presentation("sys_custom", "Custom"),
+                projectId = "retired-owner",
+                presentation = presentation("retired-owner", "Restored"),
                 hasLegacyBacking = false,
             ),
         )

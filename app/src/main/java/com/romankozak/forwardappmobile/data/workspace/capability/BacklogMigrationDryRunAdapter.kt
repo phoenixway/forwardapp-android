@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.database.repairRequiredGoalIdentities161
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -15,6 +17,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogTarge
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.LegacyBacklogItemSource
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.LegacyBacklogOrderSource
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import java.util.UUID
@@ -65,11 +68,14 @@ class BacklogMigrationDryRunAdapter
          * The imported legacy rows are only planner evidence. They never become
          * runtime authority, and any ambiguity aborts the surrounding restore transaction.
          */
-        suspend fun materializeLegacyFullBackup(): BacklogMigrationDryRunReport =
+        suspend fun materializeLegacyFullBackup(
+            transientItems: List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem> = emptyList(),
+            transientOrders: List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder> = emptyList(),
+        ): BacklogMigrationDryRunReport =
             database.withTransaction {
                 val goalRepairNow = System.currentTimeMillis()
                 val requiredGoalIds =
-                    database.listItemDao().getAllRaw()
+                    (database.listItemDao().getAllRaw() + transientItems)
                         .asSequence()
                         .filter { it.itemType == GOAL_SOURCE_TYPE }
                         .map { it.entityId }
@@ -89,7 +95,7 @@ class BacklogMigrationDryRunAdapter
                     }
                 }
 
-                val report = dryRun()
+                val report = dryRun(transientItems, transientOrders)
                 require(report.canApply && report.isFullyAccounted) {
                     buildString {
                         append("Legacy BACKLOG full-backup fallback was rejected")
@@ -107,7 +113,7 @@ class BacklogMigrationDryRunAdapter
                                 it.instanceKey == DEFAULT_INSTANCE_KEY
                         }
                         .associateBy { it.workspaceId }
-                val legacyItems = database.listItemDao().getAllRaw()
+                val legacyItems = database.listItemDao().getAllRaw() + transientItems
                 val legacyItemsById = legacyItems.associateBy { it.id }
                 val historicalDeletedGoalIds =
                     database.goalDao().getAllRaw()
@@ -235,10 +241,13 @@ class BacklogMigrationDryRunAdapter
                 report
             }
 
-        suspend fun dryRun(): BacklogMigrationDryRunReport =
+        suspend fun dryRun(
+            transientItems: List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem> = emptyList(),
+            transientOrders: List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder> = emptyList(),
+        ): BacklogMigrationDryRunReport =
             database.withTransaction {
-                val legacyItems = database.listItemDao().getAllRaw()
-                val legacyOrders = database.backlogOrderDao().getAllRaw()
+                val legacyItems = database.listItemDao().getAllRaw() + transientItems
+                val legacyOrders = database.backlogOrderDao().getAllRaw() + transientOrders
                 val contexts = database.contextDao().getAll()
                 val historicalDeletedGoalIds =
                     database.goalDao().getAllRaw()
@@ -260,20 +269,20 @@ class BacklogMigrationDryRunAdapter
 
                 val existingEntries = database.workspaceBacklogEntryDao().getAll()
 
-                val provenContextBacked =
+                val contextById = contexts.associateBy { it.id }
+                val provenLegacyIngressOwners =
                     workspaces.filter { workspace ->
-                        workspace.provenance == CONTEXT_BACKED_PROVENANCE &&
-                            !workspace.sourceContextId.isNullOrBlank() &&
-                            workspace.id == workspace.sourceContextId
+                        isLegacyContextIngressOwner(
+                            workspace = workspace,
+                            context = contextById[workspace.id],
+                        )
                     }
 
                 val workspaceIdByContextId =
-                    provenContextBacked.associate { workspace ->
-                        requireNotNull(workspace.sourceContextId) to workspace.id
-                    }
+                    provenLegacyIngressOwners.associate { workspace -> workspace.id to workspace.id }
 
                 val ownerWorkspaceStateById =
-                    provenContextBacked.associate { workspace ->
+                    provenLegacyIngressOwners.associate { workspace ->
                         workspace.id to
                             BacklogOwnerWorkspaceState(
                                 isDeleted = workspace.isDeleted,
@@ -299,7 +308,7 @@ class BacklogMigrationDryRunAdapter
                 val expectedCapabilityIds =
                     expectedBacklogCapabilityIds(
                         workspaceIds =
-                            provenContextBacked
+                            provenLegacyIngressOwners
                                 .asSequence()
                                 .filter { workspace ->
                                     !workspace.isDeleted || workspace.id in legacyOwnerWorkspaceIds
@@ -311,7 +320,7 @@ class BacklogMigrationDryRunAdapter
                     )
 
                 val contextBackedWorkspaceIds =
-                    provenContextBacked.mapTo(hashSetOf()) { it.id }
+                    provenLegacyIngressOwners.mapTo(hashSetOf()) { it.id }
 
                 existingEntries
                     .filter { it.workspaceId in contextBackedWorkspaceIds }
@@ -601,7 +610,6 @@ class BacklogMigrationDryRunAdapter
                 ).toString()
 
         private companion object {
-            const val CONTEXT_BACKED_PROVENANCE = "CONTEXT_BACKED"
             const val BACKLOG_CAPABILITY_TYPE = "BACKLOG"
             const val DEFAULT_INSTANCE_KEY = "default"
             const val GOAL_SOURCE_TYPE = "GOAL"
@@ -611,3 +619,27 @@ class BacklogMigrationDryRunAdapter
                 UUID.fromString(LegacySubjectUuid.NAMESPACE_UUID)
         }
     }
+
+private fun isLegacyContextIngressOwner(
+    workspace: com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity,
+    context: com.romankozak.forwardappmobile.core.data.models.entities.Context?,
+): Boolean {
+    if (workspace.id != (context?.id ?: workspace.id)) return false
+    if (SystemContexts.isSystem(ContextId(workspace.id))) {
+        return !workspace.isDeleted &&
+            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+            workspace.sourceContextId == null
+    }
+    return when {
+        context?.isDeleted == false ->
+            workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
+                workspace.sourceContextId == context.id
+
+        context?.isDeleted == true ->
+            !workspace.isDeleted &&
+                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                workspace.sourceContextId == null
+
+        else -> false
+    }
+}

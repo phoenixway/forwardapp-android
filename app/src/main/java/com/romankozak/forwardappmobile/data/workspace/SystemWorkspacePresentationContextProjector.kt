@@ -11,6 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /**
  * Read-only Context-shaped presentation data.
@@ -220,6 +221,23 @@ class SystemWorkspacePresentationContextProjector
                     retiredOrdinaryContextIds = retiredOrdinaryContextIds,
                 )
             }
+
+        /**
+         * Retirement evidence for the hierarchy's operational-owner admission.
+         * A deleted ordinary Context proves historical identity only; callers
+         * must still validate the same-id Workspace before presenting it.
+         */
+        fun observeRetiredOrdinaryContextIds(): Flow<Set<String>> =
+            contextDao
+                .getAllContextsFlow()
+                .map { contexts ->
+                    contexts
+                        .asSequence()
+                        .filter { context ->
+                            context.isDeleted &&
+                                !SystemContexts.isSystem(ContextId(context.id))
+                        }.mapTo(hashSetOf()) { it.id }
+                }
 
         /**
          * Resolves display labels for stable operational-owner ids without

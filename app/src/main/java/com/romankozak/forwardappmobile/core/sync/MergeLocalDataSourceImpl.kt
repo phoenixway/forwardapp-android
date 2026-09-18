@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeed
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 
 import android.util.Log
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
@@ -431,13 +430,6 @@ class MergeLocalDataSourceImpl
             val validGoalIds =
                 (goalDao.getAllRaw().map { goal -> goal.id } + bundle.goals.map { goal -> goal.id })
                     .toSet()
-            val validContextIdsForDayTasks =
-                (
-                    contextDao.getAllRaw()
-                        .map { context -> context.id }
-                        .filterNot(::isReservedSystemContextId) +
-                        contextSnapshotsForPersistence.map { context -> context.id }
-                ).toSet()
             val validActivityRecordIds =
                 (activityRecordDao.getAllRaw().map { record -> record.id } + bundle.activityRecords.map { record -> record.id })
                     .toSet()
@@ -467,24 +459,12 @@ class MergeLocalDataSourceImpl
                     }.map { task ->
                         task.copy(
                             goalId = task.goalId?.takeIf { id -> id in validGoalIds },
-                            projectId =
-                                task.projectId?.takeIf { id ->
-                                    isReservedSystemContextId(id) ||
-                                        id in validContextIdsForDayTasks
-                                },
                             activityRecordId = task.activityRecordId?.takeIf { id -> id in validActivityRecordIds },
                         )
                     }
             val skippedDayTaskCount = remappedDayTasks.size - dayTasksToInsert.size
             val skippedDayFocusCount = remappedDayFocusItems.size - dayFocusItemsToInsert.size
             val clearedTaskGoalCount = remappedDayTasks.count { task -> task.goalId != null && task.goalId !in validGoalIds }
-            val clearedTaskContextCount =
-                remappedDayTasks.count { task ->
-                    task.projectId?.let { id ->
-                        !isReservedSystemContextId(id) &&
-                            id !in validContextIdsForDayTasks
-                    } == true
-                }
             val clearedTaskActivityCount =
                 remappedDayTasks.count { task -> task.activityRecordId != null && task.activityRecordId !in validActivityRecordIds }
             Log.i(
@@ -494,7 +474,7 @@ class MergeLocalDataSourceImpl
                     "incomingFocus=${bundle.dayFocusItems.size} insertFocus=${dayFocusItemsToInsert.size} " +
                     "skippedFocus=$skippedDayFocusCount " +
                     "incomingTasks=${bundle.dayTasks.size} insertTasks=${dayTasksToInsert.size} skippedTasks=$skippedDayTaskCount " +
-                    "clearedTaskFks=goal:$clearedTaskGoalCount,context:$clearedTaskContextCount," +
+                    "clearedTaskFks=goal:$clearedTaskGoalCount," +
                     "activity:$clearedTaskActivityCount " +
                     "runtime=${bundle.dayManagementRuntimeState != null} " +
                     "incomingPlanDates=${bundle.dayPlans.map { plan -> "${plan.id}:${plan.date}" }} " +
@@ -634,28 +614,29 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
                 db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
 
-                val validCanonicalWorkspaceIdsForDayTasks =
-                    db.workspaceDao().getAll()
-                        .asSequence()
-                        .filter { workspace ->
-                            !workspace.isDeleted &&
-                                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                                workspace.sourceContextId == null
-                        }
-                        .mapTo(hashSetOf()) { workspace -> workspace.id }
+                val contextsById = contextDao.getAllRaw().associateBy { it.id }
+                val workspacesById = db.workspaceDao().getAll().associateBy { it.id }
+
+                fun hasValidNonSystemOperationalProjectOwner(projectId: String): Boolean =
+                    runCatching {
+                        classifyOperationalProjectOwner(
+                            logicalProjectId = projectId,
+                            context = contextsById[projectId],
+                            workspace = workspacesById[projectId],
+                        )
+                    }.isSuccess
 
                 val routedDayTasksToInsert =
                     dayTasksToInsert.map { snapshot ->
                         val projectId = snapshot.projectId
                         if (
                             projectId != null &&
-                            isReservedSystemContextId(projectId) &&
-                            projectId !in validCanonicalWorkspaceIdsForDayTasks
+                            !isReservedSystemContextId(projectId) &&
+                            !hasValidNonSystemOperationalProjectOwner(projectId)
                         ) {
                             Log.w(
                                 "MergeImport",
-                                "Dropping legacy System DayTask owner $projectId for ${snapshot.id}: " +
-                                    "no live same-id CANONICAL_ONLY Workspace",
+                                "Dropping invalid DayTask operational owner $projectId for ${snapshot.id}",
                             )
                             snapshot.copy(projectId = null)
                         } else {
@@ -670,7 +651,23 @@ class MergeLocalDataSourceImpl
                     },
                 )
 
-                val missions = bundle.tacticalMissions.map { it.toEntity() }
+                val missions =
+                    bundle.tacticalMissions.map { snapshot ->
+                        val projectId = snapshot.projectId
+                        if (
+                            projectId != null &&
+                            !isReservedSystemContextId(projectId) &&
+                            !hasValidNonSystemOperationalProjectOwner(projectId)
+                        ) {
+                            Log.w(
+                                "MergeImport",
+                                "Dropping invalid TacticalMission operational owner $projectId for ${snapshot.id}",
+                            )
+                            snapshot.copy(projectId = null)
+                        } else {
+                            snapshot
+                        }
+                    }.map { it.toEntity() }
                 if (missions.isNotEmpty()) {
                     tacticalMissionDao.insertMissions(missions)
                     Log.d(

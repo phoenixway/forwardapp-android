@@ -271,6 +271,7 @@ fun FocusedProjectView(
             isSearchActive = isSearchActive,
             searchQuery = searchQuery,
             onEvent = onEvent,
+            onProjectClick = onProjectClick,
         )
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -292,6 +293,7 @@ private fun FocusedPresentationProjectView(
     isSearchActive: Boolean,
     searchQuery: String,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
 ) {
     val children = remember(directChildren) { focusedPresentationItems(directChildren) }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -312,7 +314,7 @@ private fun FocusedPresentationProjectView(
                     isFocused = true,
                     isHighlighted = false,
                     onProjectClick = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                        onProjectClick(projectId)
                     },
                 )
             }
@@ -329,7 +331,7 @@ private fun FocusedPresentationProjectView(
                     isFocused = false,
                     isHighlighted = false,
                     onProjectClick = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                        onProjectClick(projectId)
                     },
                 )
             }
@@ -565,7 +567,7 @@ fun FocusedOrientationNodeView(
                     selectedContextIds = selectedContextIds,
                     onEvent = onEvent,
                     onProjectClick = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                        onProjectClick(projectId)
                     },
                     onToggleSelection = onToggleSelection,
                     onStartSelection = onStartSelection,
@@ -590,7 +592,7 @@ fun FocusedOrientationNodeView(
                     isFocused = false,
                     isHighlighted = item.project.id == highlightedProjectId,
                     onProjectClick = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                        onProjectClick(projectId)
                     },
                 )
             }

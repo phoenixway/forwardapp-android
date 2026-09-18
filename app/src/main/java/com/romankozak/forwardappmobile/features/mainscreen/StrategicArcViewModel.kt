@@ -17,6 +17,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEA
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
@@ -27,6 +29,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconReposi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
+import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -47,7 +50,6 @@ import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.LocalDate
 import java.time.temporal.WeekFields
-import java.util.UUID
 import javax.inject.Inject
 
 private const val STRATEGIC_ARC_TAG = "arc"
@@ -82,6 +84,8 @@ class StrategicArcViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val canonicalWorkspaceTagRepository: CanonicalWorkspaceTagRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val settingsRepository: SettingsRepository,
@@ -264,15 +268,7 @@ class StrategicArcViewModel
         }
 
         suspend fun createRootContextForPicker(name: String): String? {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return null
-            val id = UUID.randomUUID().toString()
-            contextRepository.createContextWithId(
-                id = id,
-                name = trimmed,
-                parentId = null,
-            )
-            return id
+            return canonicalWorkspaceRepository.createRootWorkspaceForPicker(name)
         }
 
         suspend fun createArcDocumentForPicker(request: NewDocumentDraft): String? {
@@ -513,16 +509,41 @@ class StrategicArcViewModel
             addTag: String? = null,
             removeTags: Set<String> = emptySet(),
         ) {
-            val current =
+            val writeContextTags: suspend (List<String>) -> Unit = { tags ->
+                contextRepository.updateContextTags(contextId, tags)
+            }
+            val currentAndWriter: Pair<List<String>, suspend (List<String>) -> Unit> =
                 when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
                     SystemWorkspaceTagAuthority.Resolution.NotSystem -> {
-                        val context = contextRepository.getContextById(contextId) ?: return
-                        context.tags.orEmpty()
+                        val rawContext = contextRepository.getContextById(contextId)
+                        if (rawContext?.isDeleted == true) {
+                            return
+                        }
+                        if (rawContext != null) {
+                            Pair<List<String>, suspend (List<String>) -> Unit>(
+                                rawContext.tags.orEmpty(),
+                                writeContextTags,
+                            )
+                        } else {
+                            systemWorkspacePresentationContextProjector
+                                .resolvePresentation(contextId, rawContext)
+                                ?.let {
+                                    val writeCanonicalTags: suspend (List<String>) -> Unit = { tags ->
+                                        canonicalWorkspaceTagRepository.replaceTags(contextId, tags)
+                                    }
+                                    Pair<List<String>, suspend (List<String>) -> Unit>(
+                                        canonicalWorkspaceTagRepository.getTags(contextId),
+                                        writeCanonicalTags,
+                                    )
+                                }
+                        }
                     }
 
-                    is SystemWorkspaceTagAuthority.Resolution.Canonical -> resolution.tags
+                    is SystemWorkspaceTagAuthority.Resolution.Canonical ->
+                        Pair<List<String>, suspend (List<String>) -> Unit>(resolution.tags, writeContextTags)
                     SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
-                }
+                } ?: return
+            val (current, writeTags) = currentAndWriter
             val next =
                 current
                     .filterNot { it in removeTags }
@@ -531,7 +552,7 @@ class StrategicArcViewModel
                 next.add(addTag)
             }
             if (next != current) {
-                contextRepository.updateContextTags(contextId, next)
+                writeTags(next)
             }
         }
 

@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEnt
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -29,6 +30,35 @@ import java.util.UUID
 @RunWith(RobolectricTestRunner::class)
 class BacklogMigrationDryRunAdapterRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `legacy full backup admits tombstone proven canonical Workspace owner`() = runBlocking {
+        val database = database()
+        try {
+            database.contextDao().insert(
+                ContextEntity(
+                    id = "owner",
+                    name = "owner",
+                    description = null,
+                    parentId = null,
+                    createdAt = 1L,
+                    updatedAt = 1L,
+                    isDeleted = true,
+                    version = 1L,
+                ),
+            )
+            seedCanonicalWorkspace(database, "owner")
+            seedDocument(database, id = "document", ownerContextId = "owner")
+            seedPlacement(database, "placement", "owner", "document")
+
+            val report = BacklogMigrationDryRunAdapter(database).materializeLegacyFullBackup()
+
+            assertTrue(report.isFullyAccounted)
+            assertEquals("owner", database.workspaceBacklogEntryDao().getAll().single().workspaceId)
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `dry run fully accounts legacy Backlog computes stable future capability and does not mutate Room`() =
@@ -111,6 +141,48 @@ class BacklogMigrationDryRunAdapterRoomTest {
                 database.close()
             }
         }
+
+    @Test
+    fun `transient System Goal placement repairs Goal identity before canonical materialization`() = runBlocking {
+        val database = database()
+        try {
+            val systemId = SystemContexts.TODAY.raw
+            seedCanonicalWorkspace(database, systemId)
+            insertSchemaAwareRow(
+                database.openHelper.writableDatabase,
+                "goals",
+                mapOf(
+                    "id" to "goal", "text" to "System Goal", "completed" to 0L,
+                    "goal_status" to "ACTIVE", "createdAt" to 1L, "updatedAt" to 2L,
+                    "is_deleted" to 0L, "version" to 1L,
+                ),
+            )
+
+            val transient =
+                BacklogItem(
+                    id = "system-goal-placement",
+                    contextId = systemId,
+                    itemType = "GOAL",
+                    entityId = "goal",
+                    order = 3L,
+                    updatedAt = 2L,
+                    version = 1L,
+                )
+            assertTrue(database.listItemDao().getAllRaw().isEmpty())
+
+            val report = BacklogMigrationDryRunAdapter(database).materializeLegacyFullBackup(
+                transientItems = listOf(transient),
+            )
+
+            assertTrue(report.isFullyAccounted)
+            assertEquals("CUT_OVER", database.orientationDao().getLegacyMapping("GOAL", "goal")?.state)
+            val entry = database.workspaceBacklogEntryDao().getAll().single()
+            assertEquals(systemId, entry.workspaceId)
+            assertEquals(WorkspaceBacklogTargetKind.ORIENTATION.name, entry.targetKind)
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `legacy full backup fallback cuts over materialized Goal identity without replacing subject`() =

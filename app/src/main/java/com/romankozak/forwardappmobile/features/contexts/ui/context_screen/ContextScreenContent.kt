@@ -38,9 +38,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListState
@@ -88,7 +88,7 @@ fun GoalDetailContent(
     val inboxSelectionMode by viewModel.inboxHandler.isSelectionMode.collectAsStateWithLifecycle()
     val inboxSelectedRecordIds by viewModel.inboxHandler.selectedRecordIds.collectAsStateWithLifecycle()
     val canPasteIntoInbox by viewModel.itemActionHandler.canPasteIntoCurrentInbox.collectAsStateWithLifecycle()
-    val goalList by viewModel.project.collectAsStateWithLifecycle()
+    val projectPresentation by viewModel.projectPresentation.collectAsStateWithLifecycle()
     val projectLogs = uiState.logs
     val keyProblemsData by viewModel.keyProblemsData.collectAsStateWithLifecycle()
     val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
@@ -104,7 +104,7 @@ fun GoalDetailContent(
     when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-            val currentContextId = goalList?.id
+            val currentContextId = projectPresentation?.id
             val filteredBacklogItems =
                 remember(listContent, localSearchQuery, currentContextId) {
                     val backlogItemsWithoutAutoChildContexts =
@@ -253,7 +253,7 @@ fun GoalDetailContent(
         ContextViewMode.DASHBOARD -> {
             DashboardOverview(
                 modifier = modifier,
-                project = goalList,
+                presentation = projectPresentation,
                 backlogCount = listContent.size,
                 inboxCount = inboxRecords.size,
                 directionCount = uiState.directionItems.size,
@@ -310,7 +310,7 @@ fun GoalDetailContent(
 @OptIn(ExperimentalLayoutApi::class)
 private fun DashboardOverview(
     modifier: Modifier = Modifier,
-    project: Context?,
+    presentation: ContextPresentation?,
     backlogCount: Int,
     inboxCount: Int,
     directionCount: Int,
@@ -345,8 +345,8 @@ private fun DashboardOverview(
                     )
                 }
         }
-    val contextTitle = project?.name?.trim().orEmpty().ifBlank { "Контекст" }
-    val roleBadge = project?.roleCode.toRoleBadgeText()
+    val contextTitle = presentation?.name?.trim().orEmpty().ifBlank { "Контекст" }
+    val roleBadge = presentation?.roleCode.toRoleBadgeText()
     val previewAttachments = attachments.take(6)
 
     Column(

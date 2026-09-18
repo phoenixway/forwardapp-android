@@ -36,10 +36,20 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                     listOf(
                         context(ORDINARY_ID),
                         context(HISTORICAL_SYS_PREFIX_ID),
+                        context(RETIRED_ID).copy(isDeleted = true),
                     ),
                 )
                 database.workspaceDao().upsert(
-                    listOf(canonicalWorkspace(SYSTEM_ID)),
+                    listOf(
+                        canonicalWorkspace(SYSTEM_ID),
+                        standaloneWorkspace(STANDALONE_ID),
+                        canonicalWorkspace(RETIRED_ID),
+                        canonicalWorkspace(ORDINARY_ID),
+                        canonicalWorkspace(HISTORICAL_SYS_PREFIX_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = HISTORICAL_SYS_PREFIX_ID,
+                        ),
+                    ),
                 )
 
                 dao.insertTasks(
@@ -47,6 +57,8 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                         task("system-task", SYSTEM_ID),
                         task("ordinary-task", ORDINARY_ID),
                         task("historical-task", HISTORICAL_SYS_PREFIX_ID),
+                        task("standalone-task", STANDALONE_ID),
+                        task("retired-task", RETIRED_ID),
                     ),
                 )
 
@@ -67,6 +79,16 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                 assertNull(historicalTask.projectWorkspaceId)
                 assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalTask.logicalProjectId)
 
+                val standaloneTask = requireNotNull(stored["standalone-task"])
+                assertNull(standaloneTask.projectId)
+                assertEquals(STANDALONE_ID, standaloneTask.projectWorkspaceId)
+                assertEquals(STANDALONE_ID, standaloneTask.logicalProjectId)
+
+                val retiredTask = requireNotNull(stored["retired-task"])
+                assertNull(retiredTask.projectId)
+                assertEquals(RETIRED_ID, retiredTask.projectWorkspaceId)
+                assertEquals(RETIRED_ID, retiredTask.logicalProjectId)
+
                 assertEquals(
                     listOf("system-task"),
                     dao.getTasksForProject(SYSTEM_ID).first().map { it.id },
@@ -78,6 +100,14 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                 assertEquals(
                     listOf("historical-task"),
                     dao.getTasksForProject(HISTORICAL_SYS_PREFIX_ID).first().map { it.id },
+                )
+                assertEquals(
+                    listOf("standalone-task"),
+                    dao.getTasksForProject(STANDALONE_ID).first().map { it.id },
+                )
+                assertEquals(
+                    listOf("retired-task"),
+                    dao.getTasksForProject(RETIRED_ID).first().map { it.id },
                 )
 
                 dao.update(
@@ -93,6 +123,17 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                 assertNull(updated.projectId)
                 assertEquals(SYSTEM_ID, updated.projectWorkspaceId)
                 assertEquals(SYSTEM_ID, updated.logicalProjectId)
+
+                dao.update(
+                    retiredTask.copy(
+                        title = "Updated retired",
+                        projectId = RETIRED_ID,
+                        projectWorkspaceId = null,
+                    ),
+                )
+                val updatedRetired = requireNotNull(dao.getTaskById("retired-task"))
+                assertNull(updatedRetired.projectId)
+                assertEquals(RETIRED_ID, updatedRetired.projectWorkspaceId)
             } finally {
                 database.close()
             }
@@ -129,6 +170,31 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                         }.exceptionOrNull()
 
                     assertTrue("$case must fail closed", failure is IllegalArgumentException)
+                    assertTrue(database.dayTaskDao().getAllTasksSync().isEmpty())
+                } finally {
+                    database.close()
+                }
+            }
+        }
+
+    @Test
+    fun `non-System routing rejects unadmitted Workspace owners`() =
+        runBlocking {
+            listOf(
+                canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID),
+                standaloneWorkspace(DELETED_STANDALONE_ID).copy(isDeleted = true),
+                standaloneWorkspace(MALFORMED_STANDALONE_ID).copy(sourceContextId = ORDINARY_ID),
+            ).forEach { workspace ->
+                val database = database()
+                try {
+                    database.dayPlanDao().insert(dayPlan())
+                    database.workspaceDao().upsert(listOf(workspace))
+
+                    val failure = runCatching {
+                        database.dayTaskDao().insert(task("task-${workspace.id}", workspace.id))
+                    }.exceptionOrNull()
+
+                    assertTrue("${workspace.id} must fail closed", failure is IllegalArgumentException)
                     assertTrue(database.dayTaskDao().getAllTasksSync().isEmpty())
                 } finally {
                     database.close()
@@ -211,6 +277,9 @@ class DayTaskDaoWorkspaceProjectRoomTest {
             sourceContextId = null,
         )
 
+    private fun standaloneWorkspace(id: String) =
+        canonicalWorkspace(id).copy(provenance = WorkspaceProvenance.STANDALONE.name)
+
     private fun database(): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
@@ -221,5 +290,10 @@ class DayTaskDaoWorkspaceProjectRoomTest {
         val SYSTEM_ID: String = SystemContexts.TODAY.raw
         const val ORDINARY_ID = "ordinary-context"
         const val HISTORICAL_SYS_PREFIX_ID = "sys_strategic-beacons"
+        const val STANDALONE_ID = "standalone-workspace"
+        const val RETIRED_ID = "retired-context-owner"
+        const val ARBITRARY_CANONICAL_ONLY_ID = "arbitrary-canonical-only"
+        const val DELETED_STANDALONE_ID = "deleted-standalone"
+        const val MALFORMED_STANDALONE_ID = "malformed-standalone"
     }
 }

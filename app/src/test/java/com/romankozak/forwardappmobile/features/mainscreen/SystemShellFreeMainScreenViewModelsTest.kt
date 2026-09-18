@@ -185,6 +185,8 @@ class SystemShellFreeMainScreenViewModelsTest {
         runTest(dispatcher) {
             val id = SystemContexts.STRATEGIC.raw
             val contextRepository = mockk<ContextRepository>(relaxed = true)
+            val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
+            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -229,6 +231,8 @@ class SystemShellFreeMainScreenViewModelsTest {
             val viewModel =
                 StrategicArcViewModel(
                     contextRepository = contextRepository,
+                    canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,

@@ -11,11 +11,13 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 
 data class AdaptiveTopBarState(
     val isSelectionModeActive: Boolean,
     val project: Context?,
+    val presentation: ContextPresentation?,
     val selectedCount: Int,
     val areAllSelected: Boolean,
     val currentViewMode: ContextViewMode?,
@@ -54,6 +56,7 @@ fun AdaptiveTopBar(
         if (state.isSelectionModeActive) {
             ListTitleBar(
                 project = state.project?.copy(isContextManagementEnabled = false),
+                presentation = state.presentation,
                 currentViewMode = displayViewMode,
                 onPasteClick = actions.onPaste,
                 onInboxClick = actions.onInboxClick,
@@ -71,6 +74,7 @@ fun AdaptiveTopBar(
         } else {
             ListTitleBar(
                 project = state.project,
+                presentation = state.presentation,
                 currentViewMode = displayViewMode,
                 onPasteClick = actions.onPaste,
                 onInboxClick = actions.onInboxClick,

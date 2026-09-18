@@ -343,10 +343,26 @@ The dependency-ordered cutover is:
       was introduced.
     - **12D compatibility/transport extinction - CURRENT / IN PROGRESS.**
       `SnapshotBundle.crossRefs` retirement and exact-System
-      `ContextConfiguration` transient ingress are verified. Earlier audits
-      identified surviving Context-shaped compatibility consumers, but the
-      accepted Context Big Cut now fixes the support boundary: the current
-      canonical Android database is the only supported migration authority.
+      `ContextConfiguration` transient ingress are verified. New ordinary
+      operational creation is progressively moving to canonical non-System
+      `STANDALONE` Workspace ownership. Global Search, Command Deck, Day Plan,
+      Tactical Mission, Strategic Management, Core Level, and hierarchy
+      add/create are verified shell-free creators. The hierarchy path also
+      initializes supported role/preset defaults through canonical capability
+      owners and uses canonical `DIRECTION` configuration for parent auto-link.
+      Three external `createContextWithId()` callers remain, plus the internal
+      preset-driven `SUBCONTEXT` helper. Tactical Mission project-owner routing
+      is now **CURRENT / VERIFIED** for shell-free standalone ownership:
+      ordinary Context-backed owners remain on `projectId`, while valid exact
+      System and live non-System `STANDALONE` Workspace owners persist through
+      `project_workspace_id`; arbitrary non-System `CANONICAL_ONLY` owners fail
+      closed. `logicalProjectId` remains the single logical read/transport
+      owner. This closes the downstream FK blocker for migrating Strategic Arc
+      creation while retaining `ArcQuestSourceType.CONTEXT` as its historical
+      persisted discriminator. Earlier audits identified surviving
+      Context-shaped compatibility consumers, but the accepted Context Big Cut
+      now fixes the support boundary: the current canonical Android database is
+      the only supported migration authority.
       Old Android states with active ordinary Context rows, the existing
       Context-based Desktop protocol, and the `632` ordinary Context tombstones
       do not require preservation across the cut. Current Android behaviors that

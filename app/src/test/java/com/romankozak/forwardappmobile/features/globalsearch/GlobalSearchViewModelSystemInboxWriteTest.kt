@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -111,10 +113,50 @@ class GlobalSearchViewModelSystemInboxWriteTest {
             )
         }
 
+    @Test
+    fun `shell-free operational search result opens normal owner route`() =
+        runTest(dispatcher) {
+            val projectId = "retired-operational-owner"
+            val contextRepository = mockk<ContextRepository>(relaxed = true)
+            val projector = mockk<SystemWorkspacePresentationContextProjector>()
+            coEvery { projector.resolvePresentation(projectId) } returns
+                ContextPresentation(
+                    id = projectId,
+                    name = "Restored operations",
+                    description = "Canonical owner",
+                    parentId = null,
+                    roleCode = null,
+                    order = 0L,
+                    tags = emptyList(),
+                )
+            coEvery { contextRepository.getContextById(projectId) } returns null
+            val viewModel =
+                createViewModel(
+                    contextRepository = contextRepository,
+                    inboxRepository = mockk(relaxed = true),
+                    presentationProjector = projector,
+                )
+            viewModel.enhancedNavigationManager =
+                EnhancedNavigationManager(
+                    savedStateHandle = SavedStateHandle(),
+                    scope = backgroundScope,
+                )
+            val command = async { viewModel.enhancedNavigationManager.navigationCommandFlow.first() }
+
+            viewModel.navigateToProjectForResult(projectId, null)
+            advanceUntilIdle()
+
+            assertEquals(
+                NavTarget.ContextDetail(contextId = projectId),
+                (command.await() as NavigationCommand.NavigateTarget).target,
+            )
+        }
+
     private fun createViewModel(
         contextRepository: ContextRepository,
         inboxRepository: InboxRepository,
         canonicalWorkspaceRepository: CanonicalWorkspaceRepository = mockk(relaxed = true),
+        presentationProjector: SystemWorkspacePresentationContextProjector = mockk(relaxed = true),
     ): GlobalSearchViewModel {
         val settingsRepository = mockk<SettingsRepository>(relaxed = true)
         every { settingsRepository.obsidianVaultNameFlow } returns flowOf("")
@@ -133,7 +175,7 @@ class GlobalSearchViewModelSystemInboxWriteTest {
             musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
             checklistRepository = mockk<ChecklistRepository>(relaxed = true),
             canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-            systemWorkspacePresentationContextProjector = mockk(relaxed = true),
+            systemWorkspacePresentationContextProjector = presentationProjector,
             savedStateHandle = SavedStateHandle(),
         )
     }

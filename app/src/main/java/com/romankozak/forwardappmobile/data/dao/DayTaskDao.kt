@@ -8,14 +8,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,12 +33,17 @@ interface DayTaskDao {
     @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
     suspend fun getOperationalProjectWorkspace(workspaceId: String): WorkspaceEntity?
 
+    @Query("SELECT * FROM contexts WHERE id = :contextId LIMIT 1")
+    suspend fun getOperationalProjectContext(contextId: String): Context?
+
     @Transaction
     suspend fun insert(task: DayTask) {
         insertRaw(
-            routeDayTaskProjectForPersistence(task) { workspaceId ->
-                getOperationalProjectWorkspace(workspaceId)
-            },
+            routeDayTaskProjectForPersistence(
+                task = task,
+                contextLookup = { getOperationalProjectContext(it) },
+                workspaceLookup = { getOperationalProjectWorkspace(it) },
+            ),
         )
     }
 
@@ -49,9 +52,11 @@ interface DayTaskDao {
         if (tasks.isEmpty()) return
         insertAllRaw(
             tasks.map { task ->
-                routeDayTaskProjectForPersistence(task) { workspaceId ->
-                    getOperationalProjectWorkspace(workspaceId)
-                }
+                routeDayTaskProjectForPersistence(
+                    task = task,
+                    contextLookup = { getOperationalProjectContext(it) },
+                    workspaceLookup = { getOperationalProjectWorkspace(it) },
+                )
             },
         )
     }
@@ -59,9 +64,11 @@ interface DayTaskDao {
     @Transaction
     suspend fun update(task: DayTask) {
         updateRaw(
-            routeDayTaskProjectForPersistence(task) { workspaceId ->
-                getOperationalProjectWorkspace(workspaceId)
-            },
+            routeDayTaskProjectForPersistence(
+                task = task,
+                contextLookup = { getOperationalProjectContext(it) },
+                workspaceLookup = { getOperationalProjectWorkspace(it) },
+            ),
         )
     }
 
@@ -70,9 +77,11 @@ interface DayTaskDao {
         if (tasks.isEmpty()) return
         updateAllRaw(
             tasks.map { task ->
-                routeDayTaskProjectForPersistence(task) { workspaceId ->
-                    getOperationalProjectWorkspace(workspaceId)
-                }
+                routeDayTaskProjectForPersistence(
+                    task = task,
+                    contextLookup = { getOperationalProjectContext(it) },
+                    workspaceLookup = { getOperationalProjectWorkspace(it) },
+                )
             },
         )
     }
@@ -264,9 +273,11 @@ interface DayTaskDao {
         if (tasks.isEmpty()) return
         insertAllRaw(
             tasks.map { task ->
-                routeDayTaskProjectForPersistence(task) { workspaceId ->
-                    getOperationalProjectWorkspace(workspaceId)
-                }
+                routeDayTaskProjectForPersistence(
+                    task = task,
+                    contextLookup = { getOperationalProjectContext(it) },
+                    workspaceLookup = { getOperationalProjectWorkspace(it) },
+                )
             },
         )
     }
@@ -274,6 +285,7 @@ interface DayTaskDao {
 
 internal suspend fun routeDayTaskProjectForPersistence(
     task: DayTask,
+    contextLookup: suspend (String) -> Context?,
     workspaceLookup: suspend (String) -> WorkspaceEntity?,
 ): DayTask {
     val contextProjectId = task.projectId
@@ -295,29 +307,17 @@ internal suspend fun routeDayTaskProjectForPersistence(
                 projectWorkspaceId = null,
             )
 
-    return if (SystemContexts.isSystem(ContextId(logicalProjectId))) {
-        val workspace =
-            requireNotNull(workspaceLookup(logicalProjectId)) {
-                "Reserved DayTask project $logicalProjectId has no same-id Workspace"
-            }
-
-        require(
-            !workspace.isDeleted &&
-                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                workspace.sourceContextId == null,
-        ) {
-            "Reserved DayTask project $logicalProjectId " +
-                "is not a live CANONICAL_ONLY Workspace"
-        }
-
-        task.copy(
-            projectId = null,
-            projectWorkspaceId = logicalProjectId,
+    return when (
+        classifyOperationalProjectOwner(
+            logicalProjectId = logicalProjectId,
+            context = contextLookup(logicalProjectId),
+            workspace = workspaceLookup(logicalProjectId),
         )
-    } else {
-        task.copy(
-            projectId = logicalProjectId,
-            projectWorkspaceId = null,
-        )
+    ) {
+        OperationalProjectOwnerStorage.CONTEXT ->
+            task.copy(projectId = logicalProjectId, projectWorkspaceId = null)
+
+        OperationalProjectOwnerStorage.WORKSPACE ->
+            task.copy(projectId = null, projectWorkspaceId = logicalProjectId)
     }
 }

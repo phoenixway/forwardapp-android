@@ -8,11 +8,11 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.logicalProjectId
+import com.romankozak.forwardappmobile.data.dao.OperationalProjectOwnerStorage
+import com.romankozak.forwardappmobile.data.dao.classifyOperationalProjectOwner
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -25,6 +25,9 @@ interface TacticalMissionDao {
 
     @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
     suspend fun getOperationalProjectWorkspace(workspaceId: String): WorkspaceEntity?
+
+    @Query("SELECT * FROM contexts WHERE id = :contextId LIMIT 1")
+    suspend fun getOperationalProjectContext(contextId: String): Context?
 
     @Transaction
     suspend fun insertMission(mission: TacticalMission): Long =
@@ -171,29 +174,17 @@ private suspend fun TacticalMissionDao.routeProjectForPersistence(
                 projectWorkspaceId = null,
             )
 
-    return if (SystemContexts.isSystem(ContextId(logicalProjectId))) {
-        val workspace =
-            requireNotNull(getOperationalProjectWorkspace(logicalProjectId)) {
-                "Reserved TacticalMission project $logicalProjectId has no same-id Workspace"
-            }
-
-        require(
-            !workspace.isDeleted &&
-                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                workspace.sourceContextId == null,
-        ) {
-            "Reserved TacticalMission project $logicalProjectId " +
-                "is not a live CANONICAL_ONLY Workspace"
-        }
-
-        mission.copy(
-            projectId = null,
-            projectWorkspaceId = logicalProjectId,
+    return when (
+        classifyOperationalProjectOwner(
+            logicalProjectId = logicalProjectId,
+            context = getOperationalProjectContext(logicalProjectId),
+            workspace = getOperationalProjectWorkspace(logicalProjectId),
         )
-    } else {
-        mission.copy(
-            projectId = logicalProjectId,
-            projectWorkspaceId = null,
-        )
+    ) {
+        OperationalProjectOwnerStorage.CONTEXT ->
+            mission.copy(projectId = logicalProjectId, projectWorkspaceId = null)
+
+        OperationalProjectOwnerStorage.WORKSPACE ->
+            mission.copy(projectId = null, projectWorkspaceId = logicalProjectId)
     }
 }

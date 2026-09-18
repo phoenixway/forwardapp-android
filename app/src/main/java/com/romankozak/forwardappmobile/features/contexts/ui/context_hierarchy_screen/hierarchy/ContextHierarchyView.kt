@@ -237,7 +237,7 @@ fun ProjectHierarchyView(
                                         isFocused = node.id == focusedProjectId,
                                         isHighlighted = node.id == highlightedProjectId,
                                         onProjectClick = { projectId ->
-                                            onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                                            onEvent(ContextHierarchyScreenEvent.ContextClick(projectId))
                                         },
                                     )
                                 } else {
@@ -260,7 +260,7 @@ fun ProjectHierarchyView(
                                         isSelectionMode = isSelectionMode,
                                         selectedContextIds = selectedContextIds,
                                         onProjectClick = { projectId ->
-                                            onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
+                                            onEvent(ContextHierarchyScreenEvent.ContextClick(projectId))
                                         },
                                         onToggleSelection = onToggleSelection,
                                         onStartSelection = onStartSelection,

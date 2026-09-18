@@ -135,6 +135,11 @@ class ProjectHierarchyScreenStateUseCase
                         filterStates = planningUseCase.filterStateFlow,
                     )
 
+            val retiredOrdinaryContextIdsState =
+                systemWorkspacePresentationContextProjector
+                    .observeRetiredOrdinaryContextIds()
+                    .stateIn(scope, SharingStarted.Eagerly, emptySet())
+
             // Raw Context backing for focused and mutation-adjacent paths.
             // Normal hierarchy rendering consumes presentation nodes directly;
             // this only joins stable IDs to existing raw rows.
@@ -158,11 +163,13 @@ class ProjectHierarchyScreenStateUseCase
                     rawContextBackingState,
                     presentationHierarchyState,
                     workspaceDao.observeAll(),
-                ) { rawContextBacking, presentationHierarchy, workspaces ->
+                    retiredOrdinaryContextIdsState,
+                ) { rawContextBacking, presentationHierarchy, workspaces, retiredOrdinaryContextIds ->
                     HierarchyProjection(
                         rawContextBacking = rawContextBacking,
                         presentationHierarchy = presentationHierarchy,
                         workspaces = workspaces,
+                        retiredOrdinaryContextIds = retiredOrdinaryContextIds,
                     )
                 }
 
@@ -264,6 +271,7 @@ class ProjectHierarchyScreenStateUseCase
                             orientationHierarchyBuilder.build(
                                 presentationHierarchy = presentationHierarchy,
                                 rawBackedProjectIds = rawContextBacking.rawContextsById.keys,
+                                retiredOrdinaryContextIds = hierarchyProjection.retiredOrdinaryContextIds,
                                 beacons = orientationHierarchyInputs.beacons,
                                 groups = orientationHierarchyInputs.groups,
                                 parentLinks = orientationHierarchyInputs.parentLinks,
@@ -461,6 +469,7 @@ class ProjectHierarchyScreenStateUseCase
             val rawContextBacking: RawContextHierarchyBacking,
             val presentationHierarchy: HierarchyPresentationData,
             val workspaces: List<WorkspaceEntity>,
+            val retiredOrdinaryContextIds: Set<String>,
         )
 
         private data class DialogUiState(

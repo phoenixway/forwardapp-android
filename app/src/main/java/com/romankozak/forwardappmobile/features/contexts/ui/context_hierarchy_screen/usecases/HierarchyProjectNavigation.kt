@@ -28,7 +28,7 @@ internal fun resolveHierarchyProjectNavigation(
 ): HierarchyProjectNavigation? {
     val title = presentation?.name ?: return null
 
-    if (hasLegacyBacking) {
+    if (hasLegacyBacking || !SystemContexts.isSystem(ContextId(projectId))) {
         return HierarchyProjectNavigation.ContextDetail(
             projectId = projectId,
             title = title,
