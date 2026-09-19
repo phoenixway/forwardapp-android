@@ -69,6 +69,12 @@ class CanonicalBacklogRepository
         suspend fun getState(workspaceId: String): BacklogCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toBacklogCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): BacklogCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toBacklogCapabilityState()
+
         fun observeState(workspaceId: String): Flow<BacklogCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toBacklogCapabilityState() }.getOrNull() }
@@ -273,10 +279,7 @@ class CanonicalBacklogRepository
             now: Long = System.currentTimeMillis(),
         ): Int =
             database.withTransaction {
-                val retired =
-                    entryDao.getAll()
-                        .filterNot { it.isDeleted }
-                        .filter { shouldRetireFromRuntime(it) }
+                val retired = entryDao.getLiveDanglingAndStructuralEntries()
                 if (retired.isEmpty()) return@withTransaction 0
 
                 entryDao.upsert(retired.map { it.bump(now).copy(isDeleted = true) })
@@ -525,28 +528,6 @@ class CanonicalBacklogRepository
             val entry = requireNotNull(entryDao.getById(id)) { "Backlog entry does not exist" }
             require(!entry.isDeleted) { "Backlog entry is deleted" }
             return entry
-        }
-
-        private suspend fun shouldRetireFromRuntime(
-            entry: WorkspaceBacklogEntryEntity,
-        ): Boolean {
-            val target =
-                try {
-                    entry.targetRef()
-                } catch (_: IllegalArgumentException) {
-                    return true
-                }
-
-            try {
-                targetValidator.requireLive(target)
-            } catch (_: IllegalArgumentException) {
-                return true
-            }
-
-            if (target.kind != WorkspaceBacklogTargetKind.WORKSPACE) {
-                return false
-            }
-            return database.workspaceDao().getById(target.id)?.parentWorkspaceId == entry.workspaceId
         }
 
         private fun requireMutableEntry(

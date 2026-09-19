@@ -6,8 +6,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 
 /**
  * Chooses a read navigation destination without turning presentation-only nodes
- * into persistable Contexts. Exact shell-free System identities return to the
- * hierarchy's read route; ordinary and Context-backed nodes retain ContextDetail.
+ * into persistable Contexts. Exact System identities return to the hierarchy's
+ * read route; ordinary ProjectLike owners use the operational detail route.
  */
 internal sealed interface HierarchyProjectNavigation {
     data class ContextDetail(
@@ -24,20 +24,15 @@ internal sealed interface HierarchyProjectNavigation {
 internal fun resolveHierarchyProjectNavigation(
     projectId: String,
     presentation: HierarchyContextPresentationNode?,
-    hasLegacyBacking: Boolean,
 ): HierarchyProjectNavigation? {
     val title = presentation?.name ?: return null
 
-    if (hasLegacyBacking || !SystemContexts.isSystem(ContextId(projectId))) {
+    if (!SystemContexts.isSystem(ContextId(projectId))) {
         return HierarchyProjectNavigation.ContextDetail(
             projectId = projectId,
             title = title,
         )
     }
 
-    return if (SystemContexts.isSystem(ContextId(projectId))) {
-        HierarchyProjectNavigation.HierarchyRead(projectId, title)
-    } else {
-        null
-    }
+    return HierarchyProjectNavigation.HierarchyRead(projectId, title)
 }

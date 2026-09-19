@@ -132,14 +132,9 @@ class WorkspaceExplorerStore(
     }
 
     private fun onContextDraftViewChange(view: SharedContextView) {
-        mutableState.update { current ->
-            current.copy(
-                contextDraftView = view,
-                contextDraftEnabledCapabilityIds =
-                    current.contextDraftEnabledCapabilityIds
-                        .withCapability(SharedContextCapabilityCatalog.capabilityIdFor(view), isEnabled = true),
-            )
-        }
+        // Transitional field only. Canonical Workspace start-view persistence
+        // is postponed until the later canonical UI/UX adaptation.
+        mutableState.update { current -> current.copy(contextDraftView = view) }
     }
 
     private fun onContextDraftCapabilityToggle(
@@ -150,11 +145,7 @@ class WorkspaceExplorerStore(
             current.copy(
                 contextDraftEnabledCapabilityIds =
                     current.contextDraftEnabledCapabilityIds
-                        .withCapability(capabilityId, isEnabled)
-                        .withCapability(
-                            SharedContextCapabilityCatalog.capabilityIdFor(current.contextDraftView),
-                            isEnabled = true,
-                        ),
+                        .withCapability(capabilityId, isEnabled),
             )
         }
     }
@@ -446,11 +437,7 @@ class WorkspaceExplorerStore(
 }
 
 private fun SharedContextSummary.resolvedCapabilityIds(): List<String> =
-    (
-        enabledCapabilityIds +
-            experimentalCapabilityIds +
-            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView)
-    ).normalizeCapabilityIds()
+    (enabledCapabilityIds + experimentalCapabilityIds).normalizeCapabilityIds()
 
 private fun List<String>.withCapability(
     capabilityId: String,

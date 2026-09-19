@@ -16,38 +16,34 @@ class HierarchyProjectNavigationTest {
             resolveHierarchyProjectNavigation(
                 projectId = SystemContexts.INBOX.raw,
                 presentation = presentation,
-                hasLegacyBacking = false,
             ),
         )
     }
 
     @Test
-    fun rawBackedRowsUseContextDetailRouteWithPresentationTitle() {
+    fun ordinaryProjectLikeUsesDetailRouteWithPresentationTitle() {
         assertEquals(
             HierarchyProjectNavigation.ContextDetail("ordinary", "Projected"),
             resolveHierarchyProjectNavigation(
                 projectId = "ordinary",
                 presentation = presentation("ordinary", "Projected"),
-                hasLegacyBacking = true,
             ),
         )
         assertEquals(
-            HierarchyProjectNavigation.ContextDetail(SystemContexts.INBOX.raw, "Canonical Inbox"),
+            HierarchyProjectNavigation.HierarchyRead(SystemContexts.INBOX.raw, "Canonical Inbox"),
             resolveHierarchyProjectNavigation(
                 projectId = SystemContexts.INBOX.raw,
                 presentation = presentation(SystemContexts.INBOX.raw, "Canonical Inbox"),
-                hasLegacyBacking = true,
             ),
         )
     }
 
     @Test
-    fun rawBackingWithoutPresentationFailsClosed() {
+    fun missingPresentationFailsClosed() {
         assertNull(
             resolveHierarchyProjectNavigation(
                 projectId = "ordinary",
                 presentation = null,
-                hasLegacyBacking = true,
             ),
         )
     }
@@ -58,7 +54,6 @@ class HierarchyProjectNavigationTest {
             resolveHierarchyProjectNavigation(
                 projectId = SystemContexts.INBOX.raw,
                 presentation = null,
-                hasLegacyBacking = false,
             ),
         )
         assertEquals(
@@ -66,7 +61,17 @@ class HierarchyProjectNavigationTest {
             resolveHierarchyProjectNavigation(
                 projectId = "retired-owner",
                 presentation = presentation("retired-owner", "Restored"),
-                hasLegacyBacking = false,
+            ),
+        )
+    }
+
+    @Test
+    fun historicalNonReservedSysIdRemainsAnOrdinaryProjectLike() {
+        assertEquals(
+            HierarchyProjectNavigation.ContextDetail("sys_custom", "Historical"),
+            resolveHierarchyProjectNavigation(
+                projectId = "sys_custom",
+                presentation = presentation("sys_custom", "Historical"),
             ),
         )
     }

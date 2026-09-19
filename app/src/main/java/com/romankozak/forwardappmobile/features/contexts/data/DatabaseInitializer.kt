@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
+import com.romankozak.forwardappmobile.StartupTrace
 import com.romankozak.forwardappmobile.data.workspace.SystemContextShellRetirer
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceLegacyContextEvidence
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
@@ -28,17 +29,23 @@ class DatabaseInitializer
             // Fresh identities, persisted historical evidence, and transient
             // old-backup evidence all converge directly to canonical System
             // Workspace ownership. No reserved Context shell is created.
-            systemWorkspaceMaterializer.materializeAll(
-                legacyContextEvidence = legacyContextEvidence,
-            )
+            StartupTrace.measure("Application.systemWorkspaceOwnership.materialize") {
+                systemWorkspaceMaterializer.materializeAll(
+                    legacyContextEvidence = legacyContextEvidence,
+                )
+            }
 
             // Establish canonical tag collections before consuming the final
             // persisted reserved-System Context compatibility evidence.
-            systemWorkspaceTagSeed.seedMissingCanonicalCollections()
+            StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed") {
+                systemWorkspaceTagSeed.seedMissingCanonicalCollections()
+            }
 
             // Step 11: once every exact reserved identity has a valid canonical
             // owner and established canonical tag collection, active legacy
             // Context shells are no longer authoritative or required.
-            systemContextShellRetirer.retireActiveReservedShells()
+            StartupTrace.measure("Application.systemWorkspaceOwnership.shellRetire") {
+                systemContextShellRetirer.retireActiveReservedShells()
+            }
         }
     }

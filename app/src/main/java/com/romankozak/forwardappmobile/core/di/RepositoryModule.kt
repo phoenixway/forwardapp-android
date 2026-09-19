@@ -5,6 +5,10 @@ package com.romankozak.forwardappmobile.core.di
 import com.romankozak.forwardappmobile.core.sync.AttachmentsLocalDataSourceImpl
 import com.romankozak.forwardappmobile.core.sync.FullBackupLocalDataSourceImpl
 import com.romankozak.forwardappmobile.core.sync.MergeLocalDataSourceImpl
+import com.romankozak.forwardappmobile.core.sync.MergeCanonicalSnapshotTransactionWriter
+import com.romankozak.forwardappmobile.core.sync.CanonicalSnapshotTransactionWriter
+import com.romankozak.forwardappmobile.core.sync.SnapshotRestoreCanonicalizerImpl
+import com.romankozak.forwardappmobile.core.sync.SnapshotRestoreLocalDataSourceImpl
 import com.romankozak.forwardappmobile.core.sync.SyncLocalDataSourceImpl
 import com.romankozak.forwardappmobile.core.sync.SyncSettingsSourceImpl
 import com.romankozak.forwardappmobile.data.dao.*
@@ -43,6 +47,24 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMergeLocalDataSource(impl: MergeLocalDataSourceImpl): MergeLocalDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindSnapshotRestoreLocalDataSource(
+        impl: SnapshotRestoreLocalDataSourceImpl,
+    ): SnapshotRestoreLocalDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindSnapshotRestoreCanonicalizer(
+        impl: SnapshotRestoreCanonicalizerImpl,
+    ): SnapshotRestoreCanonicalizer
+
+    @Binds
+    @Singleton
+    abstract fun bindCanonicalSnapshotTransactionWriter(
+        impl: MergeCanonicalSnapshotTransactionWriter,
+    ): CanonicalSnapshotTransactionWriter
 
     @Binds
     @Singleton

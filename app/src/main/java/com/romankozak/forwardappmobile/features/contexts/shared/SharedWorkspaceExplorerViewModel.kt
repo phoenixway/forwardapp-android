@@ -6,12 +6,20 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerIntent
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerState
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerStore
@@ -36,7 +44,15 @@ class SharedWorkspaceExplorerViewModel
         goalRepository: GoalRepository,
         contextStructureRepository: ContextStructureRepository,
         canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+        canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        canonicalCapabilityInstanceStore: CanonicalCapabilityInstanceStore,
         systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        canonicalBacklogRepository: CanonicalBacklogRepository,
+        canonicalInboxRepository: CanonicalInboxRepository,
+        canonicalDirectionRepository: CanonicalDirectionRepository,
+        canonicalConnectionsRepository: CanonicalConnectionsRepository,
+        canonicalInboxSortingRepository: CanonicalInboxSortingRepository,
+        canonicalKeyProblemsRepository: CanonicalKeyProblemsRepository,
         canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
         systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
@@ -49,7 +65,15 @@ class SharedWorkspaceExplorerViewModel
                 goalRepository = goalRepository,
                 contextStructureRepository = contextStructureRepository,
                 canonicalWorkspaceBootstrapper = canonicalWorkspaceBootstrapper,
+                canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                canonicalCapabilityInstanceStore = canonicalCapabilityInstanceStore,
                 systemWorkspacePresentationContextProjector = systemWorkspacePresentationContextProjector,
+                canonicalBacklogRepository = canonicalBacklogRepository,
+                canonicalInboxRepository = canonicalInboxRepository,
+                canonicalDirectionRepository = canonicalDirectionRepository,
+                canonicalConnectionsRepository = canonicalConnectionsRepository,
+                canonicalInboxSortingRepository = canonicalInboxSortingRepository,
+                canonicalKeyProblemsRepository = canonicalKeyProblemsRepository,
                 canonicalDashboardCapabilityRepository = canonicalDashboardCapabilityRepository,
                 canonicalExecutionLogRepository = canonicalExecutionLogRepository,
                 systemInboxDirectionAccess = systemInboxDirectionAccess,

@@ -7,12 +7,12 @@ import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvide
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
-import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportDescriptor
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import com.romankozak.forwardappmobile.shared.domain.contexts.WorkspaceSnapshotResolver
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.SnapshotRestoreCanonicalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -32,6 +32,8 @@ class SyncFileService @Inject constructor(
     private val contentProvider: IContentProvider,
     private val localDataSource: FullBackupLocalDataSource,
     private val mergeRepository: MergeRepository,
+    private val restoreCanonicalizer: SnapshotRestoreCanonicalizer,
+    private val restoreRepository: SnapshotRestoreRepository,
 ) {
     private val tag = "SyncFileService"
     private val workspaceSnapshotResolver = WorkspaceSnapshotResolver(Json { ignoreUnknownKeys = true })
@@ -76,7 +78,71 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun importFullBackupFromFile(uriString: String): Result<String> =
-        importFullBackupFromFileV2(uriString)
+        withContext(Dispatchers.IO) {
+            Timber.tag(tag).d("Attempting to restore full backup from URI: $uriString")
+            try {
+                val jsonString = contentProvider.readText(uriString).getOrThrow()
+                val normalizedJson = sanitizeIncomingBackupJson(jsonString)
+
+                if (normalizedJson.isBlank()) {
+                    throw IllegalArgumentException("Backup file is empty")
+                }
+
+                val rawRoot = JsonParser.parseString(normalizedJson).asJsonObject
+                val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
+                val snapshotBundle =
+                    requireNotNull(backupData.snapshotBundle) {
+                        "Full restore requires a FullAppBackup with snapshotBundle."
+                    }
+                val rawSnapshotBundle =
+                    rawRoot
+                        .get("snapshotBundle")
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: throw IllegalArgumentException(
+                            "FullAppBackup snapshotBundle must be a JSON object.",
+                        )
+
+                val restoreInput =
+                    normalizeIncomingSnapshotDefaults(
+                        CanonicalDayThemeImportGate.requireFullRestoreImportable(
+                            rawSnapshotBundle = rawSnapshotBundle,
+                            decodedBundle = snapshotBundle,
+                        ),
+                    )
+
+                if (isEffectivelyEmpty(restoreInput)) {
+                    throw IllegalArgumentException(
+                        "Backup payload is empty. Refusing to replace current data.",
+                    )
+                }
+
+                val canonicalBundle = restoreCanonicalizer.canonicalize(restoreInput)
+
+                if (isEffectivelyEmpty(canonicalBundle)) {
+                    throw IllegalArgumentException(
+                        "Canonical restore payload is empty. Refusing to replace current data.",
+                    )
+                }
+
+                restoreRepository.replaceWith(canonicalBundle).getOrThrow()
+
+                // Settings are not mutated unless the database replacement succeeded.
+                backupData.settings?.settings?.let { settings ->
+                    localDataSource.restoreSettings(settings)
+                }
+
+                Timber.tag(tag).i(
+                    "Full backup successfully restored from URI: $uriString",
+                )
+                Result.success(
+                    "Резервну копію відновлено: ${canonicalBundle.importItemCount()} items",
+                )
+            } catch (e: Exception) {
+                Timber.tag(tag).e(e, "Full backup restore failed.")
+                Result.failure(e)
+            }
+        }
 
     suspend fun parseBackupFile(uriString: String): Result<FullAppBackup> = withContext(Dispatchers.IO) {
         Timber.tag(tag).d("Parsing backup file from URI: $uriString")
@@ -105,7 +171,6 @@ class SyncFileService @Inject constructor(
                     rawSnapshotBundle = rawSnapshotBundle,
                     decodedBundle = snapshotBundle,
                 )
-                requireValidCanonicalDayThemePayload(snapshotBundle)
             }
 
             Timber.tag(tag).d( "Successfully parsed and validated backup file object.")
@@ -172,16 +237,7 @@ class SyncFileService @Inject constructor(
             val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
             val resolvedSnapshotBundle = resolveIncomingImportBundle(normalizedJson).snapshotBundle
             val snapshotBundleToApply =
-                resolvedSnapshotBundle.copy(
-                    dayTasks =
-                        resolvedSnapshotBundle.dayTasks.map { task ->
-                            if (task.executionStrictness == null) {
-                                task.copy(executionStrictness = "NORMAL")
-                            } else {
-                                task
-                            }
-                        },
-                )
+                normalizeIncomingSnapshotDefaults(resolvedSnapshotBundle)
 
             if (isEffectivelyEmpty(snapshotBundleToApply)) {
                 throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
@@ -224,6 +280,18 @@ class SyncFileService @Inject constructor(
             Result.failure(e)
         }
     }
+
+    private fun normalizeIncomingSnapshotDefaults(bundle: SnapshotBundle): SnapshotBundle =
+        bundle.copy(
+            dayTasks =
+                bundle.dayTasks.map { task ->
+                    if (task.executionStrictness == null) {
+                        task.copy(executionStrictness = "NORMAL")
+                    } else {
+                        task
+                    }
+                },
+        )
 
     private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
         val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject

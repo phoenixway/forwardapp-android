@@ -8,21 +8,33 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogTargetValidator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagTransportStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemContextShellRetirer
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeed
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -33,6 +45,7 @@ import io.mockk.mockk
 import io.mockk.mockkClass
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,13 +58,85 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `full restore cannot resurrect Context retired by incoming canonical Workspace`() =
+    fun `pre canonical restore canonicalizes content before atomic replacement`() =
+        runBlocking {
+            val destination = database()
+            try {
+                destination.workspaceDao().upsert(listOf(canonicalOnlyWorkspace("destination-only")))
+                val legacy =
+                    SnapshotBundle(
+                        version = 2,
+                        exportedAt = 100L,
+                        contexts = listOf(ordinaryContext(RETIRED_ID).toSnapshot()),
+                        notes =
+                            listOf(
+                                LegacyNoteSnapshot(
+                                    id = "legacy-note",
+                                    contextId = RETIRED_ID,
+                                    title = "Note",
+                                    content = "Body",
+                                    createdAt = 10L,
+                                    updatedAt = 20L,
+                                    isDeleted = false,
+                                    version = 1L,
+                                ),
+                            ),
+                        backlogItems =
+                            listOf(
+                                BacklogItemSnapshot(
+                                    id = "legacy-placement",
+                                    contextId = RETIRED_ID,
+                                    itemType = "NOTE",
+                                    entityId = "legacy-note",
+                                    order = 9L,
+                                    updatedAt = 20L,
+                                    version = 2L,
+                                    isDeleted = false,
+                                ),
+                            ),
+                        inbox =
+                            listOf(
+                                InboxRecordSnapshot(
+                                    id = "legacy-inbox",
+                                    contextId = RETIRED_ID,
+                                    text = "Inbox",
+                                    createdAt = 10L,
+                                    order = -10L,
+                                    updatedAt = 20L,
+                                    hideInOwnerInbox = false,
+                                    version = 3L,
+                                    isDeleted = false,
+                                ),
+                            ),
+                    )
+                val canonical = SnapshotRestoreCanonicalizerImpl().canonicalize(legacy)
+                val restore =
+                    SnapshotRestoreLocalDataSourceImpl(
+                        database = destination,
+                        writer = CanonicalSnapshotTransactionWriter { merge(destination).applyCanonicalSnapshotBundle(it) },
+                        dayManagementRuntimeRepository = mockk<DayManagementRuntimeRepository>(relaxed = true),
+                    )
+
+                restore.replaceWith(canonical)
+
+                assertNull(destination.workspaceDao().getById("destination-only"))
+                assertTrue(requireNotNull(destination.contextDao().getContextById(RETIRED_ID)).isDeleted)
+                assertNotNull(destination.workspaceDao().getById(RETIRED_ID))
+                assertTrue(destination.workspaceBacklogEntryDao().getAll().any { it.id == "legacy-placement" })
+                assertTrue(destination.workspaceInboxRecordDao().getAll().any { it.id == "legacy-inbox" })
+            } finally {
+                destination.close()
+            }
+        }
+
+    @Test
+    fun `merge cannot resurrect Context retired by incoming canonical Workspace`() =
         runBlocking {
             val destination = database()
             try {
                 val liveLegacy = ordinaryContext(RETIRED_ID)
 
-                fullBackup(destination).applySnapshotBundle(
+                merge(destination).applySnapshotBundle(
                     canonicalBundle(
                         context = liveLegacy,
                         workspace = canonicalOnlyWorkspace(RETIRED_ID),
@@ -104,7 +189,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                         version = 7L,
                     )
 
-                fullBackup(destination).applySnapshotBundle(
+                merge(destination).applySnapshotBundle(
                     canonicalBundle(
                         context = tombstone,
                         workspace = canonicalOnlyWorkspace(RETIRED_ID),
@@ -345,8 +430,63 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
         )
     }
 
+    private suspend fun restore(
+        database: AppDatabase,
+        bundle: SnapshotBundle,
+    ) {
+        val canonical = SnapshotRestoreCanonicalizerImpl().canonicalize(bundle)
+        SnapshotRestoreLocalDataSourceImpl(
+            database = database,
+            writer =
+                CanonicalSnapshotTransactionWriter {
+                    merge(database).applyCanonicalSnapshotBundle(it)
+                },
+            dayManagementRuntimeRepository =
+                mockk<DayManagementRuntimeRepository>(relaxed = true),
+        ).replaceWith(canonical)
+    }
+
     private fun merge(database: AppDatabase): MergeLocalDataSourceImpl {
         val bootstrapper = workspaceBootstrapper(database)
+        val systemWorkspaceMaterializer =
+            SystemWorkspaceMaterializer(
+                database = database,
+                contextDao = database.contextDao(),
+                workspaceDao = database.workspaceDao(),
+            )
+        val systemWorkspaceTagSeed =
+            SystemWorkspaceTagSeed(
+                database = database,
+                contextDao = database.contextDao(),
+            )
+        val databaseInitializer =
+            DatabaseInitializer(
+                systemWorkspaceMaterializer = systemWorkspaceMaterializer,
+                systemWorkspaceTagSeed = systemWorkspaceTagSeed,
+                systemContextShellRetirer =
+                    SystemContextShellRetirer(
+                        database = database,
+                        contextDao = database.contextDao(),
+                    ),
+            )
+        val canonicalWorkspaceBacklogSyncStore =
+            CanonicalWorkspaceBacklogSyncStore(
+                database = database,
+                entryDao = database.workspaceBacklogEntryDao(),
+                workspaceDao = database.workspaceDao(),
+                orientationDao = database.orientationDao(),
+                targetValidator = CanonicalBacklogTargetValidator(database),
+            )
+        val canonicalWorkspaceInboxSyncStore =
+            CanonicalWorkspaceInboxSyncStore(
+                database = database,
+                recordDao = database.workspaceInboxRecordDao(),
+                workspaceDao = database.workspaceDao(),
+                orientationDao = database.orientationDao(),
+            )
+        val canonicalWorkspaceTagTransportStore =
+            CanonicalWorkspaceTagTransportStore(database)
+
 
         return construct(
             type = MergeLocalDataSourceImpl::class.java,
@@ -355,12 +495,23 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                     AppDatabase::class.java to database,
                     DayPlanDao::class.java to database.dayPlanDao(),
                     DayTaskDao::class.java to database.dayTaskDao(),
+                    LegacyNoteDao::class.java to database.legacyNoteDao(),
+                    NoteDocumentDao::class.java to database.noteDocumentDao(),
+                    ChecklistDao::class.java to database.checklistDao(),
+                    MusicNoteDao::class.java to database.musicNoteDao(),
+                    LinkItemDao::class.java to database.linkItemDao(),
                     ContextDao::class.java to database.contextDao(),
                     ContextStructureDao::class.java to database.contextStructureDao(),
                     MainBeaconDao::class.java to database.mainBeaconDao(),
                     TacticalMissionDao::class.java to database.tacticalMissionDao(),
                     CanonicalWorkspaceBootstrapper::class.java to bootstrapper,
                     ContextWorkspaceWriteThrough::class.java to ContextWorkspaceWriteThrough(bootstrapper),
+                    SystemWorkspaceMaterializer::class.java to systemWorkspaceMaterializer,
+                    SystemWorkspaceTagSeed::class.java to systemWorkspaceTagSeed,
+                    DatabaseInitializer::class.java to databaseInitializer,
+                    CanonicalWorkspaceTagTransportStore::class.java to canonicalWorkspaceTagTransportStore,
+                    CanonicalWorkspaceBacklogSyncStore::class.java to canonicalWorkspaceBacklogSyncStore,
+                    CanonicalWorkspaceInboxSyncStore::class.java to canonicalWorkspaceInboxSyncStore,
                 ),
         )
     }

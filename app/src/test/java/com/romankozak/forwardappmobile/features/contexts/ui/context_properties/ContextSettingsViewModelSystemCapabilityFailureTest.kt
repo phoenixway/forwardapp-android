@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
+import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -15,6 +16,7 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspacePresentation
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
@@ -24,8 +26,14 @@ import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityL
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCapabilityState
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.InboxCapabilityState
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -243,13 +251,43 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             coVerify(exactly = 0) { fixture.executionLog.setEnabled(any(), any(), any()) }
         }
 
+    @Test
+    fun `ordinary canonical save writes typed capabilities without resurrecting ContextStructure`() =
+        runTest(dispatcher) {
+            val id = "ordinary-canonical"
+            val fixture =
+                fixture(
+                    canonical = SystemInboxDirectionState(null, null),
+                    id = id,
+                    canonicalOrdinaryOwner = true,
+                )
+            advanceUntilIdle()
+
+            fixture.viewModel.onToggleFeature("Backlog", enabled = true)
+            fixture.viewModel.onToggleFeature("Inbox", enabled = true)
+            fixture.viewModel.onToggleFeature("Connections", enabled = true)
+            fixture.viewModel.onToggleFeature("Directions", enabled = true)
+            fixture.viewModel.onToggleFeature("Issues", enabled = true)
+            fixture.viewModel.onSave()
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) { fixture.canonicalBacklog.setEnabled(id, true, any()) }
+            coVerify(exactly = 1) { fixture.canonicalInbox.setEnabled(id, true, any()) }
+            coVerify(exactly = 1) { fixture.canonicalConnections.setEnabled(id, true, any()) }
+            coVerify(exactly = 1) { fixture.canonicalDirection.setEnabled(id, true, any()) }
+            coVerify(exactly = 1) { fixture.canonicalKeyProblems.setEnabled(id, true, any()) }
+            coVerify(exactly = 0) { fixture.structureRepository.ensureStructure(id) }
+            coVerify(exactly = 0) { fixture.structureRepository.updateStructure(any()) }
+        }
+
     private fun fixture(
         canonical: SystemInboxDirectionState,
         historicalEnableAdvanced: Boolean? = null,
         backlogState: SystemBacklogLifecycleState = SystemBacklogLifecycleState(null, false),
         canonicalPresentation: CanonicalWorkspacePresentation? = null,
+        id: String = SystemContexts.INBOX.raw,
+        canonicalOrdinaryOwner: Boolean = false,
     ): Fixture {
-        val id = SystemContexts.INBOX.raw
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val context =
             Context(
@@ -279,15 +317,50 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val attachmentsRepository = mockk<AttachmentsRepository>(relaxed = true)
         every { attachmentsRepository.getAttachmentLibraryItems() } returns flowOf(emptyList())
         val access = mockk<SystemContextCanonicalInboxDirectionAccess>(relaxed = true)
-        every { access.handles(id) } returns true
+        every { access.handles(id) } returns SystemContexts.isSystem(ContextId(id))
         coEvery { access.getState(id) } returns canonical
         val remainingAccess = mockk<SystemContextCanonicalRemainingCapabilityLifecycleAccess>(relaxed = true)
-        every { remainingAccess.handles(id) } returns true
+        every { remainingAccess.handles(id) } returns
+            SystemContexts.isSystem(ContextId(id))
         coEvery { remainingAccess.getState(id) } returns missingRemainingState()
         val dashboard = mockk<CanonicalDashboardCapabilityRepository>(relaxed = true)
         val executionLog = mockk<CanonicalExecutionLogRepository>(relaxed = true)
+        val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
+        val canonicalBacklog = mockk<CanonicalBacklogRepository>(relaxed = true)
+        val canonicalInbox = mockk<CanonicalInboxRepository>(relaxed = true)
+        val canonicalDirection = mockk<CanonicalDirectionRepository>(relaxed = true)
+        val canonicalConnections = mockk<CanonicalConnectionsRepository>(relaxed = true)
+        val canonicalInboxSorting = mockk<CanonicalInboxSortingRepository>(relaxed = true)
+        val canonicalKeyProblems = mockk<CanonicalKeyProblemsRepository>(relaxed = true)
+        coEvery { canonicalWorkspaceRepository.getCanonicalPresentation(id) } returns
+            if (canonicalOrdinaryOwner) {
+                CanonicalWorkspacePresentation(
+                    id = id,
+                    nameOverride = "Canonical ordinary",
+                    descriptionOverride = null,
+                    parentWorkspaceId = null,
+                    roleCode = null,
+                    workspaceOrder = 0L,
+                    isDeleted = false,
+                )
+            } else {
+                canonicalPresentation
+            }
+        val canonicalOrdinaryCapabilitySettings =
+            CanonicalOrdinaryCapabilitySettings(
+                workspaceRepository = canonicalWorkspaceRepository,
+                backlogRepository = canonicalBacklog,
+                inboxRepository = canonicalInbox,
+                directionRepository = canonicalDirection,
+                connectionsRepository = canonicalConnections,
+                inboxSortingRepository = canonicalInboxSorting,
+                keyProblemsRepository = canonicalKeyProblems,
+                dashboardRepository = dashboard,
+                executionLogRepository = executionLog,
+            )
         val backlogAccess = mockk<SystemContextCanonicalBacklogLifecycleAccess>(relaxed = true)
-        every { backlogAccess.handles(id) } returns true
+        every { backlogAccess.handles(id) } returns
+            SystemContexts.isSystem(ContextId(id))
         coEvery { backlogAccess.getState(id) } returns backlogState
         val presetService = mockk<StructurePresetService>(relaxed = true)
         val presentationProjector = mockk<SystemWorkspacePresentationContextProjector>()
@@ -331,6 +404,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 noteDocumentRepository = mockk<NoteDocumentRepository>(relaxed = true),
                 musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                 checklistRepository = mockk<ChecklistRepository>(relaxed = true),
+                canonicalOrdinaryCapabilitySettings = canonicalOrdinaryCapabilitySettings,
                 canonicalDashboardCapabilityRepository = dashboard,
                 canonicalExecutionLogRepository = executionLog,
                 systemCapabilityAccess = access,
@@ -347,6 +421,11 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             executionLog,
             backlogAccess,
             presetService,
+            canonicalBacklog,
+            canonicalInbox,
+            canonicalDirection,
+            canonicalConnections,
+            canonicalKeyProblems,
         )
     }
 
@@ -370,6 +449,11 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val executionLog: CanonicalExecutionLogRepository,
         val backlogAccess: SystemContextCanonicalBacklogLifecycleAccess,
         val presetService: StructurePresetService,
+        val canonicalBacklog: CanonicalBacklogRepository,
+        val canonicalInbox: CanonicalInboxRepository,
+        val canonicalDirection: CanonicalDirectionRepository,
+        val canonicalConnections: CanonicalConnectionsRepository,
+        val canonicalKeyProblems: CanonicalKeyProblemsRepository,
     )
 
     private fun backlogState(state: WorkspaceCapabilityState) =

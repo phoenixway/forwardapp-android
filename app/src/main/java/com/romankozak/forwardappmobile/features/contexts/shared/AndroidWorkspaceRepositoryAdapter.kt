@@ -2,18 +2,14 @@ package com.romankozak.forwardappmobile.features.contexts.shared
 
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.ContextSharedStateUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
@@ -22,8 +18,16 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBack
 import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
 import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityLifecycleState
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityReadSnapshot
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
@@ -31,6 +35,7 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextCa
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.domain.contexts.DesktopWorkspaceRepository
 import java.util.UUID
 import kotlinx.coroutines.flow.first
@@ -40,7 +45,15 @@ class AndroidWorkspaceRepositoryAdapter(
     private val goalRepository: GoalRepository,
     private val contextStructureRepository: ContextStructureRepository,
     private val canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+    private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+    private val canonicalCapabilityInstanceStore: CanonicalCapabilityInstanceStore,
     private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+    private val canonicalBacklogRepository: CanonicalBacklogRepository,
+    private val canonicalInboxRepository: CanonicalInboxRepository,
+    private val canonicalDirectionRepository: CanonicalDirectionRepository,
+    private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
+    private val canonicalInboxSortingRepository: CanonicalInboxSortingRepository,
+    private val canonicalKeyProblemsRepository: CanonicalKeyProblemsRepository,
     private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
     private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     private val systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
@@ -54,17 +67,28 @@ class AndroidWorkspaceRepositoryAdapter(
             contextRepository.getAllContextsFlow()
                 .first()
                 .filterNot { context -> context.isDeleted }
-        val rawById = rawContexts.associateBy { context -> context.id }
+        val canonicalPresentations = canonicalWorkspaceRepository.getCanonicalPresentations()
+        val capabilitySnapshot = canonicalCapabilityInstanceStore.loadReadSnapshot()
 
         return systemWorkspacePresentationContextProjector
             .projectPresentationUniverse(rawContexts)
             .sortedBy { presentation -> presentation.order }
-            .map { presentation ->
-                toSharedSummary(
-                    presentation = presentation,
-                    rawContext = rawById[presentation.id],
-                    configuration = contextStructureRepository.getStructureByContext(presentation.id),
-                )
+            .mapNotNull { presentation ->
+                if (SystemContexts.isSystem(ContextId(presentation.id))) {
+                    toSystemSharedSummary(
+                        presentation = presentation,
+                        configuration = contextStructureRepository.getStructureByContext(presentation.id),
+                    )
+                } else {
+                    canonicalPresentations[presentation.id]
+                        ?.takeIf { canonical -> !canonical.isDeleted }
+                        ?.let {
+                            toCanonicalSharedSummary(
+                                presentation = presentation,
+                                capabilitySnapshot = capabilitySnapshot,
+                            )
+                        }
+                }
             }
     }
 
@@ -77,48 +101,29 @@ class AndroidWorkspaceRepositoryAdapter(
         enabledCapabilityIds: List<String>,
         experimentalCapabilityIds: List<String>,
     ): SharedContextSummary {
-        val contextId = UUID.randomUUID().toString()
-        contextRepository.createContextWithId(
-            id = contextId,
-            name = name,
-            parentId = parentId,
-        )
-        contextRepository.updateContextSharedState(
-            contextId = contextId,
-            update =
-                ContextSharedStateUpdate(
-                    name = name,
-                    description = description,
-                    contextStatus = status.toAndroidStatus(),
-                    defaultViewModeName = defaultView.toAndroidViewMode().name,
-                    isCompleted = status == SharedContextStatus.Completed,
-                ),
-        )
-        val configuration =
-            upsertContextConfiguration(
-                contextId = contextId,
-                defaultView = defaultView,
-                enabledCapabilityIds = enabledCapabilityIds,
-                experimentalCapabilityIds = experimentalCapabilityIds,
+        canonicalWorkspaceBootstrapper.ensureBootstrapped()
+
+        val workspaceId =
+            canonicalWorkspaceRepository.create(
+                nameOverride = name,
+                descriptionOverride = description,
+                parentWorkspaceId = parentId,
             )
+
         val requestedCapabilities =
             requestedCapabilityIds(
-                defaultView = defaultView,
                 enabledCapabilityIds = enabledCapabilityIds,
                 experimentalCapabilityIds = experimentalCapabilityIds,
             )
-        canonicalDashboardCapabilityRepository.setEnabled(
-            workspaceId = contextId,
-            enabled = requestedCapabilities.contains("dashboard"),
-        )
-        canonicalExecutionLogRepository.setEnabled(
-            workspaceId = contextId,
-            enabled = requestedCapabilities.contains("log"),
-        )
-        return toSharedSummary(
-            context = requireNotNull(contextRepository.getContextById(contextId)),
-            configuration = configuration,
-        )
+        applyCanonicalCapabilitySelection(workspaceId, requestedCapabilities)
+
+        val presentation =
+            systemWorkspacePresentationContextProjector.resolvePresentation(
+                contextId = workspaceId,
+                context = null,
+            ) ?: error("Canonical Workspace presentation unavailable after creation: $workspaceId")
+
+        return toCanonicalSharedSummary(presentation)
     }
 
     override suspend fun updateContext(
@@ -132,128 +137,71 @@ class AndroidWorkspaceRepositoryAdapter(
     ): SharedContextSummary? {
         canonicalWorkspaceBootstrapper.ensureBootstrapped()
 
-        val rawBefore = contextRepository.getContextById(contextId)
-        val presentationBefore =
-            systemWorkspacePresentationContextProjector.resolvePresentation(
-                contextId = contextId,
-                context = rawBefore,
-            ) ?: return null
-        val isReservedSystem = SystemContexts.isSystem(ContextId(contextId))
-
         val requestedCapabilities =
             requestedCapabilityIds(
-                defaultView = defaultView,
                 enabledCapabilityIds = enabledCapabilityIds,
                 experimentalCapabilityIds = experimentalCapabilityIds,
             )
 
-        if (isReservedSystem) {
+        if (SystemContexts.isSystem(ContextId(contextId))) {
             if (systemInboxDirectionAccess.handles(contextId)) {
-                systemInboxDirectionAccess.setInboxEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("inbox"),
-                )
-                systemInboxDirectionAccess.setDirectionEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("direction"),
-                )
+                systemInboxDirectionAccess.setInboxEnabled(contextId, "inbox" in requestedCapabilities)
+                systemInboxDirectionAccess.setDirectionEnabled(contextId, "direction" in requestedCapabilities)
             }
             if (systemRemainingCapabilityAccess.handles(contextId)) {
-                systemRemainingCapabilityAccess.setConnectionsEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("connections"),
-                )
-                systemRemainingCapabilityAccess.setInboxSortingEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("inbox_sorting"),
-                )
-                systemRemainingCapabilityAccess.setKeyProblemsEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("key_problems"),
-                )
+                systemRemainingCapabilityAccess.setConnectionsEnabled(contextId, "connections" in requestedCapabilities)
+                systemRemainingCapabilityAccess.setInboxSortingEnabled(contextId, "inbox_sorting" in requestedCapabilities)
+                systemRemainingCapabilityAccess.setKeyProblemsEnabled(contextId, "key_problems" in requestedCapabilities)
             }
             if (systemBacklogLifecycleAccess.handles(contextId)) {
-                systemBacklogLifecycleAccess.setEnabled(
-                    contextId = contextId,
-                    enabled = requestedCapabilities.contains("backlog"),
-                )
+                systemBacklogLifecycleAccess.setEnabled(contextId, "backlog" in requestedCapabilities)
             }
 
-            contextRepository.updateContextPresentation(
-                contextId = contextId,
-                name = name,
-                description = description,
-            )
-
-            // context_structures has no FK to Context, but it is not promoted
-            // System write authority. Keep any existing row read-only here.
-            canonicalDashboardCapabilityRepository.setEnabled(
-                workspaceId = contextId,
-                enabled = requestedCapabilities.contains("dashboard"),
-            )
-            canonicalExecutionLogRepository.setEnabled(
-                workspaceId = contextId,
-                enabled = requestedCapabilities.contains("log"),
-            )
+            contextRepository.updateContextPresentation(contextId, name, description)
+            canonicalDashboardCapabilityRepository.setEnabled(contextId, "dashboard" in requestedCapabilities)
+            canonicalExecutionLogRepository.setEnabled(contextId, "log" in requestedCapabilities)
 
             val presented =
                 systemWorkspacePresentationContextProjector.resolvePresentation(
                     contextId = contextId,
-                    context = contextRepository.getContextById(contextId),
+                    context = null,
                 ) ?: return null
 
-            return toSharedSummary(
+            return toSystemSharedSummary(
                 presentation = presented,
-                rawContext = null,
                 configuration = contextStructureRepository.getStructureByContext(contextId),
             )
         }
 
-        rawBefore ?: return null
-        contextRepository.updateContextSharedState(
-            contextId = contextId,
-            update =
-                ContextSharedStateUpdate(
-                    name = name,
-                    description = description,
-                    contextStatus = status.toAndroidStatus(),
-                    defaultViewModeName = defaultView.toAndroidViewMode().name,
-                    isCompleted = status == SharedContextStatus.Completed,
-                ),
-        )
-        val configuration =
-            upsertContextConfiguration(
-                contextId = contextId,
-                defaultView = defaultView,
-                enabledCapabilityIds = enabledCapabilityIds,
-                experimentalCapabilityIds = experimentalCapabilityIds,
-            )
-        canonicalDashboardCapabilityRepository.setEnabled(
-            workspaceId = contextId,
-            enabled = requestedCapabilities.contains("dashboard"),
-        )
-        canonicalExecutionLogRepository.setEnabled(
-            workspaceId = contextId,
-            enabled = requestedCapabilities.contains("log"),
-        )
+        val canonical = canonicalWorkspaceRepository.getCanonicalPresentation(contextId)
+        require(canonical != null && !canonical.isDeleted) {
+            "Ordinary CONTEXT_BACKED Workspace authoring is retired: $contextId"
+        }
 
-        val updated = contextRepository.getContextById(contextId) ?: return null
+        canonicalWorkspaceRepository.updateNameAndDescription(
+            id = contextId,
+            nameOverride = name,
+            descriptionOverride = description,
+        )
+        applyCanonicalCapabilitySelection(contextId, requestedCapabilities)
+
         val presented =
             systemWorkspacePresentationContextProjector.resolvePresentation(
                 contextId = contextId,
-                context = updated,
+                context = null,
             ) ?: return null
-        return toSharedSummary(
-            presentation = presented,
-            rawContext = updated,
-            configuration = configuration,
-        )
+
+        return toCanonicalSharedSummary(presented)
     }
 
     override suspend fun deleteContext(contextId: String): Boolean {
         if (SystemContexts.isSystem(ContextId(contextId))) return false
-        val current = contextRepository.getContextById(contextId) ?: return false
-        contextRepository.deleteContextsByIds(listOf(current.id))
+
+        canonicalWorkspaceBootstrapper.ensureBootstrapped()
+        val canonical = canonicalWorkspaceRepository.getCanonicalPresentation(contextId) ?: return false
+        if (canonical.isDeleted) return false
+
+        canonicalWorkspaceRepository.tombstone(contextId)
         return true
     }
 
@@ -326,76 +274,149 @@ class AndroidWorkspaceRepositoryAdapter(
         return true
     }
 
-    private suspend fun upsertContextConfiguration(
-        contextId: String,
-        defaultView: SharedContextView,
-        enabledCapabilityIds: List<String>,
-        experimentalCapabilityIds: List<String>,
-    ): ContextConfiguration {
-        val capabilityIds =
-            requestedCapabilityIds(
-                defaultView = defaultView,
-                enabledCapabilityIds = enabledCapabilityIds,
-                experimentalCapabilityIds = experimentalCapabilityIds,
-            )
-        val current = contextStructureRepository.getStructureByContext(contextId) ?: ContextConfiguration.default(contextId)
-        val updated =
-            current.copy(
-                enableInbox = capabilityIds.contains("inbox"),
-                enableBacklog = capabilityIds.contains("backlog"),
-                enableAttachments = capabilityIds.contains("connections"),
-                experimentalCapabilityIds =
-                    capabilityIds
-                        .filterNot { capabilityId -> capabilityId in LEGACY_ANDROID_CAPABILITY_IDS }
-                        .map(::CapabilityId),
-                updatedAt = System.currentTimeMillis(),
-                version = current.version + 1,
-                isDeleted = false,
-            )
-        contextStructureRepository.upsertStructure(updated)
-        return requireNotNull(contextStructureRepository.getStructureByContext(contextId)) {
-            "Context configuration disappeared after persistence: $contextId"
-        }
-    }
+    private suspend fun applyCanonicalCapabilitySelection(
+        workspaceId: String,
+        requestedCapabilities: List<String>,
+    ) {
+        val requested = requestedCapabilities.toSet()
 
-    private suspend fun toSharedSummary(
-        context: Context,
-        configuration: ContextConfiguration?,
-    ): SharedContextSummary {
-        val systemState = systemInboxDirectionAccess.getState(context.id)
-        val remainingSystemState = systemRemainingCapabilityAccess.getState(context.id)
-        val systemBacklogState = systemBacklogLifecycleAccess.getState(context.id)
-        return context.toSharedSummary(
-            configuration = configuration,
-            dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(context.id),
-            executionLogEnabled = canonicalExecutionLogRepository.isEnabled(context.id),
-            systemInboxDirectionState = systemState,
-            systemRemainingCapabilityState = remainingSystemState,
-            systemBacklogLifecycleState = systemBacklogState,
+        canonicalBacklogRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "backlog" in requested,
+        )
+        canonicalInboxRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "inbox" in requested,
+        )
+        canonicalDirectionRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "direction" in requested,
+        )
+        canonicalConnectionsRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "connections" in requested,
+        )
+        canonicalInboxSortingRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "inbox_sorting" in requested,
+        )
+        canonicalKeyProblemsRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "key_problems" in requested,
+        )
+        canonicalDashboardCapabilityRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "dashboard" in requested,
+        )
+        canonicalExecutionLogRepository.setEnabled(
+            workspaceId = workspaceId,
+            enabled = "log" in requested,
         )
     }
 
-    private suspend fun toSharedSummary(
+    private suspend fun toCanonicalSharedSummary(
         presentation: ContextPresentation,
-        rawContext: Context?,
-        configuration: ContextConfiguration?,
-    ): SharedContextSummary {
-        val systemState = systemInboxDirectionAccess.getState(presentation.id)
-        val remainingSystemState = systemRemainingCapabilityAccess.getState(presentation.id)
-        val systemBacklogState = systemBacklogLifecycleAccess.getState(presentation.id)
+    ): SharedContextSummary =
+        toCanonicalSharedSummary(
+            presentation = presentation,
+            capabilitySnapshot = canonicalCapabilityInstanceStore.loadReadSnapshot(),
+        )
 
-        val defaultView =
-            rawContext?.defaultViewModeName.toSharedView()
+    private fun toCanonicalSharedSummary(
+        presentation: ContextPresentation,
+        capabilitySnapshot: CanonicalCapabilityReadSnapshot,
+    ): SharedContextSummary {
+        val activeCapabilityIds =
+            canonicalActiveCapabilityIds(
+                workspaceId = presentation.id,
+                capabilitySnapshot = capabilitySnapshot,
+            )
 
         return SharedContextSummary(
             id = presentation.id,
             name = presentation.name,
             description = presentation.description,
             parentId = presentation.parentId,
-            status = rawContext?.contextStatus.toSharedStatus(),
+            // Transitional shared-contract placeholders only.
+            // These are not persisted as Workspace properties.
+            status = SharedContextStatus.NoPlan,
+            defaultView = SharedContextView.Backlog,
+            score = 0,
+            isCompleted = false,
+            enabledCapabilityIds =
+                activeCapabilityIds.filter { capabilityId ->
+                    capabilityId in LEGACY_ANDROID_CAPABILITY_IDS
+                },
+            experimentalCapabilityIds =
+                activeCapabilityIds.filterNot { capabilityId ->
+                    capabilityId in LEGACY_ANDROID_CAPABILITY_IDS
+                },
+        )
+    }
+
+    private fun canonicalActiveCapabilityIds(
+        workspaceId: String,
+        capabilitySnapshot: CanonicalCapabilityReadSnapshot,
+    ): List<String> =
+        SharedContextCapabilityCatalog.normalizeCapabilityIds(
+            buildList {
+                canonicalBacklogRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("backlog")
+                    }
+                }
+                canonicalInboxRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("inbox")
+                    }
+                }
+                canonicalDirectionRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("direction")
+                    }
+                }
+                canonicalConnectionsRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("connections")
+                    }
+                }
+                canonicalInboxSortingRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("inbox_sorting")
+                    }
+                }
+                canonicalKeyProblemsRepository.getState(workspaceId, capabilitySnapshot)?.let { state ->
+                    if (!state.isDeleted && state.lifecycleState == WorkspaceCapabilityState.ACTIVE) {
+                        add("key_problems")
+                    }
+                }
+                if (canonicalDashboardCapabilityRepository.isEnabled(workspaceId, capabilitySnapshot)) {
+                    add("dashboard")
+                }
+                if (canonicalExecutionLogRepository.isEnabled(workspaceId, capabilitySnapshot)) {
+                    add("log")
+                }
+            },
+        )
+
+    private suspend fun toSystemSharedSummary(
+        presentation: ContextPresentation,
+        configuration: ContextConfiguration?,
+    ): SharedContextSummary {
+        val systemState = systemInboxDirectionAccess.getState(presentation.id)
+        val remainingSystemState = systemRemainingCapabilityAccess.getState(presentation.id)
+        val systemBacklogState = systemBacklogLifecycleAccess.getState(presentation.id)
+        val defaultView = SharedContextView.Backlog
+
+        return SharedContextSummary(
+            id = presentation.id,
+            name = presentation.name,
+            description = presentation.description,
+            parentId = presentation.parentId,
+            status = SharedContextStatus.NoPlan,
             defaultView = defaultView,
-            score = rawContext?.displayScore ?: 0,
-            isCompleted = rawContext?.isCompleted ?: false,
+            score = 0,
+            isCompleted = false,
             enabledCapabilityIds =
                 configuration.enabledCapabilityIds(
                     defaultView = defaultView,
@@ -413,43 +434,6 @@ class AndroidWorkspaceRepositoryAdapter(
                 ),
         )
     }
-}
-
-
-private fun Context.toSharedSummary(
-    configuration: ContextConfiguration?,
-    dashboardEnabled: Boolean,
-    executionLogEnabled: Boolean,
-    systemInboxDirectionState: SystemInboxDirectionState?,
-    systemRemainingCapabilityState: SystemRemainingCapabilityLifecycleState?,
-    systemBacklogLifecycleState: SystemBacklogLifecycleState?,
-): SharedContextSummary {
-    val defaultView = defaultViewModeName.toSharedView()
-    return SharedContextSummary(
-        id = id,
-        name = name,
-        description = description,
-        parentId = parentId,
-        status = contextStatus.toSharedStatus(),
-        defaultView = defaultView,
-        score = displayScore,
-        isCompleted = isCompleted,
-        enabledCapabilityIds =
-            configuration.enabledCapabilityIds(
-                defaultView = defaultView,
-                dashboardEnabled = dashboardEnabled,
-                executionLogEnabled = executionLogEnabled,
-                systemInboxDirectionState = systemInboxDirectionState,
-                systemRemainingCapabilityState = systemRemainingCapabilityState,
-                systemBacklogLifecycleState = systemBacklogLifecycleState,
-            ),
-        experimentalCapabilityIds =
-            configuration.experimentalCapabilityIds(
-                systemInboxDirectionState,
-                systemRemainingCapabilityState,
-                systemBacklogLifecycleState,
-            ),
-    )
 }
 
 private fun ContextConfiguration?.enabledCapabilityIds(
@@ -550,14 +534,11 @@ private fun ContextConfiguration?.enabledCapabilityIds(
 }
 
 private fun requestedCapabilityIds(
-    defaultView: SharedContextView,
     enabledCapabilityIds: List<String>,
     experimentalCapabilityIds: List<String>,
 ): List<String> =
     SharedContextCapabilityCatalog.normalizeCapabilityIds(
-        enabledCapabilityIds +
-            experimentalCapabilityIds +
-            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView),
+        enabledCapabilityIds + experimentalCapabilityIds,
     )
 
 private fun ContextConfiguration?.experimentalCapabilityIds(
@@ -628,48 +609,6 @@ private fun Goal.toSharedBacklogItem(contextId: String): SharedBacklogItem =
         priority = goalStatus.toSharedPriority(),
         isDone = completed,
     )
-
-private fun String?.toSharedStatus(): SharedContextStatus =
-    when (this) {
-        ContextStatusValues.PLANNING -> SharedContextStatus.Planning
-        ContextStatusValues.IN_PROGRESS -> SharedContextStatus.InProgress
-        ContextStatusValues.COMPLETED -> SharedContextStatus.Completed
-        ContextStatusValues.ON_HOLD -> SharedContextStatus.OnHold
-        ContextStatusValues.PAUSED -> SharedContextStatus.Paused
-        else -> SharedContextStatus.NoPlan
-    }
-
-private fun SharedContextStatus.toAndroidStatus(): String =
-    when (this) {
-        SharedContextStatus.Planning -> ContextStatusValues.PLANNING
-        SharedContextStatus.InProgress -> ContextStatusValues.IN_PROGRESS
-        SharedContextStatus.Completed -> ContextStatusValues.COMPLETED
-        SharedContextStatus.OnHold -> ContextStatusValues.ON_HOLD
-        SharedContextStatus.Paused -> ContextStatusValues.PAUSED
-        SharedContextStatus.NoPlan -> ContextStatusValues.NO_PLAN
-    }
-
-private fun String?.toSharedView(): SharedContextView =
-    when (this) {
-        ContextViewMode.INBOX.name -> SharedContextView.Inbox
-        ContextViewMode.CONNECTIONS.name -> SharedContextView.Connections
-        ContextViewMode.DASHBOARD.name -> SharedContextView.Dashboard
-        ContextViewMode.DIRECTION.name -> SharedContextView.Direction
-        ContextViewMode.LOG.name -> SharedContextView.Log
-        ContextViewMode.KEY_PROBLEMS.name -> SharedContextView.KeyProblems
-        else -> SharedContextView.Backlog
-    }
-
-private fun SharedContextView.toAndroidViewMode(): ContextViewMode =
-    when (this) {
-        SharedContextView.Inbox -> ContextViewMode.INBOX
-        SharedContextView.Connections -> ContextViewMode.CONNECTIONS
-        SharedContextView.Dashboard -> ContextViewMode.DASHBOARD
-        SharedContextView.Direction -> ContextViewMode.DIRECTION
-        SharedContextView.Log -> ContextViewMode.LOG
-        SharedContextView.KeyProblems -> ContextViewMode.KEY_PROBLEMS
-        else -> ContextViewMode.BACKLOG
-    }
 
 private fun SharedBacklogPriority.toGoalStatus(completed: Boolean = false): String =
     when {

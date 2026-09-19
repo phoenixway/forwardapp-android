@@ -52,6 +52,14 @@ alone is not sufficient.
 UI remains unchanged unless a specific UI scope is separately authorized by
 the user.
 
+Canonical UI/UX adaptation for the retired legacy Context status/default-view
+shape is accepted but **POSTPONED** to a later stage. Workspace itself does not
+gain a copied status lifecycle merely to preserve the old Context model:
+Orientation-like entities use their canonical lifecycle semantics in
+entity-aware UI. A persisted Workspace start-view preference is likewise not
+introduced until its canonical navigation/capability policy is explicitly
+designed.
+
 ## Reserved System Context extinction
 
 The final target is to retain the stable `sys_*` operational identities as

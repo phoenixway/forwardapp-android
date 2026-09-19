@@ -5,9 +5,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
@@ -36,8 +33,6 @@ class OrientationHierarchyBuilder
 
         fun build(
             presentationHierarchy: HierarchyPresentationData,
-            rawBackedProjectIds: Set<String>,
-            retiredOrdinaryContextIds: Set<String> = emptySet(),
             beacons: List<OrientationBeaconInput>,
             groups: List<MainBeaconGroup> = emptyList(),
             parentLinks: List<ContextParentLink> = emptyList(),
@@ -49,28 +44,10 @@ class OrientationHierarchyBuilder
                     .asSequence()
                     .filterNot { it.isDeleted }
                     .associateBy { it.id }
-            val canonicalWorkspacesById =
-                liveWorkspacesById.filterValues { workspace ->
-                    val isSystem = SystemContexts.isSystem(ContextId(workspace.id))
-                    val isShellFree = workspace.sourceContextId == null
-                    val hasLiveContextAuthority = workspace.id in rawBackedProjectIds
-                    isShellFree &&
-                        when {
-                            isSystem -> workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name
-                            hasLiveContextAuthority -> false
-                            workspace.provenance == WorkspaceProvenance.STANDALONE.name -> true
-                            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name ->
-                                workspace.id in retiredOrdinaryContextIds
-
-                            else -> false
-                        }
-                }
-            val basePresentationsById = presentationHierarchy.allProjects.associateBy { it.id }
-            val operationalOwnerIds =
-                rawBackedProjectIds +
-                    canonicalWorkspacesById.keys
-            val operationalOwnerPresentations =
-                presentationHierarchy.allProjects.filter { it.id in operationalOwnerIds }
+            // Admission is decided upstream by the canonical presentation
+            // universe. This builder never infers runtime eligibility from a
+            // Context-row lookup.
+            val operationalOwnerPresentations = presentationHierarchy.allProjects
             val operationalPlacementHierarchy =
                 buildOperationalPlacementHierarchy(
                     presentations = operationalOwnerPresentations,
@@ -79,9 +56,8 @@ class OrientationHierarchyBuilder
             val operationalPresentationsById =
                 operationalPlacementHierarchy.allProjects.associateBy { it.id }
 
-            // Presentation owns display payload. Workspace-backed operational
-            // projection owns placement for raw-backed nodes. Shell-free
-            // presentation nodes retain their canonical presentation placement.
+            // Presentation owns display payload; live Workspace placement
+            // supplies parent/order where it exists.
             val effectivePresentationHierarchy =
                 HierarchyPresentationTreeBuilder().build(
                     presentationHierarchy.allProjects.map { presentation ->
@@ -206,8 +182,6 @@ class OrientationHierarchyBuilder
                         presentation = presentation,
                         level = 1,
                         hierarchy = effectivePresentationHierarchy,
-                        rawBackedProjectIds = rawBackedProjectIds,
-                        canonicalWorkspacesById = canonicalWorkspacesById,
                         additionalChildrenByParentId = additionalChildrenByParentId,
                         beaconIdsByContextId = beaconIdsByContextId,
                         result = result,
@@ -218,34 +192,7 @@ class OrientationHierarchyBuilder
                 }
             }
 
-            return result.map { item ->
-                val contextNode = item.node as? OrientationHierarchyNode.ContextNode
-                    ?: return@map item
-
-                val canonicalWorkspace = canonicalWorkspacesById[contextNode.id]
-                if (canonicalWorkspace != null) {
-                    return@map item.copy(
-                        node =
-                            OrientationHierarchyNode.WorkspaceNode(
-                                presentation =
-                                    effectivePresentationHierarchy.allProjects
-                                        .firstOrNull { it.id == contextNode.id }
-                                        ?: contextNode.presentation,
-                                linkedBeaconIds = contextNode.linkedBeaconIds,
-                                isLinkedAppearance = contextNode.isLinkedAppearance,
-                            ),
-                    )
-                }
-
-                item.copy(
-                    node =
-                        contextNode.copy(
-                            presentation =
-                                basePresentationsById[contextNode.id]
-                                    ?: contextNode.presentation,
-                        ),
-                )
-            }
+            return result
         }
 
         private fun buildOperationalPlacementHierarchy(
@@ -351,8 +298,8 @@ class OrientationHierarchyBuilder
                     .toList()
 
             entryPoints.forEach { context ->
-                appendContextSubtree(
-                    context = context,
+                appendProjectLikeSubtree(
+                    presentation = context,
                     level = level + 1,
                     hierarchy = hierarchy,
                     additionalChildrenByParentId = additionalChildrenByParentId,
@@ -415,8 +362,8 @@ class OrientationHierarchyBuilder
                 )
                 .mapValues { (_, parentIds) -> parentIds.toSet() }
 
-        private fun appendContextSubtree(
-            context: HierarchyContextPresentationNode,
+        private fun appendProjectLikeSubtree(
+            presentation: HierarchyContextPresentationNode,
             level: Int,
             hierarchy: OperationalPlacementHierarchy,
             additionalChildrenByParentId: Map<String, List<HierarchyContextPresentationNode>>,
@@ -426,31 +373,31 @@ class OrientationHierarchyBuilder
             skipDirectBeaconLinkedContexts: Boolean,
             isLinkedAppearance: Boolean,
         ) {
-            if (!visited.add(context.id)) return
-            if (skipDirectBeaconLinkedContexts && beaconIdsByContextId.containsKey(context.id)) return
+            if (!visited.add(presentation.id)) return
+            if (skipDirectBeaconLinkedContexts && beaconIdsByContextId.containsKey(presentation.id)) return
 
             result +=
                 OrientationHierarchyItem(
                     node =
-                        OrientationHierarchyNode.ContextNode(
-                            presentation = context,
-                            linkedBeaconIds = beaconIdsByContextId[context.id].orEmpty(),
+                        OrientationHierarchyNode.WorkspaceNode(
+                            presentation = presentation,
+                            linkedBeaconIds = beaconIdsByContextId[presentation.id].orEmpty(),
                             isLinkedAppearance = isLinkedAppearance,
                         ),
                     level = level,
                 )
 
-            val canonicalChildren = hierarchy.childMap[context.id].orEmpty()
+            val canonicalChildren = hierarchy.childMap[presentation.id].orEmpty()
             val canonicalChildIds = canonicalChildren.mapTo(hashSetOf()) { it.id }
             val additionalChildren =
-                additionalChildrenByParentId[context.id]
+                additionalChildrenByParentId[presentation.id]
                     .orEmpty()
                     .filterNot { it.id in canonicalChildIds }
 
             canonicalChildren.sortedWith(presentationSort())
                 .forEach { child ->
-                    appendContextSubtree(
-                        context = child,
+                    appendProjectLikeSubtree(
+                        presentation = child,
                         level = level + 1,
                         hierarchy = hierarchy,
                         additionalChildrenByParentId = additionalChildrenByParentId,
@@ -463,8 +410,8 @@ class OrientationHierarchyBuilder
                 }
 
             additionalChildren.forEach { child ->
-                appendContextSubtree(
-                    context = child,
+                appendProjectLikeSubtree(
+                    presentation = child,
                     level = level + 1,
                     hierarchy = hierarchy,
                     additionalChildrenByParentId = additionalChildrenByParentId,
@@ -481,8 +428,6 @@ class OrientationHierarchyBuilder
             presentation: HierarchyContextPresentationNode,
             level: Int,
             hierarchy: HierarchyPresentationData,
-            rawBackedProjectIds: Set<String>,
-            canonicalWorkspacesById: Map<String, WorkspaceEntity>,
             additionalChildrenByParentId: Map<String, List<HierarchyContextPresentationNode>>,
             beaconIdsByContextId: Map<String, Set<String>>,
             result: MutableList<OrientationHierarchyItem>,
@@ -493,23 +438,12 @@ class OrientationHierarchyBuilder
             if (!visited.add(presentation.id)) return
             if (skipDirectBeaconLinkedContexts && beaconIdsByContextId.containsKey(presentation.id)) return
 
-            val hasRawBacking = presentation.id in rawBackedProjectIds
-            val canonicalWorkspace = canonicalWorkspacesById[presentation.id]
             val node =
-                if (canonicalWorkspace != null) {
-                    OrientationHierarchyNode.WorkspaceNode(
-                        presentation = presentation,
-                        linkedBeaconIds = beaconIdsByContextId[presentation.id].orEmpty(),
-                        isLinkedAppearance = isLinkedAppearance,
-                    )
-                } else {
-                    if (!hasRawBacking) return
-                    OrientationHierarchyNode.ContextNode(
-                        presentation = presentation,
-                        linkedBeaconIds = beaconIdsByContextId[presentation.id].orEmpty(),
-                        isLinkedAppearance = isLinkedAppearance,
-                    )
-                }
+                OrientationHierarchyNode.WorkspaceNode(
+                    presentation = presentation,
+                    linkedBeaconIds = beaconIdsByContextId[presentation.id].orEmpty(),
+                    isLinkedAppearance = isLinkedAppearance,
+                )
             result += OrientationHierarchyItem(node = node, level = level)
 
             val canonicalChildren = hierarchy.childMap[presentation.id].orEmpty()
@@ -525,8 +459,6 @@ class OrientationHierarchyBuilder
                     presentation = child,
                     level = level + 1,
                     hierarchy = hierarchy,
-                    rawBackedProjectIds = rawBackedProjectIds,
-                    canonicalWorkspacesById = canonicalWorkspacesById,
                     additionalChildrenByParentId = additionalChildrenByParentId,
                     beaconIdsByContextId = beaconIdsByContextId,
                     result = result,
@@ -540,8 +472,6 @@ class OrientationHierarchyBuilder
                     presentation = child,
                     level = level + 1,
                     hierarchy = hierarchy,
-                    rawBackedProjectIds = rawBackedProjectIds,
-                    canonicalWorkspacesById = canonicalWorkspacesById,
                     additionalChildrenByParentId = additionalChildrenByParentId,
                     beaconIdsByContextId = beaconIdsByContextId,
                     result = result,

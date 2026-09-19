@@ -4,6 +4,7 @@ import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,12 +37,12 @@ class DialogUseCase
         fun onMenuRequested(
             projectId: String,
             projectName: String,
-            canPasteContextLinks: Boolean = false,
+            availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
         ) {
             dialogStateManager.onMenuRequested(
                 projectId = projectId,
                 projectName = projectName,
-                canPasteContextLinks = canPasteContextLinks,
+                availability = availability,
             )
         }
 
@@ -61,6 +62,10 @@ class DialogUseCase
                 UtilityDialogRequest.Export -> dialogStateManager.onExportToFileRequested()
                 is UtilityDialogRequest.Import -> dialogStateManager.onImportFromFileRequested(request.uri)
             }
+        }
+
+        fun onRestoreImportRequested(uri: android.net.Uri) {
+            dialogStateManager.onRestoreFromFileRequested(uri)
         }
 
         fun dismissDialog() {

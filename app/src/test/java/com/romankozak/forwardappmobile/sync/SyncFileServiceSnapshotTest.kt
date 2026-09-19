@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
+import com.romankozak.forwardappmobile.sync.datasource.SnapshotRestoreCanonicalizer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -25,6 +26,8 @@ class SyncFileServiceSnapshotTest {
     private val mockContentProvider: IContentProvider = mockk()
     private val mockLocalDataSource: FullBackupLocalDataSource = mockk()
     private val mockMergeRepository: MergeRepository = mockk()
+    private val mockRestoreCanonicalizer: SnapshotRestoreCanonicalizer = mockk()
+    private val mockRestoreRepository: SnapshotRestoreRepository = mockk()
 
     private val gson = GsonBuilder().create()
 
@@ -35,6 +38,8 @@ class SyncFileServiceSnapshotTest {
                 contentProvider = mockContentProvider,
                 localDataSource = mockLocalDataSource,
                 mergeRepository = mockMergeRepository,
+                restoreCanonicalizer = mockRestoreCanonicalizer,
+                restoreRepository = mockRestoreRepository,
             )
     }
 
@@ -162,6 +167,55 @@ class SyncFileServiceSnapshotTest {
         }""".trimIndent()
 
     // === Тести ===
+
+    @Test
+    fun `importFullBackupFromFile uses canonical destructive restore instead of merge`() =
+        runBlocking {
+            val uriString = "content://test/full_restore"
+            val jsonString = createNewFormatJson()
+
+            every { mockContentProvider.readText(uriString) } returns Result.success(jsonString)
+            every { mockRestoreCanonicalizer.canonicalize(any()) } answers { firstArg() }
+            coEvery { mockRestoreRepository.replaceWith(any()) } returns Result.success(Unit)
+            coEvery { mockLocalDataSource.restoreSettings(any()) } returns Unit
+
+            val result = syncFileService.importFullBackupFromFile(uriString)
+
+            assertThat(result.isSuccess).isTrue()
+            coVerify(exactly = 1) {
+                mockRestoreRepository.replaceWith(
+                    match<SnapshotBundle> {
+                        it.contexts.first().id == "new_c1"
+                    },
+                )
+            }
+            coVerify(exactly = 0) {
+                mockMergeRepository.applyServerChanges(any<SnapshotBundle>())
+            }
+        }
+
+    @Test
+    fun `importFullBackupFromFile does not restore settings when database replacement fails`() =
+        runBlocking {
+            val uriString = "content://test/full_restore_failure"
+            val jsonString = createNewFormatJson()
+
+            every { mockContentProvider.readText(uriString) } returns Result.success(jsonString)
+            every { mockRestoreCanonicalizer.canonicalize(any()) } answers { firstArg() }
+            coEvery {
+                mockRestoreRepository.replaceWith(any())
+            } returns Result.failure(IllegalStateException("replace failed"))
+
+            val result = syncFileService.importFullBackupFromFile(uriString)
+
+            assertThat(result.isFailure).isTrue()
+            coVerify(exactly = 0) {
+                mockLocalDataSource.restoreSettings(any())
+            }
+            coVerify(exactly = 0) {
+                mockMergeRepository.applyServerChanges(any<SnapshotBundle>())
+            }
+        }
 
     @Test
     fun `importFullBackupFromFileV2 imports new snapshot format correctly`() =

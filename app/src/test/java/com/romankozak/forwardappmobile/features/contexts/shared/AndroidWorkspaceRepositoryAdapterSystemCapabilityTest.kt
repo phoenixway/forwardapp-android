@@ -9,10 +9,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.ContextSharedStateUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspacePresentation
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
@@ -23,8 +23,16 @@ import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleStat
 import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
 import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBootstrapReport
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityReadSnapshot
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.DirectionCapabilityState
 import com.romankozak.forwardappmobile.data.workspace.capability.InboxCapabilityState
 import com.romankozak.forwardappmobile.data.workspace.capability.ConnectionsCapabilityState
@@ -401,7 +409,7 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
                         description = null,
                         status = SharedContextStatus.NoPlan,
                         defaultView = SharedContextView.Backlog,
-                        enabledCapabilityIds = emptyList(),
+                        enabledCapabilityIds = listOf("backlog"),
                         experimentalCapabilityIds = emptyList(),
                     ),
                 )
@@ -487,7 +495,7 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
                     description = null,
                     status = SharedContextStatus.NoPlan,
                     defaultView = SharedContextView.Backlog,
-                    enabledCapabilityIds = emptyList(),
+                    enabledCapabilityIds = listOf("backlog"),
                     experimentalCapabilityIds = emptyList(),
                 )
             }
@@ -499,51 +507,89 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
     }
 
     @Test
-    fun `ordinary non-System projection stays legacy and update returns persisted configuration`() = runTest {
-        val id = "ordinary"
-        val fixture =
-            fixture(
-                contexts = listOf(context(id)),
-                configurations =
-                    mapOf(
-                        id to
-                            ContextConfiguration.default(id).copy(
-                                enableInbox = true,
-                                experimentalCapabilityIds = listOf(CapabilityId("direction")),
-                            ),
+    fun `restored canonical Workspace update ignores deleted Context tombstone and legacy configuration`() =
+        runTest {
+            val id = "ordinary-restored"
+            val tombstone = context(id).copy(isDeleted = true)
+            val canonical =
+                CanonicalWorkspacePresentation(
+                    id = id,
+                    nameOverride = "Restored Workspace",
+                    descriptionOverride = null,
+                    parentWorkspaceId = null,
+                    roleCode = null,
+                    workspaceOrder = 7L,
+                    isDeleted = false,
+                )
+            val legacyConfiguration =
+                ContextConfiguration.default(id).copy(
+                    enableInbox = true,
+                    enableBacklog = false,
+                    enableAttachments = true,
+                    experimentalCapabilityIds = listOf(CapabilityId("direction")),
+                )
+            val fixture =
+                fixture(
+                    contexts = listOf(tombstone),
+                    configurations = mapOf(id to legacyConfiguration),
+                    states = mutableMapOf(),
+                    canonicalPresentations = mapOf(id to canonical),
+                )
+
+            every { fixture.canonicalBacklogRepository.getState(id, any()) } returns
+                BacklogCapabilityState(
+                    lifecycleState = WorkspaceCapabilityState.ACTIVE,
+                    isDeleted = false,
+                    configuration = BacklogCapabilityConfigurationV2(false),
+                )
+
+            val initial = fixture.adapter.getContexts().single()
+
+            assertEquals(id, initial.id)
+            assertTrue("backlog" in initial.enabledCapabilityIds)
+            assertFalse("inbox" in initial.enabledCapabilityIds)
+            assertFalse("connections" in initial.enabledCapabilityIds)
+            assertFalse("direction" in initial.experimentalCapabilityIds)
+
+            val updated =
+                requireNotNull(
+                    fixture.adapter.updateContext(
+                        contextId = id,
+                        name = "Canonical updated",
+                        description = "Canonical description",
+                        status = SharedContextStatus.Completed,
+                        defaultView = SharedContextView.Connections,
+                        enabledCapabilityIds = listOf("backlog"),
+                        experimentalCapabilityIds = emptyList(),
                     ),
-                states = mutableMapOf(),
-                persistedTransform = { candidate -> candidate.copy(enableAttachments = true) },
-            )
+                )
 
-        val initial = fixture.adapter.getContexts().single()
-        assertTrue("inbox" in initial.enabledCapabilityIds)
-        assertTrue("direction" in initial.experimentalCapabilityIds)
+            assertTrue("backlog" in updated.enabledCapabilityIds)
 
-        val updated =
-            requireNotNull(
-                fixture.adapter.updateContext(
-                    contextId = id,
-                    name = "Ordinary updated",
-                    description = null,
-                    status = SharedContextStatus.NoPlan,
-                    defaultView = SharedContextView.Backlog,
-                    enabledCapabilityIds = emptyList(),
-                    experimentalCapabilityIds = emptyList(),
-                ),
-            )
+            coVerify(exactly = 1) {
+                fixture.canonicalWorkspaceRepository.updateNameAndDescription(
+                    id,
+                    "Canonical updated",
+                    "Canonical description",
+                    any(),
+                )
+            }
+            coVerify(exactly = 1) {
+                fixture.canonicalBacklogRepository.setEnabled(id, true, any())
+            }
+            coVerify(exactly = 1) {
+                fixture.canonicalConnectionsRepository.setEnabled(id, false, any())
+            }
 
-        assertTrue("connections" in updated.enabledCapabilityIds)
-        coVerify(exactly = 1) {
-            fixture.contextRepository.updateContextSharedState(id, any())
+            coVerify(exactly = 0) {
+                fixture.contextRepository.updateContextSharedState(any(), any())
+            }
+            coVerify(exactly = 0) {
+                fixture.structureRepository.upsertStructure(any())
+            }
+
+            assertEquals(legacyConfiguration, fixture.configurations.getValue(id))
         }
-        coVerify(exactly = 0) { fixture.access.setInboxEnabled(any(), any(), any()) }
-        coVerify(exactly = 0) { fixture.access.setDirectionEnabled(any(), any(), any()) }
-        coVerify(exactly = 0) { fixture.remainingAccess.setConnectionsEnabled(any(), any(), any()) }
-        coVerify(exactly = 0) { fixture.remainingAccess.setInboxSortingEnabled(any(), any(), any()) }
-        coVerify(exactly = 0) { fixture.remainingAccess.setKeyProblemsEnabled(any(), any(), any()) }
-        coVerify(exactly = 0) { fixture.backlogAccess.setEnabled(any(), any(), any()) }
-    }
 
     private fun fixture(
         contexts: List<Context>,
@@ -565,20 +611,6 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
         coEvery { contextRepository.getContextById(any()) } answers {
             contextsById[firstArg<String>()]
         }
-        coEvery { contextRepository.updateContextSharedState(any(), any()) } answers {
-            val contextId = firstArg<String>()
-            val update = secondArg<ContextSharedStateUpdate>()
-            val current = requireNotNull(contextsById[contextId])
-            contextsById[contextId] =
-                current.copy(
-                    name = update.name,
-                    description = update.description,
-                    contextStatus = update.contextStatus,
-                    defaultViewModeName = update.defaultViewModeName,
-                    isCompleted = update.isCompleted,
-                )
-        }
-
         val structureRepository = mockk<ContextStructureRepository>()
         coEvery { structureRepository.getStructureByContext(any()) } answers {
             configurationsById[firstArg<String>()]
@@ -642,6 +674,48 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
         val bootstrapper = mockk<CanonicalWorkspaceBootstrapper>()
         coEvery { bootstrapper.ensureBootstrapped(any()) } returns
             WorkspaceBootstrapReport(0, 0, emptyList(), performed = false)
+
+        val canonicalWorkspaceRepository =
+            mockk<CanonicalWorkspaceRepository>(relaxed = true)
+        coEvery { canonicalWorkspaceRepository.getCanonicalPresentation(any()) } answers {
+            canonicalPresentations[firstArg<String>()]
+        }
+        coEvery { canonicalWorkspaceRepository.getCanonicalPresentations() } returns
+            canonicalPresentations
+
+        val canonicalCapabilityInstanceStore =
+            mockk<CanonicalCapabilityInstanceStore>(relaxed = true)
+        coEvery { canonicalCapabilityInstanceStore.loadReadSnapshot() } returns
+            CanonicalCapabilityReadSnapshot(
+                workspacesById = emptyMap(),
+                instances = emptyList(),
+            )
+
+        val canonicalBacklogRepository =
+            mockk<CanonicalBacklogRepository>(relaxed = true)
+        val canonicalInboxRepository =
+            mockk<CanonicalInboxRepository>(relaxed = true)
+        val canonicalDirectionRepository =
+            mockk<CanonicalDirectionRepository>(relaxed = true)
+        val canonicalConnectionsRepository =
+            mockk<CanonicalConnectionsRepository>(relaxed = true)
+        val canonicalInboxSortingRepository =
+            mockk<CanonicalInboxSortingRepository>(relaxed = true)
+        val canonicalKeyProblemsRepository =
+            mockk<CanonicalKeyProblemsRepository>(relaxed = true)
+
+        coEvery { canonicalBacklogRepository.getState(any()) } returns null
+        every { canonicalBacklogRepository.getState(any(), any()) } returns null
+        coEvery { canonicalInboxRepository.getState(any()) } returns null
+        every { canonicalInboxRepository.getState(any(), any()) } returns null
+        coEvery { canonicalDirectionRepository.getState(any()) } returns null
+        every { canonicalDirectionRepository.getState(any(), any()) } returns null
+        coEvery { canonicalConnectionsRepository.getState(any()) } returns null
+        every { canonicalConnectionsRepository.getState(any(), any()) } returns null
+        coEvery { canonicalInboxSortingRepository.getState(any()) } returns null
+        every { canonicalInboxSortingRepository.getState(any(), any()) } returns null
+        coEvery { canonicalKeyProblemsRepository.getState(any()) } returns null
+        every { canonicalKeyProblemsRepository.getState(any(), any()) } returns null
         val presentationProjector = mockk<SystemWorkspacePresentationContextProjector>()
 
         fun presentation(context: Context?): ContextPresentation? {
@@ -694,6 +768,7 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
                         tags = emptyList(),
                     )
                 }
+                ?: contexts.firstOrNull { it.id == id }?.let(::presentation)
         }
         coEvery {
             contextRepository.updateContextPresentation(
@@ -714,7 +789,15 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
                     goalRepository = mockk<GoalRepository>(relaxed = true),
                     contextStructureRepository = structureRepository,
                     canonicalWorkspaceBootstrapper = bootstrapper,
+                    canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                    canonicalCapabilityInstanceStore = canonicalCapabilityInstanceStore,
                     systemWorkspacePresentationContextProjector = presentationProjector,
+                    canonicalBacklogRepository = canonicalBacklogRepository,
+                    canonicalInboxRepository = canonicalInboxRepository,
+                    canonicalDirectionRepository = canonicalDirectionRepository,
+                    canonicalConnectionsRepository = canonicalConnectionsRepository,
+                    canonicalInboxSortingRepository = canonicalInboxSortingRepository,
+                    canonicalKeyProblemsRepository = canonicalKeyProblemsRepository,
                     canonicalDashboardCapabilityRepository = dashboard,
                     canonicalExecutionLogRepository = executionLog,
                     systemInboxDirectionAccess = access,
@@ -722,6 +805,9 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
                     systemBacklogLifecycleAccess = backlogAccess,
                 ),
             contextRepository = contextRepository,
+            canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+            canonicalBacklogRepository = canonicalBacklogRepository,
+            canonicalConnectionsRepository = canonicalConnectionsRepository,
             access = access,
             remainingAccess = remainingAccess,
             backlogAccess = backlogAccess,
@@ -833,6 +919,9 @@ class AndroidWorkspaceRepositoryAdapterSystemCapabilityTest {
     private data class Fixture(
         val adapter: AndroidWorkspaceRepositoryAdapter,
         val contextRepository: ContextRepository,
+        val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        val canonicalBacklogRepository: CanonicalBacklogRepository,
+        val canonicalConnectionsRepository: CanonicalConnectionsRepository,
         val access: SystemContextCanonicalInboxDirectionAccess,
         val remainingAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
         val backlogAccess: SystemContextCanonicalBacklogLifecycleAccess,

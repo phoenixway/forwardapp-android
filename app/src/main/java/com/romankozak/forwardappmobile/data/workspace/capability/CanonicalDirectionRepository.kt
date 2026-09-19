@@ -94,6 +94,12 @@ class CanonicalDirectionRepository
         suspend fun getState(workspaceId: String): DirectionCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toDirectionCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): DirectionCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toDirectionCapabilityState()
+
         fun observeState(workspaceId: String): Flow<DirectionCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toDirectionCapabilityState() }.getOrNull() }

@@ -33,7 +33,6 @@ class OrientationHierarchyBuilderTest {
         parentLinks: List<ContextParentLink> = emptyList(),
         beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
         workspaces: List<WorkspaceEntity> = emptyList(),
-        retiredOrdinaryContextIds: Set<String> = emptySet(),
         presentationHierarchy: HierarchyPresentationData =
             HierarchyPresentationTreeBuilder().build(
                 rawContexts.map(Context::toHierarchyPresentationNode),
@@ -41,8 +40,6 @@ class OrientationHierarchyBuilderTest {
     ): List<OrientationHierarchyItem> =
         builder.build(
             presentationHierarchy = presentationHierarchy,
-            rawBackedProjectIds = rawContexts.mapTo(linkedSetOf()) { it.id },
-            retiredOrdinaryContextIds = retiredOrdinaryContextIds,
             beacons = beacons,
             groups = groups,
             parentLinks = parentLinks,
@@ -126,7 +123,7 @@ class OrientationHierarchyBuilderTest {
         )
         assertEquals(
             setOf("beacon-1"),
-            (items[2].node as OrientationHierarchyNode.ContextNode).linkedBeaconIds,
+            (items[2].node as OrientationHierarchyNode.WorkspaceNode).linkedBeaconIds,
         )
     }
 
@@ -247,7 +244,7 @@ class OrientationHierarchyBuilderTest {
             )
 
         val childItem = items.single { it.node.id == "child" }
-        val childNode = childItem.node as OrientationHierarchyNode.ContextNode
+        val childNode = childItem.node as OrientationHierarchyNode.WorkspaceNode
 
         val childIndex = items.indexOf(childItem)
         assertEquals("workspace-parent", items[childIndex - 1].node.id)
@@ -575,7 +572,6 @@ class OrientationHierarchyBuilderTest {
                         ),
                     ),
                 workspaces = listOf(retiredWorkspace, arbitraryWorkspace),
-                retiredOrdinaryContextIds = setOf(retiredId),
                 presentationHierarchy =
                     HierarchyPresentationData(
                         allProjects =
@@ -705,7 +701,7 @@ class OrientationHierarchyBuilderTest {
             )
 
         assertEquals(listOf("virtual:no-beacon", "sys_custom"), items.map { it.node.id })
-        val node = items.last().node as OrientationHierarchyNode.ContextNode
+        val node = items.last().node as OrientationHierarchyNode.WorkspaceNode
         assertEquals("sys_custom", node.presentation.id)
     }
 

@@ -89,24 +89,24 @@ class ContextDialogActionCoordinator
             savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
         }
 
-        suspend fun confirmFullImport(uri: Uri): ProjectUiEvent.ShowToast {
-            val result = contextActionsUseCase.onFullImportConfirmed(uri)
+        suspend fun confirmRestoreImport(uri: Uri): ProjectUiEvent.ShowToast {
+            val result = contextActionsUseCase.onRestoreImportConfirmed(uri)
             dialogUseCase.dismissDialog()
             Timber.tag("IMPORT_DEBUG").e("Import error: ${result.exceptionOrNull()?.message}")
             return if (result.isSuccess) {
-                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import successful")
+                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Restore successful")
             } else {
-                ProjectUiEvent.ShowToast("Import error: ${result.exceptionOrNull()?.message}")
+                ProjectUiEvent.ShowToast("Restore error: ${result.exceptionOrNull()?.message}")
             }
         }
 
-        suspend fun confirmFullImportV2(uri: Uri): ProjectUiEvent.ShowToast {
-            val result = contextActionsUseCase.onFullImportConfirmedV2(uri)
+        suspend fun confirmMergeImport(uri: Uri): ProjectUiEvent.ShowToast {
+            val result = contextActionsUseCase.onMergeImportConfirmed(uri)
             dialogUseCase.dismissDialog()
             return if (result.isSuccess) {
-                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Import V2 successful")
+                ProjectUiEvent.ShowToast(result.getOrNull() ?: "Merge successful")
             } else {
-                ProjectUiEvent.ShowToast("Import V2 error: ${result.exceptionOrNull()?.message}")
+                ProjectUiEvent.ShowToast("Merge error: ${result.exceptionOrNull()?.message}")
             }
         }
 

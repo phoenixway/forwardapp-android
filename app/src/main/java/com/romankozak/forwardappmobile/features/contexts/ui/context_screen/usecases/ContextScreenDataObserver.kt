@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
@@ -65,6 +66,11 @@ class ContextScreenDataObserver(
                     dependencies.recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT),
                     dependencies.noteRepository.getNotesForContext(contextId),
                     dependencies.goalRepository.getGoalsByContextIdFlow(contextId),
+                    dependencies.canonicalWorkspaceRepository
+                        .observeCanonicalPresentations()
+                        .map { presentations ->
+                            presentations[contextId]?.isDeleted == false
+                        },
                     dependencies.orientationDao.observeWorkspaceCapabilities(contextId),
                     dependencies.systemInboxDirectionAccess.observeState(contextId),
                     dependencies.systemRemainingCapabilityAccess.observeState(contextId),
@@ -95,6 +101,7 @@ data class ContextScreenDataObserverDependencies(
     val recentItemsRepository: RecentItemsRepository,
     val noteRepository: LegacyNoteRepository,
     val goalRepository: GoalRepository,
+    val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
     val orientationDao: OrientationDao,
     val systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
     val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,

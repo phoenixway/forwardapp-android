@@ -29,7 +29,9 @@ import com.romankozak.forwardappmobile.data.workspace.canonicalSystemBacklogLife
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemInboxDirectionOverrides
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemRemainingCapabilityOverrides
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
+import com.romankozak.forwardappmobile.shared.core.domain.orientation.orientationCapabilityRegistry
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityAvailability
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 
@@ -56,7 +58,8 @@ class ContextScreenDataMapper {
             enabledCapabilityOverrides = snapshot.enabledCapabilityOverrides(),
             executionLogEnabledOverride = snapshot.executionLogEnabledOverride(),
             canonicalCapabilityOverrides =
-                canonicalSystemInboxDirectionOverrides(contextId, snapshot.systemInboxDirectionState) +
+                snapshot.canonicalOrdinaryCapabilityOverrides(contextId) +
+                    canonicalSystemInboxDirectionOverrides(contextId, snapshot.systemInboxDirectionState) +
                     canonicalSystemRemainingCapabilityOverrides(
                         contextId,
                         snapshot.systemRemainingCapabilityState,
@@ -66,7 +69,8 @@ class ContextScreenDataMapper {
                         snapshot.systemBacklogLifecycleState,
                     ),
             suppressPresetCapabilityDerivation =
-                snapshot.hasPromotedSystemCapabilityAuthority(contextId),
+                snapshot.hasCanonicalOrdinaryCapabilityAuthority(contextId) ||
+                    snapshot.hasPromotedSystemCapabilityAuthority(contextId),
             presentation = snapshot.presentation,
         )
     }
@@ -97,6 +101,53 @@ private fun ContextScreenDataSnapshot.hasPromotedSystemCapabilityAuthority(conte
         systemRemainingCapabilityState?.isCanonicalOwnerAvailable == true &&
         systemBacklogLifecycleState?.isCanonicalOwnerAvailable == true
 
+private fun ContextScreenDataSnapshot.hasCanonicalOrdinaryCapabilityAuthority(
+    contextId: String,
+): Boolean =
+    !SystemContexts.isSystem(ContextId(contextId)) &&
+        presentation?.id == contextId &&
+        hasCanonicalWorkspaceOwner
+
+private fun ContextScreenDataSnapshot.canonicalOrdinaryCapabilityOverrides(
+    contextId: String,
+): Map<CapabilityId, Boolean> {
+    if (!hasCanonicalOrdinaryCapabilityAuthority(contextId)) return emptyMap()
+
+    val defaultInstancesByType =
+        workspaceCapabilities
+            .filter {
+                it.workspaceId == contextId &&
+                    it.instanceKey == "default"
+            }
+            .groupBy { it.capabilityType }
+
+    return buildMap {
+        orientationCapabilityRegistry
+            .asSequence()
+            .filter { definition ->
+                definition.availability == WorkspaceCapabilityAvailability.TARGET &&
+                    definition.legacyIds.isNotEmpty()
+            }
+            .forEach { definition ->
+                val matches = defaultInstancesByType[definition.type.name].orEmpty()
+                require(matches.size <= 1) {
+                    "Multiple persisted ${definition.type} default instances violate logical identity"
+                }
+
+                val instance = matches.singleOrNull()
+                val enabled =
+                    instance != null &&
+                        !instance.isDeleted &&
+                        instance.state == WorkspaceCapabilityState.ACTIVE.name
+
+                // The registry's first legacy id is the runtime capability id.
+                // CONNECTIONS intentionally maps to "connections", not its
+                // historical "attachments" alias.
+                put(CapabilityId(definition.legacyIds.first()), enabled)
+            }
+    }
+}
+
 data class ContextScreenDataSnapshot(
     val context: Context?,
     val rawItems: List<BacklogItem>,
@@ -112,6 +163,7 @@ data class ContextScreenDataSnapshot(
     val recentItems: List<RecentItem>,
     val notes: List<LegacyNoteEntity>,
     val goals: List<Goal>,
+    val hasCanonicalWorkspaceOwner: Boolean = false,
     val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity>,
     val systemInboxDirectionState: SystemInboxDirectionState?,
     val systemRemainingCapabilityState: SystemRemainingCapabilityLifecycleState? = null,
@@ -139,6 +191,7 @@ data class ContextScreenDataSnapshot(
                 recentItems = args.itemsAt<RecentItem>(RECENT_ITEMS_INDEX),
                 notes = args.itemsAt<LegacyNoteEntity>(NOTES_INDEX),
                 goals = args.itemsAt<Goal>(GOALS_INDEX),
+                hasCanonicalWorkspaceOwner = args.getOrNull(CANONICAL_WORKSPACE_OWNER_INDEX) as? Boolean ?: false,
                 workspaceCapabilities = args.itemsAt<WorkspaceCapabilityInstanceEntity>(WORKSPACE_CAPABILITIES_INDEX),
                 systemInboxDirectionState =
                     args.getOrNull(SYSTEM_INBOX_DIRECTION_STATE_INDEX) as? SystemInboxDirectionState,
@@ -395,10 +448,11 @@ private const val REMINDERS_INDEX = 10
 private const val RECENT_ITEMS_INDEX = 11
 private const val NOTES_INDEX = 12
 private const val GOALS_INDEX = 13
-private const val WORKSPACE_CAPABILITIES_INDEX = 14
-private const val SYSTEM_INBOX_DIRECTION_STATE_INDEX = 15
-private const val SYSTEM_REMAINING_CAPABILITY_STATE_INDEX = 16
-private const val SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX = 17
+private const val CANONICAL_WORKSPACE_OWNER_INDEX = 14
+private const val WORKSPACE_CAPABILITIES_INDEX = 15
+private const val SYSTEM_INBOX_DIRECTION_STATE_INDEX = 16
+private const val SYSTEM_REMAINING_CAPABILITY_STATE_INDEX = 17
+private const val SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX = 18
 private const val PROJECT_ITEM_TYPE = "PROJECT"
 private const val LEGACY_LINK_ITEM_TYPE = "LINK"
 private const val DEFAULT_CONTEXT_NAME = "Context"

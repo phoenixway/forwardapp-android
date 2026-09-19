@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -34,6 +35,11 @@ enum class CapabilityWorkspaceAuthority {
     ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER,
 }
 
+internal data class CanonicalCapabilityReadSnapshot(
+    val workspacesById: Map<String, WorkspaceEntity>,
+    val instances: List<WorkspaceCapabilityInstanceEntity>,
+)
+
 /**
  * Shared persistence kernel for canonical capability-instance metadata.
  *
@@ -49,6 +55,12 @@ class CanonicalCapabilityInstanceStore
         private val workspaceDao: WorkspaceDao,
         private val orientationDao: OrientationDao,
     ) {
+        internal suspend fun loadReadSnapshot(): CanonicalCapabilityReadSnapshot =
+            CanonicalCapabilityReadSnapshot(
+                workspacesById = workspaceDao.getAll().associateBy { it.id },
+                instances = orientationDao.getAllWorkspaceCapabilities(),
+            )
+
         suspend fun enable(
             spec: CanonicalCapabilityInstanceSpec,
             workspaceId: String,
@@ -88,6 +100,22 @@ class CanonicalCapabilityInstanceStore
             val current =
                 logicalInstance(
                     orientationDao.getAllWorkspaceCapabilities(),
+                    workspaceId,
+                    spec,
+                )
+            current?.let { validateMutableConfiguration(it, spec) }
+            return current
+        }
+
+        internal fun findInstance(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): WorkspaceCapabilityInstanceEntity? {
+            requireAuthorizedWorkspace(snapshot.workspacesById[workspaceId], spec)
+            val current =
+                logicalInstance(
+                    snapshot.instances,
                     workspaceId,
                     spec,
                 )

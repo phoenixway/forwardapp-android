@@ -54,6 +54,12 @@ class CanonicalConnectionsRepository
         suspend fun getState(workspaceId: String): ConnectionsCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toConnectionsCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): ConnectionsCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toConnectionsCapabilityState()
+
         fun observeState(workspaceId: String): Flow<ConnectionsCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toConnectionsCapabilityState() }.getOrNull() }

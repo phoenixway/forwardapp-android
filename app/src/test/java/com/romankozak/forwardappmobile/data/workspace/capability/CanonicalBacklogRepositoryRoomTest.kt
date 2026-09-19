@@ -3,12 +3,15 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV2
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
@@ -451,6 +454,13 @@ class CanonicalBacklogRepositoryRoomTest {
 
             val childPlacement = repository.addEntry("owner", workspaceTarget("child"), now = 10L)
             val referencePlacement = repository.addEntry("owner", workspaceTarget("reference"), now = 11L)
+            seedOrientation(database, "orientation")
+            val orientationPlacement =
+                repository.addEntry(
+                    "owner",
+                    WorkspaceBacklogTargetRef(WorkspaceBacklogTargetKind.ORIENTATION, "orientation"),
+                    now = 12L,
+                )
             database.workspaceBacklogEntryDao().upsert(
                 listOf(
                     WorkspaceBacklogEntryEntity(
@@ -459,9 +469,9 @@ class CanonicalBacklogRepositoryRoomTest {
                         capabilityInstanceId = "backlog-owner",
                         targetKind = WorkspaceBacklogTargetKind.WORKSPACE.name,
                         targetId = "missing",
-                        entryOrder = 2L,
-                        createdAt = 12L,
-                        updatedAt = 12L,
+                        entryOrder = 3L,
+                        createdAt = 13L,
+                        updatedAt = 13L,
                         syncedAt = null,
                         isDeleted = false,
                         version = 1L,
@@ -474,6 +484,19 @@ class CanonicalBacklogRepositoryRoomTest {
             assertTrue(requireNotNull(repository.getEntry("dangling")).isDeleted)
             assertFalse(requireNotNull(repository.getEntry(referencePlacement)).isDeleted)
             assertEquals(0L, requireNotNull(repository.getEntry(referencePlacement)).entryOrder)
+            assertFalse(requireNotNull(repository.getEntry(orientationPlacement)).isDeleted)
+            assertEquals(1L, requireNotNull(repository.getEntry(orientationPlacement)).entryOrder)
+
+            val childAfterFirstCleanup = requireNotNull(repository.getEntry(childPlacement))
+            val danglingAfterFirstCleanup = requireNotNull(repository.getEntry("dangling"))
+            val referenceAfterFirstCleanup = requireNotNull(repository.getEntry(referencePlacement))
+            val orientationAfterFirstCleanup = requireNotNull(repository.getEntry(orientationPlacement))
+
+            assertEquals(0, repository.tombstoneDanglingAndStructuralEntries(now = 30L))
+            assertEquals(childAfterFirstCleanup, repository.getEntry(childPlacement))
+            assertEquals(danglingAfterFirstCleanup, repository.getEntry("dangling"))
+            assertEquals(referenceAfterFirstCleanup, repository.getEntry(referencePlacement))
+            assertEquals(orientationAfterFirstCleanup, repository.getEntry(orientationPlacement))
         } finally {
             database.close()
         }
@@ -540,6 +563,30 @@ class CanonicalBacklogRepositoryRoomTest {
                 ),
             )
         }
+    }
+
+    private suspend fun seedOrientation(
+        database: AppDatabase,
+        id: String,
+    ) {
+        database.orientationDao().upsertManagedSubjects(
+            listOf(
+                ManagedSubjectEntity(
+                    id = id,
+                    subjectType = ManagedSubjectType.ORIENTATION.name,
+                    title = id,
+                    description = null,
+                    createdAt = 1L,
+                    updatedAt = 1L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                ),
+            ),
+        )
+        database.orientationDao().upsertOrientations(
+            listOf(OrientationEntity(id, "GOAL", null, "UNSET")),
+        )
     }
 
     private fun workspaceTarget(id: String) =

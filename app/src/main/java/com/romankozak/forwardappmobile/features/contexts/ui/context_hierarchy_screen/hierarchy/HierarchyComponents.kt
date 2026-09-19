@@ -995,162 +995,6 @@ fun BreadcrumbNavigation(
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun HierarchyListItem(
-    item: FlatHierarchyPresentationItem,
-    childCount: Int,
-    dragAndDropState: DragAndDropState<String>,
-    isSearchActive: Boolean,
-    highlightedProjectId: String?,
-    settings: HierarchyDisplaySettings,
-    searchQuery: String,
-    focusedProjectId: String?,
-    longDescendantsMap: Map<String, Boolean>,
-    isSelectionMode: Boolean,
-    selectedContextIds: Set<String>,
-    onProjectClick: (String) -> Unit,
-    onToggleSelection: (String) -> Unit,
-    onStartSelection: (String) -> Unit,
-    onMenuRequested: (String) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (String) -> Unit,
-    onAddSubproject: (String) -> Unit,
-    onDeleteProject: (String) -> Unit,
-    onEditProject: (String) -> Unit,
-    isExpanded: Boolean = false,
-    onToggleExpansion: ((String) -> Unit)? = null,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    legacyContextActionsEnabled: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    @Suppress("UNUSED_VARIABLE")
-    val unusedInputs = Triple(settings, longDescendantsMap, animatedVisibilityScope)
-    val project = item.project
-    val hasChildren = childCount > 0
-    val draggedProjectId = dragAndDropState.draggedItem?.data
-    val isCurrentlyDragging = draggedProjectId == project.id
-
-    val presentationName = project.name
-    val displayName =
-        if (isSearchActive && searchQuery.isNotEmpty()) {
-            if (searchQuery.length > SHORT_QUERY_THRESHOLD) {
-                highlightFuzzy(text = presentationName, query = searchQuery)
-            } else {
-                highlightSubstring(text = presentationName, query = searchQuery)
-            }
-        } else {
-            AnnotatedString(presentationName)
-        }
-
-    val isFocused = project.id == focusedProjectId
-    val isSelected = legacyContextActionsEnabled && project.id in selectedContextIds
-
-    with(sharedTransitionScope) {
-        val isDropAllowed =
-            remember(draggedProjectId, project.id) {
-                draggedProjectId == null || draggedProjectId != project.id
-            }
-
-        val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-        val isHovered =
-            remember(hoveredDropTargetKey, project.id, isDropAllowed) {
-                isDropAllowed &&
-                    (
-                        hoveredDropTargetKey == "before-${project.id}" ||
-                            hoveredDropTargetKey == "after-${project.id}"
-                    )
-            }
-        val isDraggingDown =
-            remember(hoveredDropTargetKey, project.id, isDropAllowed) {
-                isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-            }
-
-        Box(modifier = modifier.fillMaxWidth()) {
-            SwipeableProjectRow(
-                project = project,
-                level = item.level,
-                hasChildren = hasChildren,
-                childCount = childCount,
-                isLinkedAppearance = item.isLinkedAppearance,
-                isCanonicalWorkspace = item.isCanonicalWorkspace,
-                onProjectClick = onProjectClick,
-                // Focus/reveal is operational hierarchy navigation, not a
-                // legacy Context mutation. CANONICAL_ONLY WorkspaceNodes must
-                // remain focusable even though legacy edit/delete/reorder
-                // actions stay disabled.
-                onProjectFocus = onFocusProject,
-                isCurrentlyDragging = isCurrentlyDragging,
-                isHovered = isHovered,
-                isDraggingDown = isDraggingDown,
-                isHighlighted = project.id == highlightedProjectId,
-                displayName = displayName,
-                dragHandle =
-                    if (isSelectionMode || !legacyContextActionsEnabled) {
-                        null
-                    } else {
-                        {
-                            DraggableItem(
-                                state = dragAndDropState,
-                                key = project.id,
-                                data = project.id,
-                                dragAfterLongPress = true,
-                            ) {
-                                IconButton(
-                                    onClick = { onMenuRequested(project.id) },
-                                    modifier = Modifier.padding(start = 2.dp).size(36.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = "Дії з контекстом",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    },
-                onAddSubproject =
-                    if (legacyContextActionsEnabled) onAddSubproject else { _ -> },
-                onDelete =
-                    if (legacyContextActionsEnabled) onDeleteProject else { _ -> },
-                onEdit =
-                    if (legacyContextActionsEnabled) onEditProject else { _ -> },
-                isFocused = isFocused,
-                isSelectionMode = isSelectionMode && legacyContextActionsEnabled,
-                isSelected = isSelected,
-                onToggleSelection =
-                    if (legacyContextActionsEnabled) onToggleSelection else { _ -> },
-                onStartSelection =
-                    if (legacyContextActionsEnabled) onStartSelection else { _ -> },
-                isExpanded = isExpanded,
-                onToggleExpansion = onToggleExpansion,
-            )
-
-            if (!isCurrentlyDragging && !isSelectionMode && legacyContextActionsEnabled) {
-                Column(modifier = Modifier.matchParentSize()) {
-                    val dropModifier = { position: DropPosition ->
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .then(
-                                if (isDropAllowed) {
-                                    Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                        onProjectReorder(it.data, project.id, position)
-                                    }
-                                } else {
-                                    Modifier
-                                },
-                            )
-                    }
-                    Box(modifier = dropModifier(DropPosition.BEFORE))
-                    Box(modifier = dropModifier(DropPosition.AFTER))
-                }
-            }
-        }
-    }
-}
-
 @Composable
 internal fun PresentationHierarchyRow(
     item: FlatHierarchyPresentationItem,
@@ -1160,6 +1004,11 @@ internal fun PresentationHierarchyRow(
     isFocused: Boolean,
     isHighlighted: Boolean,
     onProjectClick: (String) -> Unit,
+    onMenuRequested: (String) -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: (String) -> Unit = {},
+    onStartSelection: (String) -> Unit = {},
     isExpanded: Boolean = false,
     onToggleExpansion: (() -> Unit)? = null,
 ) {
@@ -1191,10 +1040,24 @@ internal fun PresentationHierarchyRow(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
                     shape = RoundedCornerShape(16.dp),
                 )
-                .clickable { onProjectClick(project.id) }
+                .combinedClickable(
+                    onClick = {
+                        if (isSelectionMode) onToggleSelection(project.id) else onProjectClick(project.id)
+                    },
+                    onLongClick = {
+                        if (isSelectionMode) onToggleSelection(project.id) else onStartSelection(project.id)
+                    },
+                )
                 .padding(vertical = 8.dp, horizontal = 16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onToggleSelection(project.id) },
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
             if (childCount > 0) {
                 onToggleExpansion?.let { toggle ->
                     IconButton(onClick = toggle) {
@@ -1227,7 +1090,14 @@ internal fun PresentationHierarchyRow(
                     fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
                 ),
                 color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = { onMenuRequested(project.id) }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Дії з проєктом",
+                )
+            }
         }
         project.description?.takeIf { it.isNotBlank() }?.let { description ->
             Text(

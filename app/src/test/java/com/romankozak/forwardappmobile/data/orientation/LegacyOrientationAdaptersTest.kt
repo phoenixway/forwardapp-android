@@ -46,6 +46,43 @@ class LegacyOrientationAdaptersTest {
     }
 
     @Test
+    fun lightweightGoalBootstrapRowMatchesFullGoalProjection() {
+        val goal =
+            Goal(
+                id = "g-bootstrap",
+                text = "Fast startup",
+                completed = false,
+                createdAt = 10L,
+                updatedAt = 20L,
+                valueImportance = 10f,
+                valueImpact = 5f,
+                scoringStatus = ScoringStatusValues.ASSESSED,
+                relativeSize = 5,
+            )
+
+        val row =
+            com.romankozak.forwardappmobile.features.contexts.data.dao.GoalOrientationBootstrapRow(
+                id = goal.id,
+                text = goal.text,
+                description = goal.description,
+                createdAt = goal.createdAt,
+                updatedAt = goal.updatedAt,
+                syncedAt = goal.syncedAt,
+                isDeleted = goal.isDeleted,
+                version = goal.version,
+                valueImportance = goal.valueImportance,
+                valueImpact = goal.valueImpact,
+                scoringStatus = goal.scoringStatus,
+                goalStatus = goal.goalStatus,
+            )
+
+        assertEquals(
+            goal.toEffectiveOrientation(resolver),
+            row.toEffectiveOrientation(resolver),
+        )
+    }
+
+    @Test
     fun groupGetsApplicableButUnsetIndependentAssessment() {
         val result = MainBeaconGroup(id = "group", title = "Core", createdAt = 1L, updatedAt = 2L).toEffectiveOrientation(resolver)
 

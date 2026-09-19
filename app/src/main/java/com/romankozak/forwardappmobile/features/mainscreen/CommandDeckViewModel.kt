@@ -83,6 +83,7 @@ class CommandDeckViewModel
         private val _uiEvents = MutableSharedFlow<CommandDeckUiEvent>(extraBufferCapacity = 1)
 
         val importChoiceUri: StateFlow<Uri?> = importExportHandler.importChoiceUri
+        val importOperation = importExportHandler.importOperation
         val exportChoiceVisible: StateFlow<Boolean> = importExportHandler.exportChoiceVisible
         val syncUiState: StateFlow<SyncUiState> = importExportHandler.syncUiState
         val showWifiImportDialog: StateFlow<Boolean> = importExportHandler.showWifiImportDialog
@@ -236,15 +237,15 @@ class CommandDeckViewModel
             importExportHandler.dismissExportChoice()
         }
 
-        fun confirmImportV1(uri: Uri) {
+        fun confirmRestore(uri: Uri) {
             viewModelScope.launch {
-                importExportHandler.confirmImportV1(uri)
+                importExportHandler.confirmRestore(uri)
             }
         }
 
-        fun confirmImportV2(uri: Uri) {
+        fun confirmMerge(uri: Uri) {
             viewModelScope.launch {
-                importExportHandler.confirmImportV2(uri)
+                importExportHandler.confirmMerge(uri)
             }
         }
 
@@ -416,9 +417,7 @@ class CommandDeckViewModel
                 }
                 is CommandDeckEvent.ImportFromFileRequest -> {
                     Log.e("FullJsonImport", "CommandDeckEvent.ImportFromFileRequest uri=${event.fileUri}")
-                    viewModelScope.launch {
-                        importExportHandler.confirmImportV1(Uri.parse(event.fileUri))
-                    }
+                    importExportHandler.requestImportFromFile(Uri.parse(event.fileUri))
                 }
                 CommandDeckEvent.ExportAttachments -> {
                     viewModelScope.launch {

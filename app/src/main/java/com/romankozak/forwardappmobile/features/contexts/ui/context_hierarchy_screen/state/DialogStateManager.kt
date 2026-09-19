@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,13 +28,13 @@ class DialogStateManager
         fun onMenuRequested(
             projectId: String,
             projectName: String,
-            canPasteContextLinks: Boolean = false,
+            availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
         ) {
             _dialogState.value =
                 DialogState.ProjectMenu(
                     projectId = projectId,
                     projectName = projectName,
-                    canPasteContextLinks = canPasteContextLinks,
+                    availability = availability,
                 )
         }
 
@@ -67,7 +68,11 @@ class DialogStateManager
         }
 
         fun onImportFromFileRequested(uri: Uri) {
-            _dialogState.value = DialogState.ImportChoiceDialog(uri)
+            _dialogState.value = DialogState.ImportModeChoice(uri)
+        }
+
+        fun onRestoreFromFileRequested(uri: Uri) {
+            _dialogState.value = DialogState.ConfirmRestore(uri)
         }
 
         fun onExportToFileRequested() {

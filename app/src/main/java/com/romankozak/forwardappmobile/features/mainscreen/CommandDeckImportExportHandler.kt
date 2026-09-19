@@ -20,6 +20,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @ViewModelScoped
+enum class CommandDeckImportOperation {
+    RESTORE,
+    MERGE,
+}
+
 class CommandDeckImportExportHandler
     @Inject
     constructor(
@@ -28,6 +33,9 @@ class CommandDeckImportExportHandler
     ) {
         private val _importChoiceUri = MutableStateFlow<Uri?>(null)
         val importChoiceUri: StateFlow<Uri?> = _importChoiceUri.asStateFlow()
+
+        private val _importOperation = MutableStateFlow<CommandDeckImportOperation?>(null)
+        val importOperation: StateFlow<CommandDeckImportOperation?> = _importOperation.asStateFlow()
 
         private val _exportChoiceVisible = MutableStateFlow(false)
         val exportChoiceVisible: StateFlow<Boolean> = _exportChoiceVisible.asStateFlow()
@@ -82,21 +90,44 @@ class CommandDeckImportExportHandler
         }
 
         fun dismissImportChoice() {
+            if (_importOperation.value != null) return
             _importChoiceUri.value = null
         }
 
-        suspend fun confirmImportV1(uri: Uri) {
-            Log.e("FullJsonImport", "confirmImportV1 start uri=$uri")
-            val result = syncRepository.importFullBackupFromFile(uri)
-            Log.e("FullJsonImport", "confirmImportV1 result isSuccess=${result.isSuccess} message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}")
-            emitResult(result, "Import successful", "Import error")
+        suspend fun confirmRestore(uri: Uri) {
+            if (_importOperation.value != null) return
+            _importOperation.value = CommandDeckImportOperation.RESTORE
+            try {
+                Log.e("FullJsonImport", "confirmRestore start uri=$uri")
+                val result = syncRepository.importFullBackupFromFile(uri)
+                Log.e(
+                    "FullJsonImport",
+                    "confirmRestore result isSuccess=${result.isSuccess} " +
+                        "message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}",
+                )
+                emitResult(result, "Restore successful", "Restore error")
+            } finally {
+                _importOperation.value = null
+                _importChoiceUri.value = null
+            }
         }
 
-        suspend fun confirmImportV2(uri: Uri) {
-            Log.e("FullJsonImport", "confirmImportV2 start uri=$uri")
-            val result = syncRepository.importFullBackupFromFileV2(uri)
-            Log.e("FullJsonImport", "confirmImportV2 result isSuccess=${result.isSuccess} message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}")
-            emitResult(result, "Import successful", "Import error")
+        suspend fun confirmMerge(uri: Uri) {
+            if (_importOperation.value != null) return
+            _importOperation.value = CommandDeckImportOperation.MERGE
+            try {
+                Log.e("FullJsonImport", "confirmMerge start uri=$uri")
+                val result = syncRepository.importFullBackupFromFileV2(uri)
+                Log.e(
+                    "FullJsonImport",
+                    "confirmMerge result isSuccess=${result.isSuccess} " +
+                        "message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}",
+                )
+                emitResult(result, "Merge successful", "Merge error")
+            } finally {
+                _importOperation.value = null
+                _importChoiceUri.value = null
+            }
         }
 
         suspend fun confirmExportV1() {

@@ -235,6 +235,12 @@ class MergeLocalDataSourceImpl
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+            requireCanonicalMergeIngress(bundle)
+            applyCanonicalSnapshotBundle(bundle)
+        }
+
+        /** Shared canonical writer used by merge and atomic replace after ingress validation. */
+        internal suspend fun applyCanonicalSnapshotBundle(bundle: SnapshotBundle) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
 

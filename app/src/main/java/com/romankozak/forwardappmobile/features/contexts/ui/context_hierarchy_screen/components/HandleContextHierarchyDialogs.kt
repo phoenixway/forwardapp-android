@@ -101,7 +101,7 @@ fun HandleProjectHierarchyDialogs(
                 onMigrateRequest = {
                     onEvent(ContextHierarchyScreenEvent.MigrateRequest(state.projectId))
                 },
-                canPasteContextLinks = state.canPasteContextLinks,
+                availability = state.availability,
             )
         }
         is DialogState.ContextMigration -> {
@@ -141,7 +141,7 @@ fun HandleProjectHierarchyDialogs(
             )
         }
 
-        is DialogState.ConfirmImport -> {
+        is DialogState.ConfirmRestore -> {
             AlertDialog(
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 title = { Text("Restore from backup?") },
@@ -152,7 +152,7 @@ fun HandleProjectHierarchyDialogs(
                 },
                 confirmButton = {
                     Button(
-                        onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) },
+                        onClick = { onEvent(ContextHierarchyScreenEvent.RestoreConfirm(state.uri)) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) { Text("Delete and Restore") }
                 },
@@ -160,23 +160,48 @@ fun HandleProjectHierarchyDialogs(
             )
         }
 
-        is DialogState.ImportChoiceDialog -> {
+        is DialogState.ImportModeChoice -> {
             AlertDialog(
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
-                title = { Text("Choose Import Version") },
-                text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
+                title = { Text("Import backup") },
+                text = {
+                    Text(
+                        "Restore replaces all current data with the backup. " +
+                            "Merge keeps current data and applies supported data from the backup.",
+                    )
+                },
                 confirmButton = {
                     Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirm(state.uri)) }) {
-                            Text("Import V1")
+                        Button(
+                            onClick = {
+                                onEvent(
+                                    ContextHierarchyScreenEvent.RestoreImportRequest(state.uri),
+                                )
+                            },
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                ),
+                        ) {
+                            Text("Restore")
                         }
                         Spacer(Modifier.width(8.dp))
-                        Button(onClick = { onEvent(ContextHierarchyScreenEvent.FullImportConfirmV2(state.uri)) }) {
-                            Text("Import V2")
+                        Button(
+                            onClick = {
+                                onEvent(ContextHierarchyScreenEvent.MergeConfirm(state.uri))
+                            },
+                        ) {
+                            Text("Merge")
                         }
                     }
                 },
-                dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },
+                dismissButton = {
+                    TextButton(
+                        onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
+                    ) {
+                        Text("Cancel")
+                    }
+                },
             )
         }
 

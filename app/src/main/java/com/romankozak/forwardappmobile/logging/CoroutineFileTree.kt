@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.logging
 
 import android.util.Log
+import com.romankozak.forwardappmobile.StartupTrace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,12 +31,19 @@ class CoroutineFileTree(
     private val currentFileName = "app_log.txt"
 
     init {
-        if (!logsDir.exists()) logsDir.mkdirs()
         currentFile = File(logsDir, currentFileName)
-        migrateLegacyLogIfNeeded()
-        rotateOnStartupIfNeeded()
 
         scope.launch {
+            try {
+                StartupTrace.measure("Application.loggerPrepare") {
+                    prepareForStartup()
+                }
+            } catch (io: IOException) {
+                Log.e("CoroutineFileTree", "Log startup preparation failed", io)
+            } catch (sec: SecurityException) {
+                Log.e("CoroutineFileTree", "Log startup preparation failed", sec)
+            }
+
             for (line in channel) {
                 try {
                     rotateIfNeeded()
@@ -47,6 +55,12 @@ class CoroutineFileTree(
                 }
             }
         }
+    }
+
+    private fun prepareForStartup() {
+        if (!logsDir.exists()) logsDir.mkdirs()
+        migrateLegacyLogIfNeeded()
+        rotateOnStartupIfNeeded()
     }
 
     override fun log(

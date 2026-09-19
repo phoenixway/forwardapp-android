@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.ThemeDefinitionEntity
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalOrientationBootstrapRow
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.mapLegacyContextLifecycle
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.mapLegacyGoalLifecycle
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.projectLegacyImpact
@@ -28,7 +29,57 @@ fun interface LegacySubjectIdResolver {
     fun resolve(source: LegacySubjectRef): String
 }
 
-fun Goal.toEffectiveOrientation(resolver: LegacySubjectIdResolver): EffectiveOrientation {
+fun Goal.toEffectiveOrientation(resolver: LegacySubjectIdResolver): EffectiveOrientation =
+    goalEffectiveOrientation(
+        resolver = resolver,
+        id = id,
+        text = text,
+        description = description,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+        goalStatus = goalStatus,
+        valueImportance = valueImportance,
+        valueImpact = valueImpact,
+        scoringStatus = scoringStatus,
+    )
+
+fun GoalOrientationBootstrapRow.toEffectiveOrientation(
+    resolver: LegacySubjectIdResolver,
+): EffectiveOrientation =
+    goalEffectiveOrientation(
+        resolver = resolver,
+        id = id,
+        text = text,
+        description = description,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+        goalStatus = goalStatus,
+        valueImportance = valueImportance,
+        valueImpact = valueImpact,
+        scoringStatus = scoringStatus,
+    )
+
+private fun goalEffectiveOrientation(
+    resolver: LegacySubjectIdResolver,
+    id: String,
+    text: String,
+    description: String?,
+    createdAt: Long,
+    updatedAt: Long?,
+    syncedAt: Long?,
+    version: Long,
+    isDeleted: Boolean,
+    goalStatus: String,
+    valueImportance: Float,
+    valueImpact: Float,
+    scoringStatus: String,
+): EffectiveOrientation {
     val source = LegacySubjectRef(LegacyOrientationSourceType.GOAL, id)
     val importance = projectLegacyImportance(valueImportance, scoringStatus, source)
     val impact = projectLegacyImpact(valueImpact, scoringStatus, source)

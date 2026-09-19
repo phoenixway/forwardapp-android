@@ -3,8 +3,6 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.database.repairRequiredGoalIdentities161
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -17,7 +15,6 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogTarge
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.LegacyBacklogItemSource
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.LegacyBacklogOrderSource
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import java.util.UUID
@@ -272,9 +269,10 @@ class BacklogMigrationDryRunAdapter
                 val contextById = contexts.associateBy { it.id }
                 val provenLegacyIngressOwners =
                     workspaces.filter { workspace ->
-                        isLegacyContextIngressOwner(
+                        isAdmittedLegacyContextIngressOwner(
+                            contextId = workspace.id,
+                            contextIsDeleted = contextById[workspace.id]?.isDeleted,
                             workspace = workspace,
-                            context = contextById[workspace.id],
                         )
                     }
 
@@ -619,27 +617,3 @@ class BacklogMigrationDryRunAdapter
                 UUID.fromString(LegacySubjectUuid.NAMESPACE_UUID)
         }
     }
-
-private fun isLegacyContextIngressOwner(
-    workspace: com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity,
-    context: com.romankozak.forwardappmobile.core.data.models.entities.Context?,
-): Boolean {
-    if (workspace.id != (context?.id ?: workspace.id)) return false
-    if (SystemContexts.isSystem(ContextId(workspace.id))) {
-        return !workspace.isDeleted &&
-            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-            workspace.sourceContextId == null
-    }
-    return when {
-        context?.isDeleted == false ->
-            workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                workspace.sourceContextId == context.id
-
-        context?.isDeleted == true ->
-            !workspace.isDeleted &&
-                workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                workspace.sourceContextId == null
-
-        else -> false
-    }
-}

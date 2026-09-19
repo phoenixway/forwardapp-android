@@ -184,7 +184,6 @@ fun ProjectHierarchyScreenContent(
             } else {
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
-                    rawBackedProjectIds = uiState.rawContextsById.keys,
                     presentationHierarchy = uiState.presentationHierarchy,
                     orientationHierarchy = uiState.orientationHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,

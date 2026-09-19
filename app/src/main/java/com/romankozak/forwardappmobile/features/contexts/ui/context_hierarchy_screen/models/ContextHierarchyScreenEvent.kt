@@ -105,13 +105,15 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class MoveConfirm(val newParentId: String?) : ContextHierarchyScreenEvent
 
-    data class FullImportConfirm(val uri: Uri) : ContextHierarchyScreenEvent
+    data class RestoreConfirm(val uri: Uri) : ContextHierarchyScreenEvent
 
-    data class FullImportConfirmV2(val uri: Uri) : ContextHierarchyScreenEvent
+    data class MergeConfirm(val uri: Uri) : ContextHierarchyScreenEvent
 
     data object ShowAboutDialog : ContextHierarchyScreenEvent
 
     data class ImportFromFileRequest(val uri: Uri) : ContextHierarchyScreenEvent
+
+    data class RestoreImportRequest(val uri: Uri) : ContextHierarchyScreenEvent
 
     data class SelectiveImportFromFileRequest(val uri: Uri) : ContextHierarchyScreenEvent
 

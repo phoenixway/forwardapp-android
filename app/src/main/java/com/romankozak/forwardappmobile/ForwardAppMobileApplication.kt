@@ -54,20 +54,32 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        StartupTrace.mark("Application.onCreate.begin")
 
         // 1️⃣ ЛОГЕР ПЕРШИМ
-        val logsDir = applicationContext.getDocumentsLogsDir()
+        val logsDir =
+            StartupTrace.measureSync("Application.logsDir") {
+                applicationContext.getDocumentsLogsDir()
+            }
+        val fileTree =
+            StartupTrace.measureSync("Application.loggerConstruct") {
+                CoroutineFileTree(logsDir)
+            }
 
-        Timber.plant(
-            Timber.DebugTree(),
-            CoroutineFileTree(logsDir),
-        )
+        StartupTrace.measureSync("Application.loggerPlant") {
+            Timber.plant(
+                Timber.DebugTree(),
+                fileTree,
+            )
+        }
 
         Timber.i("Logger initialized (Android 15)")
         // 2️⃣ ВСЕ ІНШЕ
         appScope.launch {
             runCatching {
-                settingsRepository.featureTogglesFlow.first()
+                StartupTrace.measure("Application.featureToggles") {
+                    settingsRepository.featureTogglesFlow.first()
+                }
             }.onSuccess { toggles ->
                 Timber.i("Feature toggles loaded")
                 FeatureToggles.updateAll(toggles)
@@ -81,13 +93,17 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             // metadata/hierarchy. Historical Context rows, when present, are
             // bounded upgrade evidence rather than startup materialization.
             runCatching {
-                databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+                StartupTrace.measure("Application.systemWorkspaceOwnership") {
+                    databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+                }
             }.onFailure {
                 Timber.e(it, "Failed to ensure canonical System Workspace ownership")
             }
 
             runCatching {
-                canonicalDayThemeBootstrapper.ensureBootstrapped()
+                StartupTrace.measure("Application.dayThemeBootstrap") {
+                    canonicalDayThemeBootstrapper.ensureBootstrapped()
+                }
             }.onSuccess { report ->
                 if (report.performed) {
                     Timber.i(
@@ -103,7 +119,9 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             }
 
             runCatching {
-                canonicalOrientationBootstrapper.ensureBootstrapped()
+                StartupTrace.measure("Application.orientationBootstrap") {
+                    canonicalOrientationBootstrapper.ensureBootstrapped()
+                }
             }.onSuccess { report ->
                 if (report.performed) {
                     Timber.i(
@@ -118,7 +136,9 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             }
 
             runCatching {
-                canonicalWorkspaceBootstrapper.ensureBootstrapped()
+                StartupTrace.measure("Application.workspaceBootstrap") {
+                    canonicalWorkspaceBootstrapper.ensureBootstrapped()
+                }
             }.onSuccess { report ->
                 if (report.performed || report.issues.isNotEmpty()) {
                     Timber.i(
@@ -133,7 +153,9 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             }
 
             runCatching {
-                executionLogWorkspaceOwnershipBridge.repairUnresolved()
+                StartupTrace.measure("Application.executionLogRepair") {
+                    executionLogWorkspaceOwnershipBridge.repairUnresolved()
+                }
             }.onSuccess { report ->
                 if (report.assignedLogs > 0 || report.unresolvedContexts > 0) {
                     Timber.i(
@@ -147,7 +169,9 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             }
 
             runCatching {
-                contextRepository.cleanupDanglingAndLegacyStructuralListItems()
+                StartupTrace.measure("Application.backlogCleanup") {
+                    contextRepository.cleanupDanglingAndLegacyStructuralListItems()
+                }
             }.onSuccess { cleanedCount ->
                 if (cleanedCount > 0) {
                     Timber.i(
@@ -160,10 +184,13 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
             }
 
             runCatching {
-                tagAssociationHandler.repairAllAssociations()
+                StartupTrace.measure("Application.tagAssociationRepair") {
+                    tagAssociationHandler.repairAllAssociations()
+                }
             }.onFailure {
                 Timber.e(it, "Failed to repair tag associations on startup")
             }
         }
+        StartupTrace.mark("Application.onCreate.end")
     }
 }

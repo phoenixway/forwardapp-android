@@ -354,7 +354,6 @@ private fun parentBeaconIdForNewBeacon(uiState: ProjectHierarchyScreenUiState): 
     val activeItem = uiState.orientationHierarchy.firstOrNull { it.node.id == activeNodeId }
     return when (activeItem?.node) {
         is OrientationHierarchyNode.Beacon -> activeItem.node.id
-        is OrientationHierarchyNode.ContextNode -> nearestAncestorBeaconId(uiState.orientationHierarchy, activeNodeId)
         else -> nearestAncestorBeaconId(uiState.orientationHierarchy, activeNodeId)
     }
 }

@@ -84,6 +84,12 @@ class CanonicalKeyProblemsRepository
         suspend fun getState(workspaceId: String): KeyProblemsCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toKeyProblemsCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): KeyProblemsCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toKeyProblemsCapabilityState()
+
         fun observeState(workspaceId: String): Flow<KeyProblemsCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toKeyProblemsCapabilityState() }.getOrNull() }

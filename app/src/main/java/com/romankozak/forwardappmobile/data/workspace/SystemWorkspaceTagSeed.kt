@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.workspace
 
+import com.romankozak.forwardappmobile.StartupTrace
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.context.SystemOperationalDefinitions
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SystemWorkspaceTagSeedStateEntity
@@ -32,33 +33,52 @@ class SystemWorkspaceTagSeed
         ) {
             database.withTransaction {
                 val definitions = SystemOperationalDefinitions.all
-                val workspaceById = database.workspaceDao().getAll().associateBy { it.id }
-                val contextById = contextDao.getAll().associateBy { it.id }
+                val definitionIds = definitions.map { it.id }
+                val workspaceById =
+                    StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.loadWorkspaces") {
+                        database.workspaceDao()
+                            .getByIds(definitionIds)
+                            .associateBy { it.id }
+                    }
                 val seededIds =
-                    database.systemWorkspaceTagSeedStateDao().getAll()
-                        .mapTo(hashSetOf()) { it.workspaceId }
+                    StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.loadStates") {
+                        database.systemWorkspaceTagSeedStateDao().getAll()
+                            .mapTo(hashSetOf()) { it.workspaceId }
+                    }
+                val unseededIds = definitionIds.filterNot(seededIds::contains)
+                val contextById =
+                    StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.loadContexts") {
+                        if (unseededIds.isEmpty()) {
+                            emptyMap()
+                        } else {
+                            contextDao.getContextsByIds(unseededIds)
+                                .associateBy { it.id }
+                        }
+                    }
                 val tagDao = database.workspaceTagRefDao()
 
-                definitions.forEach { definition ->
-                    val workspace = requireNotNull(workspaceById[definition.id]) {
-                        "Missing reserved System Workspace for tag seed: ${definition.id}"
-                    }
-                    require(!workspace.isDeleted) {
-                        "Deleted reserved System Workspace for tag seed: ${definition.id}"
-                    }
-                    require(
-                        workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                            workspace.sourceContextId == null,
-                    ) {
-                        "Malformed reserved System Workspace for tag seed: ${definition.id}"
-                    }
-                    if (definition.id !in seededIds) {
-                        require(tagDao.getAllForWorkspace(definition.id).isEmpty()) {
-                            "Unmarked canonical Workspace tag state for ${definition.id} cannot be seeded safely"
+                StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.validate") {
+                    definitions.forEach { definition ->
+                        val workspace = requireNotNull(workspaceById[definition.id]) {
+                            "Missing reserved System Workspace for tag seed: ${definition.id}"
                         }
-                        val context = contextById[definition.id]
-                        require(context == null || !context.isDeleted) {
-                            "Deleted unseeded reserved System Context cannot supply tag ingress: ${definition.id}"
+                        require(!workspace.isDeleted) {
+                            "Deleted reserved System Workspace for tag seed: ${definition.id}"
+                        }
+                        require(
+                            workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                                workspace.sourceContextId == null,
+                        ) {
+                            "Malformed reserved System Workspace for tag seed: ${definition.id}"
+                        }
+                        if (definition.id !in seededIds) {
+                            require(tagDao.getAllForWorkspace(definition.id).isEmpty()) {
+                                "Unmarked canonical Workspace tag state for ${definition.id} cannot be seeded safely"
+                            }
+                            val context = contextById[definition.id]
+                            require(context == null || !context.isDeleted) {
+                                "Deleted unseeded reserved System Context cannot supply tag ingress: ${definition.id}"
+                            }
                         }
                     }
                 }
@@ -89,8 +109,10 @@ class SystemWorkspaceTagSeed
                             legacyIngressClosedAt = null,
                         )
                 }
-                if (refs.isNotEmpty()) tagDao.upsert(refs)
-                if (states.isNotEmpty()) database.systemWorkspaceTagSeedStateDao().upsert(states)
+                StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.write") {
+                    if (refs.isNotEmpty()) tagDao.upsert(refs)
+                    if (states.isNotEmpty()) database.systemWorkspaceTagSeedStateDao().upsert(states)
+                }
 
                 // Step 9B relational retirement:
                 // once every reserved System tag collection has passed the
@@ -98,8 +120,10 @@ class SystemWorkspaceTagSeed
                 // Context tag index is no longer needed. Keep context_tag_refs
                 // for ordinary Contexts, but deterministically remove residue
                 // for the exact reserved System ids.
-                definitions.forEach { definition ->
-                    database.contextTagRefDao().deleteForContext(definition.id)
+                StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.retireLegacyTagRefs") {
+                    definitions.forEach { definition ->
+                        database.contextTagRefDao().deleteForContext(definition.id)
+                    }
                 }
             }
         }

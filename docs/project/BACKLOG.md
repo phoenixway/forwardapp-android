@@ -33,6 +33,18 @@ still relevant to the current implementation.
 
 ## DEFERRED
 
+- **POSTPONED — canonical entity lifecycle UI/UX.** Legacy `Context` status,
+  completion/scoring and Project-Management-style state are not Workspace
+  properties. Orientation-like entities already have canonical lifecycle
+  semantics, but editing must move to entity-aware Orientation/Aspect/Goal UI
+  instead of recreating those fields on Workspace.
+
+- **POSTPONED — canonical Workspace start-view policy.** Legacy
+  `Context.defaultViewModeName` is no longer a capability-lifecycle authority
+  and currently has no canonical Workspace persistence owner. Define the
+  navigation/start-view behavior during the later canonical UI/UX adaptation
+  rather than introducing a 1:1 replacement solely for compatibility.
+
 - Define explicit deletion semantics for timestamp-only cross-client collections
   that currently support update freshness but cannot always represent physical
   deletion in an Android delta: `mainBeaconParentLinks` and

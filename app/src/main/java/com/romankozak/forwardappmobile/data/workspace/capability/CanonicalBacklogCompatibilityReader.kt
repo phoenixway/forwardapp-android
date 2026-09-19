@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
@@ -10,6 +11,7 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,53 +37,64 @@ class CanonicalBacklogCompatibilityReader
                 database.backlogGoalAssociationLinkDao().observeForContext(contextId),
                 database.orientationDao().observeLegacyMappings(),
                 database.workspaceDao().observeAll(),
-            ) { entries, projections, mappings, workspaces ->
-                val support = ProjectionSupport(mappings, workspaces)
-                (
-                    entries.map { entry -> entry.toCompatibilityItem(support) } +
-                        projections.map(BacklogGoalAssociationLink::toCompatibilityItem)
-                ).sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
+            ) { _, _, _, _ ->
+                // These Room flows are invalidation signals, not a coherent
+                // cross-table snapshot. Their emissions may arrive separately
+                // after one committed transaction.
+                Unit
+            }.map {
+                readItemsForContextSnapshot(contextId)
             }
 
-        suspend fun getDirectItemsForContext(contextId: String): List<BacklogItem> {
-            val support = snapshotSupport()
-            return database.workspaceBacklogEntryDao()
-                .getLive(contextId)
-                .map { entry -> entry.toCompatibilityItem(support) }
-                .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
-        }
-
-        suspend fun getItemsForContext(contextId: String): List<BacklogItem> {
-            val support = snapshotSupport()
-            val explicit =
+        suspend fun getDirectItemsForContext(contextId: String): List<BacklogItem> =
+            database.withTransaction {
+                val support = snapshotSupport()
                 database.workspaceBacklogEntryDao()
                     .getLive(contextId)
                     .map { entry -> entry.toCompatibilityItem(support) }
-            val derived =
-                database.backlogGoalAssociationLinkDao()
-                    .getForContext(contextId)
-                    .map(BacklogGoalAssociationLink::toCompatibilityItem)
-            return (explicit + derived)
-                .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
-        }
+                    .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
+            }
+
+        suspend fun getItemsForContext(contextId: String): List<BacklogItem> =
+            readItemsForContextSnapshot(contextId)
 
         suspend fun getItemsByIds(ids: Collection<String>): List<BacklogItem> {
             val requested = ids.map(String::trim).filter(String::isNotEmpty).distinct()
             if (requested.isEmpty()) return emptyList()
 
-            val support = snapshotSupport()
-            val explicit =
-                database.workspaceBacklogEntryDao()
-                    .getByIds(requested)
-                    .map { entry -> entry.toCompatibilityItem(support) }
-            val derived =
-                database.backlogGoalAssociationLinkDao()
-                    .getByProjectionIds(requested)
-                    .map(BacklogGoalAssociationLink::toCompatibilityItem)
+            return database.withTransaction {
+                val support = snapshotSupport()
+                val explicit =
+                    database.workspaceBacklogEntryDao()
+                        .getByIds(requested)
+                        .map { entry -> entry.toCompatibilityItem(support) }
+                val derived =
+                    database.backlogGoalAssociationLinkDao()
+                        .getByProjectionIds(requested)
+                        .map(BacklogGoalAssociationLink::toCompatibilityItem)
 
-            val byId = (explicit + derived).associateBy { it.id }
-            return requested.mapNotNull(byId::get)
+                val byId = (explicit + derived).associateBy { it.id }
+                requested.mapNotNull(byId::get)
+            }
         }
+
+        private suspend fun readItemsForContextSnapshot(
+            contextId: String,
+        ): List<BacklogItem> =
+            database.withTransaction {
+                val support = snapshotSupport()
+                val explicit =
+                    database.workspaceBacklogEntryDao()
+                        .getLive(contextId)
+                        .map { entry -> entry.toCompatibilityItem(support) }
+                val derived =
+                    database.backlogGoalAssociationLinkDao()
+                        .getForContext(contextId)
+                        .map(BacklogGoalAssociationLink::toCompatibilityItem)
+
+                (explicit + derived)
+                    .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
+            }
 
         private suspend fun snapshotSupport(): ProjectionSupport =
             ProjectionSupport(

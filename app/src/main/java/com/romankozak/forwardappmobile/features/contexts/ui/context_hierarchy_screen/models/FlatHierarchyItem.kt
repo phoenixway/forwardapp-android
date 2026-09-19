@@ -57,16 +57,6 @@ sealed interface OrientationHierarchyNode {
         override val title: String = "No group"
     }
 
-    data class ContextNode(
-        override val presentation: HierarchyContextPresentationNode,
-        override val linkedBeaconIds: Set<String>,
-        override val isLinkedAppearance: Boolean = false,
-    ) : ProjectLike {
-        override val id: String = presentation.id
-        override val title: String = presentation.name
-        override val isCanonicalWorkspace: Boolean = false
-    }
-
     data class WorkspaceNode(
         override val presentation: HierarchyContextPresentationNode,
         override val linkedBeaconIds: Set<String>,

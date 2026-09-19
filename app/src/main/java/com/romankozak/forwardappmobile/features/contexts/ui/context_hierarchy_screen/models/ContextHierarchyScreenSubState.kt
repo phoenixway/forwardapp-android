@@ -31,6 +31,31 @@ data class AppStatistics2(
     val completedTasks: Int = 0,
 )
 
+/**
+ * Explicitly records which historical menu operations already have a
+ * Workspace-native owner.  Presentation is deliberately broader than the
+ * currently canonical mutation surface: unavailable operations remain visible
+ * rather than making a Workspace item appear to have no actions at all.
+ */
+data class HierarchyProjectMenuAvailability(
+    val open: Boolean = true,
+    val addSubproject: Boolean = true,
+    val edit: Boolean = false,
+    val move: Boolean = false,
+    val migrate: Boolean = false,
+    val toggleFocus: Boolean = true,
+    val addToDayPlan: Boolean = true,
+    val addToDayFocus: Boolean = true,
+    val reminder: Boolean = true,
+    val copyContextLink: Boolean = false,
+    val cutContextLink: Boolean = false,
+    val pasteContextLink: Boolean = false,
+    val addContextAppearance: Boolean = false,
+    val addNoteDocument: Boolean = false,
+    val addChecklist: Boolean = false,
+    val delete: Boolean = false,
+)
+
 sealed class DialogState {
     data object Hidden : DialogState()
 
@@ -39,7 +64,7 @@ sealed class DialogState {
     data class ProjectMenu(
         val projectId: String,
         val projectName: String,
-        val canPasteContextLinks: Boolean = false,
+        val availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
     ) : DialogState()
 
     data class ContextMigration(
@@ -62,9 +87,9 @@ sealed class DialogState {
         val projectName: String,
     ) : DialogState()
 
-    data class ConfirmImport(val uri: Uri) : DialogState()
+    data class ConfirmRestore(val uri: Uri) : DialogState()
 
-    data class ImportChoiceDialog(val uri: Uri) : DialogState()
+    data class ImportModeChoice(val uri: Uri) : DialogState()
 
     data object About : DialogState()
 

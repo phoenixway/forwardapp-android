@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
@@ -33,6 +34,10 @@ import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBac
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -52,6 +57,17 @@ class GoalCanonicalSubjectCreationRoomTest {
         try {
             seedOwner(database, active = true)
             val repository = goalRepository(database)
+
+            // The real Context screen already observes the compatibility
+            // projection when a new Goal is created. The atomic write touches
+            // mapping + placement tables together; the reader must never
+            // combine a new placement with stale mapping state.
+            val streamedItems =
+                async(start = CoroutineStart.UNDISPATCHED) {
+                    CanonicalBacklogCompatibilityReader(database)
+                        .observeItemsForContext(OWNER_ID)
+                        .first { it.isNotEmpty() }
+                }
 
             val placementId = repository.addGoalToContext("Room canonical goal", OWNER_ID)
             val goal = database.goalDao().getAll().single()
@@ -94,6 +110,15 @@ class GoalCanonicalSubjectCreationRoomTest {
             assertEquals(goal.id, presented.single().entityId)
             assertEquals("GOAL", presented.single().itemType)
             assertEquals(goal.text, database.goalDao().getGoalById(presented.single().entityId)?.text)
+
+            val streamed =
+                withTimeout(5_000L) {
+                    streamedItems.await()
+                }
+            assertEquals(1, streamed.size)
+            assertEquals(placementId, streamed.single().id)
+            assertEquals(BacklogItemTypeValues.GOAL, streamed.single().itemType)
+            assertEquals(goal.id, streamed.single().entityId)
 
             assertTrue(database.orientationDao().getAllManagedSubjects().all { it.syncedAt == null })
             assertTrue(database.orientationDao().getAllAssessments().all { it.syncedAt == null })

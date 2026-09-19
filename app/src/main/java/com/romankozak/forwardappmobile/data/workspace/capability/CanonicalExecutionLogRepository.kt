@@ -45,6 +45,15 @@ class CanonicalExecutionLogRepository
                 current.state == WorkspaceCapabilityState.ACTIVE.name
         }
 
+        internal fun isEnabled(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): Boolean {
+            val current = instanceStore.findInstance(SPEC, workspaceId, snapshot) ?: return false
+            return !current.isDeleted &&
+                current.state == WorkspaceCapabilityState.ACTIVE.name
+        }
+
         suspend fun setEnabled(
             workspaceId: String,
             enabled: Boolean,

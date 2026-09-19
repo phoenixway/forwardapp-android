@@ -22,6 +22,9 @@ import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogTargetValidator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagTransportStore
@@ -29,10 +32,16 @@ import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrou
 import com.romankozak.forwardappmobile.data.workspace.SystemContextShellRetirer
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeed
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.orientationCapabilityRegistry
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
@@ -113,7 +122,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 source.contextStructureDao().insertStructure(contradictoryLegacyConfiguration())
                 val bundle = fullBackup(source).loadFullSnapshotBundle()
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
                 assertReservedSystemShellsAbsent(destination)
 
                 val restored =
@@ -168,7 +177,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 val bundle = fullBackup(source).loadFullSnapshotBundle()
                 assertEquals(expected, bundle.workspaceTagRefs.orEmpty().filter { it.workspaceId == SYSTEM_ID })
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
 
                 assertEquals(expected, destination.workspaceTagRefDao().getAllForWorkspace(SYSTEM_ID))
                 assertEquals(20, destination.systemWorkspaceTagSeedStateDao().getAll().size)
@@ -192,7 +201,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     listOf(MainBeaconContextCrossRef("transport-beacon", SYSTEM_ID, order = 7L)),
                 )
 
-                fullBackup(destination).applySnapshotBundle(fullBackup(source).loadFullSnapshotBundle())
+                restore(destination, fullBackup(source).loadFullSnapshotBundle())
 
                 assertEquals(
                     listOf(SYSTEM_ID),
@@ -277,7 +286,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 val wireTask = bundle.dayTasks.single { it.id == DAY_TASK_ID }
                 assertEquals(DAY_TASK_SYSTEM_ID, wireTask.projectId)
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
 
                 val restored =
                     requireNotNull(destination.dayTaskDao().getTaskById(DAY_TASK_ID))
@@ -381,7 +390,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
 
                 assertEquals(TACTICAL_SYSTEM_ID, wireMission.projectId)
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
 
                 val restored =
                     requireNotNull(
@@ -430,7 +439,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     bundle.tacticalMissions.single { it.id == TACTICAL_MISSION_ID }.projectId,
                 )
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
 
                 val restored =
                     requireNotNull(
@@ -516,7 +525,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     bundle.tacticalMissions.single { it.id == RETIRED_TACTICAL_MISSION_ID }.projectId,
                 )
 
-                fullBackup(destination).applySnapshotBundle(bundle)
+                restore(destination, bundle)
 
                 val standaloneTask =
                     requireNotNull(destination.dayTaskDao().getTaskById(DAY_TASK_STANDALONE_ID))
@@ -584,7 +593,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     ),
                 )
 
-                fullBackup(destination).applySnapshotBundle(fullBackup(source).loadFullSnapshotBundle())
+                restore(destination, fullBackup(source).loadFullSnapshotBundle())
 
                 val restored =
                     requireNotNull(destination.dayTaskDao().getTaskById(ARBITRARY_CANONICAL_ONLY_ID))
@@ -650,11 +659,10 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         }
 
     @Test
-    fun `pre canonical tag payload seeds missing System membership once but cannot reclaim it`() =
+    fun `restore canonicalizes pre canonical System tags into Workspace membership`() =
         runBlocking {
             val database = database()
             try {
-                initializer(database).ensureCanonicalSystemWorkspaceOwnership()
                 val sourceContext = historicalSystemContext()
                 val legacy =
                     SnapshotBundle(
@@ -662,23 +670,20 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                         contexts = listOf(sourceContext.copy(tags = listOf("#Legacy")).toSnapshot()),
                     )
 
-                fullBackup(database).applySnapshotBundle(legacy)
+                restore(database, legacy)
                 assertReservedSystemShellsAbsent(database)
 
-                assertEquals(listOf("legacy"), CanonicalWorkspaceTagRepository(database).getTags(SYSTEM_ID))
-                CanonicalWorkspaceTagRepository(database).replaceTags(
-                    workspaceId = SYSTEM_ID,
-                    tags = listOf("canonical"),
-                    now = 300L,
+                assertEquals(
+                    listOf("legacy"),
+                    CanonicalWorkspaceTagRepository(database).getTags(SYSTEM_ID),
                 )
-
-                fullBackup(database).applySnapshotBundle(
-                    legacy.copy(
-                        contexts = listOf(sourceContext.copy(tags = listOf("stale")).toSnapshot()),
-                    ),
+                assertEquals(
+                    listOf("legacy"),
+                    database.workspaceTagRefDao()
+                        .getAllForWorkspace(SYSTEM_ID)
+                        .filterNot { it.isDeleted }
+                        .map { it.normalizedTag },
                 )
-
-                assertEquals(listOf("canonical"), CanonicalWorkspaceTagRepository(database).getTags(SYSTEM_ID))
             } finally {
                 database.close()
             }
@@ -771,7 +776,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 assertNull(existing)
                 val legacyBundle = legacyBundle(database, contradictoryLegacyConfiguration())
 
-                fullBackup(database).applySnapshotBundle(legacyBundle)
+                merge(database).applySnapshotBundle(legacyBundle)
 
                 val seeded = inbox(database)
                 assertEquals(WorkspaceCapabilityState.ACTIVE.name, seeded.state)
@@ -785,7 +790,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     )
                 database.orientationDao().upsertWorkspaceCapabilities(listOf(disabled))
 
-                fullBackup(database).applySnapshotBundle(legacyBundle)
+                merge(database).applySnapshotBundle(legacyBundle)
 
                 assertEquals(disabled, inbox(database))
                 assertNull(database.contextStructureDao().getStructureByContext(SYSTEM_ID))
@@ -806,7 +811,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     contextId = contextId,
                 )
 
-            fullBackup(database).applySnapshotBundle(
+            merge(database).applySnapshotBundle(
                 SnapshotBundle(
                     version = 1,
                     contexts = listOf(context.toSnapshot()),
@@ -1089,8 +1094,63 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         )
     }
 
+    private suspend fun restore(
+        database: AppDatabase,
+        bundle: SnapshotBundle,
+    ) {
+        val canonical = SnapshotRestoreCanonicalizerImpl().canonicalize(bundle)
+        SnapshotRestoreLocalDataSourceImpl(
+            database = database,
+            writer =
+                CanonicalSnapshotTransactionWriter {
+                    merge(database).applyCanonicalSnapshotBundle(it)
+                },
+            dayManagementRuntimeRepository =
+                mockk<DayManagementRuntimeRepository>(relaxed = true),
+        ).replaceWith(canonical)
+    }
+
     private fun merge(database: AppDatabase): MergeLocalDataSourceImpl {
         val bootstrapper = workspaceBootstrapper(database)
+        val systemWorkspaceMaterializer =
+            SystemWorkspaceMaterializer(
+                database = database,
+                contextDao = database.contextDao(),
+                workspaceDao = database.workspaceDao(),
+            )
+        val systemWorkspaceTagSeed =
+            SystemWorkspaceTagSeed(
+                database = database,
+                contextDao = database.contextDao(),
+            )
+        val databaseInitializer =
+            DatabaseInitializer(
+                systemWorkspaceMaterializer = systemWorkspaceMaterializer,
+                systemWorkspaceTagSeed = systemWorkspaceTagSeed,
+                systemContextShellRetirer =
+                    SystemContextShellRetirer(
+                        database = database,
+                        contextDao = database.contextDao(),
+                    ),
+            )
+        val canonicalWorkspaceBacklogSyncStore =
+            CanonicalWorkspaceBacklogSyncStore(
+                database = database,
+                entryDao = database.workspaceBacklogEntryDao(),
+                workspaceDao = database.workspaceDao(),
+                orientationDao = database.orientationDao(),
+                targetValidator = CanonicalBacklogTargetValidator(database),
+            )
+        val canonicalWorkspaceInboxSyncStore =
+            CanonicalWorkspaceInboxSyncStore(
+                database = database,
+                recordDao = database.workspaceInboxRecordDao(),
+                workspaceDao = database.workspaceDao(),
+                orientationDao = database.orientationDao(),
+            )
+        val canonicalWorkspaceTagTransportStore =
+            CanonicalWorkspaceTagTransportStore(database)
+
         return construct(
             type = MergeLocalDataSourceImpl::class.java,
             overrides =
@@ -1098,12 +1158,23 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     AppDatabase::class.java to database,
                     DayPlanDao::class.java to database.dayPlanDao(),
                     DayTaskDao::class.java to database.dayTaskDao(),
+                    LegacyNoteDao::class.java to database.legacyNoteDao(),
+                    NoteDocumentDao::class.java to database.noteDocumentDao(),
+                    ChecklistDao::class.java to database.checklistDao(),
+                    MusicNoteDao::class.java to database.musicNoteDao(),
+                    LinkItemDao::class.java to database.linkItemDao(),
                     ContextDao::class.java to database.contextDao(),
                     ContextStructureDao::class.java to database.contextStructureDao(),
                     MainBeaconDao::class.java to database.mainBeaconDao(),
                     TacticalMissionDao::class.java to database.tacticalMissionDao(),
                     CanonicalWorkspaceBootstrapper::class.java to bootstrapper,
                     ContextWorkspaceWriteThrough::class.java to ContextWorkspaceWriteThrough(bootstrapper),
+                    SystemWorkspaceMaterializer::class.java to systemWorkspaceMaterializer,
+                    SystemWorkspaceTagSeed::class.java to systemWorkspaceTagSeed,
+                    DatabaseInitializer::class.java to databaseInitializer,
+                    CanonicalWorkspaceTagTransportStore::class.java to canonicalWorkspaceTagTransportStore,
+                    CanonicalWorkspaceBacklogSyncStore::class.java to canonicalWorkspaceBacklogSyncStore,
+                    CanonicalWorkspaceInboxSyncStore::class.java to canonicalWorkspaceInboxSyncStore,
                 ),
         )
     }

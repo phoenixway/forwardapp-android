@@ -42,7 +42,6 @@ import androidx.lifecycle.lifecycleScope
 import com.romankozak.forwardappmobile.core.navigation.routes.AppNavigation
 import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.reminders.ReminderBroadcastReceiver
 import com.romankozak.forwardappmobile.ui.common.ContextUtils
 import com.romankozak.forwardappmobile.ui.common.LocalContextUtils
@@ -50,7 +49,6 @@ import com.romankozak.forwardappmobile.ui.common.RemoteConfigManager
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 private val StartupOverlayBackgroundColor = Color(0xFF0F1115)
@@ -59,9 +57,6 @@ private val StartupOverlayBackgroundColor = Color(0xFF0F1115)
 class MainActivity : ComponentActivity() {
     private val syncDataViewModel: SyncDataViewModel by viewModels()
     private val tag = "MainActivity"
-
-    @Inject
-    lateinit var contextRepository: ContextRepository
 
     @Inject
     lateinit var settingsRepository: com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -76,19 +71,22 @@ class MainActivity : ComponentActivity() {
     lateinit var contextMarkerHandler: com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        StartupTrace.mark("MainActivity.onCreate.begin")
         setTheme(R.style.Theme_Cyberpunk_Day)
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
-            remoteConfigManager.fetchAndActivate()
-            contextMarkerHandler.initialize()
+            StartupTrace.measure("MainActivity.remoteConfig") {
+                remoteConfigManager.fetchAndActivate()
+            }
+            StartupTrace.measure("MainActivity.contextMarkers") {
+                contextMarkerHandler.initialize()
+            }
         }
         enableEdgeToEdge()
 
         Log.d(tag, "MainActivity: onCreate called")
         Log.w(tag, "WE HERE, UPDATED BUILD HERE!!!")
         handleReminderIntent(intent)
-        checkAndLogMissedDays()
-
         setContent {
             val themeSettings by settingsRepository.themeSettings.collectAsState(initial = ThemeSettings())
             ForwardAppMobileTheme(themeSettings = themeSettings) {
@@ -97,6 +95,7 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         withFrameNanos { }
+                        StartupTrace.mark("MainActivity.firstComposeFrame")
                         showStartupOverlay = false
                     }
 
@@ -109,6 +108,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        StartupTrace.mark("MainActivity.onCreate.end")
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -135,31 +135,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkAndLogMissedDays() {
-        lifecycleScope.launch {
-            val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            val lastLogTime = prefs.getLong("last_summary_log_time", 0L)
-
-            val lastLogCalendar = Calendar.getInstance().apply { timeInMillis = lastLogTime }
-            val todayCalendar = Calendar.getInstance()
-
-            if (lastLogCalendar.get(Calendar.YEAR) < todayCalendar.get(Calendar.YEAR) ||
-                lastLogCalendar.get(Calendar.DAY_OF_YEAR) < todayCalendar.get(Calendar.DAY_OF_YEAR)
-            ) {
-                val dayToProcess = lastLogCalendar.apply { add(Calendar.DAY_OF_YEAR, 1) }
-
-                while (dayToProcess.before(todayCalendar)) {
-                    val projectId = "your_project_id_to_log"
-
-                    contextRepository.logContextTimeSummaryForDate(projectId, dayToProcess)
-
-                    dayToProcess.add(Calendar.DAY_OF_YEAR, 1)
-                }
-
-                prefs.edit().putLong("last_summary_log_time", System.currentTimeMillis()).apply()
-            }
-        }
-    }
 }
 
 @Composable

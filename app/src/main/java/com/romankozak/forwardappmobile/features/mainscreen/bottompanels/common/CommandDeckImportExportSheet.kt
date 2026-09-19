@@ -104,11 +104,11 @@ fun CommandDeckImportExportSheet(
                 item {
                     ImportExportTile(
                         icon = Icons.Default.CloudDownload,
-                        title = "Повний імпорт",
-                        subtitle = "Замінити поточні дані",
+                        title = "Імпорт бекапу",
+                        subtitle = "Відновити або об’єднати дані",
                         containerColor = importExportSheetColor,
                         onClick = {
-                            Log.e("FullJsonImport", "Full import tile clicked; launching picker")
+                            Log.e("FullJsonImport", "Backup import tile clicked; launching picker")
                             importLauncher.launch("*/*")
                         },
                     )

@@ -113,32 +113,12 @@ fun ProjectHierarchyScreenScaffold(
                             .firstOrNull { it.node.id == focusedId }
                             ?.node
                     }
-            val focusedProject =
-                when (focusedOrientationNode) {
-                    is OrientationHierarchyNode.ContextNode ->
-                        uiState.rawContextsById[focusedOrientationNode.id]
-                    else ->
-                        (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
-                            ?.projectId
-                            ?.let { focusedId -> uiState.rawContextsById[focusedId] }
-                }
             val focusedBeaconNode =
                 focusedOrientationNode as? OrientationHierarchyNode.Beacon
             val focusedGroupNode =
                 focusedOrientationNode as? OrientationHierarchyNode.Group
-            val focusedNoBeacon =
-                focusedOrientationNode === OrientationHierarchyNode.NoBeacon
-            val canPasteContextIntoNoBeacon =
-                focusedNoBeacon &&
-                    uiState.clipboardContextIds.isNotEmpty() &&
-                    uiState.clipboardOperation == ContextClipboardOperationUi.CUT
             val canPasteToFocusedNode =
                 (
-                    uiState.clipboardContextIds.isNotEmpty() &&
-                        (focusedProject != null || focusedBeaconNode != null)
-                ) ||
-                    canPasteContextIntoNoBeacon ||
-                    (
                         uiState.hasBeaconClipboard &&
                             (focusedBeaconNode != null || focusedGroupNode != null)
                     )
@@ -159,12 +139,6 @@ fun ProjectHierarchyScreenScaffold(
                 onCutSelection = { onEvent(ContextHierarchyScreenEvent.CutSelectedContexts) },
                 onPasteToFocusedContext = {
                     when {
-                        uiState.clipboardContextIds.isNotEmpty() && focusedProject != null ->
-                            onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject.id))
-                        uiState.clipboardContextIds.isNotEmpty() && focusedBeaconNode != null ->
-                            onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon(focusedBeaconNode.id))
-                        canPasteContextIntoNoBeacon ->
-                            onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoNoBeacon)
                         uiState.hasBeaconClipboard && focusedBeaconNode != null ->
                             onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(focusedBeaconNode.id))
                         uiState.hasBeaconClipboard && focusedGroupNode != null ->

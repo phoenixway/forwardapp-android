@@ -61,6 +61,12 @@ class CanonicalInboxRepository
         suspend fun getState(workspaceId: String): InboxCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toInboxCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): InboxCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toInboxCapabilityState()
+
         fun observeState(workspaceId: String): Flow<InboxCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toInboxCapabilityState() }.getOrNull() }

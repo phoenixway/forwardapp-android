@@ -1,12 +1,8 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
 import androidx.room.withTransaction
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceInboxRecordEntity
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
@@ -14,7 +10,6 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
-import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +32,15 @@ class LegacyInboxFullBackupAdapter
                 val contextsById = database.contextDao().getAll().associateBy { it.id }
                 val workspacesById = workspaceDao.getAll().associateBy { it.id }
                 val ownerByContextId = sources.map { it.contextId }.distinct().associateWith { contextId ->
-                    requireNotNull(resolveOwner(contextId, contextsById[contextId], workspacesById[contextId])) {
+                    requireNotNull(
+                        workspacesById[contextId]?.takeIf {
+                            isAdmittedLegacyContextIngressOwner(
+                                contextId = contextId,
+                                contextIsDeleted = contextsById[contextId]?.isDeleted,
+                                workspace = it,
+                            )
+                        },
+                    ) {
                         "Legacy INBOX full-backup fallback has no admitted Workspace owner for $contextId"
                     }
                 }
@@ -94,23 +97,6 @@ class LegacyInboxFullBackupAdapter
             }
         }
 
-        private fun resolveOwner(contextId: String, context: Context?, workspace: WorkspaceEntity?): WorkspaceEntity? {
-            val liveWorkspace = workspace?.takeUnless { it.isDeleted } ?: return null
-            if (SystemContexts.isSystem(ContextId(contextId))) {
-                return liveWorkspace.takeIf {
-                    it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name && it.sourceContextId == null
-                }
-            }
-            return when {
-                context?.isDeleted == false &&
-                    liveWorkspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                    liveWorkspace.sourceContextId == contextId -> liveWorkspace
-                context?.isDeleted == true &&
-                    liveWorkspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                    liveWorkspace.sourceContextId == null -> liveWorkspace
-                else -> null
-            }
-        }
     }
 
 private fun stableInboxCapabilityId(workspaceId: String): String =

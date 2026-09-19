@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.romankozak.forwardappmobile.StartupTrace
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.navigation.AppNavigationViewModel
@@ -70,6 +71,8 @@ import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveIm
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -89,8 +92,10 @@ const val VET_CASE_HISTORY_ROUTE = NavigationRoutes.VET_CASE_HISTORY
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
+    StartupTrace.markOnce("AppNavigation.compose.enter")
     val navController = rememberNavController()
     val appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
+    StartupTrace.markOnce("AppNavigation.rootViewModel.ready")
 
     val navigationManager = appNavigationViewModel.navigationManager
 
@@ -145,11 +150,20 @@ private fun NavGraphBuilder.mainGraph(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     composable(COMMAND_DECK_ROUTE) { backStackEntry ->
+        StartupTrace.markOnce("CommandDeckRoute.compose.enter")
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
         val commandDeckViewModel: CommandDeckViewModel = hiltViewModel(parentEntry)
+        StartupTrace.markOnce("CommandDeckRoute.parentViewModels.ready")
         val navigationManager = appNavigationViewModel.navigationManager
         val scope = rememberCoroutineScope()
+
+        LaunchedEffect(goalListViewModel) {
+            goalListViewModel.uiState
+                .filter { it.isReadyForFiltering }
+                .first()
+            StartupTrace.markOnce("CommandDeckRoute.hierarchyData.ready")
+        }
 
         MainScreenLayout(
             navController = navController,
@@ -269,6 +283,7 @@ private fun NavGraphBuilder.mainGraph(
             commandDeckViewModel = commandDeckViewModel,
             contextHierarchyViewModel = goalListViewModel,
         )
+        StartupTrace.markOnce("CommandDeckRoute.mainScreenLayout.composed")
     }
 
     composable(CHARACTER_SCREEN_ROUTE) {

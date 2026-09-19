@@ -49,6 +49,12 @@ class CanonicalInboxSortingRepository
         suspend fun getState(workspaceId: String): InboxSortingCapabilityState? =
             instanceStore.findInstance(SPEC, workspaceId)?.toInboxSortingCapabilityState()
 
+        internal fun getState(
+            workspaceId: String,
+            snapshot: CanonicalCapabilityReadSnapshot,
+        ): InboxSortingCapabilityState? =
+            instanceStore.findInstance(SPEC, workspaceId, snapshot)?.toInboxSortingCapabilityState()
+
         fun observeState(workspaceId: String): Flow<InboxSortingCapabilityState?> =
             instanceStore.observeInstance(SPEC, workspaceId).map { instance ->
                 instance?.let { runCatching { it.toInboxSortingCapabilityState() }.getOrNull() }

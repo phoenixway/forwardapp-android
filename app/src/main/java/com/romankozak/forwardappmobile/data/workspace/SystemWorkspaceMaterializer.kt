@@ -87,11 +87,48 @@ class SystemWorkspaceMaterializer
                     }
                 }
 
-                val contexts =
-                    contextDao.getAll()
+                val definitionIds = definitions.map { it.id }
+                val workspaces =
+                    workspaceDao.getByIds(definitionIds)
                         .associateBy { it.id }
-                        .mapValues { (_, context) -> context.toLegacySystemWorkspaceEvidence() }
-                val workspaces = workspaceDao.getAll().associateBy { it.id }
+
+                /*
+                 * Historical Context state is migration evidence only. On a
+                 * settled database every reserved owner is CANONICAL_ONLY, so
+                 * there is no reason to materialize arbitrary ordinary
+                 * Contexts on every startup.
+                 *
+                 * Local same-id Context evidence is required only when there
+                 * is no incoming transient evidence and either:
+                 * - the canonical Workspace is still missing, or
+                 * - an old same-id CONTEXT_BACKED projection must be validated
+                 *   before promotion.
+                 */
+                val localEvidenceIds =
+                    definitions.mapNotNull { definition ->
+                        if (definition.id in importedLegacyEvidence) {
+                            null
+                        } else {
+                            val workspace = workspaces[definition.id]
+                            when {
+                                workspace == null -> definition.id
+                                workspace.isDeleted -> null
+                                workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
+                                    workspace.sourceContextId == definition.id -> definition.id
+                                else -> null
+                            }
+                        }
+                    }
+
+                val contexts =
+                    if (localEvidenceIds.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        contextDao.getContextsByIds(localEvidenceIds)
+                            .associateBy { it.id }
+                            .mapValues { (_, context) -> context.toLegacySystemWorkspaceEvidence() }
+                    }
+
                 val toCreate = mutableListOf<WorkspaceEntity>()
                 val toPromote = mutableListOf<WorkspaceEntity>()
                 var preservedCanonical = 0
@@ -204,7 +241,7 @@ class SystemWorkspaceMaterializer
                     if (seedMissingFactoryCapabilities) {
                         val existingLogicalKeys =
                             database.orientationDao()
-                                .getAllWorkspaceCapabilities()
+                                .getWorkspaceCapabilitiesForWorkspaces(definitionIds)
                                 .mapTo(hashSetOf()) { capability ->
                                     Triple(
                                         capability.workspaceId,

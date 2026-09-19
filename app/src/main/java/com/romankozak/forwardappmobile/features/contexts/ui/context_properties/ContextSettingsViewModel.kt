@@ -88,6 +88,7 @@ class ContextSettingsViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val canonicalOrdinaryCapabilitySettings: CanonicalOrdinaryCapabilitySettings,
         private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
         private val systemCapabilityAccess: SystemContextCanonicalInboxDirectionAccess,
@@ -195,6 +196,9 @@ class ContextSettingsViewModel
                     canonicalRemainingState?.isCanonicalOwnerAvailable == true &&
                     canonicalBacklogState?.isCanonicalOwnerAvailable == true
 
+            val canonicalOrdinaryCapabilities =
+                canonicalOrdinaryCapabilitySettings.loadEnabledOrNull(projectId)
+
             val legacyEnabledCapabilities =
                 contextCapabilitiesResolver.resolve(
                     config = resolvedConfig,
@@ -233,7 +237,7 @@ class ContextSettingsViewModel
                     withCanonicalBacklog - dashboardCapability
                 }
             val enabledCapabilities =
-                if (
+                canonicalOrdinaryCapabilities ?: if (
                     !malformedSystemOwner &&
                     canonicalExecutionLogRepository.isEnabled(projectId)
                 ) {
@@ -650,7 +654,16 @@ class ContextSettingsViewModel
                 return
             }
 
-            // Ordinary Context configuration remains Context-owned.
+            if (
+                canonicalOrdinaryCapabilitySettings.persistIfOwned(
+                    workspaceId = pid,
+                    enabledCapabilityIds = currentState.enabledCapabilityIds,
+                )
+            ) {
+                return
+            }
+
+            // Legacy-only Context fallback. Canonical Workspace owners return above.
             val structure = contextStructureRepository.ensureStructure(pid)
             val isCanonicalSystem = systemCapabilityAccess.handles(pid)
             val canonicalCompatibilityIds =

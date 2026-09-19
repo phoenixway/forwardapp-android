@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -45,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -1077,23 +1081,83 @@ private fun MainScreenCommandDeckTransientUi(commandDeckViewModel: CommandDeckVi
 @Composable
 private fun MainScreenCommandDeckDialogs(commandDeckViewModel: CommandDeckViewModel) {
     val importChoiceUri by commandDeckViewModel.importChoiceUri.collectAsStateWithLifecycle()
+    val importOperation by commandDeckViewModel.importOperation.collectAsStateWithLifecycle()
     val exportChoiceVisible by commandDeckViewModel.exportChoiceVisible.collectAsStateWithLifecycle()
     val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
     val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
 
     if (importChoiceUri != null) {
+        val importInProgress = importOperation != null
+
         AlertDialog(
-            onDismissRequest = commandDeckViewModel::onImportChoiceDismiss,
-            title = { Text("Import JSON backup") },
-            text = { Text("Apply all supported data from this backup file.") },
+            onDismissRequest = {
+                if (!importInProgress) {
+                    commandDeckViewModel.onImportChoiceDismiss()
+                }
+            },
+            title = {
+                Text(
+                    when (importOperation) {
+                        CommandDeckImportOperation.RESTORE -> "Відновлення даних"
+                        CommandDeckImportOperation.MERGE -> "Об’єднання даних"
+                        null -> "Імпорт резервної копії"
+                    },
+                )
+            },
+            text = {
+                if (importInProgress) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            when (importOperation) {
+                                CommandDeckImportOperation.RESTORE ->
+                                    "Відновлення резервної копії…"
+                                CommandDeckImportOperation.MERGE ->
+                                    "Об’єднання даних…"
+                                null -> ""
+                            },
+                        )
+                    }
+                } else {
+                    Text(
+                        "Відновити: повністю замінити поточні дані даними з резервної копії. " +
+                            "Об’єднати: зберегти поточні дані та додати або оновити дані з резервної копії.",
+                    )
+                }
+            },
             confirmButton = {
-                Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
-                    Text("Full import")
+                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(
+                        onClick = { commandDeckViewModel.confirmRestore(importChoiceUri!!) },
+                        enabled = !importInProgress,
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                            ),
+                    ) {
+                        Text("Відновити")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = { commandDeckViewModel.confirmMerge(importChoiceUri!!) },
+                        enabled = !importInProgress,
+                    ) {
+                        Text("Об’єднати")
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = commandDeckViewModel::onImportChoiceDismiss) {
-                    Text("Cancel")
+                TextButton(
+                    onClick = commandDeckViewModel::onImportChoiceDismiss,
+                    enabled = !importInProgress,
+                ) {
+                    Text("Скасувати")
                 }
             },
         )

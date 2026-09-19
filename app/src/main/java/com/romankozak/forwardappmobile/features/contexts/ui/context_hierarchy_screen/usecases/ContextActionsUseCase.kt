@@ -365,13 +365,13 @@ class ContextActionsUseCase
             return withContext(ioDispatcher) { syncRepository.exportAttachmentsToFile() }
         }
 
-        suspend fun onFullImportConfirmed(uri: Uri): Result<String> {
-            Timber.tag("DEBUG_IMPORT").d("ProjectActionsUseCase.onFullImportConfirmed is called")
+        suspend fun onRestoreImportConfirmed(uri: Uri): Result<String> {
+            Timber.tag("DEBUG_IMPORT").d("ProjectActionsUseCase.onRestoreImportConfirmed is called")
             return withContext(ioDispatcher) { syncRepository.importFullBackupFromFile(uri) }
         }
 
-        suspend fun onFullImportConfirmedV2(uri: Uri): Result<String> {
-            Timber.tag("DEBUG_IMPORT").e("ProjectActionsUseCase.onFullImportConfirmedV2 is called")
+        suspend fun onMergeImportConfirmed(uri: Uri): Result<String> {
+            Timber.tag("DEBUG_IMPORT").e("ProjectActionsUseCase.onMergeImportConfirmed is called")
             return withContext(ioDispatcher) { syncRepository.importFullBackupFromFileV2(uri) }
         }
 

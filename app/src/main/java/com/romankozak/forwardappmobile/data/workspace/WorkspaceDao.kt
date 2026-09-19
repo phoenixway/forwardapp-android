@@ -16,6 +16,9 @@ interface WorkspaceDao {
     @Query("SELECT * FROM workspaces")
     suspend fun getAll(): List<WorkspaceEntity>
 
+    @Query("SELECT * FROM workspaces WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<WorkspaceEntity>
+
     @Query("SELECT * FROM workspaces WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): WorkspaceEntity?
 

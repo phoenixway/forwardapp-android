@@ -270,8 +270,6 @@ class ProjectHierarchyScreenStateUseCase
                         orientationHierarchy =
                             orientationHierarchyBuilder.build(
                                 presentationHierarchy = presentationHierarchy,
-                                rawBackedProjectIds = rawContextBacking.rawContextsById.keys,
-                                retiredOrdinaryContextIds = hierarchyProjection.retiredOrdinaryContextIds,
                                 beacons = orientationHierarchyInputs.beacons,
                                 groups = orientationHierarchyInputs.groups,
                                 parentLinks = orientationHierarchyInputs.parentLinks,

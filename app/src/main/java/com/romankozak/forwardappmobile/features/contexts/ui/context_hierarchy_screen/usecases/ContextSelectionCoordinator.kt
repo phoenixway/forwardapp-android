@@ -14,13 +14,13 @@ class ContextSelectionCoordinator
         private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
         val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
 
-        fun retainExistingContextIds(existingIds: Set<String>) {
+        fun retainExistingProjectIds(existingIds: Set<String>) {
             _selectedIds.update { selectedIds -> selectedIds.intersect(existingIds) }
         }
 
-        fun handleContextClick(contextId: String): Boolean {
+        fun handleProjectClick(projectId: String): Boolean {
             if (_selectedIds.value.isEmpty()) return false
-            toggle(contextId)
+            toggle(projectId)
             return true
         }
 

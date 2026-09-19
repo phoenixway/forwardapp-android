@@ -55,12 +55,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 
 private data class ContextActionItem(
     val title: String,
     val subtitle: String? = null,
     val icon: ImageVector,
     val tint: Color,
+    val enabled: Boolean,
     val onClick: () -> Unit,
 )
 
@@ -97,7 +99,7 @@ fun ContextMenuDialog(
     onAddNoteDocumentRequest: () -> Unit,
     onAddChecklistRequest: () -> Unit,
     onMigrateRequest: () -> Unit,
-    canPasteContextLinks: Boolean,
+    availability: HierarchyProjectMenuAvailability,
 ) {
     var showAddActionsDialog by remember { mutableStateOf(false) }
     val contextId = remember(projectId) { ContextId(projectId) }
@@ -114,6 +116,7 @@ fun ContextMenuDialog(
                         title = "Додати в контекст",
                         icon = Icons.Default.Add,
                         tint = colorScheme.primary,
+                        enabled = availability.addSubproject || availability.addNoteDocument || availability.addChecklist,
                         onClick = { showAddActionsDialog = true },
                     ),
                 ),
@@ -123,53 +126,44 @@ fun ContextMenuDialog(
         ContextActionSection(
             title = "Організація",
             items =
-                buildList {
-                    add(
-                            ContextActionItem(
-                                title = "Відкрити контекст",
-                                icon = Icons.AutoMirrored.Filled.OpenInNew,
-                                tint = colorScheme.primary,
-                                onClick = { onOpenContextRequest() },
-                            ),
-                    )
-                    if (canRenameOrMove) {
-                        add(
-                            ContextActionItem(
-                                title = "Редагувати",
-                                icon = Icons.Default.Edit,
-                                tint = colorScheme.secondary,
-                                onClick = { onEditRequest() },
-                            ),
-                        )
-                        add(
-                            ContextActionItem(
-                                title = "Перемістити",
-                                icon = Icons.Default.FolderOpen,
-                                tint = colorScheme.secondary,
-                                onClick = { onMoveRequest() },
-                            ),
-                        )
-                    }
-                    if (!isSystemContext) {
-                        add(
-                            ContextActionItem(
-                                title = "Мігрувати...",
-                                subtitle = "Явно вибрати канонічну ціль",
-                                icon = Icons.Outlined.AccountTree,
-                                tint = colorScheme.primary,
-                                onClick = { onMigrateRequest() },
-                            ),
-                        )
-                    }
-                    add(
-                        ContextActionItem(
-                            title = if (isUserFocused) "Зняти з фокусу" else "Додати у фокус",
-                            icon = Icons.Default.FilterCenterFocus,
-                            tint = colorScheme.tertiary,
-                            onClick = { onToggleUserFocusRequest() },
-                        ),
-                    )
-                },
+                listOf(
+                    ContextActionItem(
+                        title = "Відкрити контекст",
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        tint = colorScheme.primary,
+                        enabled = availability.open,
+                        onClick = onOpenContextRequest,
+                    ),
+                    ContextActionItem(
+                        title = "Редагувати",
+                        icon = Icons.Default.Edit,
+                        tint = colorScheme.secondary,
+                        enabled = availability.edit && canRenameOrMove,
+                        onClick = onEditRequest,
+                    ),
+                    ContextActionItem(
+                        title = "Перемістити",
+                        icon = Icons.Default.FolderOpen,
+                        tint = colorScheme.secondary,
+                        enabled = availability.move && canRenameOrMove,
+                        onClick = onMoveRequest,
+                    ),
+                    ContextActionItem(
+                        title = "Мігрувати...",
+                        subtitle = "Явно вибрати канонічну ціль",
+                        icon = Icons.Outlined.AccountTree,
+                        tint = colorScheme.primary,
+                        enabled = availability.migrate && !isSystemContext,
+                        onClick = onMigrateRequest,
+                    ),
+                    ContextActionItem(
+                        title = if (isUserFocused) "Зняти з фокусу" else "Додати у фокус",
+                        icon = Icons.Default.FilterCenterFocus,
+                        tint = colorScheme.tertiary,
+                        enabled = availability.toggleFocus,
+                        onClick = onToggleUserFocusRequest,
+                    ),
+                ),
         )
 
     val planningSection =
@@ -181,19 +175,22 @@ fun ContextMenuDialog(
                         title = "Додати в план дня",
                         icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                         tint = colorScheme.secondary,
-                        onClick = { onAddToDayPlanRequest() },
+                        enabled = availability.addToDayPlan,
+                        onClick = onAddToDayPlanRequest,
                     ),
                     ContextActionItem(
                         title = "Додати у фокус дня",
                         icon = Icons.Outlined.Flag,
                         tint = colorScheme.secondary,
-                        onClick = { onAddToDayFocusRequest() },
+                        enabled = availability.addToDayFocus,
+                        onClick = onAddToDayFocusRequest,
                     ),
                     ContextActionItem(
                         title = "Нагадування",
                         icon = Icons.Default.Alarm,
                         tint = colorScheme.secondary,
-                        onClick = { onSetReminderRequest() },
+                        enabled = availability.reminder,
+                        onClick = onSetReminderRequest,
                     ),
                 ),
         )
@@ -205,7 +202,8 @@ fun ContextMenuDialog(
                     title = "Копіювати посилання",
                     icon = Icons.Default.ContentCopy,
                     tint = colorScheme.secondary,
-                    onClick = { onCopyContextLinkRequest() },
+                    enabled = availability.copyContextLink,
+                    onClick = onCopyContextLinkRequest,
                 ),
             )
             add(
@@ -213,27 +211,28 @@ fun ContextMenuDialog(
                     title = "Вирізати посилання",
                     icon = Icons.Default.ContentCut,
                     tint = colorScheme.secondary,
-                    onClick = { onCutContextLinkRequest() },
+                    enabled = availability.cutContextLink,
+                    onClick = onCutContextLinkRequest,
                 ),
             )
-            if (canPasteContextLinks) {
-                add(
-                    ContextActionItem(
-                        title = "Додати появу тут",
-                        icon = Icons.Outlined.AccountTree,
-                        tint = colorScheme.tertiary,
-                        onClick = { onAddContextAppearanceRequest() },
-                    ),
-                )
-                add(
-                    ContextActionItem(
-                        title = "Вставити посилання",
-                        icon = Icons.Default.ContentPaste,
-                        tint = colorScheme.secondary,
-                        onClick = { onPasteContextLinkRequest() },
-                    ),
-                )
-            }
+            add(
+                ContextActionItem(
+                    title = "Додати появу тут",
+                    icon = Icons.Outlined.AccountTree,
+                    tint = colorScheme.tertiary,
+                    enabled = availability.addContextAppearance,
+                    onClick = onAddContextAppearanceRequest,
+                ),
+            )
+            add(
+                ContextActionItem(
+                    title = "Вставити посилання",
+                    icon = Icons.Default.ContentPaste,
+                    tint = colorScheme.secondary,
+                    enabled = availability.pasteContextLink,
+                    onClick = onPasteContextLinkRequest,
+                ),
+            )
         }
 
     val sections =
@@ -277,26 +276,26 @@ fun ContextMenuDialog(
                     }
                 }
 
-                if (!isSystemContext) {
-                    DestructiveContextAction(
-                        title = "Видалити контекст",
-                        subtitle = "Разом із вкладеним вмістом",
-                        onClick = { onDeleteRequest() },
-                    )
-                }
+                DestructiveContextAction(
+                    title = "Видалити контекст",
+                    subtitle = "Разом із вкладеним вмістом",
+                    enabled = availability.delete && !isSystemContext,
+                    onClick = onDeleteRequest,
+                )
             }
         }
     }
 
     if (showAddActionsDialog) {
         AddContextEntityDialog(
+            availability = availability,
             onDismiss = { showAddActionsDialog = false },
             onSelect = { type ->
                 showAddActionsDialog = false
                 when (type) {
-                    AddEntityType.CONTEXT -> onAddSubprojectRequest()
-                    AddEntityType.NOTE_DOCUMENT -> onAddNoteDocumentRequest()
-                    AddEntityType.CHECKLIST -> onAddChecklistRequest()
+                    AddEntityType.CONTEXT -> if (availability.addSubproject) onAddSubprojectRequest()
+                    AddEntityType.NOTE_DOCUMENT -> if (availability.addNoteDocument) onAddNoteDocumentRequest()
+                    AddEntityType.CHECKLIST -> if (availability.addChecklist) onAddChecklistRequest()
                 }
             },
         )
@@ -362,6 +361,7 @@ private fun ContextActionSectionCard(section: ContextActionSection) {
                     subtitle = item.subtitle,
                     icon = item.icon,
                     tint = item.tint,
+                    enabled = item.enabled,
                     onClick = item.onClick,
                 )
             }
@@ -375,8 +375,10 @@ private fun ContextActionRow(
     subtitle: String?,
     icon: ImageVector,
     tint: Color,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val actionTint = if (enabled) tint else tint.copy(alpha = 0.38f)
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -384,7 +386,7 @@ private fun ContextActionRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(enabled = enabled, onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -395,13 +397,13 @@ private fun ContextActionRow(
                 modifier =
                     Modifier
                         .size(32.dp)
-                        .background(tint.copy(alpha = 0.14f), CircleShape),
+                        .background(actionTint.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = tint,
+                    tint = actionTint,
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -413,7 +415,7 @@ private fun ContextActionRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -436,6 +438,7 @@ private fun ContextActionRow(
 private fun DestructiveContextAction(
     title: String,
     subtitle: String,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -444,7 +447,7 @@ private fun DestructiveContextAction(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
+                .clickable(enabled = enabled, onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -491,6 +494,7 @@ private fun DestructiveContextAction(
 
 @Composable
 private fun AddContextEntityDialog(
+    availability: HierarchyProjectMenuAvailability,
     onDismiss: () -> Unit,
     onSelect: (AddEntityType) -> Unit,
 ) {
@@ -553,6 +557,12 @@ private fun AddContextEntityDialog(
                                 },
                             icon = item.second,
                             tint = MaterialTheme.colorScheme.secondary,
+                            enabled =
+                                when (item.third) {
+                                    AddEntityType.CONTEXT -> availability.addSubproject
+                                    AddEntityType.NOTE_DOCUMENT -> availability.addNoteDocument
+                                    AddEntityType.CHECKLIST -> availability.addChecklist
+                                },
                             onClick = { onSelect(item.third) },
                         )
                     }

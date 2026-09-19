@@ -515,6 +515,7 @@ class ContextScreenViewModel
                         recentItemsRepository = recentItemsRepository,
                         noteRepository = noteRepository,
                         goalRepository = goalRepository,
+                        canonicalWorkspaceRepository = canonicalWorkspaceRepository,
                         orientationDao = orientationDao,
                         systemInboxDirectionAccess = systemInboxDirectionAccess,
                         systemRemainingCapabilityAccess = systemRemainingCapabilityAccess,

@@ -231,11 +231,17 @@ class ContextHierarchyScreenViewModel
             )
             initializeAndCollectStates()
             viewModelScope.launch {
+                _hierarchyPresentationFlat.collect { projects ->
+                    contextSelectionCoordinator.retainExistingProjectIds(
+                        projects.mapTo(linkedSetOf()) { it.id },
+                    )
+                }
+            }
+            viewModelScope.launch {
                 _rawContextsFlat.collect { projects ->
-                    HierarchyDebugLogger.d { "_rawContextsFlat size=${projects.size}" }
-                    val existingIds = projects.mapTo(linkedSetOf()) { it.id }
-                    contextSelectionCoordinator.retainExistingContextIds(existingIds)
-                    contextClipboardCoordinator.retainExistingContextIds(existingIds)
+                    contextClipboardCoordinator.retainExistingContextIds(
+                        projects.mapTo(linkedSetOf()) { it.id },
+                    )
                 }
             }
             viewModelScope.launch {
@@ -409,8 +415,7 @@ class ContextHierarchyScreenViewModel
                     )
 
                 is ContextHierarchyScreenEvent.ContextClick -> {
-                    val hasRawContext = _rawContextsFlat.value.any { it.id == event.projectId }
-                    if (!hasRawContext || !contextSelectionCoordinator.handleContextClick(event.projectId)) {
+                    if (!contextSelectionCoordinator.handleProjectClick(event.projectId)) {
                         onProjectClicked(event.projectId)
                     }
                 }
@@ -430,26 +435,15 @@ class ContextHierarchyScreenViewModel
                     contextSelectionCoordinator.clear()
                 }
                 is ContextHierarchyScreenEvent.ContextMenuRequest -> {
-                    val hasLegacyBacking =
-                        _rawContextsFlat.value.any { it.id == event.projectId }
-                    if (!hasLegacyBacking) return
-
                     val projectName =
                         _hierarchyPresentationFlat.value
                             .firstOrNull { it.id == event.projectId }
                             ?.name
                             ?: return
 
-                    val canPaste =
-                        contextClipboardCoordinator.canPasteInto(
-                            targetContextId = event.projectId,
-                            allProjects = _rawContextsFlat.value,
-                        )
-
                     dialogUseCase.onMenuRequested(
                         projectId = event.projectId,
                         projectName = projectName,
-                        canPasteContextLinks = canPaste,
                     )
                 }
                 is ContextHierarchyScreenEvent.MigrateRequest -> {
@@ -574,17 +568,17 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.MoveConfirm -> {
                     confirmMove(event.newParentId)
                 }
-                is ContextHierarchyScreenEvent.FullImportConfirm -> {
+                is ContextHierarchyScreenEvent.RestoreConfirm -> {
                     viewModelScope.launch {
                         _uiEventChannel.send(
-                            contextDialogActionCoordinator.confirmFullImport(event.uri),
+                            contextDialogActionCoordinator.confirmRestoreImport(event.uri),
                         )
                     }
                 }
-                is ContextHierarchyScreenEvent.FullImportConfirmV2 -> {
+                is ContextHierarchyScreenEvent.MergeConfirm -> {
                     viewModelScope.launch {
                         _uiEventChannel.send(
-                            contextDialogActionCoordinator.confirmFullImportV2(event.uri),
+                            contextDialogActionCoordinator.confirmMergeImport(event.uri),
                         )
                     }
                 }
@@ -592,6 +586,9 @@ class ContextHierarchyScreenViewModel
                     dialogUseCase.onUtilityDialogRequest(UtilityDialogRequest.About)
                 is ContextHierarchyScreenEvent.ImportFromFileRequest ->
                     dialogUseCase.onUtilityDialogRequest(UtilityDialogRequest.Import(event.uri))
+
+                is ContextHierarchyScreenEvent.RestoreImportRequest ->
+                    dialogUseCase.onRestoreImportRequested(event.uri)
 
                 is ContextHierarchyScreenEvent.SelectiveImportFromFileRequest -> {
                     viewModelScope.launch {
@@ -633,7 +630,7 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.OpenContextRequest -> {
                     dialogUseCase.dismissDialog()
-                    onNavigateToProject(event.projectId)
+                    onProjectClicked(event.projectId)
                 }
                 is ContextHierarchyScreenEvent.AddToDayPlanRequest -> {
                     viewModelScope.launch {
@@ -677,16 +674,11 @@ class ContextHierarchyScreenViewModel
                         _hierarchyPresentationFlat.value
                             .firstOrNull { it.id == event.projectId }
                             ?: return
-                    val createdAt =
-                        _rawContextsFlat.value
-                            .firstOrNull { it.id == event.projectId }
-                            ?.createdAt
-                            ?: 0L
                     dialogUseCase.onSetReminderForProject(
                         scope = viewModelScope,
                         projectId = presentation.id,
                         projectName = presentation.name,
-                        projectCreatedAt = createdAt,
+                        projectCreatedAt = 0L,
                     )
                 }
                 is ContextHierarchyScreenEvent.FocusHierarchyProject -> {
@@ -1015,7 +1007,6 @@ class ContextHierarchyScreenViewModel
 
         private fun onProjectClicked(projectId: String) {
             viewModelScope.launch {
-                val rawProject = _rawContextsFlat.value.find { it.id == projectId }
                 val presentation =
                     _hierarchyPresentationFlat.value
                         .firstOrNull { it.id == projectId }
@@ -1024,7 +1015,6 @@ class ContextHierarchyScreenViewModel
                         resolveHierarchyProjectNavigation(
                             projectId = projectId,
                             presentation = presentation,
-                            hasLegacyBacking = rawProject != null,
                         )
                 ) {
                     is HierarchyProjectNavigation.ContextDetail -> {
@@ -1070,13 +1060,13 @@ class ContextHierarchyScreenViewModel
                 while (stack.isNotEmpty() && stack.last().first >= item.level) {
                     stack.removeLast()
                 }
-                val contextNode = item.node as? OrientationHierarchyNode.ContextNode
-                if (contextNode != null) {
-                    val contextId = contextNode.id
-                    if (contextId in contextIds && contextId !in result) {
-                        result[contextId] = stack.lastOrNull()?.second
+                val projectNode = item.node as? OrientationHierarchyNode.ProjectLike
+                if (projectNode != null) {
+                    val projectId = projectNode.id
+                    if (projectId in contextIds && projectId !in result) {
+                        result[projectId] = stack.lastOrNull()?.second
                     }
-                    stack.addLast(item.level to contextId)
+                    stack.addLast(item.level to projectId)
                 } else {
                     stack.addLast(item.level to null)
                 }
@@ -1092,16 +1082,11 @@ class ContextHierarchyScreenViewModel
                         val presentation =
                             _hierarchyPresentationFlat.value
                                 .firstOrNull { it.id == item.target }
-                        val rawProject =
-                            _rawContextsFlat.value
-                                .firstOrNull { it.id == item.target }
-
                         when (
                             val navigation =
                                 resolveHierarchyProjectNavigation(
                                     projectId = item.target,
                                     presentation = presentation,
-                                    hasLegacyBacking = rawProject != null,
                                 )
                         ) {
                             is HierarchyProjectNavigation.ContextDetail -> {
@@ -1334,13 +1319,9 @@ class ContextHierarchyScreenViewModel
         internal fun resolveProjectNavigation(projectId: String): HierarchyProjectNavigation? {
             val presentation =
                 _hierarchyPresentationFlat.value.firstOrNull { it.id == projectId }
-            val hasLegacyBacking =
-                _rawContextsFlat.value.any { it.id == projectId }
-
             return resolveHierarchyProjectNavigation(
                 projectId = projectId,
                 presentation = presentation,
-                hasLegacyBacking = hasLegacyBacking,
             )
         }
 

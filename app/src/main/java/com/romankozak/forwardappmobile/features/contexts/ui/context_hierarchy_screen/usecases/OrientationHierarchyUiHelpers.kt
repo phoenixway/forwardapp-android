@@ -60,13 +60,13 @@ private fun buildDisplayedOrientationBreadcrumbs(
         if (expectedLevel < 0) break
     }
     return (ancestors + targetItem).mapIndexed { index, item ->
-        val contextNode = item.node as? OrientationHierarchyNode.ContextNode
+        val projectNode = item.node as? OrientationHierarchyNode.ProjectLike
         BreadcrumbItem(
-            id = contextNode?.id ?: item.node.id,
+            id = projectNode?.id ?: item.node.id,
             name = item.node.title,
             level = index,
             target =
-                if (contextNode == null) {
+                if (projectNode == null) {
                     BreadcrumbTarget.OrientationNode
                 } else {
                     BreadcrumbTarget.Context

@@ -10,6 +10,27 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GlobalGoalSearc
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Narrow read projection used only by legacy Orientation reconciliation.
+ *
+ * This is not a second Goal persistence model. It intentionally exposes only
+ * the scalar fields required to reproduce Goal.toEffectiveOrientation().
+ */
+data class GoalOrientationBootstrapRow(
+    val id: String,
+    val text: String,
+    val description: String?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val syncedAt: Long?,
+    val isDeleted: Boolean,
+    val version: Long,
+    val valueImportance: Float,
+    val valueImpact: Float,
+    val scoringStatus: String,
+    val goalStatus: String,
+)
+
 @Dao
 interface GoalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -105,6 +126,26 @@ interface GoalDao {
 
     @Query("SELECT * FROM goals")
     suspend fun getAllRaw(): List<Goal>
+
+    @Query(
+        """
+        SELECT
+            id,
+            text,
+            description,
+            createdAt,
+            updatedAt,
+            synced_at AS syncedAt,
+            is_deleted AS isDeleted,
+            version,
+            valueImportance,
+            valueImpact,
+            scoring_status AS scoringStatus,
+            goal_status AS goalStatus
+        FROM goals
+        """,
+    )
+    suspend fun getOrientationBootstrapRows(): List<GoalOrientationBootstrapRow>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(goals: List<Goal>)

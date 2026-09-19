@@ -177,6 +177,4 @@ interface FullBackupLocalDataSource {
 
     // === New Snapshot-based Methods ===
     suspend fun loadFullSnapshotBundle(): SnapshotBundle
-
-    suspend fun applySnapshotBundle(bundle: SnapshotBundle)
 }
