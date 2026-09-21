@@ -13,6 +13,22 @@ These rules apply to future work that implements or migrates the proposed
 Orientation, Aspect, Workspace, planning, execution, query, and reflection
 architecture.
 
+## Architecture epoch guard
+
+These rules remain binding for CURRENT Canonical V1 authority.
+
+The accepted Canonical V2 hierarchy target is documented in
+`HIERARCHY-PLACEMENT-CONTRACT-V2.md`.
+
+V2 hierarchy rules become runtime authority only through explicit
+cutover. They do not reopen unrelated V1 semantic, Workspace, binding,
+capability, lifecycle, persistence, or sync contracts.
+
+All cross-epoch work must follow
+`../../governance/PROJECT-CONSTITUTION.md`, including mandatory hierarchy
+epoch classification and the prohibition on promoting legacy state into
+new V2 authority.
+
 ## 1. Semantic subject identity
 
 1. Orientation and Aspect share a constrained semantic identity root,

@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
@@ -45,6 +46,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextActionsUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextClipboardCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextClipboardResult
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.WorkspaceClipboardCoordinator
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.WorkspaceClipboardResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextDialogActionCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextMigrationCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextSelectionCoordinator
@@ -105,6 +108,7 @@ class ContextHierarchyScreenViewModel
         private val settingsUseCase: SettingsUseCase,
         private val projectHierarchyScreenStateUseCase: ProjectHierarchyScreenStateUseCase,
         private val contextClipboardCoordinator: ContextClipboardCoordinator,
+        private val workspaceClipboardCoordinator: WorkspaceClipboardCoordinator,
         private val hierarchyFocusCoordinator: HierarchyFocusCoordinator,
         private val contextSelectionCoordinator: ContextSelectionCoordinator,
         private val contextDialogActionCoordinator: ContextDialogActionCoordinator,
@@ -225,16 +229,22 @@ class ContextHierarchyScreenViewModel
                 showSearchDialog = _showSearchDialog,
                 navigationSnapshot = navigationSnapshot,
                 selectedContextIds = contextSelectionCoordinator.selectedIds,
-                clipboardState = contextClipboardCoordinator.uiState,
+                clipboardState = workspaceClipboardCoordinator.uiState,
                 hasBeaconClipboard = contextClipboardCoordinator.hasBeaconPayload,
                 isSiblingReorderMode = _isSiblingReorderMode,
             )
+            viewModelScope.launch {
+                projectHierarchyScreenStateUseCase.presentationHierarchy.collect { hierarchy ->
+                    if (hierarchy.allProjects.isNotEmpty()) {
+                        searchUseCase.reconcileFocusedProjectBreadcrumbs(hierarchy)
+                    }
+                }
+            }
             initializeAndCollectStates()
             viewModelScope.launch {
                 _hierarchyPresentationFlat.collect { projects ->
-                    contextSelectionCoordinator.retainExistingProjectIds(
-                        projects.mapTo(linkedSetOf()) { it.id },
-                    )
+                    val projectIds = projects.mapTo(linkedSetOf()) { it.id }
+                    contextSelectionCoordinator.retainExistingProjectIds(projectIds)
                 }
             }
             viewModelScope.launch {
@@ -321,6 +331,7 @@ class ContextHierarchyScreenViewModel
                     Log.d("ProjectRevealDebug", "Calling revealProject for ${result.projectId}")
                     hierarchyFocusCoordinator.revealProject(
                         projectId = result.projectId,
+                        placementId = result.placementId,
                         currentHierarchy = hierarchyForReveal,
                         currentSubState = uiState.value.currentSubState,
                         currentBreadcrumbs = uiState.value.currentBreadcrumbs,
@@ -410,8 +421,10 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.GlobalSearchPerform -> searchUseCase.onPerformGlobalSearch(event.query)
                 is ContextHierarchyScreenEvent.SearchResultClick ->
                     searchUseCase.onSearchResultClick(
-                        event.projectId,
-                        projectHierarchyScreenStateUseCase.presentationHierarchy.value,
+                        projectId = event.projectId,
+                        placementId = event.placementId,
+                        currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
+                        orientationHierarchy = uiState.value.orientationHierarchy,
                     )
 
                 is ContextHierarchyScreenEvent.ContextClick -> {
@@ -423,6 +436,7 @@ class ContextHierarchyScreenViewModel
                     hierarchyFocusCoordinator.focusOrientationNode(
                         nodeId = event.nodeId,
                         orientationHierarchy = uiState.value.orientationHierarchy,
+                        placementId = event.placementId,
                     )
                 }
                 is ContextHierarchyScreenEvent.StartContextSelection -> {
@@ -441,9 +455,22 @@ class ContextHierarchyScreenViewModel
                             ?.name
                             ?: return
 
+                    val projectContextId = ContextId(event.projectId)
+                    val isSystemProject = SystemContexts.isSystem(projectContextId)
+                    val canMoveProject =
+                        SystemContexts.canRenameOrMove(projectContextId)
+
                     dialogUseCase.onMenuRequested(
                         projectId = event.projectId,
                         projectName = projectName,
+                        availability =
+                            HierarchyProjectMenuAvailability(
+                                copyWorkspace = true,
+                                cutWorkspace = canMoveProject,
+                                pasteWorkspace =
+                                    workspaceClipboardCoordinator.canPasteInto(event.projectId),
+                                delete = !isSystemProject,
+                            ),
                     )
                 }
                 is ContextHierarchyScreenEvent.MigrateRequest -> {
@@ -561,7 +588,6 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         contextDialogActionCoordinator.confirmDelete(
                             projectId = event.projectId,
-                            childMap = uiState.value.rawChildMap,
                         )
                     }
                 }
@@ -685,6 +711,7 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         hierarchyFocusCoordinator.revealProject(
                             projectId = event.projectId,
+                            placementId = event.placementId,
                             currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                             currentSubState = uiState.value.currentSubState,
                             currentBreadcrumbs = uiState.value.currentBreadcrumbs,
@@ -706,6 +733,29 @@ class ContextHierarchyScreenViewModel
                             ),
                         )
                         dialogUseCase.dismissDialog()
+                    }
+                }
+                is ContextHierarchyScreenEvent.CopyWorkspace -> {
+                    val result =
+                        workspaceClipboardCoordinator.copyWorkspace(event.projectId)
+                    dialogUseCase.dismissDialog()
+                    viewModelScope.launch {
+                        emitWorkspaceClipboardResult(result)
+                    }
+                }
+                is ContextHierarchyScreenEvent.CutWorkspace -> {
+                    val result =
+                        workspaceClipboardCoordinator.cutWorkspace(event.projectId)
+                    dialogUseCase.dismissDialog()
+                    viewModelScope.launch {
+                        emitWorkspaceClipboardResult(result)
+                    }
+                }
+                is ContextHierarchyScreenEvent.PasteWorkspace -> {
+                    viewModelScope.launch {
+                        emitWorkspaceClipboardResult(
+                            workspaceClipboardCoordinator.pasteInto(event.projectId),
+                        )
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyContextLink -> {
@@ -740,13 +790,21 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon -> {
                     viewModelScope.launch {
-                        emitClipboardResult(
-                            contextClipboardCoordinator.pasteIntoBeacon(
-                                beaconNodeId = event.beaconNodeId,
-                                orientationHierarchy = uiState.value.orientationHierarchy,
-                                allProjects = _rawContextsFlat.value,
-                            ),
-                        )
+                        if (workspaceClipboardCoordinator.hasPayload()) {
+                            emitWorkspaceClipboardResult(
+                                workspaceClipboardCoordinator.pasteIntoBeacon(
+                                    beaconId = event.beaconNodeId,
+                                ),
+                            )
+                        } else {
+                            emitClipboardResult(
+                                contextClipboardCoordinator.pasteIntoBeacon(
+                                    beaconNodeId = event.beaconNodeId,
+                                    orientationHierarchy = uiState.value.orientationHierarchy,
+                                    allProjects = _rawContextsFlat.value,
+                                ),
+                            )
+                        }
                     }
                 }
                 ContextHierarchyScreenEvent.PasteContextLinksIntoNoBeacon -> {
@@ -778,9 +836,17 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.PasteBeaconIntoBeacon -> {
                     viewModelScope.launch {
-                        emitClipboardResult(
-                            contextClipboardCoordinator.pasteBeaconIntoBeacon(event.beaconNodeId),
-                        )
+                        if (workspaceClipboardCoordinator.hasPayload()) {
+                            emitWorkspaceClipboardResult(
+                                workspaceClipboardCoordinator.pasteIntoBeacon(
+                                    beaconId = event.beaconNodeId,
+                                ),
+                            )
+                        } else {
+                            emitClipboardResult(
+                                contextClipboardCoordinator.pasteBeaconIntoBeacon(event.beaconNodeId),
+                            )
+                        }
                     }
                 }
                 is ContextHierarchyScreenEvent.PasteBeaconIntoGroup -> {
@@ -801,21 +867,29 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CopySelectedContexts -> {
-                    val selectedIds = contextSelectionCoordinator.takeSelection()
-                    val result = contextClipboardCoordinator.copyContexts(selectedIds) ?: return
+                    val selectedIds = contextSelectionCoordinator.selectedIds.value
+                    val result =
+                        workspaceClipboardCoordinator.copyWorkspaces(selectedIds)
+
+                    if (result.success) {
+                        contextSelectionCoordinator.clear()
+                    }
+
                     viewModelScope.launch {
-                        emitClipboardResult(result)
+                        emitWorkspaceClipboardResult(result)
                     }
                 }
                 is ContextHierarchyScreenEvent.CutSelectedContexts -> {
-                    val selectedIds = contextSelectionCoordinator.takeSelection()
+                    val selectedIds = contextSelectionCoordinator.selectedIds.value
                     val result =
-                        contextClipboardCoordinator.cutContexts(
-                            contextIds = selectedIds,
-                            sourceParentIds = displayedContextParentIds(selectedIds),
-                        ) ?: return
+                        workspaceClipboardCoordinator.cutWorkspaces(selectedIds)
+
+                    if (result.success) {
+                        contextSelectionCoordinator.clear()
+                    }
+
                     viewModelScope.launch {
-                        emitClipboardResult(result)
+                        emitWorkspaceClipboardResult(result)
                     }
                 }
                 is ContextHierarchyScreenEvent.GoToSettings -> {
@@ -1001,6 +1075,7 @@ class ContextHierarchyScreenViewModel
         private fun handleBackNavigation() {
             hierarchyFocusCoordinator.handleBackNavigation(
                 currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
+                orientationHierarchy = uiState.value.orientationHierarchy,
                 goBack = { enhancedNavigationManager?.goBack() },
             )
         }
@@ -1282,6 +1357,15 @@ class ContextHierarchyScreenViewModel
                     }
                 navigationUseCase.onNavigateToProject(viewModelScope, projectId)
             }
+        }
+
+        private suspend fun emitWorkspaceClipboardResult(
+            result: WorkspaceClipboardResult,
+        ) {
+            if (result.dismissDialog) {
+                dialogUseCase.dismissDialog()
+            }
+            _uiEventChannel.send(ProjectUiEvent.ShowToast(result.toast))
         }
 
         private suspend fun emitClipboardResult(result: ContextClipboardResult) {

@@ -16,6 +16,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenMetadataAssembler
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenOperationalBeaconMetadata
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenPresentationAdapter
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyReadAuthorityRouter
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -40,6 +45,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.fuzzyMatch
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
@@ -77,6 +83,9 @@ class ProjectHierarchyScreenStateUseCase
         private val workspaceDao: WorkspaceDao,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val orientationHierarchyBuilder: OrientationHierarchyBuilder,
+        private val canonicalV2ReactiveHierarchyReadSource: CanonicalV2ReactiveHierarchyReadSource,
+        private val canonicalV2HierarchyScreenMetadataAssembler: CanonicalV2HierarchyScreenMetadataAssembler,
+        private val canonicalV2HierarchyScreenPresentationAdapter: CanonicalV2HierarchyScreenPresentationAdapter,
     ) {
         data class NavigationSnapshot(
             val canGoBack: Boolean = false,
@@ -129,16 +138,24 @@ class ProjectHierarchyScreenStateUseCase
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
             val presentationHierarchyState =
-                HierarchyStateBuilder(hierarchyUseCase)
-                    .buildHierarchyState(
-                        scope = scope,
-                        filterStates = planningUseCase.filterStateFlow,
-                    )
-
-            val retiredOrdinaryContextIdsState =
-                systemWorkspacePresentationContextProjector
-                    .observeRetiredOrdinaryContextIds()
-                    .stateIn(scope, SharingStarted.Eagerly, emptySet())
+                HierarchyReadAuthorityRouter().route(
+                    currentPreCutover = {
+                        HierarchyStateBuilder(hierarchyUseCase)
+                            .buildHierarchyState(
+                                scope = scope,
+                                filterStates = planningUseCase.filterStateFlow,
+                            )
+                    },
+                    v2Authority = {
+                        observeHierarchyPresentationUniverse(rawContextsFlat)
+                            .map(::buildNonStructuralPresentationUniverse)
+                            .stateIn(
+                                scope,
+                                SharingStarted.Eagerly,
+                                HierarchyPresentationData(),
+                            )
+                    },
+                )
 
             // Raw Context backing for focused and mutation-adjacent paths.
             // Normal hierarchy rendering consumes presentation nodes directly;
@@ -158,51 +175,91 @@ class ProjectHierarchyScreenStateUseCase
                     RawContextHierarchyBacking(),
                 )
 
-            val hierarchyProjectionFlow =
-                combine(
-                    rawContextBackingState,
-                    presentationHierarchyState,
-                    workspaceDao.observeAll(),
-                    retiredOrdinaryContextIdsState,
-                ) { rawContextBacking, presentationHierarchy, workspaces, retiredOrdinaryContextIds ->
-                    HierarchyProjection(
-                        rawContextBacking = rawContextBacking,
-                        presentationHierarchy = presentationHierarchy,
-                        workspaces = workspaces,
-                        retiredOrdinaryContextIds = retiredOrdinaryContextIds,
-                    )
-                }
+            val orientationHierarchyFlow: Flow<List<OrientationHierarchyItem>> =
+                HierarchyReadAuthorityRouter().route(
+                    currentPreCutover = {
+                        val retiredOrdinaryContextIdsState =
+                            systemWorkspacePresentationContextProjector
+                                .observeRetiredOrdinaryContextIds()
+                                .stateIn(scope, SharingStarted.Eagerly, emptySet())
+                        val hierarchyProjectionFlow =
+                            combine(
+                                rawContextBackingState,
+                                presentationHierarchyState,
+                                workspaceDao.observeAll(),
+                                retiredOrdinaryContextIdsState,
+                            ) { rawContextBacking, presentationHierarchy, workspaces, retiredOrdinaryContextIds ->
+                                HierarchyProjection(
+                                    rawContextBacking = rawContextBacking,
+                                    presentationHierarchy = presentationHierarchy,
+                                    workspaces = workspaces,
+                                    retiredOrdinaryContextIds = retiredOrdinaryContextIds,
+                                )
+                            }
 
-            val mainBeaconDetailsFlow =
-                mainBeaconRepository
-                    .observeMainBeaconDetails()
-                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
-            val mainBeaconGroupsFlow =
-                mainBeaconRepository
-                    .observeGroups()
-                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
-            val contextParentLinksFlow =
-                contextParentLinkDao
-                    .observeActiveLinks()
-                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
-            val mainBeaconParentLinksFlow =
-                mainBeaconRepository
-                    .observeParentLinks()
-                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
-            val orientationHierarchyInputsFlow =
-                combine(
-                    mainBeaconDetailsFlow,
-                    mainBeaconGroupsFlow,
-                    contextParentLinksFlow,
-                    mainBeaconParentLinksFlow,
-                ) { beacons, groups, parentLinks, beaconParentLinks ->
-                    OrientationHierarchyInputs(
-                        beacons = beacons.map { it.toOrientationBeaconInput() },
-                        groups = groups,
-                        parentLinks = parentLinks,
-                        beaconParentLinks = beaconParentLinks,
-                    )
-                }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), OrientationHierarchyInputs())
+                        val mainBeaconDetailsFlow =
+                            mainBeaconRepository.observeMainBeaconDetails()
+                        val mainBeaconGroupsFlow =
+                            mainBeaconRepository.observeGroups()
+                        val contextParentLinksFlow =
+                            contextParentLinkDao.observeActiveLinks()
+                        val mainBeaconParentLinksFlow =
+                            mainBeaconRepository.observeParentLinks()
+                        val orientationHierarchyInputsFlow =
+                            combine(
+                                mainBeaconDetailsFlow,
+                                mainBeaconGroupsFlow,
+                                contextParentLinksFlow,
+                                mainBeaconParentLinksFlow,
+                            ) { beacons, groups, parentLinks, beaconParentLinks ->
+                                OrientationHierarchyInputs(
+                                    beacons = beacons.map { it.toOrientationBeaconInput() },
+                                    groups = groups,
+                                    parentLinks = parentLinks,
+                                    beaconParentLinks = beaconParentLinks,
+                                )
+                            }
+
+                        combine(
+                            hierarchyProjectionFlow,
+                            orientationHierarchyInputsFlow,
+                        ) { hierarchyProjection, orientationHierarchyInputs ->
+                            orientationHierarchyBuilder.build(
+                                presentationHierarchy = hierarchyProjection.presentationHierarchy,
+                                beacons = orientationHierarchyInputs.beacons,
+                                groups = orientationHierarchyInputs.groups,
+                                parentLinks = orientationHierarchyInputs.parentLinks,
+                                beaconParentLinks = orientationHierarchyInputs.beaconParentLinks,
+                                workspaces = hierarchyProjection.workspaces,
+                            )
+                        }
+                    },
+                    v2Authority = {
+                        combine(
+                            canonicalV2ReactiveHierarchyReadSource.observe(),
+                            observeHierarchyPresentationUniverse(rawContextsFlat),
+                            mainBeaconRepository.observeMainBeaconDetails(),
+                        ) { read, workspacePresentations, beacons ->
+                            val metadata =
+                                canonicalV2HierarchyScreenMetadataAssembler.assemble(
+                                    read = read,
+                                    workspacePresentations = workspacePresentations,
+                                    beacons =
+                                        beacons.map { beacon ->
+                                            CanonicalV2HierarchyScreenOperationalBeaconMetadata(
+                                                presentationId = beacon.beacon.id,
+                                                readinessStatus = beacon.beacon.readinessStatus,
+                                                relatedOwnerIds = beacon.relatedOwnerIds,
+                                            )
+                                        },
+                                )
+                            canonicalV2HierarchyScreenPresentationAdapter.adapt(
+                                read = read,
+                                metadata = metadata,
+                            )
+                        }
+                    },
+                )
 
             scope.launch {
                 combine(rawContextBackingState, presentationHierarchyState) { rawBacking, presentation ->
@@ -222,17 +279,35 @@ class ProjectHierarchyScreenStateUseCase
             }
 
             val searchResultsFlow =
-                combine(
-                    planningUseCase.filterStateFlow,
-                    presentationHierarchyState,
-                ) { filterState, hierarchy ->
-                    if (!filterState.isReady) {
-                        emptyList()
-                    } else {
-                        hierarchyUseCase.createSearchResults(filterState, hierarchy)
-                    }
-                }
-                    .stateIn(scope, SharingStarted.Lazily, emptyList())
+                HierarchyReadAuthorityRouter().route(
+                    currentPreCutover = {
+                        combine(
+                            planningUseCase.filterStateFlow,
+                            presentationHierarchyState,
+                        ) { filterState, hierarchy ->
+                            if (!filterState.isReady) {
+                                emptyList()
+                            } else {
+                                hierarchyUseCase.createSearchResults(filterState, hierarchy)
+                            }
+                        }
+                    },
+                    v2Authority = {
+                        combine(
+                            planningUseCase.filterStateFlow,
+                            orientationHierarchyFlow,
+                        ) { filterState, orientationHierarchy ->
+                            if (!filterState.isReady) {
+                                emptyList()
+                            } else {
+                                createCanonicalV2SearchResults(
+                                    filterState = filterState,
+                                    orientationHierarchy = orientationHierarchy,
+                                )
+                            }
+                        }
+                    },
+                ).stateIn(scope, SharingStarted.Lazily, emptyList())
 
             val expensiveCalculationsFlow =
                 combine(
@@ -252,30 +327,28 @@ class ProjectHierarchyScreenStateUseCase
                     .map(::buildAvailableContextRoles)
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), buildAvailableContextRoles(emptyList()))
 
+            val presentationBackingFlow =
+                combine(
+                    rawContextBackingState,
+                    presentationHierarchyState,
+                ) { rawContextBacking, presentationHierarchy ->
+                    rawContextBacking to presentationHierarchy
+                }
+
             val baseCoreUiStateFlow =
                 combine(
                     searchUseCase.subStateStack,
                     searchUseCase.searchQuery,
-                    hierarchyProjectionFlow,
-                    orientationHierarchyInputsFlow,
+                    presentationBackingFlow,
+                    orientationHierarchyFlow,
                     searchUseCase.currentBreadcrumbs,
-                ) { subStateStack, searchQuery, hierarchyProjection, orientationHierarchyInputs, breadcrumbs ->
-                    val rawContextBacking = hierarchyProjection.rawContextBacking
-                    val presentationHierarchy = hierarchyProjection.presentationHierarchy
-                    val workspaces = hierarchyProjection.workspaces
+                ) { subStateStack, searchQuery, presentationBacking, orientationHierarchy, breadcrumbs ->
+                    val (rawContextBacking, presentationHierarchy) = presentationBacking
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         rawContextBacking = rawContextBacking,
-                        orientationHierarchy =
-                            orientationHierarchyBuilder.build(
-                                presentationHierarchy = presentationHierarchy,
-                                beacons = orientationHierarchyInputs.beacons,
-                                groups = orientationHierarchyInputs.groups,
-                                parentLinks = orientationHierarchyInputs.parentLinks,
-                                beaconParentLinks = orientationHierarchyInputs.beaconParentLinks,
-                                workspaces = workspaces,
-                            ),
+                        orientationHierarchy = orientationHierarchy,
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,
                         searchResultSort = SearchResultSort.Relevance,
@@ -519,6 +592,81 @@ class ProjectHierarchyScreenStateUseCase
  * presentation ID resolves only to the original Context object already in
  * [contexts]. Missing raw objects fail closed and are omitted.
  */
+/**
+ * Exact occurrence-native local search for V2 authority.
+ *
+ * FilterState still owns search admission/matching policy, but ancestry and
+ * result identity come only from the already-adapted V2 occurrence tree.
+ * Duplicate Workspace targets therefore remain separate search results.
+ */
+internal fun createCanonicalV2SearchResults(
+    filterState: FilterState,
+    orientationHierarchy: List<OrientationHierarchyItem>,
+): List<SearchResult> {
+    if (!filterState.searchActive || filterState.query.isBlank()) {
+        return emptyList()
+    }
+
+    val admittedTargetIds = filterState.flatList.mapTo(hashSetOf()) { it.id }
+    val query = filterState.query
+
+    return orientationHierarchy
+        .asSequence()
+        .mapNotNull { item ->
+            val node = item.node as? OrientationHierarchyNode.ProjectLike
+                ?: return@mapNotNull null
+            if (node.id !in admittedTargetIds) return@mapNotNull null
+
+            val matches =
+                if (query.length > 3) {
+                    fuzzyMatch(query, node.presentation.name)
+                } else {
+                    node.presentation.name.contains(query, ignoreCase = true)
+                }
+            if (!matches) return@mapNotNull null
+
+            val placementId =
+                requireNotNull(node.placementId) {
+                    "V2 search encountered Workspace ${node.id} without PlacementId"
+                }
+
+            val exactBreadcrumbs =
+                buildOrientationBreadcrumbsToContext(
+                    items = orientationHierarchy,
+                    contextId = node.id,
+                    placementId = placementId.value,
+                )
+            require(exactBreadcrumbs.isNotEmpty()) {
+                "V2 search cannot resolve occurrence ${placementId.value}"
+            }
+
+            SearchResult(
+                projectId = node.id,
+                projectName = node.presentation.name,
+                parentPath = exactBreadcrumbs.map { it.name },
+                placementId = placementId.value,
+            )
+        }
+        .sortedBy { it.projectName }
+        .toList()
+}
+
+/**
+ * Compatibility metadata universe for V2-authority screen code that still
+ * expects [HierarchyPresentationData].
+ *
+ * This deliberately carries no structural claims: V2 parentage, ordering and
+ * occurrence identity live only in HierarchyPlacement / the V2 read surface.
+ */
+internal fun buildNonStructuralPresentationUniverse(
+    presentations: List<HierarchyContextPresentationNode>,
+): HierarchyPresentationData =
+    HierarchyPresentationData(
+        allProjects = presentations,
+        topLevelProjects = emptyList(),
+        childMap = emptyMap(),
+    )
+
 internal fun buildRawContextHierarchyBacking(
     presentationHierarchy: HierarchyPresentationData,
     contexts: List<Context>,

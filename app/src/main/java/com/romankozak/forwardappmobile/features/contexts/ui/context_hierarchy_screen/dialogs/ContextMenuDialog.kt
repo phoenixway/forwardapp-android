@@ -92,6 +92,9 @@ fun ContextMenuDialog(
     onAddToDayFocusRequest: () -> Unit,
     onSetReminderRequest: () -> Unit,
     onToggleUserFocusRequest: () -> Unit,
+    onCopyWorkspaceRequest: () -> Unit,
+    onCutWorkspaceRequest: () -> Unit,
+    onPasteWorkspaceRequest: () -> Unit,
     onCopyContextLinkRequest: () -> Unit,
     onCutContextLinkRequest: () -> Unit,
     onPasteContextLinkRequest: () -> Unit,
@@ -199,6 +202,33 @@ fun ContextMenuDialog(
         buildList {
             add(
                 ContextActionItem(
+                    title = "Копіювати",
+                    icon = Icons.Default.ContentCopy,
+                    tint = colorScheme.secondary,
+                    enabled = availability.copyWorkspace,
+                    onClick = onCopyWorkspaceRequest,
+                ),
+            )
+            add(
+                ContextActionItem(
+                    title = "Вирізати",
+                    icon = Icons.Default.ContentCut,
+                    tint = colorScheme.secondary,
+                    enabled = availability.cutWorkspace,
+                    onClick = onCutWorkspaceRequest,
+                ),
+            )
+            add(
+                ContextActionItem(
+                    title = "Вставити",
+                    icon = Icons.Default.ContentPaste,
+                    tint = colorScheme.secondary,
+                    enabled = availability.pasteWorkspace,
+                    onClick = onPasteWorkspaceRequest,
+                ),
+            )
+            add(
+                ContextActionItem(
                     title = "Копіювати посилання",
                     icon = Icons.Default.ContentCopy,
                     tint = colorScheme.secondary,
@@ -277,8 +307,13 @@ fun ContextMenuDialog(
                 }
 
                 DestructiveContextAction(
-                    title = "Видалити контекст",
-                    subtitle = "Разом із вкладеним вмістом",
+                    title = "Видалити проєкт",
+                    subtitle =
+                        if (isSystemContext) {
+                            "Системний проєкт не можна видалити"
+                        } else {
+                            "Разом із вкладеними проєктами та вмістом"
+                        },
                     enabled = availability.delete && !isSystemContext,
                     onClick = onDeleteRequest,
                 )
@@ -441,9 +476,23 @@ private fun DestructiveContextAction(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val actionTint =
+        if (enabled) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.error.copy(alpha = 0.38f)
+        }
+    val containerColor =
+        if (enabled) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        }
+
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f),
+        color = containerColor,
+        tonalElevation = if (enabled) 0.dp else 1.dp,
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -458,13 +507,13 @@ private fun DestructiveContextAction(
                 modifier =
                     Modifier
                         .size(32.dp)
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.14f), CircleShape),
+                        .background(actionTint.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = actionTint,
                 )
             }
 
@@ -475,7 +524,12 @@ private fun DestructiveContextAction(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    color =
+                        if (enabled) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        },
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -483,7 +537,12 @@ private fun DestructiveContextAction(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.88f),
+                    color =
+                        if (enabled) {
+                            MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.88f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

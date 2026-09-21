@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.EffectiveOrientation
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -31,6 +32,7 @@ class MainBeaconOrientationBridge
         private val orientationDao: OrientationDao,
         private val mainBeaconDao: MainBeaconDao,
         private val bootstrapper: CanonicalOrientationBootstrapper,
+        private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
     ) {
         private val gson = Gson()
 
@@ -75,6 +77,7 @@ class MainBeaconOrientationBridge
             }
             val subject = orientationDao.getManagedSubject(mapping.subjectId) ?: return
             if (!subject.isDeleted) {
+                hierarchyPlacementLifecycleCoordinator.tombstoneManagedSubjectTarget(subject.id, now)
                 orientationDao.upsertManagedSubjects(
                     listOf(
                         subject.copy(

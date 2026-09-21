@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
@@ -71,6 +72,7 @@ class ContextRepositoryEnableAdvancedRetirementTest {
                 canonicalConnectionsRepository = mockk(relaxed = true),
                 canonicalBacklogRepository = mockk(relaxed = true),
                 backlogPresentationLifecycle = mockk(relaxed = true),
+                hierarchyPlacementLifecycleCoordinator = mockk(relaxed = true),
             )
 
         repository.createContextWithId(

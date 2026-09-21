@@ -50,7 +50,7 @@ fun SearchResultsView(
     selectedSort: SearchResultSort,
     onFilterChange: (SearchResultFilter) -> Unit,
     onSortChange: (SearchResultSort) -> Unit,
-    onRevealClick: (String) -> Unit,
+    onRevealClick: (projectId: String, placementId: String?) -> Unit,
     onOpenClick: (String) -> Unit,
     onPerformGlobalSearch: (String) -> Unit,
 ) {
@@ -145,7 +145,12 @@ fun SearchResultsView(
             return@LazyColumn
         }
 
-        items(visibleResults, key = { it.projectId }) { result ->
+        items(
+            visibleResults,
+            key = { result ->
+                result.placementId?.let { "placement:$it" } ?: "project:${result.projectId}"
+            },
+        ) { result ->
             val pathText = result.parentPath.joinToString(" > ")
             ListItem(
                 headlineContent = {
@@ -180,7 +185,14 @@ fun SearchResultsView(
                 },
                 trailingContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { onRevealClick(result.projectId) }) {
+                        IconButton(
+                            onClick = {
+                                onRevealClick(
+                                    result.projectId,
+                                    result.placementId,
+                                )
+                            },
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.Visibility,
                                 contentDescription = "Show in hierarchy",

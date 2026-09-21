@@ -2,6 +2,25 @@
 
 Authoritative engineering rules for the ForwardApp repository. Use `docs/README.md` to determine canonical documentation for each subject.
 
+## Mandatory Architecture Bootstrap
+
+Before architecture, persistence, migration, hierarchy,
+Context-extinction, or authority-changing work:
+
+- read `docs/governance/PROJECT-CONSTITUTION.md`;
+- read `docs/project/STATE.md`, `docs/project/DECISIONS.md`,
+  `docs/project/ROADMAP.md`, and `docs/project/NEXT.md`;
+- read the applicable focused domain contract;
+- classify every touched hierarchy-related persisted structure by
+  architecture epoch before changing its authority.
+
+Canonical V1 remains CURRENT until the specific V2 slice completes an
+explicit cutover. Legacy state must not be promoted into new V2 authority.
+
+If a hierarchy-related structure is unclassified, contradictory, or has
+multiple plausible owners, stop the architectural mutation and resolve its
+authority from current code plus canonical documentation first.
+
 ## Build Ownership
 
 - Do not run full project builds unless explicitly requested by the user.

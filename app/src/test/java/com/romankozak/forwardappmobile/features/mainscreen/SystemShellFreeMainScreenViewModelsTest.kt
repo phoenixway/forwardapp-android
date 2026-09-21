@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
@@ -107,6 +108,7 @@ class SystemShellFreeMainScreenViewModelsTest {
                     musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                     checklistRepository = mockk<ChecklistRepository>(relaxed = true),
                     mainBeaconRepository = mainBeaconRepository,
+                    canonicalV2ReactiveHierarchyReadSource = mockk(relaxed = true),
                 )
 
             viewModel.addCoreLink(id)
@@ -158,6 +160,7 @@ class SystemShellFreeMainScreenViewModelsTest {
                     musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                     checklistRepository = mockk<ChecklistRepository>(relaxed = true),
                     mainBeaconRepository = mainBeaconRepository,
+                    canonicalV2ReactiveHierarchyReadSource = mockk(relaxed = true),
                 )
 
             viewModel.addCoreLink(id)

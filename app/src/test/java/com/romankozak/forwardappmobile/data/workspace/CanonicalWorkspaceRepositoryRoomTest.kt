@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.workspace
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import android.content.Context
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as LegacyContext
@@ -343,6 +344,17 @@ class CanonicalWorkspaceRepositoryRoomTest {
             val workspaceRepository = repository(database)
             val ownerId = workspaceRepository.create("Owner", now = 10L)
             val targetId = workspaceRepository.create("Target", now = 11L)
+            val hierarchyRepository =
+                com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository(database)
+            val ownerPlacementId =
+                hierarchyRepository.createPrimaryAppearance(
+                    target =
+                        com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef(
+                            com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType.WORKSPACE,
+                            ownerId,
+                        ),
+                    now = 11L,
+                )
             val backlogRepository = backlogRepository(database)
             backlogRepository.enable(ownerId, now = 12L)
             val entryId =
@@ -359,6 +371,9 @@ class CanonicalWorkspaceRepositoryRoomTest {
             workspaceRepository.tombstone(ownerId, now = 20L)
 
             assertTrue(requireNotNull(backlogRepository.getEntry(entryId)).isDeleted)
+            assertTrue(
+                database.hierarchyPlacementDao().getById(ownerPlacementId.value)?.isDeleted == true,
+            )
             assertFalse(requireNotNull(database.workspaceDao().getById(targetId)).isDeleted)
         } finally {
             database.close()
@@ -597,6 +612,8 @@ class CanonicalWorkspaceRepositoryRoomTest {
             inboxRepository = inboxRepository(database),
             connectionsRepository = connectionsRepository(database),
             backlogRepository = backlogRepository(database),
+            hierarchyPlacementLifecycleCoordinator =
+                HierarchyPlacementLifecycleCoordinator(database),
         )
 
     private fun backlogRepository(database: AppDatabase) =
@@ -767,4 +784,389 @@ class CanonicalWorkspaceRepositoryRoomTest {
             provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
             sourceContextId = id,
         )
+
+    @Test
+    fun `workspace clipboard bulk move keeps selected descendants inside selected roots`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val sourceRoot = repository.create("Source root", now = 10L)
+                val sourceChild =
+                    repository.create(
+                        "Source child",
+                        parentWorkspaceId = sourceRoot,
+                        now = 11L,
+                    )
+                val target = repository.create("Target", now = 12L)
+
+                val moved =
+                    repository.moveMany(
+                        ids = linkedSetOf(sourceRoot, sourceChild),
+                        newParentWorkspaceId = target,
+                        now = 20L,
+                    )
+
+                assertEquals(listOf(sourceRoot), moved)
+                assertEquals(
+                    target,
+                    database.workspaceDao().getById(sourceRoot)?.parentWorkspaceId,
+                )
+                assertEquals(
+                    sourceRoot,
+                    database.workspaceDao().getById(sourceChild)?.parentWorkspaceId,
+                )
+                assertNull(database.contextDao().getContextById(sourceRoot))
+                assertNull(database.contextDao().getContextById(sourceChild))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard bulk move rolls back all sources when hierarchy validation fails`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val first = repository.create("First", now = 10L)
+                val firstChild =
+                    repository.create(
+                        "First child",
+                        parentWorkspaceId = first,
+                        now = 11L,
+                    )
+                val second = repository.create("Second", now = 12L)
+
+                val failure =
+                    runCatching {
+                        repository.moveMany(
+                            ids = linkedSetOf(first, second),
+                            newParentWorkspaceId = firstChild,
+                            now = 20L,
+                        )
+                    }.exceptionOrNull()
+
+                assertTrue(failure is IllegalArgumentException)
+                assertNull(database.workspaceDao().getById(first)?.parentWorkspaceId)
+                assertNull(database.workspaceDao().getById(second)?.parentWorkspaceId)
+                assertEquals(
+                    first,
+                    database.workspaceDao().getById(firstChild)?.parentWorkspaceId,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard copy is shallow standalone and Context free`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val source =
+                    repository.create(
+                        nameOverride = "Source",
+                        roleCode = "project",
+                        now = 10L,
+                    )
+                val child =
+                    repository.create(
+                        nameOverride = "Child",
+                        parentWorkspaceId = source,
+                        now = 11L,
+                    )
+                val target = repository.create("Target", now = 12L)
+
+                val copyId =
+                    repository.copyManyShallow(
+                        ids = linkedSetOf(source),
+                        targetParentWorkspaceId = target,
+                        now = 20L,
+                    ).single()
+
+                assertNotEquals(source, copyId)
+
+                val copy = requireNotNull(database.workspaceDao().getById(copyId))
+                assertEquals("Source (копія)", copy.nameOverride)
+                assertNull(copy.descriptionOverride)
+                assertEquals("project", copy.roleCode)
+                assertEquals(target, copy.parentWorkspaceId)
+                assertEquals(WorkspaceProvenance.STANDALONE.name, copy.provenance)
+                assertNull(copy.sourceContextId)
+                assertNull(database.contextDao().getContextById(copyId))
+
+                assertEquals(
+                    source,
+                    database.workspaceDao().getById(child)?.parentWorkspaceId,
+                )
+                assertTrue(
+                    database.workspaceDao().getAll()
+                        .none { it.parentWorkspaceId == copyId },
+                )
+                assertTrue(
+                    database.orientationDao()
+                        .getAllWorkspaceCapabilities()
+                        .none { it.workspaceId == copyId },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard copy name collision increments deterministically`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val source = repository.create("Source", now = 10L)
+                val target = repository.create("Target", now = 11L)
+
+                repository.create(
+                    nameOverride = "Source (копія)",
+                    parentWorkspaceId = target,
+                    now = 12L,
+                )
+
+                val copyId =
+                    repository.copyManyShallow(
+                        ids = setOf(source),
+                        targetParentWorkspaceId = target,
+                        now = 20L,
+                    ).single()
+
+                assertEquals(
+                    "Source (копія 2)",
+                    database.workspaceDao().getById(copyId)?.nameOverride,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard moves System Workspace without changing its identity`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val systemId = SystemContexts.INBOX.raw
+                val target = repository.create("Target", now = 10L)
+
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalOnly(
+                            id = systemId,
+                            name = "Inbox",
+                        ),
+                    ),
+                )
+
+                val moved =
+                    repository.moveMany(
+                        ids = setOf(systemId),
+                        newParentWorkspaceId = target,
+                        now = 20L,
+                    )
+
+                assertEquals(listOf(systemId), moved)
+
+                val system = requireNotNull(database.workspaceDao().getById(systemId))
+                assertEquals(systemId, system.id)
+                assertEquals(target, system.parentWorkspaceId)
+                assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, system.provenance)
+                assertNull(system.sourceContextId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard copies System Workspace as ordinary standalone Workspace`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val systemId = SystemContexts.INBOX.raw
+                val target = repository.create("Target", now = 10L)
+
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalOnly(
+                            id = systemId,
+                            name = "Inbox",
+                        ),
+                    ),
+                )
+
+                val copyId =
+                    repository.copyManyShallow(
+                        ids = setOf(systemId),
+                        targetParentWorkspaceId = target,
+                        now = 20L,
+                    ).single()
+
+                assertNotEquals(systemId, copyId)
+                assertFalse(
+                    SystemContexts.isSystem(
+                        com.romankozak.forwardappmobile.core.context.ContextId(copyId),
+                    ),
+                )
+
+                val copy = requireNotNull(database.workspaceDao().getById(copyId))
+                assertEquals("Inbox (копія)", copy.nameOverride)
+                assertEquals(target, copy.parentWorkspaceId)
+                assertEquals(WorkspaceProvenance.STANDALONE.name, copy.provenance)
+                assertNull(copy.sourceContextId)
+
+                val original = requireNotNull(database.workspaceDao().getById(systemId))
+                assertEquals(
+                    WorkspaceProvenance.CANONICAL_ONLY.name,
+                    original.provenance,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace clipboard can paste ordinary Workspace into System Workspace`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val ordinary = repository.create("Ordinary", now = 10L)
+                val systemId = SystemContexts.INBOX.raw
+
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalOnly(
+                            id = systemId,
+                            name = "Inbox",
+                        ),
+                    ),
+                )
+
+                repository.moveMany(
+                    ids = setOf(ordinary),
+                    newParentWorkspaceId = systemId,
+                    now = 20L,
+                )
+
+                assertEquals(
+                    systemId,
+                    database.workspaceDao().getById(ordinary)?.parentWorkspaceId,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace subtree tombstone deletes ordinary descendants`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val root = repository.create("Root", now = 10L)
+                val child =
+                    repository.create(
+                        nameOverride = "Child",
+                        parentWorkspaceId = root,
+                        now = 11L,
+                    )
+                val grandchild =
+                    repository.create(
+                        nameOverride = "Grandchild",
+                        parentWorkspaceId = child,
+                        now = 12L,
+                    )
+
+                val deleted =
+                    repository.tombstoneSubtree(
+                        rootId = root,
+                        now = 20L,
+                    )
+
+                assertEquals(
+                    linkedSetOf(root, child, grandchild),
+                    deleted.toCollection(linkedSetOf()),
+                )
+                assertTrue(requireNotNull(database.workspaceDao().getById(root)).isDeleted)
+                assertTrue(requireNotNull(database.workspaceDao().getById(child)).isDeleted)
+                assertTrue(requireNotNull(database.workspaceDao().getById(grandchild)).isDeleted)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `workspace subtree tombstone fails closed when it contains System Workspace`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val root = repository.create("Root", now = 10L)
+                val systemId = SystemContexts.INBOX.raw
+                val system =
+                    canonicalOnly(
+                        id = systemId,
+                        name = "Inbox",
+                    ).copy(
+                        parentWorkspaceId = root,
+                    )
+
+                database.workspaceDao().upsert(listOf(system))
+
+                val failure =
+                    runCatching {
+                        repository.tombstoneSubtree(
+                            rootId = root,
+                            now = 20L,
+                        )
+                    }.exceptionOrNull()
+
+                assertTrue(failure is IllegalArgumentException)
+
+                val rootAfter = requireNotNull(database.workspaceDao().getById(root))
+                val systemAfter = requireNotNull(database.workspaceDao().getById(systemId))
+
+                assertFalse(rootAfter.isDeleted)
+                assertFalse(systemAfter.isDeleted)
+                assertEquals(root, systemAfter.parentWorkspaceId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `reserved System Workspace cannot be tombstoned`() =
+        runBlocking {
+            val database = database()
+            try {
+                val repository = repository(database)
+                val systemId = SystemContexts.INBOX.raw
+                val system =
+                    canonicalOnly(
+                        id = systemId,
+                        name = "Inbox",
+                    )
+
+                database.workspaceDao().upsert(listOf(system))
+
+                val failure =
+                    runCatching {
+                        repository.tombstone(systemId, now = 20L)
+                    }.exceptionOrNull()
+
+                assertTrue(failure is IllegalArgumentException)
+                assertEquals(system, database.workspaceDao().getById(systemId))
+            } finally {
+                database.close()
+            }
+        }
+
+
 }

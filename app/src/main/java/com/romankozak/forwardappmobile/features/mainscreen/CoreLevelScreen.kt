@@ -107,6 +107,30 @@ private enum class MainBeaconLinkActionTarget {
     EDITOR,
 }
 
+private fun MainBeaconCardUi.structuralNodeId(): String =
+    placementId ?: id
+
+private fun MainBeaconCardUi.structuralParentNodeId(): String? =
+    if (placementId != null) {
+        parentPlacementId
+    } else {
+        parentBeaconId
+    }
+
+private fun MainBeaconCardUi.isStructurallyInGroup(groupId: String): Boolean =
+    if (placementId != null) {
+        structuralGroupId == groupId
+    } else {
+        groupId in groupIds
+    }
+
+private fun MainBeaconCardUi.isStructurallyNoGroup(): Boolean =
+    if (placementId != null) {
+        structuralGroupId == null
+    } else {
+        groupIds.isEmpty()
+    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoreLevelScreen(
@@ -375,10 +399,14 @@ fun CoreLevelScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             uiState.groups.forEach { group ->
-                                val groupBeacons = uiState.beacons.filter { group.id in it.groupIds }
-                                val groupBeaconIds = groupBeacons.mapTo(hashSetOf()) { it.id }
+                                val groupBeacons =
+                                    uiState.beacons.filter { it.isStructurallyInGroup(group.id) }
+                                val groupBeaconIds =
+                                    groupBeacons.mapTo(hashSetOf()) { it.structuralNodeId() }
                                 val groupRootBeacons =
-                                    groupBeacons.filter { it.parentBeaconId !in groupBeaconIds }
+                                    groupBeacons.filter {
+                                        it.structuralParentNodeId() !in groupBeaconIds
+                                    }
                                 val isGroupExpanded = group.id !in collapsedGroupIds
                                 item(key = "group-${group.id}") {
                                     MainBeaconGroupHeader(
@@ -392,7 +420,10 @@ fun CoreLevelScreen(
                                     )
                                 }
                                 if (isGroupExpanded) {
-                                    items(groupRootBeacons, key = { "${group.id}-${it.id}" }) { beacon ->
+                                    items(
+                                        groupRootBeacons,
+                                        key = { "${group.id}-${it.structuralNodeId()}" },
+                                    ) { beacon ->
                                         MainBeaconCardFromUi(
                                             beacon = beacon,
                                             ownerLabels = uiState.ownerLabels,
@@ -409,7 +440,7 @@ fun CoreLevelScreen(
                                             onConnectionClick = onConnectionClick,
                                         )
                                         NestedBeaconCards(
-                                            parentBeaconId = beacon.id,
+                                            parentNodeId = beacon.structuralNodeId(),
                                             beacons = groupBeacons,
                                             ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
@@ -427,11 +458,15 @@ fun CoreLevelScreen(
                                 }
                             }
 
-                            val noGroupBeacons = uiState.beacons.filter { it.groupIds.isEmpty() }
+                            val noGroupBeacons =
+                                uiState.beacons.filter { it.isStructurallyNoGroup() }
                             if (noGroupBeacons.isNotEmpty()) {
-                                val noGroupBeaconIds = noGroupBeacons.mapTo(hashSetOf()) { it.id }
+                                val noGroupBeaconIds =
+                                    noGroupBeacons.mapTo(hashSetOf()) { it.structuralNodeId() }
                                 val noGroupRootBeacons =
-                                    noGroupBeacons.filter { it.parentBeaconId !in noGroupBeaconIds }
+                                    noGroupBeacons.filter {
+                                        it.structuralParentNodeId() !in noGroupBeaconIds
+                                    }
                                 val isNoGroupExpanded = NO_GROUP_ID !in collapsedGroupIds
                                 item(key = "group-no-group") {
                                     MainBeaconGroupHeader(
@@ -445,7 +480,10 @@ fun CoreLevelScreen(
                                     )
                                 }
                                 if (isNoGroupExpanded) {
-                                    items(noGroupRootBeacons, key = { "no-group-${it.id}" }) { beacon ->
+                                    items(
+                                        noGroupRootBeacons,
+                                        key = { "no-group-${it.structuralNodeId()}" },
+                                    ) { beacon ->
                                         MainBeaconCardFromUi(
                                             beacon = beacon,
                                             ownerLabels = uiState.ownerLabels,
@@ -462,7 +500,7 @@ fun CoreLevelScreen(
                                             onConnectionClick = onConnectionClick,
                                         )
                                         NestedBeaconCards(
-                                            parentBeaconId = beacon.id,
+                                            parentNodeId = beacon.structuralNodeId(),
                                             beacons = noGroupBeacons,
                                             ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
@@ -1018,7 +1056,7 @@ private fun MainBeaconGroupHeader(
 
 @Composable
 private fun NestedBeaconCards(
-    parentBeaconId: String,
+    parentNodeId: String,
     beacons: List<MainBeaconCardUi>,
     ownerLabels: Map<String, String>,
     attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
@@ -1030,12 +1068,19 @@ private fun NestedBeaconCards(
     level: Int = 1,
     visitedIds: Set<String> = emptySet(),
 ) {
-    if (parentBeaconId in visitedIds) return
+    if (parentNodeId in visitedIds) return
     val childBeacons =
-        remember(beacons, parentBeaconId) {
-            beacons
-                .filter { it.parentBeaconId == parentBeaconId }
-                .sortedWith(compareBy<MainBeaconCardUi> { it.title.lowercase() })
+        remember(beacons, parentNodeId) {
+            val children =
+                beacons.filter { it.structuralParentNodeId() == parentNodeId }
+
+            if (children.any { it.placementId != null }) {
+                // V2 input already arrives in canonical H1 sibling order.
+                children
+            } else {
+                // Preserve the historical CURRENT presentation ordering.
+                children.sortedWith(compareBy<MainBeaconCardUi> { it.title.lowercase() })
+            }
         }
     if (childBeacons.isEmpty()) return
 
@@ -1061,7 +1106,7 @@ private fun NestedBeaconCards(
                 onConnectionClick = onConnectionClick,
             )
             NestedBeaconCards(
-                parentBeaconId = beacon.id,
+                parentNodeId = beacon.structuralNodeId(),
                 beacons = beacons,
                 ownerLabels = ownerLabels,
                 attachmentOptions = attachmentOptions,
@@ -1071,7 +1116,7 @@ private fun NestedBeaconCards(
                 onContextClick = onContextClick,
                 onConnectionClick = onConnectionClick,
                 level = level + 1,
-                visitedIds = visitedIds + parentBeaconId,
+                visitedIds = visitedIds + parentNodeId,
             )
         }
     }

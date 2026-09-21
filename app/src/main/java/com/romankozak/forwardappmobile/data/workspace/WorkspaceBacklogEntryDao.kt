@@ -140,6 +140,74 @@ interface WorkspaceBacklogEntryDao {
     )
     suspend fun getLiveDanglingAndStructuralEntries(): List<WorkspaceBacklogEntryEntity>
 
+    /**
+     * V2 hierarchy authority variant: target liveness only. Structural
+     * Workspace projection is classified from H1 outside this SQL query.
+     */
+    @Query(
+        """
+        SELECT entry.*
+        FROM workspace_backlog_entries AS entry
+        LEFT JOIN workspaces AS target_workspace
+          ON entry.targetKind = 'WORKSPACE'
+         AND target_workspace.id = entry.targetId
+        LEFT JOIN managed_subjects AS target_subject
+          ON entry.targetKind = 'ORIENTATION'
+         AND target_subject.id = entry.targetId
+        LEFT JOIN orientations AS target_orientation
+          ON entry.targetKind = 'ORIENTATION'
+         AND target_orientation.subjectId = entry.targetId
+        LEFT JOIN link_items AS target_link
+          ON entry.targetKind = 'LINK_ITEM'
+         AND target_link.id = entry.targetId
+        LEFT JOIN notes AS target_legacy_note
+          ON entry.targetKind = 'LEGACY_NOTE'
+         AND target_legacy_note.id = entry.targetId
+        LEFT JOIN note_documents AS target_document
+          ON entry.targetKind = 'NOTE_DOCUMENT'
+         AND target_document.id = entry.targetId
+        LEFT JOIN checklists AS target_checklist
+          ON entry.targetKind = 'CHECKLIST'
+         AND target_checklist.id = entry.targetId
+        LEFT JOIN music_notes AS target_music_note
+          ON entry.targetKind = 'MUSIC_NOTE'
+         AND target_music_note.id = entry.targetId
+        WHERE entry.isDeleted = 0
+          AND CASE entry.targetKind
+            WHEN 'ORIENTATION' THEN
+              target_subject.id IS NULL
+              OR target_subject.isDeleted != 0
+              OR target_subject.subjectType != 'ORIENTATION'
+              OR target_orientation.subjectId IS NULL
+            WHEN 'WORKSPACE' THEN
+              target_workspace.id IS NULL
+              OR target_workspace.isDeleted != 0
+            WHEN 'LINK_ITEM' THEN
+              target_link.id IS NULL OR target_link.is_deleted != 0
+            WHEN 'LEGACY_NOTE' THEN
+              target_legacy_note.id IS NULL OR target_legacy_note.isDeleted != 0
+            WHEN 'NOTE_DOCUMENT' THEN
+              target_document.id IS NULL OR target_document.isDeleted != 0
+            WHEN 'CHECKLIST' THEN
+              target_checklist.id IS NULL OR target_checklist.isDeleted != 0
+            WHEN 'MUSIC_NOTE' THEN
+              target_music_note.id IS NULL OR target_music_note.isDeleted != 0
+            ELSE 1
+          END
+        """,
+    )
+    suspend fun getLiveDanglingEntries(): List<WorkspaceBacklogEntryEntity>
+
+    @Query(
+        """
+        SELECT * FROM workspace_backlog_entries
+        WHERE targetKind = :targetKind
+          AND isDeleted = 0
+        ORDER BY workspaceId, entryOrder, id
+        """,
+    )
+    suspend fun getLiveByTargetKind(targetKind: String): List<WorkspaceBacklogEntryEntity>
+
     @Query("SELECT * FROM workspace_backlog_entries WHERE syncedAt IS NULL")
     suspend fun getUnsynced(): List<WorkspaceBacklogEntryEntity>
 

@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
+import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
@@ -278,8 +280,40 @@ class CanonicalBacklogRepository
         suspend fun tombstoneDanglingAndStructuralEntries(
             now: Long = System.currentTimeMillis(),
         ): Int =
+            tombstoneDanglingAndStructuralEntriesForAuthority(
+                now = now,
+                hierarchyAuthorityMode = currentHierarchyPlacementAuthorityMode(),
+            )
+
+        /**
+         * H4.0e readiness seam. CURRENT keeps the historical Workspace parent
+         * projection query. V2 classifies structural Backlog rows only from H1.
+         */
+        internal suspend fun tombstoneDanglingAndStructuralEntriesForAuthority(
+            now: Long,
+            hierarchyAuthorityMode: HierarchyPlacementAuthorityMode,
+        ): Int =
             database.withTransaction {
-                val retired = entryDao.getLiveDanglingAndStructuralEntries()
+                val retired =
+                    when (hierarchyAuthorityMode) {
+                        HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER ->
+                            entryDao.getLiveDanglingAndStructuralEntries()
+
+                        HierarchyPlacementAuthorityMode.V2_AUTHORITY -> {
+                            val dangling = entryDao.getLiveDanglingEntries()
+                            val structural =
+                                entryDao
+                                    .getLiveByTargetKind(WorkspaceBacklogTargetKind.WORKSPACE.name)
+                                    .filter { entry ->
+                                        hasV2DirectWorkspaceChildOccurrence(
+                                            childWorkspaceId = entry.targetId,
+                                            parentWorkspaceId = entry.workspaceId,
+                                        )
+                                    }
+                            (dangling + structural).distinctBy { it.id }
+                        }
+                    }
+
                 if (retired.isEmpty()) return@withTransaction 0
 
                 entryDao.upsert(retired.map { it.bump(now).copy(isDeleted = true) })
@@ -289,6 +323,36 @@ class CanonicalBacklogRepository
                     .forEach { compactOrder(it, now) }
                 retired.size
             }
+
+        /**
+         * True iff at least one live GENERAL H1 occurrence of [childWorkspaceId]
+         * is directly under a live occurrence of [parentWorkspaceId].
+         *
+         * This is occurrence-existence semantics. Target parent fields and
+         * ContextParentLink are deliberately not consulted.
+         */
+        internal suspend fun hasV2DirectWorkspaceChildOccurrence(
+            childWorkspaceId: String,
+            parentWorkspaceId: String,
+        ): Boolean {
+            val dao = database.hierarchyPlacementDao()
+            val parentPlacementIds =
+                dao.getLiveAppearances(
+                    hierarchyId = "GENERAL",
+                    targetType = "WORKSPACE",
+                    targetId = parentWorkspaceId,
+                ).mapTo(hashSetOf()) { it.id }
+
+            if (parentPlacementIds.isEmpty()) return false
+
+            return dao.getLiveAppearances(
+                hierarchyId = "GENERAL",
+                targetType = "WORKSPACE",
+                targetId = childWorkspaceId,
+            ).any { child ->
+                child.parentPlacementId in parentPlacementIds
+            }
+        }
 
         /**
          * Visibility policy for one logical placement.

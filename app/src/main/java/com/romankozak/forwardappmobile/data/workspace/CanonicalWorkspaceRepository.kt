@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationGraphRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
@@ -76,6 +77,7 @@ class CanonicalWorkspaceRepository
         private val inboxRepository: CanonicalInboxRepository,
         private val connectionsRepository: CanonicalConnectionsRepository,
         private val backlogRepository: CanonicalBacklogRepository,
+        private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
     ) {
         /**
          * Resolves a live canonical Workspace without requiring a Context row.
@@ -360,10 +362,274 @@ class CanonicalWorkspaceRepository
             workspaceDao.upsert(changedById.values.toList())
         }
 
+        suspend fun moveMany(
+            ids: Collection<String>,
+            newParentWorkspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): List<String> = database.withTransaction {
+            val requestedIds = ids.filter { it.isNotBlank() }.distinct()
+            require(requestedIds.isNotEmpty()) { "Workspace move selection must not be empty" }
+            val live = loadLive()
+            val target =
+                requireNotNull(live[newParentWorkspaceId]) {
+                    "Workspace paste target does not exist: $newParentWorkspaceId"
+                }
+            require(target.isCanonicalWorkspaceOwner()) {
+                "Workspace paste target requires canonical ownership: $newParentWorkspaceId"
+            }
+
+            val requestedSet = requestedIds.toSet()
+            val sources =
+                requestedIds.map { id ->
+                    val source =
+                        requireNotNull(live[id]) { "Workspace does not exist: $id" }
+                    require(source.isCanonicalWorkspaceOwner()) {
+                        "Workspace cut requires canonical ownership: $id"
+                    }
+                    source
+                }
+
+            val moveRoots =
+                sources.filter { source ->
+                    var parentId = source.parentWorkspaceId
+                    val visited = hashSetOf<String>()
+                    var hasSelectedAncestor = false
+
+                    while (parentId != null && visited.add(parentId)) {
+                        if (parentId in requestedSet) {
+                            hasSelectedAncestor = true
+                            break
+                        }
+                        parentId = live[parentId]?.parentWorkspaceId
+                    }
+                    !hasSelectedAncestor
+                }
+
+            require(moveRoots.none { it.id == newParentWorkspaceId }) {
+                "Workspace cannot be pasted into itself"
+            }
+            require(
+                moveRoots.none {
+                    SystemContexts.isPinnedRoot(ContextId(it.id))
+                },
+            ) {
+                "Pinned System Workspace cannot be moved under another Workspace"
+            }
+
+            val movingIds = moveRoots.mapTo(linkedSetOf()) { it.id }
+            val firstOrder =
+                (
+                    live.values
+                        .filter {
+                            it.parentWorkspaceId == newParentWorkspaceId &&
+                                it.id !in movingIds
+                        }
+                        .maxOfOrNull { it.workspaceOrder } ?: -1L
+                ) + 1L
+
+            val changedById =
+                moveRoots
+                    .mapIndexed { index, current ->
+                        current.bump(now).copy(
+                            parentWorkspaceId = newParentWorkspaceId,
+                            workspaceOrder = firstOrder + index,
+                        )
+                    }
+                    .associateByTo(linkedMapOf()) { it.id }
+
+            val prospective =
+                live.values.map { workspace ->
+                    changedById[workspace.id] ?: workspace
+                }
+
+            validateHierarchy(prospective)
+            workspaceDao.upsert(changedById.values.toList())
+
+            moveRoots.map { it.id }
+        }
+
+        suspend fun copyManyShallow(
+            ids: Collection<String>,
+            targetParentWorkspaceId: String,
+            now: Long = System.currentTimeMillis(),
+        ): List<String> = database.withTransaction {
+            val requestedIds = ids.filter { it.isNotBlank() }.distinct()
+            require(requestedIds.isNotEmpty()) { "Workspace copy selection must not be empty" }
+            val live = loadLive()
+            val target =
+                requireNotNull(live[targetParentWorkspaceId]) {
+                    "Workspace paste target does not exist: $targetParentWorkspaceId"
+                }
+            require(target.isCanonicalWorkspaceOwner()) {
+                "Workspace paste target requires canonical ownership: $targetParentWorkspaceId"
+            }
+
+            val sources =
+                requestedIds.map { id ->
+                    val source =
+                        requireNotNull(live[id]) { "Workspace does not exist: $id" }
+                    require(source.isCanonicalWorkspaceOwner()) {
+                        "Workspace copy requires canonical ownership: $id"
+                    }
+                    source
+                }
+
+            val siblingNames =
+                live.values
+                    .filter { it.parentWorkspaceId == targetParentWorkspaceId }
+                    .mapNotNullTo(mutableSetOf()) { it.nameOverride }
+
+            val firstOrder =
+                (
+                    live.values
+                        .filter { it.parentWorkspaceId == targetParentWorkspaceId }
+                        .maxOfOrNull { it.workspaceOrder } ?: -1L
+                ) + 1L
+
+            val created =
+                sources.mapIndexed { index, source ->
+                    val baseName =
+                        requireNotNull(source.nameOverride?.trim()?.takeIf { it.isNotEmpty() }) {
+                            "Workspace copy source has no canonical display name: ${source.id}"
+                        }
+                    val copiedName = generateCopiedWorkspaceName(baseName, siblingNames)
+                    siblingNames += copiedName
+
+                    WorkspaceEntity(
+                        id = UUID.randomUUID().toString(),
+                        nameOverride = copiedName,
+                        descriptionOverride = null,
+                        parentWorkspaceId = targetParentWorkspaceId,
+                        roleCode = source.roleCode,
+                        workspaceOrder = firstOrder + index,
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                        provenance = WorkspaceProvenance.STANDALONE.name,
+                        sourceContextId = null,
+                    )
+                }
+
+            validateHierarchy(live.values + created)
+            workspaceDao.upsert(created)
+            created.map { it.id }
+        }
+
+        suspend fun tombstoneSubtree(
+            rootId: String,
+            now: Long = System.currentTimeMillis(),
+        ): List<String> = database.withTransaction {
+            require(!SystemContexts.isSystem(ContextId(rootId))) {
+                "Reserved System Workspace cannot be tombstoned"
+            }
+
+            val live = loadLive()
+            val root =
+                requireNotNull(live[rootId]) {
+                    "Workspace does not exist: $rootId"
+                }
+            require(root.isCanonicalWorkspaceOwner()) {
+                "Context-backed Workspace lifecycle remains owned by Context"
+            }
+
+            val childrenByParentId =
+                live.values.groupBy { it.parentWorkspaceId }
+
+            val subtreeIds = linkedSetOf<String>()
+
+            fun collectSubtree(id: String) {
+                if (!subtreeIds.add(id)) return
+                childrenByParentId[id].orEmpty()
+                    .sortedBy { it.workspaceOrder }
+                    .forEach { child -> collectSubtree(child.id) }
+            }
+
+            collectSubtree(rootId)
+
+            val systemIds =
+                subtreeIds.filter { id ->
+                    SystemContexts.isSystem(ContextId(id))
+                }
+            require(systemIds.isEmpty()) {
+                "Cannot delete Workspace subtree containing reserved System Workspace: " +
+                    systemIds.joinToString()
+            }
+
+            val subtree =
+                subtreeIds.map { id ->
+                    requireNotNull(live[id]) {
+                        "Workspace disappeared while resolving delete subtree: $id"
+                    }
+                }
+
+            require(subtree.all { it.isCanonicalWorkspaceOwner() }) {
+                "Cannot delete Workspace subtree containing Context-backed or unknown-provenance owners"
+            }
+
+            val remaining =
+                live.values.filterNot { it.id in subtreeIds }
+            validateHierarchy(remaining)
+
+            directionRepository.tombstoneWorkspaceLinksTargeting(subtreeIds, now)
+            directionRepository.tombstoneOwnedEntriesForWorkspaces(subtreeIds, now)
+            keyProblemsRepository.tombstoneOwnedContentForWorkspaces(subtreeIds, now)
+            inboxRepository.tombstoneOwnedContentForWorkspaces(subtreeIds, now)
+            connectionsRepository.tombstoneOwnedContentForWorkspaces(subtreeIds, now)
+            backlogRepository.tombstoneOwnedContentForWorkspaces(subtreeIds, now)
+            executionLogRepository.tombstoneOwnedContentForWorkspaces(subtreeIds, now)
+            hierarchyPlacementLifecycleCoordinator.tombstoneWorkspaceTargets(subtreeIds, now)
+
+            workspaceDao.upsert(
+                subtree.map { workspace ->
+                    workspace.bump(now).copy(isDeleted = true)
+                },
+            )
+
+            orientationDao.upsertWorkspaceBindings(
+                orientationDao.getAllWorkspaceBindings()
+                    .filter {
+                        it.workspaceId in subtreeIds &&
+                            !it.isDeleted
+                    }
+                    .map {
+                        it.copy(
+                            updatedAt = now,
+                            syncedAt = null,
+                            isDeleted = true,
+                            version = it.version + 1L,
+                        )
+                    },
+            )
+
+            orientationDao.upsertWorkspaceCapabilities(
+                orientationDao.getAllWorkspaceCapabilities()
+                    .filter {
+                        it.workspaceId in subtreeIds &&
+                            !it.isDeleted
+                    }
+                    .map {
+                        it.copy(
+                            updatedAt = now,
+                            syncedAt = null,
+                            isDeleted = true,
+                            version = it.version + 1L,
+                        )
+                    },
+            )
+
+            subtreeIds.toList()
+        }
+
         suspend fun tombstone(
             id: String,
             now: Long = System.currentTimeMillis(),
         ) = database.withTransaction {
+            require(!SystemContexts.isSystem(ContextId(id))) {
+                "Reserved System Workspace cannot be tombstoned"
+            }
+
             val current = workspaceDao.getById(id) ?: error("Workspace does not exist")
             require(current.isCanonicalWorkspaceOwner()) {
                 "Context-backed Workspace lifecycle remains owned by Context"
@@ -402,6 +668,7 @@ class CanonicalWorkspaceRepository
             connectionsRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             backlogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             executionLogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
+            hierarchyPlacementLifecycleCoordinator.tombstoneWorkspaceTarget(id, now)
             workspaceDao.upsert(movedChildren + current.bump(now).copy(isDeleted = true))
 
             orientationDao.upsertWorkspaceBindings(
@@ -582,6 +849,21 @@ private fun nextOrder(
 ): Long =
     (workspaces.filter { it.parentWorkspaceId == parentId }
         .maxOfOrNull { it.workspaceOrder } ?: -1L) + 1L
+
+private fun generateCopiedWorkspaceName(
+    baseName: String,
+    existingSiblingNames: Set<String>,
+): String {
+    val firstCandidate = "$baseName (копія)"
+    if (firstCandidate !in existingSiblingNames) return firstCandidate
+
+    var index = 2
+    while (true) {
+        val candidate = "$baseName (копія $index)"
+        if (candidate !in existingSiblingNames) return candidate
+        index += 1
+    }
+}
 
 private fun WorkspaceEntity.bump(now: Long) =
     copy(

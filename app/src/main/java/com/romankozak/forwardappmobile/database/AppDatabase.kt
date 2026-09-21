@@ -47,6 +47,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.UserStateIntervalEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementGroupScopeEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementLinkedAppearanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
@@ -92,6 +95,9 @@ import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
 import com.romankozak.forwardappmobile.data.dao.UserStateIntervalDao
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementDao
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementGroupScopeDao
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLinkedAppearanceDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -187,6 +193,10 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         LifeSystemStateEntity::class,
         UserStateIntervalEntity::class,
         ManagedSubjectEntity::class,
+        HierarchyPlacementEntity::class,
+        HierarchyPlacementGroupScopeEntity::class,
+        HierarchyPlacementLinkedAppearanceEntity::class,
+        com.romankozak.forwardappmobile.data.database.HierarchyAuthorityActivationStateEntity::class,
         OrientationEntity::class,
         AspectEntity::class,
         OrientationAssessmentEntity::class,
@@ -215,7 +225,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 174,
+    version = 178,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -314,6 +324,15 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userStateIntervalDao(): UserStateIntervalDao
 
     abstract fun orientationDao(): OrientationDao
+
+    abstract fun hierarchyPlacementDao(): HierarchyPlacementDao
+
+    abstract fun hierarchyPlacementGroupScopeDao(): HierarchyPlacementGroupScopeDao
+
+    abstract fun hierarchyPlacementLinkedAppearanceDao(): HierarchyPlacementLinkedAppearanceDao
+
+    abstract fun hierarchyAuthorityActivationStateDao():
+        com.romankozak.forwardappmobile.data.hierarchy.HierarchyAuthorityActivationStateDao
 
     abstract fun workspaceDao(): WorkspaceDao
 

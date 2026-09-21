@@ -307,7 +307,7 @@ class OrientationHierarchyBuilder
                     result = result,
                     visited = linkedSetOf(),
                     skipDirectBeaconLinkedContexts = false,
-                    isLinkedAppearance = false,
+                    isLinkedAppearance = true,
                 )
             }
         }
@@ -463,7 +463,11 @@ class OrientationHierarchyBuilder
                     beaconIdsByContextId = beaconIdsByContextId,
                     result = result,
                     visited = LinkedHashSet(visited),
-                    skipDirectBeaconLinkedContexts = skipDirectBeaconLinkedContexts,
+                    // Suppress direct Beacon-linked owners only when choosing
+                    // the NoBeacon entry roots. Once a canonical parent is
+                    // rendered, its canonical children stay visible there even
+                    // when they also have a Beacon appearance.
+                    skipDirectBeaconLinkedContexts = false,
                     isLinkedAppearance = false,
                 )
             }

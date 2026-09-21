@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.orientation
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateSingleParentHierarchy
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -24,6 +25,7 @@ class CanonicalAspectRepository
     constructor(
         private val database: AppDatabase,
         private val dao: OrientationDao,
+        private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
     ) {
         fun observeLive(): Flow<List<CanonicalAspect>> =
             combine(dao.observeManagedSubjects(), dao.observeAspects()) { subjects, nodes ->
@@ -214,6 +216,7 @@ class CanonicalAspectRepository
                         child.copy(parentAspectId = null, aspectOrder = rootStart + index)
                     }
                 validateHierarchy(live.values.filterNot { it.subjectId == id || it.parentAspectId == id } + moved)
+                hierarchyPlacementLifecycleCoordinator.tombstoneManagedSubjectTarget(id, now)
                 dao.upsertAspects(moved)
                 dao.upsertManagedSubjects(
                     listOf(subject.bump(now).copy(isDeleted = true)) +

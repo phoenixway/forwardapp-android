@@ -13,6 +13,7 @@ data class BreadcrumbItem(
     val name: String,
     val level: Int,
     val target: BreadcrumbTarget = BreadcrumbTarget.Context,
+    val placementId: String? = null,
 )
 
 enum class BreadcrumbTarget {

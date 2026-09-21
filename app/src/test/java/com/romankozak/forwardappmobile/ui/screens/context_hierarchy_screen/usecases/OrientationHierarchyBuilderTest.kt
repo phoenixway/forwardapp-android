@@ -90,7 +90,7 @@ class OrientationHierarchyBuilderTest {
     }
 
     @Test
-    fun skipsBeaconLinkedContextsUnderNoBeaconToAvoidDuplicatePrimaryRows() {
+    fun keepsBeaconLinkedCanonicalDescendantUnderNoBeaconWhileSuppressingItAsEntryRoot() {
         val unassignedRoot = context(id = "unassigned-root", order = 0)
         val linkedChild = context(id = "linked-child", parentId = "unassigned-root", order = 0)
         val unlinkedChild = context(id = "unlinked-child", parentId = "unassigned-root", order = 1)
@@ -117,14 +117,20 @@ class OrientationHierarchyBuilderTest {
                 "linked-child",
                 "virtual:no-beacon",
                 "unassigned-root",
+                "linked-child",
                 "unlinked-child",
             ),
             items.map { it.node.id },
         )
-        assertEquals(
-            setOf("beacon-1"),
-            (items[2].node as OrientationHierarchyNode.WorkspaceNode).linkedBeaconIds,
-        )
+        val linkedAppearances =
+            items
+                .filter { it.node.id == "linked-child" }
+                .map { it.node as OrientationHierarchyNode.WorkspaceNode }
+        assertEquals(2, linkedAppearances.size)
+        assertEquals(true, linkedAppearances[0].isLinkedAppearance)
+        assertEquals(false, linkedAppearances[1].isLinkedAppearance)
+        assertEquals(setOf("beacon-1"), linkedAppearances[0].linkedBeaconIds)
+        assertEquals(setOf("beacon-1"), linkedAppearances[1].linkedBeaconIds)
     }
 
     @Test
@@ -209,7 +215,7 @@ class OrientationHierarchyBuilderTest {
 
 
     @Test
-    fun contextBackedWorkspaceOwnsPlacementWithoutReplacingPresentationPayload() {
+    fun contextBackedWorkspaceOwnsPlacementWhilePresentationKeepsDisplayFields() {
         val legacyParent = context(id = "legacy-parent", order = 0)
         val workspaceParent = context(id = "workspace-parent", order = 1)
         val child = context(id = "child", parentId = "legacy-parent", order = 0)
@@ -248,7 +254,9 @@ class OrientationHierarchyBuilderTest {
 
         val childIndex = items.indexOf(childItem)
         assertEquals("workspace-parent", items[childIndex - 1].node.id)
-        assertEquals("legacy-parent", childNode.presentation.parentId)
+        assertEquals("workspace-parent", childNode.presentation.parentId)
+        assertEquals(7L, childNode.presentation.order)
+        assertEquals("child", childNode.presentation.name)
         assertEquals(2, childItem.level)
     }
 
@@ -452,7 +460,7 @@ class OrientationHierarchyBuilderTest {
     }
 
     @Test
-    fun standaloneWorkspaceWithoutRawContextIsAdmittedButArbitraryCanonicalWorkspaceIsNot() {
+    fun standaloneWorkspaceFromAdmittedPresentationUniverseRendersWithoutRawContext() {
         val standalonePresentation =
             HierarchyContextPresentationNode(
                 id = "standalone-user-workspace",
@@ -500,16 +508,8 @@ class OrientationHierarchyBuilderTest {
                 ),
                 presentationHierarchy =
                     HierarchyPresentationData(
-                        allProjects =
-                            listOf(
-                                standalonePresentation,
-                                arbitraryCanonicalPresentation,
-                            ),
-                        topLevelProjects =
-                            listOf(
-                                standalonePresentation,
-                                arbitraryCanonicalPresentation,
-                            ),
+                        allProjects = listOf(standalonePresentation),
+                        topLevelProjects = listOf(standalonePresentation),
                         childMap = emptyMap(),
                     ),
             )
@@ -530,7 +530,7 @@ class OrientationHierarchyBuilderTest {
     }
 
     @Test
-    fun retiredOrdinaryCanonicalWorkspaceKeepsCanonicalPlacementAndBeaconAdmission() {
+    fun retiredOrdinaryCanonicalWorkspaceKeepsBeaconLinkAndCanonicalPlacementAppearances() {
         val parent = context(id = "legacy-parent", order = 0)
         val retiredId = "retired-ordinary-owner"
         val retiredPresentation =
@@ -578,26 +578,33 @@ class OrientationHierarchyBuilderTest {
                             listOf(
                                 parent.toHierarchyPresentationNode(),
                                 retiredPresentation,
-                                arbitraryCanonicalPresentation,
                             ),
-                        topLevelProjects = listOf(parent.toHierarchyPresentationNode(), arbitraryCanonicalPresentation),
+                        topLevelProjects = listOf(parent.toHierarchyPresentationNode()),
                         childMap = mapOf(parent.id to listOf(retiredPresentation)),
                     ),
             )
 
         assertEquals(
-            listOf("virtual:no-group", "beacon-1", retiredId, "virtual:no-beacon", parent.id),
+            listOf("virtual:no-group", "beacon-1", retiredId, "virtual:no-beacon", parent.id, retiredId),
             items.map { it.node.id },
         )
-        val retiredNode = items.single { it.node.id == retiredId }.node as OrientationHierarchyNode.WorkspaceNode
-        assertEquals(parent.id, retiredNode.presentation.parentId)
-        assertEquals(7L, retiredNode.presentation.order)
-        assertEquals("Restored operational owner", retiredNode.presentation.name)
+        val retiredNodes =
+            items
+                .filter { it.node.id == retiredId }
+                .map { it.node as OrientationHierarchyNode.WorkspaceNode }
+        assertEquals(2, retiredNodes.size)
+        assertEquals(true, retiredNodes[0].isLinkedAppearance)
+        assertEquals(false, retiredNodes[1].isLinkedAppearance)
+        retiredNodes.forEach { retiredNode ->
+            assertEquals(parent.id, retiredNode.presentation.parentId)
+            assertEquals(7L, retiredNode.presentation.order)
+            assertEquals("Restored operational owner", retiredNode.presentation.name)
+        }
         assertEquals(false, items.any { it.node.id == arbitraryCanonicalPresentation.id })
     }
 
     @Test
-    fun beaconRetainsShellFreeStandaloneWorkspaceButNotArbitraryCanonicalWorkspace() {
+    fun beaconUsesUpstreamAdmittedPresentationUniverseForShellFreeWorkspaceOwner() {
         val standalonePresentation =
             HierarchyContextPresentationNode(
                 id = "standalone-beacon-owner",
@@ -655,8 +662,8 @@ class OrientationHierarchyBuilderTest {
                 workspaces = listOf(standaloneWorkspace, arbitraryCanonicalWorkspace),
                 presentationHierarchy =
                     HierarchyPresentationData(
-                        allProjects = listOf(standalonePresentation, arbitraryCanonicalPresentation),
-                        topLevelProjects = listOf(standalonePresentation, arbitraryCanonicalPresentation),
+                        allProjects = listOf(standalonePresentation),
+                        topLevelProjects = listOf(standalonePresentation),
                         childMap = emptyMap(),
                     ),
             )
@@ -706,7 +713,7 @@ class OrientationHierarchyBuilderTest {
     }
 
     @Test
-    fun malformedOrDeletedCanonicalSystemPresentationDoesNotBecomeProjectLikeNode() {
+    fun presentationUniverseOmissionKeepsMalformedOrDeletedCanonicalSystemOutOfHierarchy() {
         val systemPresentation =
             HierarchyContextPresentationNode(
                 id = SystemContexts.INBOX.raw,
@@ -732,8 +739,8 @@ class OrientationHierarchyBuilderTest {
                     workspaces = listOf(workspace),
                     presentationHierarchy =
                         HierarchyPresentationData(
-                            allProjects = listOf(systemPresentation),
-                            topLevelProjects = listOf(systemPresentation),
+                            allProjects = emptyList(),
+                            topLevelProjects = emptyList(),
                         ),
                 )
 

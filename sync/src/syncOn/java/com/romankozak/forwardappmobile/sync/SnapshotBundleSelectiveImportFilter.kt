@@ -134,10 +134,21 @@ class SnapshotBundleSelectiveImportFilter {
             workspaceBacklogEntries = null,
             focusContextIntervals = emptyList(),
             userStateIntervals = emptyList(),
+            // Never inherit the full source hierarchy. Selective H1,
+            // GroupScope, and linked-presentation provenance are reintroduced
+            // only through the exact occurrence closure below.
+            hierarchyPlacements = null,
+            hierarchyPlacementGroupScopes = null,
+            hierarchyPlacementLinkedAppearances = null,
         )
-        return filtered.withCanonicalBacklogSelectiveClosure(
-            source = source,
-            selectedIds = selection.selectedWorkspaceBacklogEntryIds,
-        )
+        return filtered
+            .withCanonicalBacklogSelectiveClosure(
+                source = source,
+                selectedIds = selection.selectedWorkspaceBacklogEntryIds,
+            )
+            .withCanonicalHierarchySelectiveClosure(
+                source = source,
+                selectedContextIds = selection.selectedContextIds,
+            )
     }
 }

@@ -114,7 +114,7 @@ class MergeRepository @Inject constructor(
 
     suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> {
         return try {
-            mergeLocalDataSource.applySnapshotBundle(bundle)
+            mergeLocalDataSource.applySelectiveSnapshotBundle(bundle)
             Result.success("Вибрані snapshot-дані успішно імпортовано")
         } catch (e: Exception) {
             Log.e(TAG, "Selective snapshot import failed", e)

@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildDirectChildrenByOrientationNodeId
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItem
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -46,7 +47,9 @@ fun ProjectHierarchyView(
     orientationHierarchy: List<OrientationHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
+    focusedProjectPlacementId: String?,
     focusedOrientationNodeId: String?,
+    focusedOrientationPlacementId: String?,
     highlightedProjectId: String?,
     searchQuery: String,
     isSearchActive: Boolean,
@@ -86,6 +89,7 @@ fun ProjectHierarchyView(
         if (focusedProjectId != null) {
             FocusedProjectView(
                 focusedProjectId = focusedProjectId,
+                focusedPlacementId = focusedProjectPlacementId,
                 presentationHierarchy = presentationHierarchy,
                 orientationHierarchy = orientationHierarchy,
                 directChildrenByNodeId = directChildrenByNodeId,
@@ -98,12 +102,24 @@ fun ProjectHierarchyView(
             )
         } else if (focusedOrientationNodeId != null) {
             val focusedRoot =
-                remember(orientationHierarchy, focusedOrientationNodeId) {
-                    orientationHierarchy.firstOrNull { it.node.id == focusedOrientationNodeId }
+                remember(
+                    orientationHierarchy,
+                    focusedOrientationNodeId,
+                    focusedOrientationPlacementId,
+                ) {
+                    findOrientationHierarchyItem(
+                        items = orientationHierarchy,
+                        nodeId = focusedOrientationNodeId,
+                        placementId = focusedOrientationPlacementId,
+                    )
                 }
             val directChildren =
-                remember(orientationHierarchy, focusedOrientationNodeId) {
-                    directChildrenByNodeId[focusedOrientationNodeId].orEmpty()
+                remember(orientationHierarchy, focusedRoot) {
+                    focusedRoot
+                        ?.node
+                        ?.structuralKey
+                        ?.let { directChildrenByNodeId[it] }
+                        .orEmpty()
                 }
             FocusedOrientationNodeView(
                 focusedRoot = focusedRoot,
@@ -149,15 +165,22 @@ fun ProjectHierarchyView(
                                     item = item,
                                     rootGroups = rootGroups,
                                     isSiblingReorderMode = isSiblingReorderMode,
-                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
+                                    childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
                                     onEvent = onEvent,
                                 )
                             is OrientationHierarchyNode.Beacon ->
                                 BeaconRootHeaderRow(
                                     node = node,
                                     level = item.level,
-                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
-                                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                                    childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
+                                    onClick = {
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.OrientationNodeClick(
+                                                nodeId = node.id,
+                                                placementId = node.placementId?.value,
+                                            ),
+                                        )
+                                    },
                                     onEditBeacon = { onEditBeacon(node.id) },
                                     onDeleteBeacon = { onDeleteBeacon(node.id) },
                                     onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
@@ -172,7 +195,7 @@ fun ProjectHierarchyView(
                             OrientationHierarchyNode.NoGroup ->
                                 NoGroupRootHeaderRow(
                                     level = item.level,
-                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
+                                    childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                     onPasteBeacon = {
                                         onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(null))
@@ -181,7 +204,7 @@ fun ProjectHierarchyView(
                             OrientationHierarchyNode.NoBeacon ->
                                 NoBeaconRootHeaderRow(
                                     level = item.level,
-                                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
+                                    childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
                             is OrientationHierarchyNode.ProjectLike -> {
@@ -191,8 +214,9 @@ fun ProjectHierarchyView(
                                         level = item.level,
                                         isLinkedAppearance = node.isLinkedAppearance,
                                         isCanonicalWorkspace = node.isCanonicalWorkspace,
+                                        placementId = node.placementId,
                                     ),
-                                    childCount = presentationChildCounts[node.id] ?: 0,
+                                    childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
                                     isSearchActive = isSearchActive,
                                     searchQuery = searchQuery,
                                     isFocused = node.id == focusedProjectId,

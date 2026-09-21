@@ -29,6 +29,14 @@ state than plans or historical analysis.
 Authoritative for repository engineering rules, build ownership, code
 organization, refactoring limits, and documentation maintenance.
 
+### Project constitution
+
+`governance/PROJECT-CONSTITUTION.md`
+- `CANONICAL`
+- Cross-cutting architecture epochs, authority classification, migration-lane
+  separation, and cutover discipline. Mandatory for architecture,
+  persistence, migration, hierarchy, and legacy-extinction work.
+
 ### Web-chat workflow
 
 `governance/WEBCHAT.md`
@@ -111,6 +119,14 @@ The following directories contain subsystem documentation:
   accepted Phase 1 domain contract. Its original `ARTIFACT` and context
   `JOURNAL` registry entries are historical evidence only and are superseded
   by the 2026-09-03 schema-165 hard-removal decision.
+
+`architecture/orientation-workspace-refactor/HIERARCHY-PLACEMENT-CONTRACT-V2.md`
+- `DECIDED`
+- Accepted Canonical V2 target for the independent structural/visual
+  hierarchy. Defines `HierarchyPlacement`, V1/V2 authority boundaries,
+  invariants, and H0-H6 cutover stages. It is not CURRENT runtime authority
+  until the relevant explicit V2 cutover completes.
+
 
 `architecture/orientation-workspace-refactor/PHASE2-IMPLEMENTATION.md`
 - `CURRENT`

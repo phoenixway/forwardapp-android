@@ -24,4 +24,12 @@ interface MergeLocalDataSource {
         crossRefs: List<ContextAttachmentCrossRef>
     )
     suspend fun applySnapshotBundle(bundle: SnapshotBundle)
+
+    /**
+     * Applies a user-selected snapshot subset through normal merge semantics.
+     *
+     * The only transport distinction is that coupled occurrence provenance is
+     * a validated delta rather than a full peer snapshot.
+     */
+    suspend fun applySelectiveSnapshotBundle(bundle: SnapshotBundle)
 }

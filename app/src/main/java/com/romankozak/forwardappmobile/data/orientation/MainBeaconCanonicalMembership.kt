@@ -118,7 +118,7 @@ internal fun projectCanonicalMainBeaconMemberships(
         .toList()
 }
 
-private fun mainBeaconMembershipRelationId(
+internal fun mainBeaconMembershipRelationId(
     beaconSubjectId: String,
     groupSubjectId: String,
 ): String =

@@ -7,6 +7,7 @@ import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
@@ -198,6 +199,11 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideOrientationDao(appDatabase: AppDatabase): OrientationDao = appDatabase.orientationDao()
+
+    @Provides
+    @Singleton
+    fun provideHierarchyPlacementDao(appDatabase: AppDatabase): HierarchyPlacementDao =
+        appDatabase.hierarchyPlacementDao()
 
     @Provides
     fun provideWorkspaceDao(appDatabase: AppDatabase): WorkspaceDao = appDatabase.workspaceDao()

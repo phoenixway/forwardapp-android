@@ -9,7 +9,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
@@ -17,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.data.orientation.toCanonicalRows
 import com.romankozak.forwardappmobile.data.orientation.toEffectiveOrientation
+import com.romankozak.forwardappmobile.data.hierarchy.LegacyHierarchyRestoreTranslator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.isAdmittedLegacyContextIngressOwner
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.orientationCapabilityRegistry
@@ -56,7 +59,20 @@ import javax.inject.Singleton
 class SnapshotRestoreCanonicalizerImpl
     @Inject
     constructor() : SnapshotRestoreCanonicalizer {
-        override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle {
+        private val legacyHierarchyRestoreTranslator =
+            LegacyHierarchyRestoreTranslator()
+
+        override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle =
+            canonicalize(
+                bundle = bundle,
+                hierarchyAuthorityMode =
+                    currentHierarchyPlacementAuthorityMode(),
+            )
+
+        internal fun canonicalize(
+            bundle: SnapshotBundle,
+            hierarchyAuthorityMode: HierarchyPlacementAuthorityMode,
+        ): SnapshotBundle {
             val hasLegacyBacklog = bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty()
             val hasLegacyInbox = bundle.inbox.isNotEmpty()
             val hasLegacyInboxSorting = bundle.contextInboxSortingRules.isNotEmpty()
@@ -79,7 +95,11 @@ class SnapshotRestoreCanonicalizerImpl
                 !needsLegacySystemApps
             ) {
                 requireNoLiveOrdinaryContexts(bundle)
-                return bundle
+                return legacyHierarchyRestoreTranslator.translate(
+                    source = bundle,
+                    canonical = bundle,
+                    authorityMode = hierarchyAuthorityMode,
+                )
             }
             require(bundle.workspaces == null) {
                 "Restore-only legacy content is ambiguous when a Workspace payload is already present"
@@ -301,7 +321,11 @@ class SnapshotRestoreCanonicalizerImpl
             require(result.contexts.none { SystemContexts.isSystem(ContextId(it.id)) }) {
                 "Restore canonicalization retained a reserved System Context shell"
             }
-            return result
+            return legacyHierarchyRestoreTranslator.translate(
+                source = bundle,
+                canonical = result,
+                authorityMode = hierarchyAuthorityMode,
+            )
         }
 
         private fun canonicalizeLegacyBacklog(

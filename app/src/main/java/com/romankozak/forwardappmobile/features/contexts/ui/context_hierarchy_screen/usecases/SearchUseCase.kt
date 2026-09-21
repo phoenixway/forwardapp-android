@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
@@ -251,6 +252,41 @@ class SearchUseCase
             }
         }
 
+        fun reconcileFocusedProjectBreadcrumbs(
+            currentHierarchy: HierarchyPresentationData,
+        ) {
+            val focusedProject =
+                _subStateStack.value.lastOrNull() as? ProjectHierarchyScreenSubState.ProjectFocused
+                    ?: return
+
+            val canonicalPath =
+                buildPresentationPathToProject(
+                    targetId = focusedProject.projectId,
+                    hierarchy = currentHierarchy,
+                )
+            if (canonicalPath.isEmpty()) return
+
+            val orientationPrefix =
+                currentBreadcrumbs.value
+                    .takeWhile { breadcrumb ->
+                        breadcrumb.target == BreadcrumbTarget.OrientationNode
+                    }
+
+            val projectBreadcrumbs =
+                canonicalPath.mapIndexed { index, project ->
+                    BreadcrumbItem(
+                        id = project.id,
+                        name = project.name,
+                        level = orientationPrefix.size + index,
+                    )
+                }
+
+            val reconciled = orientationPrefix + projectBreadcrumbs
+            if (currentBreadcrumbs.value != reconciled) {
+                currentBreadcrumbs.value = reconciled
+            }
+        }
+
         fun navigateToProjectWithBreadcrumbs(
             projectId: String,
             breadcrumbs: List<BreadcrumbItem>,
@@ -270,11 +306,21 @@ class SearchUseCase
             when (breadcrumbItem.target) {
                 BreadcrumbTarget.OrientationNode -> {
                     focusedProjectId.value = null
-                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.OrientationFocused(breadcrumbItem.id))
+                    navigateToExistingOrReplace(
+                        ProjectHierarchyScreenSubState.OrientationFocused(
+                            nodeId = breadcrumbItem.id,
+                            placementId = breadcrumbItem.placementId,
+                        ),
+                    )
                 }
                 BreadcrumbTarget.Context -> {
                     focusedProjectId.value = breadcrumbItem.id
-                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.ProjectFocused(breadcrumbItem.id))
+                    navigateToExistingOrReplace(
+                        ProjectHierarchyScreenSubState.ProjectFocused(
+                            projectId = breadcrumbItem.id,
+                            placementId = breadcrumbItem.placementId,
+                        ),
+                    )
                 }
             }
         }
@@ -310,18 +356,48 @@ class SearchUseCase
 
         fun onSearchResultClick(
             projectId: String,
+            placementId: String? = null,
             currentHierarchy: HierarchyPresentationData,
+            orientationHierarchy: List<OrientationHierarchyItem> = emptyList(),
         ) {
             scope.launch {
-                    when (val result = revealProjectInHierarchy(projectId)) {
-                        is RevealResult.Success -> {
-                            enterProjectFocus(result.projectId)
-                            navigateToProject(
-                                result.projectId,
-                                currentHierarchy,
-                            )
-                            onSearchQueryChanged(TextFieldValue(""))
-                        }
+                if (placementId != null) {
+                    val breadcrumbs =
+                        buildOrientationBreadcrumbsToContext(
+                            items = orientationHierarchy,
+                            contextId = projectId,
+                            placementId = placementId,
+                        )
+                    if (breadcrumbs.isEmpty()) {
+                        uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
+                        return@launch
+                    }
+
+                    clearAllSearchState()
+                    navigateToProjectWithBreadcrumbs(
+                        projectId = projectId,
+                        breadcrumbs = breadcrumbs,
+                    )
+                    enterProjectFocusPath(
+                        projectId = projectId,
+                        breadcrumbs = breadcrumbs,
+                        placementId = placementId,
+                    )
+                    return@launch
+                }
+
+                when (val result = revealProjectInHierarchy(projectId)) {
+                    is RevealResult.Success -> {
+                        enterProjectFocus(
+                            projectId = result.projectId,
+                            placementId = result.placementId,
+                        )
+                        navigateToProject(
+                            result.projectId,
+                            currentHierarchy,
+                        )
+                        onSearchQueryChanged(TextFieldValue(""))
+                    }
                     is RevealResult.Failure -> {
                         uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
                     }
@@ -355,18 +431,29 @@ class SearchUseCase
         fun enterProjectFocusPath(
             projectId: String,
             breadcrumbs: List<BreadcrumbItem>,
+            placementId: String? = null,
         ) {
             val breadcrumbStates =
                 breadcrumbs.mapNotNull { breadcrumb ->
                     when (breadcrumb.target) {
                         BreadcrumbTarget.OrientationNode ->
-                            ProjectHierarchyScreenSubState.OrientationFocused(breadcrumb.id)
+                            ProjectHierarchyScreenSubState.OrientationFocused(
+                                nodeId = breadcrumb.id,
+                                placementId = breadcrumb.placementId,
+                            )
                         BreadcrumbTarget.Context ->
-                            ProjectHierarchyScreenSubState.ProjectFocused(breadcrumb.id)
+                            ProjectHierarchyScreenSubState.ProjectFocused(
+                                projectId = breadcrumb.id,
+                                placementId = breadcrumb.placementId,
+                            )
                     }
                 }
 
-            val targetState = ProjectHierarchyScreenSubState.ProjectFocused(projectId)
+            val targetState =
+                ProjectHierarchyScreenSubState.ProjectFocused(
+                    projectId = projectId,
+                    placementId = placementId,
+                )
             val normalizedStates =
                 buildList {
                     breadcrumbStates.forEach { state ->
@@ -380,11 +467,21 @@ class SearchUseCase
             focusedProjectId.value = projectId
         }
 
-        fun enterProjectFocus(projectId: String) {
-            val targetState = ProjectHierarchyScreenSubState.ProjectFocused(projectId)
+        fun enterProjectFocus(
+            projectId: String,
+            placementId: String? = null,
+        ) {
+            val targetState =
+                ProjectHierarchyScreenSubState.ProjectFocused(
+                    projectId = projectId,
+                    placementId = placementId,
+                )
             when (val currentState = _subStateStack.value.lastOrNull()) {
                 is ProjectHierarchyScreenSubState.ProjectFocused -> {
-                    if (currentState.projectId != projectId) {
+                    if (
+                        currentState.projectId != projectId ||
+                        currentState.placementId != placementId
+                    ) {
                         pushSubState(targetState)
                     }
                 }
@@ -434,6 +531,7 @@ class SearchUseCase
 
         fun handleBackNavigation(
             currentHierarchy: HierarchyPresentationData,
+            orientationHierarchy: List<OrientationHierarchyItem>,
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
@@ -445,11 +543,31 @@ class SearchUseCase
                     popSubState()
                     when (val previousFocusedState = _subStateStack.value.lastOrNull()) {
                         is ProjectHierarchyScreenSubState.ProjectFocused -> {
-                            navigateToProject(
-                                projectId = previousFocusedState.projectId,
-                                currentHierarchy = currentHierarchy,
-                                breadcrumbPrefix = beaconBreadcrumbPrefix,
-                            )
+                            val placementId = previousFocusedState.placementId
+                            if (placementId != null) {
+                                val exactBreadcrumbs =
+                                    buildOrientationBreadcrumbsToContext(
+                                        items = orientationHierarchy,
+                                        contextId = previousFocusedState.projectId,
+                                        placementId = placementId,
+                                    )
+                                if (exactBreadcrumbs.isEmpty()) {
+                                    // Exact occurrence history must never degrade into
+                                    // target-only V1 presentation navigation.
+                                    clearNavigation()
+                                } else {
+                                    navigateToProjectWithBreadcrumbs(
+                                        projectId = previousFocusedState.projectId,
+                                        breadcrumbs = exactBreadcrumbs,
+                                    )
+                                }
+                            } else {
+                                navigateToProject(
+                                    projectId = previousFocusedState.projectId,
+                                    currentHierarchy = currentHierarchy,
+                                    breadcrumbPrefix = beaconBreadcrumbPrefix,
+                                )
+                            }
                         }
                         is ProjectHierarchyScreenSubState.OrientationFocused -> {
                             focusedProjectId.value = null

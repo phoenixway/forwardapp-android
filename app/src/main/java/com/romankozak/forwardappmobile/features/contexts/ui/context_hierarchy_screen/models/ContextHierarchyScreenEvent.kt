@@ -25,7 +25,10 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class GlobalSearchPerform(val query: String) : ContextHierarchyScreenEvent
 
-    data class SearchResultClick(val projectId: String) : ContextHierarchyScreenEvent
+    data class SearchResultClick(
+        val projectId: String,
+        val placementId: String? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class ContextClick(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -36,7 +39,10 @@ sealed interface ContextHierarchyScreenEvent {
      * (Group, Beacon, NoGroup, NoBeacon). It never writes Context.isExpanded.
      */
 
-    data class OrientationNodeClick(val nodeId: String) : ContextHierarchyScreenEvent
+    data class OrientationNodeClick(
+        val nodeId: String,
+        val placementId: String? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class ContextMenuRequest(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -77,7 +83,10 @@ sealed interface ContextHierarchyScreenEvent {
     ) : ContextHierarchyScreenEvent
 
     /** Focus a read-side hierarchy project by stable id, including shell-free Workspaces. */
-    data class FocusHierarchyProject(val projectId: String) : ContextHierarchyScreenEvent
+    data class FocusHierarchyProject(
+        val projectId: String,
+        val placementId: String? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : ContextHierarchyScreenEvent
 
@@ -154,6 +163,12 @@ sealed interface ContextHierarchyScreenEvent {
     data class SetReminderRequest(val projectId: String) : ContextHierarchyScreenEvent
 
     data class ToggleUserFocusContext(val projectId: String) : ContextHierarchyScreenEvent
+
+    data class CopyWorkspace(val projectId: String) : ContextHierarchyScreenEvent
+
+    data class CutWorkspace(val projectId: String) : ContextHierarchyScreenEvent
+
+    data class PasteWorkspace(val projectId: String) : ContextHierarchyScreenEvent
 
     data class CopyContextLink(val projectId: String) : ContextHierarchyScreenEvent
 

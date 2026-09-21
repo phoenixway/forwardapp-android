@@ -29,6 +29,9 @@ import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrap
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
@@ -51,6 +54,9 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncA
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalExecutionLogSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
@@ -118,6 +124,13 @@ class FullBackupLocalDataSourceImpl
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
     ) : FullBackupLocalDataSource {
+        private val canonicalHierarchyPlacementSyncStore =
+            CanonicalHierarchyPlacementSyncStore(db)
+        private val canonicalHierarchyPlacementGroupScopeSyncStore =
+            CanonicalHierarchyPlacementGroupScopeSyncStore(db)
+        private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
+            CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
+
         override suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload =
             canonicalOrientationSyncStore.loadUnsynced()
 
@@ -143,6 +156,44 @@ class FullBackupLocalDataSourceImpl
             entries: List<WorkspaceDirectionEntrySyncVersion>,
         ) {
             canonicalWorkspaceDirectionEntrySyncStore.markSynced(entries)
+        }
+
+        override suspend fun loadUnsyncedCanonicalHierarchyPlacements() =
+            canonicalHierarchyPlacementSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalHierarchyPlacementsChangedSince(timestamp: Long) =
+            canonicalHierarchyPlacementSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalHierarchyPlacementsSynced(
+            entries: List<HierarchyPlacementSyncVersion>,
+        ) {
+            canonicalHierarchyPlacementSyncStore.markSynced(entries)
+        }
+
+        override suspend fun loadUnsyncedCanonicalHierarchyPlacementGroupScopes() =
+            canonicalHierarchyPlacementGroupScopeSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalHierarchyPlacementGroupScopesChangedSince(
+            timestamp: Long,
+        ) = canonicalHierarchyPlacementGroupScopeSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalHierarchyPlacementGroupScopesSynced(
+            entries: List<HierarchyPlacementGroupScopeSyncVersion>,
+        ) {
+            canonicalHierarchyPlacementGroupScopeSyncStore.markSynced(entries)
+        }
+
+        override suspend fun loadUnsyncedCanonicalHierarchyPlacementLinkedAppearances() =
+            canonicalHierarchyPlacementLinkedAppearanceSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalHierarchyPlacementLinkedAppearancesChangedSince(
+            timestamp: Long,
+        ) = canonicalHierarchyPlacementLinkedAppearanceSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalHierarchyPlacementLinkedAppearancesSynced(
+            entries: List<HierarchyPlacementLinkedAppearanceSyncVersion>,
+        ) {
+            canonicalHierarchyPlacementLinkedAppearanceSyncStore.markSynced(entries)
         }
 
         override suspend fun loadUnsyncedCanonicalWorkspaceProblems() =
@@ -342,6 +393,11 @@ class FullBackupLocalDataSourceImpl
                 workspaceInboxRecords = canonicalWorkspaceInboxSyncStore.loadAll(),
                 workspaceConnections = canonicalWorkspaceConnectionSyncStore.loadAll(),
                 workspaceBacklogEntries = canonicalWorkspaceBacklogSyncStore.loadAll(),
+                hierarchyPlacements = canonicalHierarchyPlacementSyncStore.loadAll(),
+                hierarchyPlacementGroupScopes =
+                    canonicalHierarchyPlacementGroupScopeSyncStore.loadAll(),
+                hierarchyPlacementLinkedAppearances =
+                    canonicalHierarchyPlacementLinkedAppearanceSyncStore.loadAll(),
                 workspaceTagRefs = canonicalWorkspaceTagTransportStore.loadAll(),
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },

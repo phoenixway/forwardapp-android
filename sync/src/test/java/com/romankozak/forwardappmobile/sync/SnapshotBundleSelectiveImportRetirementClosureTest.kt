@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.sync
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import org.junit.Assert.assertEquals
@@ -45,6 +46,71 @@ class SnapshotBundleSelectiveImportRetirementClosureTest {
         assertEquals(
             WorkspaceProvenance.CANONICAL_ONLY.name,
             retirementWorkspace!!.provenance,
+        )
+        assertEquals(null, retirementWorkspace.sourceContextId)
+    }
+
+    @Test
+    fun `H1 bearing selected retired Context keeps same-id canonical Workspace and exact occurrence`() {
+        val source =
+            SnapshotBundle(
+                version = 2,
+                contexts = listOf(context("retired-context")),
+                managedSubjects = emptyList(),
+                orientations = emptyList(),
+                aspects = emptyList(),
+                orientationAssessments = emptyList(),
+                orientationAssessmentRevisions = emptyList(),
+                legacySubjectMappings = emptyList(),
+                orientationRelations = emptyList(),
+                aspectOrientationRefs = emptyList(),
+                workspaces =
+                    listOf(
+                        canonicalWorkspace("retired-context"),
+                        canonicalWorkspace("other-workspace"),
+                    ),
+                workspaceBindings = emptyList(),
+                workspaceCapabilityInstances = emptyList(),
+                savedOrientationViews = emptyList(),
+                hierarchyPlacements =
+                    listOf(
+                        HierarchyPlacementSnapshot(
+                            id = "retired-placement",
+                            hierarchyId = "GENERAL",
+                            targetType = "WORKSPACE",
+                            targetId = "retired-context",
+                            parentPlacementId = null,
+                            placementKind = "PRIMARY",
+                            siblingOrder = 0L,
+                            createdAt = 1L,
+                            updatedAt = 2L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        ),
+                    ),
+                hierarchyPlacementGroupScopes = emptyList(),
+            )
+
+        val filtered =
+            filter.filter(
+                source = source,
+                selection =
+                    WorkspaceSelectiveImportSelection(
+                        selectedContextIds = setOf("retired-context"),
+                    ),
+            )
+
+        assertEquals(listOf("retired-context"), filtered.contexts.map { it.id })
+        assertEquals(
+            listOf("retired-placement"),
+            filtered.hierarchyPlacements.orEmpty().map { it.id },
+        )
+        val retirementWorkspace =
+            filtered.workspaces.orEmpty().single { it.id == "retired-context" }
+        assertEquals(
+            WorkspaceProvenance.CANONICAL_ONLY.name,
+            retirementWorkspace.provenance,
         )
         assertEquals(null, retirementWorkspace.sourceContextId)
     }

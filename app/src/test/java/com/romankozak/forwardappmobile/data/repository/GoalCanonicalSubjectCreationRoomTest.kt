@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import android.content.Context
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import androidx.room.Room
@@ -421,6 +422,8 @@ class GoalCanonicalSubjectCreationRoomTest {
                     database = database,
                     goalDao = database.goalDao(),
                     orientationDao = database.orientationDao(),
+                    hierarchyPlacementLifecycleCoordinator =
+                        HierarchyPlacementLifecycleCoordinator(database),
                 ),
             systemWorkspacePresentationContextProjector =
                 SystemWorkspacePresentationContextProjector(

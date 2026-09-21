@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateOrientationAssessment
@@ -39,6 +40,7 @@ class GoalOrientationBridge
         private val database: AppDatabase,
         private val goalDao: GoalDao,
         private val orientationDao: OrientationDao,
+        private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
     ) {
         private val gson = Gson()
 
@@ -115,6 +117,7 @@ class GoalOrientationBridge
             val current = currents.single()
 
             if (!subject.isDeleted) {
+                hierarchyPlacementLifecycleCoordinator.tombstoneManagedSubjectTarget(subject.id, now)
                 orientationDao.upsertManagedSubjects(
                     listOf(
                         subject.copy(

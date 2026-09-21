@@ -70,10 +70,6 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindSyncLocalDataSource(impl: SyncLocalDataSourceImpl): SyncLocalDataSource
 
-    @Binds
-    @Singleton
-    abstract fun bindSyncApi(impl: SyncRepository): SyncApi
-
     // ========================================================================
     // PROVIDES (Логіка створення та складні репозиторії)
     // ========================================================================

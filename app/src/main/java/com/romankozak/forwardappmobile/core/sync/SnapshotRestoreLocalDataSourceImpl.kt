@@ -6,6 +6,9 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.sync.datasource.SnapshotRestoreLocalDataSource
@@ -38,10 +41,58 @@ class SnapshotRestoreLocalDataSourceImpl
     ) : SnapshotRestoreLocalDataSource {
         override suspend fun replaceWith(bundle: SnapshotBundle) {
             validateBeforeClear(bundle)
-            val roomBundle = bundle.copy(dayManagementRuntimeState = null)
+
+            val hierarchyStore = CanonicalHierarchyPlacementSyncStore(database)
+            val groupScopeStore =
+                CanonicalHierarchyPlacementGroupScopeSyncStore(database)
+            val linkedAppearanceStore =
+                CanonicalHierarchyPlacementLinkedAppearanceSyncStore(database)
+
+            val hierarchySnapshots =
+                bundle.hierarchyPlacements ?: hierarchyStore.loadAll()
+            val decodedHierarchy =
+                hierarchyStore.decodeAndValidateForRestore(
+                    bundle = bundle,
+                    snapshots = hierarchySnapshots,
+                )
+
+            val groupScopeSnapshots =
+                bundle.hierarchyPlacementGroupScopes ?: groupScopeStore.loadAll()
+            val decodedGroupScopes =
+                groupScopeStore.decodeAndValidateForRestore(
+                    bundle = bundle,
+                    snapshots = groupScopeSnapshots,
+                    placements = decodedHierarchy,
+                    requireComplete = bundle.hierarchyPlacementGroupScopes != null,
+                )
+
+            val linkedAppearanceSnapshots =
+                bundle.hierarchyPlacementLinkedAppearances ?: linkedAppearanceStore.loadAll()
+            val decodedLinkedAppearances =
+                linkedAppearanceStore.decodeAndValidateForRestore(
+                    snapshots = linkedAppearanceSnapshots,
+                    placements = decodedHierarchy,
+                )
+
+            // H1 restore is explicit: peer merge correctly resets syncedAt, while
+            // full backup/restore must preserve it exactly.
+            val roomBundle =
+                bundle.copy(
+                    dayManagementRuntimeState = null,
+                    hierarchyPlacements = null,
+                    hierarchyPlacementGroupScopes = null,
+                    hierarchyPlacementLinkedAppearances = null,
+                )
+
             database.withTransaction {
                 TransactionAwareRoomClearer(database).clearAllApplicationTables()
                 writer.apply(roomBundle)
+                hierarchyStore.restoreExactDecoded(decodedHierarchy)
+                groupScopeStore.restoreExactDecoded(
+                    scopes = decodedGroupScopes,
+                    requireComplete = bundle.hierarchyPlacementGroupScopes != null,
+                )
+                linkedAppearanceStore.restoreExactDecoded(decodedLinkedAppearances)
                 assertRestoreInvariants(bundle)
             }
             bundle.dayManagementRuntimeState?.let { dayManagementRuntimeRepository.importSnapshot(it) }

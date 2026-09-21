@@ -16,10 +16,16 @@ sealed class ProjectHierarchyScreenSubState : Parcelable {
     data class LocalSearch(val query: String) : ProjectHierarchyScreenSubState()
 
     @Parcelize
-    data class ProjectFocused(val projectId: String) : ProjectHierarchyScreenSubState()
+    data class ProjectFocused(
+        val projectId: String,
+        val placementId: String? = null,
+    ) : ProjectHierarchyScreenSubState()
 
     @Parcelize
-    data class OrientationFocused(val nodeId: String) : ProjectHierarchyScreenSubState()
+    data class OrientationFocused(
+        val nodeId: String,
+        val placementId: String? = null,
+    ) : ProjectHierarchyScreenSubState()
 }
 
 typealias MainSubState = ProjectHierarchyScreenSubState
@@ -47,6 +53,9 @@ data class HierarchyProjectMenuAvailability(
     val addToDayPlan: Boolean = true,
     val addToDayFocus: Boolean = true,
     val reminder: Boolean = true,
+    val copyWorkspace: Boolean = false,
+    val cutWorkspace: Boolean = false,
+    val pasteWorkspace: Boolean = false,
     val copyContextLink: Boolean = false,
     val cutContextLink: Boolean = false,
     val pasteContextLink: Boolean = false,
@@ -121,6 +130,7 @@ data class SearchResult(
     val projectName: String,
     val matchedText: String? = null,
     val parentPath: List<String> = emptyList(),
+    val placementId: String? = null,
 )
 
 enum class SearchResultFilter {

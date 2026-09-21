@@ -5,7 +5,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -497,6 +499,81 @@ class CanonicalBacklogRepositoryRoomTest {
             assertEquals(danglingAfterFirstCleanup, repository.getEntry("dangling"))
             assertEquals(referenceAfterFirstCleanup, repository.getEntry(referencePlacement))
             assertEquals(orientationAfterFirstCleanup, repository.getEntry(orientationPlacement))
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `V2 cleanup derives structural Workspace rows from H1 and ignores V1 parent field`() = runBlocking {
+        val database = database()
+        try {
+            seedWorkspace(database, "owner", withCapability = true)
+            seedWorkspace(database, "h1-child")
+            seedWorkspace(database, "v1-only-child", parentWorkspaceId = "owner")
+
+            val repository = repository(database)
+            val h1Structural =
+                repository.addEntry("owner", workspaceTarget("h1-child"), now = 10L)
+            val v1Only =
+                repository.addEntry("owner", workspaceTarget("v1-only-child"), now = 11L)
+
+            database.hierarchyPlacementDao().upsertAll(
+                listOf(
+                    HierarchyPlacementEntity(
+                        id = "owner-root",
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = "owner",
+                        parentPlacementId = null,
+                        placementKind = "PRIMARY",
+                        siblingOrder = 0L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    ),
+                    HierarchyPlacementEntity(
+                        id = "h1-child-placement",
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = "h1-child",
+                        parentPlacementId = "owner-root",
+                        placementKind = "PRIMARY",
+                        siblingOrder = 0L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    ),
+                    HierarchyPlacementEntity(
+                        id = "v1-only-root",
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = "v1-only-child",
+                        parentPlacementId = null,
+                        placementKind = "PRIMARY",
+                        siblingOrder = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    ),
+                ),
+            )
+
+            assertEquals(
+                1,
+                repository.tombstoneDanglingAndStructuralEntriesForAuthority(
+                    now = 20L,
+                    hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                ),
+            )
+            assertTrue(requireNotNull(repository.getEntry(h1Structural)).isDeleted)
+            assertFalse(requireNotNull(repository.getEntry(v1Only)).isDeleted)
         } finally {
             database.close()
         }

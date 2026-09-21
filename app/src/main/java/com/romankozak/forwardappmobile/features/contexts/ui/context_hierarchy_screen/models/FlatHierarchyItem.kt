@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 
 /**
  * Read-only normal-hierarchy display item.
@@ -14,6 +15,7 @@ data class FlatHierarchyPresentationItem(
     val level: Int,
     val isLinkedAppearance: Boolean = false,
     val isCanonicalWorkspace: Boolean = false,
+    val placementId: PlacementId? = null,
 )
 
 data class OrientationHierarchyItem(
@@ -24,6 +26,21 @@ data class OrientationHierarchyItem(
 sealed interface OrientationHierarchyNode {
     val id: String
     val title: String
+
+    /**
+     * Exact persisted occurrence identity for concrete V2 hierarchy rows.
+     * Synthetic presentation scopes and CURRENT V1 rows intentionally have no
+     * PlacementId.
+     */
+    val placementId: PlacementId?
+        get() = null
+
+    /**
+     * Structural UI identity. Concrete V2 duplicates remain independent even
+     * when they share the same presentation/target id.
+     */
+    val structuralKey: String
+        get() = placementId?.let { "placement:${it.value}" } ?: id
 
     sealed interface ProjectLike : OrientationHierarchyNode {
         /** Read-only presentation; never reconstructed as a persistable Context. */
@@ -45,6 +62,7 @@ sealed interface OrientationHierarchyNode {
         override val title: String,
         val readinessStatus: MainBeaconReadinessStatus,
         val relatedContextCount: Int,
+        override val placementId: PlacementId? = null,
     ) : OrientationHierarchyNode
 
     data object NoBeacon : OrientationHierarchyNode {
@@ -61,6 +79,7 @@ sealed interface OrientationHierarchyNode {
         override val presentation: HierarchyContextPresentationNode,
         override val linkedBeaconIds: Set<String>,
         override val isLinkedAppearance: Boolean = false,
+        override val placementId: PlacementId? = null,
     ) : ProjectLike {
         override val id: String = presentation.id
         override val title: String = presentation.name

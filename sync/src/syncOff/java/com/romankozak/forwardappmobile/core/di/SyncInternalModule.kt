@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.core.di
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import com.romankozak.forwardappmobile.sync.SyncApi
 import com.romankozak.forwardappmobile.sync.NoOpAttachmentsRepository
-import com.romankozak.forwardappmobile.sync.NoOpSyncApiImpl
+import com.romankozak.forwardappmobile.sync.NoOpSyncApi
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -19,5 +19,5 @@ abstract class SyncInternalModule {
 
     @Binds
     @Singleton
-    abstract fun bindSyncApi(impl: NoOpSyncApiImpl): SyncApi
+    abstract fun bindSyncApi(impl: NoOpSyncApi): SyncApi
 }

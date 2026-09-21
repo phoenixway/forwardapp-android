@@ -60,6 +60,108 @@ entity-aware UI. A persisted Workspace start-view preference is likewise not
 introduced until its canonical navigation/capability policy is explicitly
 designed.
 
+### Architecture epochs and Canonical Hierarchy V2
+
+Cross-cutting epoch and authority rules are defined by
+`docs/governance/PROJECT-CONSTITUTION.md`.
+
+ForwardApp has two distinct migration programs that remain visible and
+independently tracked.
+
+**Epic A - Legacy -> Canonical V1: CURRENT / IN PROGRESS.**
+
+This is the existing Context / Orientation / Aspect / Workspace canonical
+cutover program.
+
+Context Persistence Extinction remains unfinished:
+
+- Step 12D is `CURRENT / IN PROGRESS`;
+- Step 12E is `DECIDED / NOT STARTED`.
+
+Canonical V2 hierarchy work does not complete, supersede, cancel, or
+silently postpone Epic A.
+
+**Epic B - Canonical V1 -> Canonical V2 hierarchy: DECIDED.**
+
+The accepted target is
+`docs/architecture/orientation-workspace-refactor/HIERARCHY-PLACEMENT-CONTRACT-V2.md`.
+
+Canonical V1 remains runtime authority until each individual V2 slice
+completes its explicit cutover.
+
+V2 hierarchy migration uses classified CURRENT Canonical V1 authority as
+its source. Legacy state must not be promoted into new V2 hierarchy
+authority.
+
+The V2 hierarchy program is dependency-ordered:
+
+1. **H0 governance and authority checkpoint - COMPLETE.**
+   Establish the constitution, V1/V2 contract boundary, epoch
+   classification rules, dual-epic roadmap, and canonical documentation
+   entry points before schema or runtime hierarchy mutation.
+2. **H1 schema and domain foundation - COMPLETE.**
+   H1.1-H1.4 are implemented and targeted HOST verified while V1 hierarchy
+   authority remains unchanged. H1.5 repaired and HOST verified the pre-existing
+   CURRENT `SYNC_ENABLED=false` / `syncOff` source-set/DI build capability,
+   closing the final H1 readiness gate.
+3. **H2 V1 -> V2 materialization - COMPLETE / HOST VERIFIED.**
+   `CanonicalV1HierarchySnapshot` captures classified CURRENT V1 visible
+   occurrences and materializes deterministic V2 placements transactionally.
+   Canonical target resolution is fail-closed; CURRENT sibling ordering,
+   including stable ties, is preserved; ambiguous PRIMARY is diagnosed rather
+   than guessed; exact reruns are idempotent; conflicting pre-existing V2 state
+   fails without mutation. No ongoing dual-write or runtime authority cutover
+   has been introduced. Production compile, H1 placement seams, H2 coverage and
+   CURRENT V1 mutation/clipboard seams are HOST green.
+4. **H3 read cutover - IN PROGRESS / STANDALONE CUTOVER BLOCKED.**
+   H3.1 V2 projection/parity is COMPLETE / HOST VERIFIED: persisted occurrence
+   topology, synthetic presentation, System Workspace visibility,
+   first-visible focus and breadcrumbs are covered, and the authority audit
+   confirms no production reader cutover or dual-write. H3.2 established that
+   the one-time H2 materialization has no freshness mechanism after CURRENT V1
+   topology mutation. Production V2 read authority therefore cannot switch
+   independently without becoming stale.
+5. **H4 mutation cutover - IN PROGRESS / P2 READY. P0/P1 and
+   H4.0c-H4.0e are COMPLETE / HOST VERIFIED. P2 is NOT STARTED.**
+   H4.0a/P0 provides occurrence-aware carriers and dormant commands.
+   H4.0b/P1 defines explicit mixed-domain structural, semantic, operational and
+   target-lifecycle semantics, including exact selected-LINK movement.
+   H4.0c provides dormant transport/restore authority readiness while CURRENT
+   production remains `CURRENT_PRE_CUTOVER`; supported legacy hierarchy
+   canonicalization remains Restore-only.
+   H4.0d provides the dormant persisted V2 reader, exact `PlacementId`
+   navigation/read contract, CoreLevel/Search occurrence projections,
+   Group/NoGroup planning and the no-fallback CURRENT/V2 authority router.
+   H4.0e closes the final pre-P2 blockers. Schema-v176 GroupScope preserves
+   exact root occurrence Group/NoGroup provenance. Selective import now clears
+   inherited H1/GroupScope, derives exact selected source-H1 occurrence closure
+   internally from target/feature selection, preserves duplicate occurrences
+   and LINK-owned subtrees, carries exact GroupScope and required canonical
+   dependencies, fails closed on malformed provenance, and uses a dedicated
+   selective merge boundary with delta GroupScope semantics. No
+   occurrence-selection UI was introduced.
+   Focused selective hierarchy, retirement, BACKLOG/execution-log, ingress,
+   merge/store and syncOff HOST gates plus production Kotlin compile are green.
+   Static audit confirms no reader/writer activation, dual-write, runtime
+   rematerialization, V1 fallback or selective-import Restore translation.
+   The 13-point pre-P2 readiness gate has no unresolved semantic blocker.
+   **NEXT: P2 combined production hierarchy authority activation.** P2 must
+   perform the authority transfer coherently and re-run the full production
+   gate as activation evidence.
+
+6. **H5 compatibility and composition retirement - DECIDED / NOT STARTED.**
+   Retire hierarchy composition/projection machinery whose structural
+   ownership has been replaced, while preserving separately justified
+   semantic and compatibility structures.
+7. **H6 obsolete V1 hierarchy-storage retirement - DECIDED / NOT STARTED.**
+   Retire old structural parent/order authority only after read/write,
+   persistence, transport, backup/restore, migration, and
+   anti-resurrection accounting is complete.
+
+No V1 hierarchy-related field, cross-reference, relation, or specialized
+structure is considered obsolete merely because V2 has been accepted.
+Its epoch and ownership must be classified before migration or retirement.
+
 ## Reserved System Context extinction
 
 The final target is to retain the stable `sys_*` operational identities as

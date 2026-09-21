@@ -19,6 +19,9 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC")
     fun getAllContexts(): Flow<List<Context>>
 
+    @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC")
+    suspend fun getAllActiveOrdered(): List<Context>
+
     @Query("SELECT * FROM contexts")
     suspend fun getAll(): List<Context>
 

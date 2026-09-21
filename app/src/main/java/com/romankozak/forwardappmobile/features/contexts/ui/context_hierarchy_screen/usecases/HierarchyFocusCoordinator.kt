@@ -18,13 +18,20 @@ class HierarchyFocusCoordinator
         fun focusOrientationNode(
             nodeId: String,
             orientationHierarchy: List<OrientationHierarchyItem>,
+            placementId: String? = null,
         ) {
             searchUseCase.currentBreadcrumbs.value =
                 buildOrientationBreadcrumbs(
                     items = orientationHierarchy,
                     nodeId = nodeId,
+                    placementId = placementId,
                 )
-            searchUseCase.pushSubState(ProjectHierarchyScreenSubState.OrientationFocused(nodeId))
+            searchUseCase.pushSubState(
+                ProjectHierarchyScreenSubState.OrientationFocused(
+                    nodeId = nodeId,
+                    placementId = placementId,
+                ),
+            )
         }
 
         fun navigateToBreadcrumb(breadcrumb: BreadcrumbItem) {
@@ -43,6 +50,7 @@ class HierarchyFocusCoordinator
          */
         fun revealProject(
             projectId: String,
+            placementId: String? = null,
             currentHierarchy: HierarchyPresentationData,
             currentSubState: MainSubState,
             currentBreadcrumbs: List<BreadcrumbItem>,
@@ -59,7 +67,14 @@ class HierarchyFocusCoordinator
                 buildOrientationBreadcrumbsToContext(
                     items = orientationHierarchy,
                     contextId = projectId,
+                    placementId = placementId,
                 )
+
+            // Exact occurrence identity is authoritative when supplied.
+            // Never reinterpret a missing/malformed PlacementId as target-only
+            // navigation through the legacy presentation tree.
+            if (placementId != null && orientationBreadcrumbs.isEmpty()) return
+
             if (orientationBreadcrumbs.isNotEmpty()) {
                 searchUseCase.navigateToProjectWithBreadcrumbs(
                     projectId = projectId,
@@ -82,19 +97,25 @@ class HierarchyFocusCoordinator
                     searchUseCase.enterProjectFocusPath(
                         projectId = projectId,
                         breadcrumbs = orientationBreadcrumbs,
+                        placementId = placementId,
                     )
                 } else {
-                    searchUseCase.enterProjectFocus(projectId)
+                    searchUseCase.enterProjectFocus(
+                        projectId = projectId,
+                        placementId = placementId,
+                    )
                 }
             }
         }
 
         fun handleBackNavigation(
             currentHierarchy: HierarchyPresentationData,
+            orientationHierarchy: List<OrientationHierarchyItem>,
             goBack: () -> Unit,
         ) {
             searchUseCase.handleBackNavigation(
                 currentHierarchy = currentHierarchy,
+                orientationHierarchy = orientationHierarchy,
                 goBack = goBack,
             )
         }
@@ -113,9 +134,11 @@ class HierarchyFocusCoordinator
             val orientationState = currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused
                 ?: return emptyList()
             val rootNode =
-                orientationHierarchy
-                    .firstOrNull { item -> item.node.id == orientationState.nodeId }
-                    ?.node
+                findOrientationHierarchyItem(
+                    items = orientationHierarchy,
+                    nodeId = orientationState.nodeId,
+                    placementId = orientationState.placementId,
+                )?.node
                     ?: return emptyList()
             return listOf(
                 BreadcrumbItem(
@@ -123,6 +146,7 @@ class HierarchyFocusCoordinator
                     name = rootNode.title,
                     level = 0,
                     target = BreadcrumbTarget.OrientationNode,
+                    placementId = rootNode.placementId?.value,
                 ),
             )
         }

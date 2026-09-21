@@ -25,12 +25,14 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItem
 
 /** Renders the focused operational owner exclusively from ProjectLike presentation. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FocusedProjectView(
     focusedProjectId: String,
+    focusedPlacementId: String?,
     presentationHierarchy: HierarchyPresentationData,
     orientationHierarchy: List<OrientationHierarchyItem>,
     directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
@@ -41,14 +43,25 @@ fun FocusedProjectView(
     selectedContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
-    val focusedPresentation =
-        remember(orientationHierarchy, presentationHierarchy, focusedProjectId) {
-            (orientationHierarchy
-                .firstOrNull { it.node.id == focusedProjectId }
-                ?.node as? OrientationHierarchyNode.ProjectLike)
-                ?.presentation
-                ?: presentationHierarchy.allProjects.firstOrNull { it.id == focusedProjectId }
+    val focusedNode =
+        remember(orientationHierarchy, focusedProjectId, focusedPlacementId) {
+            findOrientationHierarchyItem(
+                items = orientationHierarchy,
+                nodeId = focusedProjectId,
+                placementId = focusedPlacementId,
+            )?.node as? OrientationHierarchyNode.ProjectLike
         }
+    val focusedPresentation =
+        focusedNode?.presentation
+            ?: if (focusedPlacementId == null) {
+                presentationHierarchy.allProjects.firstOrNull { it.id == focusedProjectId }
+            } else {
+                null
+            }
+    val focusedStructuralKey =
+        focusedNode?.structuralKey
+            ?: focusedPlacementId?.let { "placement:$it" }
+            ?: focusedProjectId
 
     if (focusedPresentation == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -59,13 +72,16 @@ fun FocusedProjectView(
 
     FocusedPresentationProjectView(
         project = focusedPresentation,
+        focusedNode = focusedNode,
         children =
             focusedProjectLikeItems(
                 focusedProjectId = focusedProjectId,
-                directChildren = directChildrenByNodeId[focusedProjectId].orEmpty(),
+                directChildren = directChildrenByNodeId[focusedStructuralKey].orEmpty(),
                 presentationHierarchy = presentationHierarchy,
+                focusedPlacementId = focusedPlacementId,
             ),
         breadcrumbs = breadcrumbs,
+        directChildrenByNodeId = directChildrenByNodeId,
         isSearchActive = isSearchActive,
         searchQuery = searchQuery,
         isSelectionMode = isSelectionMode,
@@ -78,8 +94,10 @@ fun FocusedProjectView(
 @Composable
 private fun FocusedPresentationProjectView(
     project: HierarchyContextPresentationNode,
+    focusedNode: OrientationHierarchyNode.ProjectLike?,
     children: List<FlatHierarchyPresentationItem>,
     breadcrumbs: List<BreadcrumbItem>,
+    directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
     isSearchActive: Boolean,
     searchQuery: String,
     isSelectionMode: Boolean,
@@ -97,14 +115,25 @@ private fun FocusedPresentationProjectView(
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 PresentationHierarchyRow(
-                    item = FlatHierarchyPresentationItem(project = project, level = 0),
+                    item =
+                        FlatHierarchyPresentationItem(
+                            project = project,
+                            level = 0,
+                            placementId = focusedNode?.placementId,
+                        ),
                     childCount = children.size,
                     isSearchActive = isSearchActive,
                     searchQuery = searchQuery,
                     isFocused = true,
                     isHighlighted = false,
                     onProjectClick = {
-                        onEvent(focusedPresentationClickEvent(it, isActiveHeader = true))
+                        onEvent(
+                            focusedPresentationClickEvent(
+                                projectId = it,
+                                placementId = focusedNode?.placementId?.value,
+                                isActiveHeader = true,
+                            ),
+                        )
                     },
                     onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                     isSelectionMode = isSelectionMode,
@@ -117,16 +146,22 @@ private fun FocusedPresentationProjectView(
         if (children.isEmpty()) {
             item(key = "empty_presentation_state") { FocusedEmptyState("No workspaces") }
         } else {
-            items(children, key = { it.project.id }) { child ->
+            items(children, key = { it.structuralKey }) { child ->
                 PresentationHierarchyRow(
                     item = child,
-                    childCount = 0,
+                    childCount = directChildrenByNodeId[child.structuralKey].orEmpty().size,
                     isSearchActive = isSearchActive,
                     searchQuery = searchQuery,
                     isFocused = false,
                     isHighlighted = false,
                     onProjectClick = {
-                        onEvent(focusedPresentationClickEvent(it, isActiveHeader = false))
+                        onEvent(
+                            focusedPresentationClickEvent(
+                                projectId = it,
+                                placementId = child.placementId?.value,
+                                isActiveHeader = false,
+                            ),
+                        )
                     },
                     onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                     isSelectionMode = isSelectionMode,
@@ -149,31 +184,45 @@ internal fun focusedPresentationItems(
                 level = 0,
                 isLinkedAppearance = node.isLinkedAppearance,
                 isCanonicalWorkspace = node.isCanonicalWorkspace,
+                placementId = node.placementId,
             )
         }
-    }.distinctBy { it.project.id }
+    }.distinctBy { it.structuralKey }
+
+private val FlatHierarchyPresentationItem.structuralKey: String
+    get() = placementId?.let { "placement:${it.value}" } ?: project.id
 
 internal fun focusedProjectLikeItems(
     focusedProjectId: String,
     directChildren: List<OrientationHierarchyItem>,
     presentationHierarchy: HierarchyPresentationData,
-): List<FlatHierarchyPresentationItem> =
-    focusedPresentationItems(directChildren)
+    focusedPlacementId: String? = null,
+): List<FlatHierarchyPresentationItem> {
+    val occurrenceChildren = focusedPresentationItems(directChildren)
+    if (focusedPlacementId != null) {
+        return occurrenceChildren
+    }
+    return occurrenceChildren
         .ifEmpty {
             presentationHierarchy.childMap[focusedProjectId]
                 .orEmpty()
                 .map { FlatHierarchyPresentationItem(project = it, level = 0) }
         }
-        .distinctBy { it.project.id }
+        .distinctBy { it.structuralKey }
+}
 
 internal fun focusedPresentationClickEvent(
     projectId: String,
+    placementId: String? = null,
     isActiveHeader: Boolean,
 ): ContextHierarchyScreenEvent =
     if (isActiveHeader) {
         ContextHierarchyScreenEvent.ContextClick(projectId)
     } else {
-        ContextHierarchyScreenEvent.FocusHierarchyProject(projectId)
+        ContextHierarchyScreenEvent.FocusHierarchyProject(
+            projectId = projectId,
+            placementId = placementId,
+        )
     }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -200,7 +249,11 @@ fun FocusedOrientationNodeView(
     }
     val breadcrumbs =
         remember(orientationHierarchy, focusedRoot) {
-            buildOrientationBreadcrumbs(orientationHierarchy, focusedRoot.node.id)
+            buildOrientationBreadcrumbs(
+                items = orientationHierarchy,
+                nodeId = focusedRoot.node.id,
+                placementId = focusedRoot.node.placementId?.value,
+            )
         }
     val projectChildren = remember(directChildren) { focusedPresentationItems(directChildren) }
     val beaconChildren = directChildren.filter { it.node is OrientationHierarchyNode.Beacon }
@@ -243,8 +296,15 @@ fun FocusedOrientationNodeView(
             BeaconRootHeaderRow(
                 node = node,
                 level = 0,
-                childCount = directChildrenByNodeId[node.id].orEmpty().size,
-                onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
+                onClick = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.OrientationNodeClick(
+                            nodeId = node.id,
+                            placementId = node.placementId?.value,
+                        ),
+                    )
+                },
                 onEditBeacon = { onEditBeacon(node.id) },
                 onDeleteBeacon = { onDeleteBeacon(node.id) },
                 onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
@@ -254,16 +314,22 @@ fun FocusedOrientationNodeView(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
-        items(projectChildren, key = { "project-${it.project.id}" }) { item ->
+        items(projectChildren, key = { "project-${it.structuralKey}" }) { item ->
             PresentationHierarchyRow(
                 item = item,
-                childCount = directChildrenByNodeId[item.project.id].orEmpty().size,
+                childCount = directChildrenByNodeId[item.structuralKey].orEmpty().size,
                 isSearchActive = isSearchActive,
                 searchQuery = searchQuery,
                 isFocused = false,
                 isHighlighted = item.project.id == highlightedProjectId,
                 onProjectClick = {
-                    onEvent(focusedPresentationClickEvent(it, isActiveHeader = false))
+                    onEvent(
+                        focusedPresentationClickEvent(
+                            projectId = it,
+                            placementId = item.placementId?.value,
+                            isActiveHeader = false,
+                        ),
+                    )
                 },
                 onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                 isSelectionMode = isSelectionMode,

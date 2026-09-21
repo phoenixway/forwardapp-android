@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceHierarchyUpdate
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
@@ -123,6 +124,7 @@ class ContextRepository
         private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
         private val canonicalBacklogRepository: CanonicalBacklogRepository,
         private val backlogPresentationLifecycle: BacklogPresentationLifecycle,
+        private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -742,6 +744,7 @@ class ContextRepository
                 canonicalConnectionsRepository.tombstoneOwnedContentForWorkspaces(ids, now)
                 canonicalBacklogRepository.tombstoneOwnedContentForWorkspaces(ids, now)
                 contextLogRepository.tombstoneOwnedContentForWorkspaces(ids, now)
+                hierarchyPlacementLifecycleCoordinator.tombstoneWorkspaceTargets(ids, now)
                 contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
             }
         }

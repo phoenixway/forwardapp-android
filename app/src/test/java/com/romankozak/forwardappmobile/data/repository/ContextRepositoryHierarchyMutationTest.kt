@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
@@ -469,6 +470,7 @@ class ContextRepositoryHierarchyMutationTest {
             canonicalConnectionsRepository = mockk(relaxed = true),
             canonicalBacklogRepository = mockk(relaxed = true),
             backlogPresentationLifecycle = mockk(relaxed = true),
+            hierarchyPlacementLifecycleCoordinator = mockk(relaxed = true),
         )
     }
 

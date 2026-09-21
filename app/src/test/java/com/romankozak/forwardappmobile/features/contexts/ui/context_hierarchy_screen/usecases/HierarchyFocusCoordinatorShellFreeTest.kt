@@ -65,11 +65,66 @@ class HierarchyFocusCoordinatorShellFreeTest {
             listOf("virtual:no-beacon", systemParent.id, system.id),
             breadcrumbs.captured.map { it.id },
         )
-        assertEquals(BreadcrumbTarget.OrientationNode, breadcrumbs.captured.last().target)
+        assertEquals(BreadcrumbTarget.Context, breadcrumbs.captured.last().target)
         verify {
             searchUseCase.enterProjectFocusPath(
                 projectId = system.id,
                 breadcrumbs = any(),
+            )
+        }
+    }
+
+    @Test
+    fun exactPlacementRevealFailsClosedInsteadOfFallingBackToTargetNavigation() {
+        val visible = presentation(SystemContexts.STRATEGIC.raw, "Canonical Direction")
+        val searchUseCase = mockk<SearchUseCase>(relaxed = true)
+        val coordinator = HierarchyFocusCoordinator(searchUseCase)
+        val orientation =
+            listOf(
+                OrientationHierarchyItem(
+                    OrientationHierarchyNode.WorkspaceNode(
+                        presentation = visible,
+                        linkedBeaconIds = emptySet(),
+                    ),
+                    level = 0,
+                ),
+            )
+
+        coordinator.revealProject(
+            projectId = visible.id,
+            placementId = "missing-placement",
+            currentHierarchy = HierarchyPresentationData(allProjects = listOf(visible)),
+            currentSubState = ProjectHierarchyScreenSubState.Hierarchy,
+            currentBreadcrumbs = emptyList(),
+            orientationHierarchy = orientation,
+            enterFocus = true,
+            replaceFocusPath = true,
+        )
+
+        verify(exactly = 0) {
+            searchUseCase.navigateToProject(
+                projectId = any(),
+                currentHierarchy = any(),
+                breadcrumbPrefix = any(),
+            )
+        }
+        verify(exactly = 0) {
+            searchUseCase.navigateToProjectWithBreadcrumbs(
+                projectId = any(),
+                breadcrumbs = any(),
+            )
+        }
+        verify(exactly = 0) {
+            searchUseCase.enterProjectFocus(
+                projectId = any(),
+                placementId = any(),
+            )
+        }
+        verify(exactly = 0) {
+            searchUseCase.enterProjectFocusPath(
+                projectId = any(),
+                breadcrumbs = any(),
+                placementId = any(),
             )
         }
     }

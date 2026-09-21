@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -16,13 +17,32 @@ import org.junit.Test
 
 class MergeRepositorySnapshotTest {
     private lateinit var mergeRepository: MergeRepository
+    private lateinit var mockMergeLocalDataSource: MergeLocalDataSource
     private val mockLocalDataSource: FullBackupLocalDataSource = mockk()
     private val syncLogicHelper: SyncLogicHelper = SyncLogicHelper()
 
     @Before
     fun setup() {
-        val mockMergeLocalDataSource: MergeLocalDataSource = mockk()
+        mockMergeLocalDataSource = mockk()
         mergeRepository = MergeRepository(mockMergeLocalDataSource, mockLocalDataSource, syncLogicHelper)
+    }
+
+    @Test
+    fun `selective snapshot import uses selective merge boundary only`() = runBlocking {
+        val bundle = SnapshotBundle(version = 2)
+        coEvery {
+            mockMergeLocalDataSource.applySelectiveSnapshotBundle(bundle)
+        } returns Unit
+
+        val result = mergeRepository.importSelectedSnapshotBundle(bundle)
+
+        assertThat(result.isSuccess).isTrue()
+        coVerify(exactly = 1) {
+            mockMergeLocalDataSource.applySelectiveSnapshotBundle(bundle)
+        }
+        coVerify(exactly = 0) {
+            mockMergeLocalDataSource.applySnapshotBundle(any())
+        }
     }
 
     @Test

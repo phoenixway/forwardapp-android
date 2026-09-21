@@ -19,6 +19,16 @@ interface ContextParentLinkDao {
     )
     fun observeActiveLinks(): Flow<List<ContextParentLink>>
 
+    @Query(
+        """
+        SELECT *
+        FROM context_parent_links
+        WHERE is_deleted = 0
+        ORDER BY parent_context_id ASC, link_order ASC
+        """,
+    )
+    suspend fun getActiveLinksOrdered(): List<ContextParentLink>
+
     @Query("SELECT * FROM context_parent_links WHERE is_deleted = 0")
     suspend fun getActiveLinks(): List<ContextParentLink>
 

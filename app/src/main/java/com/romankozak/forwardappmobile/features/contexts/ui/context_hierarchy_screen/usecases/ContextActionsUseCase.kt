@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentL
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.NO_GROUP_NODE_ID
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantIdsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -85,10 +84,8 @@ class ContextActionsUseCase
 
         suspend fun onDeleteProjectConfirmed(
             projectId: String,
-            childMap: Map<String, List<Context>>,
         ) = withContext(ioDispatcher) {
-            val descendantIds = findDescendantIdsForDeletion(projectId, childMap)
-            contextRepository.deleteContextsByIds(listOf(projectId) + descendantIds)
+            canonicalWorkspaceRepository.tombstoneSubtree(projectId)
         }
 
         fun getMoveProjectRoute(

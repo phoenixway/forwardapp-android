@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
+import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
@@ -84,6 +85,59 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 @RunWith(RobolectricTestRunner::class)
 class SystemCapabilityTransportRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `H1 full export carries live and tombstoned placements including syncedAt`() = runBlocking {
+        val database = database()
+        try {
+            val workspace = canonicalWorkspace("h1-export-workspace")
+            database.workspaceDao().upsert(listOf(workspace))
+            database.hierarchyPlacementDao().upsertAll(
+                listOf(
+                    HierarchyPlacementEntity(
+                        id = "h1-live",
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = workspace.id,
+                        parentPlacementId = null,
+                        placementKind = "PRIMARY",
+                        siblingOrder = 0L,
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                        syncedAt = 15L,
+                        isDeleted = false,
+                        version = 2L,
+                    ),
+                    HierarchyPlacementEntity(
+                        id = "h1-deleted",
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = workspace.id,
+                        parentPlacementId = null,
+                        placementKind = "LINK",
+                        siblingOrder = 1L,
+                        createdAt = 11L,
+                        updatedAt = 30L,
+                        syncedAt = 25L,
+                        isDeleted = true,
+                        version = 3L,
+                    ),
+                ),
+            )
+
+            val exported =
+                requireNotNull(fullBackup(database).loadFullSnapshotBundle().hierarchyPlacements)
+                    .associateBy { it.id }
+
+            assertEquals(setOf("h1-live", "h1-deleted"), exported.keys)
+            assertFalse(exported.getValue("h1-live").isDeleted)
+            assertTrue(exported.getValue("h1-deleted").isDeleted)
+            assertEquals(15L, exported.getValue("h1-live").syncedAt)
+            assertEquals(25L, exported.getValue("h1-deleted").syncedAt)
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `full export carries all eight System capability instances losslessly`() = runBlocking {

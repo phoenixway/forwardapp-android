@@ -59,6 +59,14 @@ interface OrientationDao {
     @Query("SELECT * FROM orientation_relations")
     suspend fun getAllOrientationRelations(): List<OrientationRelationEntity>
 
+    @Query(
+        """
+        SELECT * FROM orientation_relations
+        ORDER BY relationType, fromOrientationId, relationOrder, toOrientationId, id
+        """,
+    )
+    fun observeOrientationRelations(): Flow<List<OrientationRelationEntity>>
+
     @Query("SELECT * FROM aspect_orientation_refs")
     suspend fun getAllAspectOrientationRefs(): List<AspectOrientationRefEntity>
 

@@ -36,6 +36,9 @@ import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
@@ -116,6 +119,13 @@ class MergeLocalDataSourceImpl
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
         private val tagAssociationHandler: TagAssociationHandler,
     ) : MergeLocalDataSource {
+        private val canonicalHierarchyPlacementSyncStore =
+            CanonicalHierarchyPlacementSyncStore(db)
+        private val canonicalHierarchyPlacementGroupScopeSyncStore =
+            CanonicalHierarchyPlacementGroupScopeSyncStore(db)
+        private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
+            CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
+
         override suspend fun getContexts(): List<Context> {
             val retiredContextIds = db.canonicalRetiredContextIds()
             return contextDao
@@ -239,8 +249,19 @@ class MergeLocalDataSourceImpl
             applyCanonicalSnapshotBundle(bundle)
         }
 
+        override suspend fun applySelectiveSnapshotBundle(bundle: SnapshotBundle) {
+            requireCanonicalMergeIngress(bundle)
+            applyCanonicalSnapshotBundle(
+                bundle = bundle,
+                selectiveHierarchyDelta = true,
+            )
+        }
+
         /** Shared canonical writer used by merge and atomic replace after ingress validation. */
-        internal suspend fun applyCanonicalSnapshotBundle(bundle: SnapshotBundle) {
+        internal suspend fun applyCanonicalSnapshotBundle(
+            bundle: SnapshotBundle,
+            selectiveHierarchyDelta: Boolean = false,
+        ) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
 
@@ -695,6 +716,28 @@ class MergeLocalDataSourceImpl
                 canonicalWorkspaceInboxSyncStore.mergeIncoming(bundle.workspaceInboxRecords)
                 canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
                 canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
+                canonicalHierarchyPlacementSyncStore.mergeIncoming(bundle.hierarchyPlacements)
+                val incomingHierarchyPlacementIds =
+                    bundle.hierarchyPlacements
+                        .orEmpty()
+                        .mapTo(linkedSetOf()) { it.id }
+                if (selectiveHierarchyDelta) {
+                    canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncomingSelective(
+                        incoming = bundle.hierarchyPlacementGroupScopes,
+                        incomingPlacementIds = incomingHierarchyPlacementIds,
+                    )
+                    canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncomingSelective(
+                        incoming = bundle.hierarchyPlacementLinkedAppearances,
+                        incomingPlacementIds = incomingHierarchyPlacementIds,
+                    )
+                } else {
+                    canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncoming(
+                        bundle.hierarchyPlacementGroupScopes,
+                    )
+                    canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncoming(
+                        bundle.hierarchyPlacementLinkedAppearances,
+                    )
+                }
                 },
                 afterRefresh = {
                     // Exact reserved System Contexts are never projected as

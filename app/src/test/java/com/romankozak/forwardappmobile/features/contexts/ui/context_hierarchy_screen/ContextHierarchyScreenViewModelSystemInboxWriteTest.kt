@@ -153,6 +153,13 @@ class ContextHierarchyScreenViewModelSystemInboxWriteTest {
         every { clipboardCoordinator.uiState } returns
             MutableStateFlow<Pair<Set<String>, ContextClipboardOperationUi?>>(emptySet<String>() to null)
         every { clipboardCoordinator.hasBeaconPayload } returns MutableStateFlow(false)
+
+        val workspaceClipboardCoordinator =
+            mockk<com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.WorkspaceClipboardCoordinator>(
+                relaxed = true,
+            )
+        every { workspaceClipboardCoordinator.uiState } returns
+            MutableStateFlow<Pair<Set<String>, ContextClipboardOperationUi?>>(emptySet<String>() to null)
         val contextMarkerHandler = mockk<ContextMarkerHandler>(relaxed = true)
         every { contextMarkerHandler.contextMarkerToEmojiMap } returns MutableStateFlow(emptyMap<String, String>())
         val focusContextRepository = mockk<FocusContextRepository>(relaxed = true)
@@ -193,6 +200,7 @@ class ContextHierarchyScreenViewModelSystemInboxWriteTest {
             settingsUseCase = mockk<SettingsUseCase>(relaxed = true),
             projectHierarchyScreenStateUseCase = hierarchyStateUseCase,
             contextClipboardCoordinator = clipboardCoordinator,
+            workspaceClipboardCoordinator = workspaceClipboardCoordinator,
             hierarchyFocusCoordinator = mockk<HierarchyFocusCoordinator>(relaxed = true),
             contextSelectionCoordinator = ContextSelectionCoordinator(),
             contextDialogActionCoordinator = mockk<ContextDialogActionCoordinator>(relaxed = true),

@@ -11,6 +11,12 @@ import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonic
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncVersion
@@ -56,6 +62,9 @@ internal data class CanonicalWifiPushPlan(
     val orientationsAck: CanonicalOrientationSyncAck,
     val executionLogsAck: List<CanonicalExecutionLogSyncVersion>,
     val directionEntriesAck: List<WorkspaceDirectionEntrySyncVersion>,
+    val hierarchyPlacementsAck: List<HierarchyPlacementSyncVersion>,
+    val hierarchyPlacementGroupScopesAck: List<HierarchyPlacementGroupScopeSyncVersion>,
+    val hierarchyPlacementLinkedAppearancesAck: List<HierarchyPlacementLinkedAppearanceSyncVersion>,
     val workspaceConnectionsAck: List<WorkspaceConnectionSyncVersion>,
     val workspaceBacklogAck: List<WorkspaceBacklogEntrySyncVersion>,
     val workspaceProblemsAck: CanonicalWorkspaceProblemSyncAck,
@@ -121,6 +130,9 @@ internal fun shouldPushCanonicalWifi(
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     dirtyCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -133,6 +145,9 @@ internal fun shouldPushCanonicalWifi(
         dirtyCanonicalOrientations.hasChanges() ||
         dirtyCanonicalExecutionLogs.isNotEmpty() ||
         dirtyCanonicalDirectionEntries.isNotEmpty() ||
+        dirtyCanonicalHierarchyPlacements.isNotEmpty() ||
+        dirtyCanonicalHierarchyPlacementGroupScopes.isNotEmpty() ||
+        dirtyCanonicalHierarchyPlacementLinkedAppearances.isNotEmpty() ||
         dirtyCanonicalWorkspaceConnections.isNotEmpty() ||
         dirtyCanonicalWorkspaceBacklog.isNotEmpty() ||
         dirtyCanonicalWorkspaceProblems.hasChanges() ||
@@ -146,6 +161,9 @@ internal fun buildCanonicalWifiPushPlan(
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     dirtyCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
+    dirtyCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -163,6 +181,11 @@ internal fun buildCanonicalWifiPushPlan(
                 explicitCanonicalOrientations = dirtyCanonicalOrientations,
                 explicitCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                explicitCanonicalHierarchyPlacements = dirtyCanonicalHierarchyPlacements,
+                explicitCanonicalHierarchyPlacementGroupScopes =
+                    dirtyCanonicalHierarchyPlacementGroupScopes,
+                explicitCanonicalHierarchyPlacementLinkedAppearances =
+                    dirtyCanonicalHierarchyPlacementLinkedAppearances,
                 explicitCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                 explicitCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -198,6 +221,24 @@ internal fun buildCanonicalWifiPushPlan(
         directionEntriesAck =
             dirtyCanonicalDirectionEntries.map { entry ->
                 WorkspaceDirectionEntrySyncVersion(entry.id, entry.version)
+            },
+        hierarchyPlacementsAck =
+            dirtyCanonicalHierarchyPlacements.map { placement ->
+                HierarchyPlacementSyncVersion(placement.id, placement.version)
+            },
+        hierarchyPlacementGroupScopesAck =
+            dirtyCanonicalHierarchyPlacementGroupScopes.map { scope ->
+                HierarchyPlacementGroupScopeSyncVersion(
+                    placementId = scope.placementId,
+                    version = scope.version,
+                )
+            },
+        hierarchyPlacementLinkedAppearancesAck =
+            dirtyCanonicalHierarchyPlacementLinkedAppearances.map { linked ->
+                HierarchyPlacementLinkedAppearanceSyncVersion(
+                    placementId = linked.placementId,
+                    version = linked.version,
+                )
             },
         workspaceConnectionsAck =
             dirtyCanonicalWorkspaceConnections.map { connection ->
@@ -269,6 +310,8 @@ private fun buildSnapshotSelectionDelta(
         // Canonical streams are injected below by buildCanonicalSnapshotDelta().
         canonicalExecutionLogs = null,
         workspaceDirectionEntries = null,
+        hierarchyPlacements = null,
+        hierarchyPlacementGroupScopes = null,
         workspaceConnections = null,
         workspaceBacklogEntries = null,
         workspaceProblems = null,
@@ -307,6 +350,9 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     explicitCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     explicitCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    explicitCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
+    explicitCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
+    explicitCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
     explicitCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     explicitCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     explicitCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -325,6 +371,10 @@ internal fun buildCanonicalSnapshotDelta(
     val includeCanonicalDayThemes = explicitCanonicalDayThemes.hasChanges()
     val includeCanonicalExecutionLogs = explicitCanonicalExecutionLogs.isNotEmpty()
     val includeCanonicalDirectionEntries = explicitCanonicalDirectionEntries.isNotEmpty()
+    val includeCanonicalHierarchyBundle =
+        explicitCanonicalHierarchyPlacements.isNotEmpty() ||
+            explicitCanonicalHierarchyPlacementGroupScopes.isNotEmpty() ||
+            explicitCanonicalHierarchyPlacementLinkedAppearances.isNotEmpty()
     val includeCanonicalWorkspaceConnections = explicitCanonicalWorkspaceConnections.isNotEmpty()
     val includeCanonicalWorkspaceBacklog = explicitCanonicalWorkspaceBacklog.isNotEmpty()
     val includeCanonicalWorkspaceProblems = explicitCanonicalWorkspaceProblems.hasChanges()
@@ -334,6 +384,7 @@ internal fun buildCanonicalSnapshotDelta(
         explicitCanonicalOrientations.hasChanges() ||
             includeCanonicalExecutionLogs ||
             includeCanonicalDirectionEntries ||
+            includeCanonicalHierarchyBundle ||
             includeCanonicalWorkspaceConnections ||
             includeCanonicalWorkspaceBacklog ||
             includeCanonicalWorkspaceProblems ||
@@ -349,6 +400,7 @@ internal fun buildCanonicalSnapshotDelta(
             !includeCanonicalOrientations -> null
             includeCanonicalExecutionLogs ||
                 includeCanonicalDirectionEntries ||
+                includeCanonicalHierarchyBundle ||
                 includeCanonicalWorkspaceConnections ||
                 includeCanonicalWorkspaceBacklog ||
                 includeCanonicalWorkspaceProblems ||
@@ -611,6 +663,30 @@ internal fun buildCanonicalSnapshotDelta(
                 explicitCanonicalExecutionLogs.takeIf { includeCanonicalExecutionLogs },
             workspaceDirectionEntries =
                 explicitCanonicalDirectionEntries.takeIf { includeCanonicalDirectionEntries },
+            hierarchyPlacements =
+                if (includeCanonicalHierarchyBundle) {
+                    requireNotNull(fullSnapshot.hierarchyPlacements) {
+                        "Local full snapshot must expose hierarchyPlacements before building a hierarchy delta."
+                    }
+                } else {
+                    null
+                },
+            hierarchyPlacementGroupScopes =
+                if (includeCanonicalHierarchyBundle) {
+                    requireNotNull(fullSnapshot.hierarchyPlacementGroupScopes) {
+                        "Local full snapshot must expose hierarchyPlacementGroupScopes before building a hierarchy delta."
+                    }
+                } else {
+                    null
+                },
+            hierarchyPlacementLinkedAppearances =
+                if (includeCanonicalHierarchyBundle) {
+                    requireNotNull(fullSnapshot.hierarchyPlacementLinkedAppearances) {
+                        "Local full snapshot must expose hierarchyPlacementLinkedAppearances before building a hierarchy delta."
+                    }
+                } else {
+                    null
+                },
             workspaceConnections =
                 explicitCanonicalWorkspaceConnections.takeIf { includeCanonicalWorkspaceConnections },
             workspaceBacklogEntries =
@@ -675,6 +751,12 @@ class SyncWifiService @Inject constructor(
                 fullBackupLocalDataSource.loadUnsyncedCanonicalExecutionLogs()
             val dirtyCanonicalDirectionEntries =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceDirectionEntries()
+            val dirtyCanonicalHierarchyPlacements =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalHierarchyPlacements()
+            val dirtyCanonicalHierarchyPlacementGroupScopes =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalHierarchyPlacementGroupScopes()
+            val dirtyCanonicalHierarchyPlacementLinkedAppearances =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalHierarchyPlacementLinkedAppearances()
             val dirtyCanonicalWorkspaceConnections =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceConnections()
             val dirtyCanonicalWorkspaceBacklog =
@@ -693,6 +775,11 @@ class SyncWifiService @Inject constructor(
                     dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                     dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                     dirtyCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                    dirtyCanonicalHierarchyPlacements = dirtyCanonicalHierarchyPlacements,
+                    dirtyCanonicalHierarchyPlacementGroupScopes =
+                        dirtyCanonicalHierarchyPlacementGroupScopes,
+                    dirtyCanonicalHierarchyPlacementLinkedAppearances =
+                        dirtyCanonicalHierarchyPlacementLinkedAppearances,
                     dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                     dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                     dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -711,6 +798,11 @@ class SyncWifiService @Inject constructor(
                         dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                         dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                         dirtyCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                        dirtyCanonicalHierarchyPlacements = dirtyCanonicalHierarchyPlacements,
+                        dirtyCanonicalHierarchyPlacementGroupScopes =
+                            dirtyCanonicalHierarchyPlacementGroupScopes,
+                        dirtyCanonicalHierarchyPlacementLinkedAppearances =
+                            dirtyCanonicalHierarchyPlacementLinkedAppearances,
                         dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                         dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                         dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -743,6 +835,15 @@ class SyncWifiService @Inject constructor(
                     )
                     fullBackupLocalDataSource.markCanonicalWorkspaceDirectionEntriesSynced(
                         pushPlan.directionEntriesAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalHierarchyPlacementsSynced(
+                        pushPlan.hierarchyPlacementsAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalHierarchyPlacementGroupScopesSynced(
+                        pushPlan.hierarchyPlacementGroupScopesAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalHierarchyPlacementLinkedAppearancesSynced(
+                        pushPlan.hierarchyPlacementLinkedAppearancesAck,
                     )
                     fullBackupLocalDataSource.markCanonicalWorkspaceConnectionsSynced(
                         pushPlan.workspaceConnectionsAck,
@@ -793,6 +894,14 @@ class SyncWifiService @Inject constructor(
             fullBackupLocalDataSource.loadCanonicalExecutionLogsChangedSince(deltaSince)
         val changedCanonicalDirectionEntries =
             fullBackupLocalDataSource.loadCanonicalWorkspaceDirectionEntriesChangedSince(deltaSince)
+        val changedCanonicalHierarchyPlacements =
+            fullBackupLocalDataSource.loadCanonicalHierarchyPlacementsChangedSince(deltaSince)
+        val changedCanonicalHierarchyPlacementGroupScopes =
+            fullBackupLocalDataSource
+                .loadCanonicalHierarchyPlacementGroupScopesChangedSince(deltaSince)
+        val changedCanonicalHierarchyPlacementLinkedAppearances =
+            fullBackupLocalDataSource
+                .loadCanonicalHierarchyPlacementLinkedAppearancesChangedSince(deltaSince)
         val changedCanonicalWorkspaceConnections =
             fullBackupLocalDataSource.loadCanonicalWorkspaceConnectionsChangedSince(deltaSince)
         val changedCanonicalWorkspaceBacklog =
@@ -812,6 +921,11 @@ class SyncWifiService @Inject constructor(
                 explicitCanonicalDayThemes = changedCanonicalDayThemes,
                 explicitCanonicalExecutionLogs = changedCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = changedCanonicalDirectionEntries,
+                explicitCanonicalHierarchyPlacements = changedCanonicalHierarchyPlacements,
+                explicitCanonicalHierarchyPlacementGroupScopes =
+                    changedCanonicalHierarchyPlacementGroupScopes,
+                explicitCanonicalHierarchyPlacementLinkedAppearances =
+                    changedCanonicalHierarchyPlacementLinkedAppearances,
                 explicitCanonicalWorkspaceConnections = changedCanonicalWorkspaceConnections,
                 explicitCanonicalWorkspaceBacklog = changedCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = changedCanonicalWorkspaceProblems,

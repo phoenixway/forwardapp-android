@@ -17,6 +17,25 @@ The machine-readable companion is
 [domain-contract-v1.json](domain-contract-v1.json). Current implementation
 evidence remains in [BASELINE.md](BASELINE.md).
 
+## Architecture epoch note
+
+This file is the accepted **Canonical V1** domain contract.
+
+Its Workspace hierarchy clauses, including `parentWorkspaceId`, remain
+CURRENT authority until an explicit Canonical V2 hierarchy cutover
+completes.
+
+The accepted V2 hierarchy target is defined separately in
+`HIERARCHY-PLACEMENT-CONTRACT-V2.md`.
+
+The V2 decision does not silently supersede this contract's
+`ManagedSubject`, Orientation, Aspect, Workspace identity,
+WorkspaceBinding, capability, semantic-relation, sync, or lifecycle
+ownership.
+
+Cross-epoch authority and migration discipline are governed by
+`../../governance/PROJECT-CONSTITUTION.md`.
+
 ## Decision summary
 
 1. `ManagedSubject` is a constrained identity root with exactly two subtype

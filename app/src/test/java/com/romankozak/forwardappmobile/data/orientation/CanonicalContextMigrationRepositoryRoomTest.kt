@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -545,7 +546,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
             val bootstrapper = bootstrapper(database)
             bootstrapper.ensureBootstrapped(now = 10L)
 
-            val aspects = CanonicalAspectRepository(database, database.orientationDao())
+            val aspects = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
             val aspectId =
                 aspects.create(
                     title = "Existing canonical Aspect",
@@ -634,7 +635,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
             bootstrapper.ensureBootstrapped(now = 10L)
 
             val aspectId =
-                CanonicalAspectRepository(database, database.orientationDao())
+                CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
                     .create("Reserved Aspect", now = 15L)
 
             database.orientationDao().upsertLegacyMappings(
@@ -703,7 +704,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
             val bootstrapper = bootstrapper(database)
             bootstrapper.ensureBootstrapped(now = 10L)
 
-            val aspects = CanonicalAspectRepository(database, database.orientationDao())
+            val aspects = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
             val links =
                 CanonicalAspectLinksRepository(
                     database,
@@ -968,7 +969,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
             bootstrapper.ensureBootstrapped(now = 10L)
 
             val aspectId =
-                CanonicalAspectRepository(database, database.orientationDao())
+                CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
                     .createWithId(
                         id = stableContextSubjectId("pending"),
                         title = "pending",
@@ -1877,7 +1878,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
             contextDao = database.contextDao(),
             workspaceDao = database.workspaceDao(),
             orientationDao = database.orientationDao(),
-            aspectRepository = CanonicalAspectRepository(database, database.orientationDao()),
+            aspectRepository = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database)),
             aspectLinksRepository =
                 CanonicalAspectLinksRepository(
                     database,

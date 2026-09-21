@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCanonicalTargetResolver
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
@@ -33,6 +34,33 @@ class BacklogPlacementCommandsTest {
         val result = commands.addContextLinkToContextBacked("child", "parent")
 
         assertNull(result)
+        coVerify(exactly = 0) { canonical.addEntryAtStart(any(), any(), any()) }
+    }
+
+    @Test
+    fun `V2 direct hierarchy child suppression uses H1 predicate and not Context parent`() = runTest {
+        val contextDao = mockk<ContextDao>()
+        val canonical = mockk<CanonicalBacklogRepository>()
+        val resolver = mockk<BacklogCanonicalTargetResolver>(relaxed = true)
+
+        coEvery {
+            canonical.hasV2DirectWorkspaceChildOccurrence(
+                childWorkspaceId = "child",
+                parentWorkspaceId = "parent",
+            )
+        } returns true
+
+        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+
+        val result =
+            commands.addContextLinkToContextBackedForAuthority(
+                targetContextId = "child",
+                currentContextId = "parent",
+                hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        assertNull(result)
+        coVerify(exactly = 0) { contextDao.getContextById(any()) }
         coVerify(exactly = 0) { canonical.addEntryAtStart(any(), any(), any()) }
     }
 

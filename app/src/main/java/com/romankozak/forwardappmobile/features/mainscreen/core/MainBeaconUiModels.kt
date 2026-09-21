@@ -18,6 +18,9 @@ data class MainBeaconCardUi(
     val groupIds: List<String>,
     val parentBeaconId: String?,
     val isExpanded: Boolean,
+    val placementId: String? = null,
+    val parentPlacementId: String? = null,
+    val structuralGroupId: String? = null,
 )
 
 data class MainBeaconGroupUi(

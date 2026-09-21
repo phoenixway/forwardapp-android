@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -45,10 +46,21 @@ class CanonicalAspectRepositoryRoomTest {
     fun `hierarchy rejects cycles and parent tombstone promotes children without deleting them`() = runBlocking {
         val database = database()
         try {
-            val repository = CanonicalAspectRepository(database, database.orientationDao())
+            val repository = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
             val parentId = repository.create("Engineering", now = 10L)
             val siblingId = repository.create("Home", now = 11L)
             val childId = repository.create("Software", parentAspectId = parentId, now = 20L)
+            val hierarchyRepository =
+                com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository(database)
+            val parentPlacementId =
+                hierarchyRepository.createPrimaryAppearance(
+                    target =
+                        com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef(
+                            com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType.MANAGED_SUBJECT,
+                            parentId,
+                        ),
+                    now = 20L,
+                )
 
             repository.reorderSiblings(null, listOf(siblingId, parentId), now = 21L)
             repository.updateDetails(childId, "Software engineering", "Systems", now = 22L)
@@ -64,6 +76,9 @@ class CanonicalAspectRepositoryRoomTest {
             repository.tombstone(parentId, now = 40L)
 
             assertTrue(database.orientationDao().getManagedSubject(parentId)?.isDeleted == true)
+            assertTrue(
+                database.hierarchyPlacementDao().getById(parentPlacementId.value)?.isDeleted == true,
+            )
             assertFalse(database.orientationDao().getManagedSubject(childId)?.isDeleted == true)
             assertNull(database.orientationDao().getAspect(childId)?.parentAspectId)
             assertEquals(4L, database.orientationDao().getManagedSubject(childId)?.version)
@@ -76,7 +91,7 @@ class CanonicalAspectRepositoryRoomTest {
     fun `memberships preserve secondary refs and switch one primary aspect`() = runBlocking {
         val database = database()
         try {
-            val aspects = CanonicalAspectRepository(database, database.orientationDao())
+            val aspects = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
             val links = CanonicalAspectLinksRepository(database, database.orientationDao(), database.contextDao())
             val engineeringId = aspects.create("Engineering", now = 10L)
             val homeId = aspects.create("Home", now = 11L)
@@ -144,7 +159,7 @@ class CanonicalAspectRepositoryRoomTest {
     fun `compatibility workspace embodiment is replaced transactionally and tombstoned with aspect`() = runBlocking {
         val database = database()
         try {
-            val aspects = CanonicalAspectRepository(database, database.orientationDao())
+            val aspects = CanonicalAspectRepository(database, database.orientationDao(), HierarchyPlacementLifecycleCoordinator(database))
             val links = CanonicalAspectLinksRepository(database, database.orientationDao(), database.contextDao())
             val firstAspectId = aspects.create("Engineering", now = 10L)
             val secondAspectId = aspects.create("Operations", now = 11L)

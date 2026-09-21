@@ -55,6 +55,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
@@ -107,11 +108,12 @@ fun ProjectHierarchyScreenScaffold(
         topBar = {
             val focusedOrientationNode =
                 (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)
-                    ?.nodeId
-                    ?.let { focusedId ->
-                        uiState.orientationHierarchy
-                            .firstOrNull { it.node.id == focusedId }
-                            ?.node
+                    ?.let { focusedState ->
+                        findOrientationHierarchyItem(
+                            items = uiState.orientationHierarchy,
+                            nodeId = focusedState.nodeId,
+                            placementId = focusedState.placementId,
+                        )?.node
                     }
             val focusedBeaconNode =
                 focusedOrientationNode as? OrientationHierarchyNode.Beacon

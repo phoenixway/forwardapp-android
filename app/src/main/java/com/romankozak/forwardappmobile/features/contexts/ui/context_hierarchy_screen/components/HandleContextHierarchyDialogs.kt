@@ -80,6 +80,15 @@ fun HandleProjectHierarchyDialogs(
                 onToggleUserFocusRequest = {
                     onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(state.projectId))
                 },
+                onCopyWorkspaceRequest = {
+                    onEvent(ContextHierarchyScreenEvent.CopyWorkspace(state.projectId))
+                },
+                onCutWorkspaceRequest = {
+                    onEvent(ContextHierarchyScreenEvent.CutWorkspace(state.projectId))
+                },
+                onPasteWorkspaceRequest = {
+                    onEvent(ContextHierarchyScreenEvent.PasteWorkspace(state.projectId))
+                },
                 onCopyContextLinkRequest = {
                     onEvent(ContextHierarchyScreenEvent.CopyContextLink(state.projectId))
                 },

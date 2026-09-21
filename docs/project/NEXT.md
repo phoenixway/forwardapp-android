@@ -6,7 +6,22 @@ This file contains only the immediate continuation state.
 
 ## Current checkpoint
 
-**Context Persistence Extinction** is the active architecture lane.
+**Hierarchy V2 H4.0e final P2 authority-activation readiness closure is
+COMPLETE / HOST VERIFIED with zero production authority transfer. The
+selective-import hierarchy contract is implemented and verified. The project
+is P2 READY / NOT STARTED. NEXT is P2 combined production hierarchy authority
+activation.**
+
+H1.5 is closed. The pre-existing CURRENT `SYNC_ENABLED=false` / `syncOff`
+source-set/DI capability was repaired and HOST verified with both sync-disabled
+and default `:sync` and `:app` compile gates green. Canonical V1 remains the
+runtime hierarchy read/write authority; H3.1 added only dormant V2
+projection/parity machinery and did not cut over any reader or ordinary
+mutation path.
+
+Context Persistence Extinction remains a separate active and unfinished
+**Legacy -> Canonical V1** migration program. The newer hierarchy work must
+not hide, complete, or supersede that Epic A state.
 
 The production database is already beyond the earlier ordinary-Context and
 reserved-System shell-retirement checkpoints. The 2026-09-15 post-recovery
@@ -45,14 +60,16 @@ projection boundary.
 
 The completed read-side contract is:
 
-- active ordinary compatibility Contexts may still provide presentation until
-  their explicit retirement;
-- retired ordinary projects resolve presentation from their same-id canonical
-  Workspace, with a deleted same-id ordinary Context usable only as historical
-  identity evidence;
+- the supported production database has no active ordinary Context presentation
+  owners;
+- migrated ordinary projects resolve presentation from canonical Workspace
+  ownership, with a deleted same-id ordinary Context usable only as historical
+  identity/cutover evidence;
+- live non-System `STANDALONE` Workspaces with `sourceContextId = null` are
+  explicit shell-free operational presentation owners;
 - exact reserved System projects resolve from canonical Workspace ownership and
   canonical System tag authority;
-- arbitrary shell-free non-System Workspaces do not become project
+- arbitrary non-System `CANONICAL_ONLY` Workspaces do not become project
   presentations merely because they exist;
 - hierarchy, picker, Context Screen linked-project rows, recents, navigation,
   search, tag-management, Day/Tactical presentation and other migrated readers
@@ -86,73 +103,180 @@ Context solely to issue their mutation intent.
 
 ## Immediate continuation
 
-Proceed with **Step 12D - Context Big Cut compatibility/transport extinction**.
+**Hierarchy V2 H0, H1, H2 and H3.1 are COMPLETE / HOST VERIFIED.**
 
-The accepted support boundary is intentionally hard:
+H3.1 established the dormant V2 read projection and exhaustive parity gate.
+Coverage includes occurrence path, canonical target identity, parent
+occurrence, root set/order, sibling order, PRIMARY/LINK kind, duplicate target
+appearances, LINK-owned child subtrees, shell-free System Workspace visibility,
+first-visible focus, breadcrumbs, and presentation-only Group / `NoGroup` /
+`NoBeacon` reconstruction.
 
-- the current canonical Android database is the only supported migration
-  authority;
-- old Android installations with active ordinary Context rows are unsupported;
-- the surviving `632` ordinary Context tombstones are disposable legacy state
-  and do not require a replacement history model;
-- existing Context-based Desktop compatibility is frozen across the cut and
-  does not block Android Context extinction;
-- future Desktop work targets the canonical post-Context model rather than
-  preserving or recreating the legacy Context aggregate.
+The H3.1 authority audit confirms no CURRENT reader calls the V2 projector,
+production V2 projection consumes no V1 snapshot/topology source, performs no
+persistence writes, and introduces no dual-write. CURRENT
+`isLinkedAppearance` is characterized as legacy rendering-edge metadata rather
+than a synonym for durable `PlacementKind.LINK`.
 
-The immediate implementation task is to extinguish new ordinary Context
-creation. Current operational creation flows that historically create an
-ordinary Context are decided to converge on canonical standalone Workspace
-ownership.
+The H3.2 authority/readiness audit has now established that an independent
+production reader cutover is unsafe. H2 is one-time materialization, CURRENT V1
+mutations do not update `HierarchyPlacement`, and no accepted runtime freshness
+mechanism exists. Switching production reads first would therefore make V2
+stale after the next legal V1 topology mutation.
 
-The first generic Workspace foundation is **CURRENT / VERIFIED**. Live
-non-System `STANDALONE` Workspaces with no `sourceContextId` are admitted to
-the shell-free operational presentation universe;
-`CanonicalWorkspaceRepository.create(...)` authors that provenance; and Global
-Search, Command Deck, Day Plan, and Tactical Mission root-picker creation now
-use it without creating `Context` or `ContextConfiguration` rows. Generic
-Workspace tags remain owned by `CanonicalWorkspaceTagRepository`; role-less
-quick-create creates no implicit capability instance.
+H4.0a / P0 is **COMPLETE / HOST VERIFIED** with zero production authority
+transfer.
 
-The Strategic/Core and hierarchy creation slices are now **CURRENT /
-VERIFIED**. Hierarchy add/create authors a canonical non-System `STANDALONE`
-Workspace, returns its canonical-generated id, initializes supported role/preset
-defaults directly through canonical capability owners, and performs parent
-auto-link only through active canonical `DIRECTION` configuration. It creates
-neither `Context` nor `ContextConfiguration`.
+Completed P0 preparation includes concrete occurrence identity through
+`PlacementId`, dormant occurrence-aware commands, atomic complete-sibling
+reorder, fail-closed Main Beacon -> ManagedSubject target resolution,
+occurrence-preserving clipboard carriers, explicit occurrence-removal versus
+target-deletion intent, and a dormant merge/Restore hierarchy-ingress policy
+boundary.
 
-Three external production `createContextWithId()` callers remain:
+Duplicate same-target PRIMARY/LINK appearances and LINK-owned child occurrences
+remain independently addressable. V2 presented occurrences preserve mutation-
+adjacent placement identity rather than requiring target-id reconstruction.
 
-- `AndroidWorkspaceRepositoryAdapter`;
-- `StrategicArcViewModel`;
-- `ContextClipboardCoordinator`.
+The authority audit is clean: no CURRENT production caller uses the new command
+service, Beacon resolver, or ingress policy; CURRENT UI/event models do not gain
+`PlacementId`; no reader cutover, writer redirect, dual-write, runtime
+rematerialization, or silent fallback was introduced.
 
-The internal preset-driven `SUBCONTEXT` helper remains separate. Clipboard
-clone semantics, `AndroidWorkspaceRepositoryAdapter`, and `SUBCONTEXT` still
-require their own evidence-based ownership decisions rather than reintroducing
-generic Context creation.
+Focused H4.0a + H1/H3.1 regression tests and
+`:app:compileProdDebugKotlin` are HOST green.
 
-The Tactical Mission owner-routing blocker for Strategic Arc is now
-**CURRENT / VERIFIED**. Tactical Mission persistence routes valid live
-non-System `STANDALONE` Workspace owners through `project_workspace_id`, while
-ordinary Context-backed owners remain on the legacy `projectId` branch.
-Arbitrary non-System `CANONICAL_ONLY` ownership is not admitted. Transport and
-read-side behavior continue through the single logical project-owner id.
+H4.0b / P1 mixed-domain command semantics are
+**COMPLETE / HOST VERIFIED** with zero production authority transfer.
 
-`ArcQuestSourceType.CONTEXT` has been established as a retained persisted
-historical discriminator whose source id does not itself require a raw Context
-row. Its downstream Tactical Mission FK blocker is closed, so
-`StrategicArcViewModel` is now the next narrow ordinary-Context creation
-cutover candidate. The discriminator should remain unchanged during that
-creation migration unless separate evidence requires a data-contract migration.
+The dormant planner explicitly separates structural occurrence operations,
+Beacon operational ownership, Group `PART_OF`, Direction companion semantics,
+and target lifecycle. The accepted final policy is occurrence-native Beacon
+CUT: a selected PRIMARY moves that PRIMARY; a selected LINK moves that exact
+LINK by `PlacementId` and preserves `PlacementKind.LINK`. The target PRIMARY is
+untouched for selected-LINK CUT, duplicate same-target appearances remain
+distinct, Beacon COPY/LINK remains appearance creation, and true Beacon
+duplicate remains target cloning.
 
-Preset-driven `SUBCONTEXT` creation remains a distinct follow-up owner decision.
+Focused `HierarchyMixedDomainCommandSemanticsTest`,
+`HierarchyPreparationContractTest`, and `:app:compileProdDebugKotlin` are HOST
+green. The authority audit found no external production caller of the P1
+planner or P0 occurrence command service.
 
-Do not introduce a `ContextPresentation -> Context` adapter, a new Context-like
-canonical entity, or another compatibility bridge merely to preserve unsupported
-legacy states.
+H4.0c transport / merge / restore authority-readiness is
+**COMPLETE / HOST VERIFIED** with zero authority transfer.
 
-After 12D closes Context transport/runtime compatibility, continue separately
-with **12E persistence/FK/schema extinction**, including removal of remaining
-Context foreign keys, DAO/schema infrastructure, tombstones, tables, and
-temporary retirement machinery.
+It established a shared dormant CURRENT/V2 authority seam, future V2
+normal-ingress H1 enforcement for hierarchy-bearing structural transport, and a
+finite Restore-only legacy hierarchy translator. The translator reuses H2
+deterministic occurrence materialization, preserves duplicate/LINK subtrees,
+never persists synthetic scopes, fails closed on ambiguous or malformed legacy
+state, and sends translated H1 through the same native strict restore
+validation and atomic Room replacement path. Native H1, including authoritative
+`[]`, bypasses translation.
+
+The authority audit found no production V2 authority activation, no production
+H2 migration/materializer caller, no production V2 projector/presentation
+caller, and no production occurrence-command-service caller. The legacy
+translator is Restore-canonicalizer-only and inert under production CURRENT
+mode. Focused H4.0c tests, existing H1 merge/store regressions, translated-H1
+Room restore, and `:app:compileProdDebugKotlin` are HOST green.
+
+H4.0d implementation provides a persisted H1 reader adapter, shared
+occurrence-native read snapshot, exact `PlacementId` ancestry/focus/breadcrumb
+APIs, CoreLevel/Search readiness projections, occurrence-native Group/NoGroup
+scope assignment, and a no-fallback CURRENT/V2 authority router. No external
+production caller is wired. Its focused H4.0d + H3.1 presentation/parity HOST
+test gate and `:app:compileProdDebugKotlin` are green.
+
+A key read-contract decision is that canonical Group `PART_OF` is target-wide
+semantic state, not occurrence identity. Duplicate Group roots are assigned
+only when exact H2 deterministic placement provenance proves the scope;
+otherwise the V2 presentation fails closed.
+
+H4.0e final P2 authority-activation readiness closure is now
+**COMPLETE / HOST VERIFIED**, with zero authority transfer. The project is
+**P2 READY / NOT STARTED**.
+
+The selective-import blocker is closed. Selection remains target/feature based
+and exposes no occurrence selector. The filter clears inherited H1/GroupScope,
+then derives the exact source-H1 occurrence subgraph for selected canonical
+targets. Roots are retained by selected target; children are retained only
+through exact retained `parentPlacementId`. Duplicate appearances,
+PRIMARY/LINK identity and LINK-owned subtrees are preserved. A Context without
+a live same-id canonical Workspace contributes no invented H1 occurrence.
+Exact GroupScope follows retained root MANAGED_SUBJECT `PlacementId`.
+
+No topology is reconstructed from Workspace/Context/MainBeacon parent fields,
+`ContextParentLink`, `PART_OF`, operational ownership, target/list order or
+first-match inference.
+
+Selective import uses its own `applySelectiveSnapshotBundle()` merge seam.
+GroupScope selective merge validates the incoming occurrence delta while
+preserving unrelated local scopes. Ordinary full-stream merge behavior remains
+unchanged, and Restore-only hierarchy translation is not used.
+
+Focused HOST gates are green for selective hierarchy tests,
+Context/retirement/BACKLOG/execution-log regressions, syncOff compile,
+selective merge routing, GroupScope Room semantics, CURRENT/future-V2 ingress
+policy and production Kotlin compile.
+
+The static authority audit remains clean: production mode is
+`CURRENT_PRE_CUTOVER`; Canonical V1 is still sole CURRENT hierarchy authority;
+no V2 reader/writer activation, dual-write, runtime rematerialization,
+structural fallback or P2 activation exists.
+
+## Immediate hierarchy continuation
+
+**P2 combined production hierarchy authority activation.**
+
+This is the first authority-bearing hierarchy unit. It must coherently switch
+the production structural read/write boundary, migrate the named
+occurrence-sensitive consumers and writers, enforce V2 normal-ingress
+authority, preserve finite Restore compatibility, prohibit V1 structural
+fallback, and re-run the complete 13-point production gate.
+
+Do not split P2 into an independent reader-first or writer-first authority
+cutover. Do not introduce dual-write or runtime V1 -> V2 synchronization.
+
+P2 is **READY / NOT STARTED**.
+
+
+H2 closure evidence includes production compile, H1 placement persistence
+seams, H2 pure/Room/materialization/parity coverage, and CURRENT V1 hierarchy
+mutation/clipboard seams. The earlier 7-test CURRENT V1 builder/focus regression census has been
+resolved: all seven failures were stale expectations, the corrected focused V1
+gate is green, and H2 parity remains green.
+
+H1 closure evidence:
+
+- Canonical V1 remains CURRENT hierarchy read/write authority;
+- H1 placement persistence is dormant and has no production hierarchy reader;
+- current V1 hierarchy mutations do not dual-write H1 placements;
+- DB schema is version 175 with the intended deferred composite self-FK;
+- supported local Workspace and ManagedSubject deletion boundaries account for
+  live placements atomically;
+- H1 backup/restore/peer merge/ACK/tombstone semantics and Wi-Fi graph closure
+  are implemented and targeted HOST verified;
+- CURRENT `SYNC_ENABLED=false` / `syncOff` capability is repaired;
+- `:sync:compileDebugKotlin` and `:app:compileProdDebugKotlin` pass with both
+  sync disabled and default sync enabled;
+- H1.4 syncOff hierarchy transport remains inert no-op behavior;
+- `git diff --check` is clean.
+
+H2 identity is:
+`hierarchyId + occurrenceKey -> deterministic PlacementId`.
+`occurrenceKey` exists only at the transitional migration boundary; after
+materialization, `PlacementId` is the durable hierarchy identity.
+
+H2 must not cut over readers, dual-write V1/V2, or retire V1 storage.
+The implemented H2 path currently satisfies those boundaries and is not wired
+as an ongoing runtime synchronization mechanism.
+
+Later product-policy questions such as last-placement protection for reserved
+System Workspaces and synchronized hierarchy expansion state do not block H1.
+
+Epic A remains independently unfinished:
+
+- Step 12D is `CURRENT / IN PROGRESS`;
+- Step 12E is `DECIDED / NOT STARTED`.

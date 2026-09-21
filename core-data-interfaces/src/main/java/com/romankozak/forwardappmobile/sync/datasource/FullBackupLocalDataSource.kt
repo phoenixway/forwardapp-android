@@ -2,6 +2,12 @@ package com.romankozak.forwardappmobile.sync.datasource
 
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
@@ -144,6 +150,38 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalWorkspaceDirectionEntriesChangedSince(timestamp: Long): List<WorkspaceDirectionEntrySnapshot>
 
     suspend fun markCanonicalWorkspaceDirectionEntriesSynced(entries: List<WorkspaceDirectionEntrySyncVersion>)
+
+    suspend fun loadUnsyncedCanonicalHierarchyPlacements(): List<HierarchyPlacementSnapshot>
+
+    suspend fun loadCanonicalHierarchyPlacementsChangedSince(
+        timestamp: Long,
+    ): List<HierarchyPlacementSnapshot>
+
+    suspend fun markCanonicalHierarchyPlacementsSynced(
+        entries: List<HierarchyPlacementSyncVersion>,
+    )
+
+    suspend fun loadUnsyncedCanonicalHierarchyPlacementGroupScopes():
+        List<HierarchyPlacementGroupScopeSnapshot>
+
+    suspend fun loadCanonicalHierarchyPlacementGroupScopesChangedSince(
+        timestamp: Long,
+    ): List<HierarchyPlacementGroupScopeSnapshot>
+
+    suspend fun markCanonicalHierarchyPlacementGroupScopesSynced(
+        entries: List<HierarchyPlacementGroupScopeSyncVersion>,
+    )
+
+    suspend fun loadUnsyncedCanonicalHierarchyPlacementLinkedAppearances():
+        List<HierarchyPlacementLinkedAppearanceSnapshot>
+
+    suspend fun loadCanonicalHierarchyPlacementLinkedAppearancesChangedSince(
+        timestamp: Long,
+    ): List<HierarchyPlacementLinkedAppearanceSnapshot>
+
+    suspend fun markCanonicalHierarchyPlacementLinkedAppearancesSynced(
+        entries: List<HierarchyPlacementLinkedAppearanceSyncVersion>,
+    )
 
     suspend fun loadUnsyncedCanonicalWorkspaceProblems(): CanonicalWorkspaceProblemSyncPayload
 

@@ -11,6 +11,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2CoreLevelOccurrence
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyConsumerReadiness
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyReadAuthorityRouter
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
@@ -50,6 +54,33 @@ import kotlinx.coroutines.launch
 private val CORE_TAGS = setOf("core", "main-beacons")
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 
+private fun MainBeaconWithRelations.toCoreLevelCard(
+    placementId: String? = null,
+    parentPlacementId: String? = null,
+    structuralGroupId: String? = null,
+): MainBeaconCardUi {
+    val compactSummary = deriveMainBeaconCompactCardSummary(levelStatuses)
+    return MainBeaconCardUi(
+        id = beacon.id,
+        title = beacon.title,
+        readinessStatus = beacon.readinessStatus,
+        highestCompletedLevel = compactSummary.highestCompletedLevel,
+        breakPointLevel = compactSummary.breakPointLevel,
+        blockReason = compactSummary.blockReason,
+        nextRequiredAction = compactSummary.nextRequiredAction,
+        relatedContextIds = relatedOwnerIds,
+        relatedAttachmentIds = relatedAttachments.map { it.id },
+        // Legacy Group/parent metadata remains available to editor/operational
+        // surfaces. Structural CoreLevel rendering uses the occurrence fields below.
+        groupIds = groupIds,
+        parentBeaconId = beacon.parentBeaconId,
+        isExpanded = beacon.isExpanded,
+        placementId = placementId,
+        parentPlacementId = parentPlacementId,
+        structuralGroupId = structuralGroupId,
+    )
+}
+
 data class CoreLevelUiState(
     val allProjects: List<ContextPresentation> = emptyList(),
     val ownerLabels: Map<String, String> = emptyMap(),
@@ -75,7 +106,10 @@ class CoreLevelViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val mainBeaconRepository: MainBeaconRepository,
+        private val canonicalV2ReactiveHierarchyReadSource: CanonicalV2ReactiveHierarchyReadSource,
     ) : ViewModel() {
+        private val canonicalV2HierarchyConsumerReadiness =
+            CanonicalV2HierarchyConsumerReadiness()
         private val allContexts =
             systemWorkspacePresentationContextProjector.observePresentationUniverse(
                 contextRepository.getAllContextsFlow(),
@@ -110,12 +144,36 @@ class CoreLevelViewModel
                     initialValue = emptyList(),
                 )
 
+        private val coreLevelOccurrences: StateFlow<List<CanonicalV2CoreLevelOccurrence>> =
+            HierarchyReadAuthorityRouter().route(
+                currentPreCutover = {
+                    MutableStateFlow(emptyList())
+                },
+                v2Authority = {
+                    canonicalV2ReactiveHierarchyReadSource
+                        .observe()
+                        .map(canonicalV2HierarchyConsumerReadiness::coreLevelOccurrences)
+                        .stateIn(
+                            scope = viewModelScope,
+                            started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                            initialValue = emptyList(),
+                        )
+                },
+            )
+
         val uiState: StateFlow<CoreLevelUiState> =
-            combine(allContexts, ownerLabels, mainBeaconDetails, mainBeaconGroups) {
+            combine(
+                allContexts,
+                ownerLabels,
+                mainBeaconDetails,
+                mainBeaconGroups,
+                coreLevelOccurrences,
+            ) {
                     projects,
                     labels,
                     beacons,
                     groups,
+                    occurrences,
                 ->
                 val coreProjects =
                     projects.filter {
@@ -134,23 +192,32 @@ class CoreLevelViewModel
                             )
                         },
                     beacons =
-                        beacons.map { details ->
-                            val compactSummary = deriveMainBeaconCompactCardSummary(details.levelStatuses)
-                            MainBeaconCardUi(
-                                id = details.beacon.id,
-                                title = details.beacon.title,
-                                readinessStatus = details.beacon.readinessStatus,
-                                highestCompletedLevel = compactSummary.highestCompletedLevel,
-                                breakPointLevel = compactSummary.breakPointLevel,
-                                blockReason = compactSummary.blockReason,
-                                nextRequiredAction = compactSummary.nextRequiredAction,
-                                relatedContextIds = details.relatedOwnerIds,
-                                relatedAttachmentIds = details.relatedAttachments.map { it.id },
-                                groupIds = details.groupIds,
-                                parentBeaconId = details.beacon.parentBeaconId,
-                                isExpanded = details.beacon.isExpanded,
-                            )
-                        },
+                        HierarchyReadAuthorityRouter().route(
+                            currentPreCutover = {
+                                beacons.map { details ->
+                                    details.toCoreLevelCard()
+                                }
+                            },
+                            v2Authority = {
+                                val detailsByBeaconId =
+                                    beacons.associateBy { details -> details.beacon.id }
+                                occurrences.map { occurrence ->
+                                    val details =
+                                        requireNotNull(
+                                            detailsByBeaconId[occurrence.beaconPresentationId],
+                                        ) {
+                                            "V2 CoreLevel occurrence ${occurrence.placementId.value} " +
+                                                "references missing MainBeacon presentation " +
+                                                occurrence.beaconPresentationId
+                                        }
+                                    details.toCoreLevelCard(
+                                        placementId = occurrence.placementId.value,
+                                        parentPlacementId = occurrence.parentPlacementId?.value,
+                                        structuralGroupId = occurrence.groupPresentationId,
+                                    )
+                                }
+                            },
+                        ),
                 )
             }.stateIn(
                 scope = viewModelScope,

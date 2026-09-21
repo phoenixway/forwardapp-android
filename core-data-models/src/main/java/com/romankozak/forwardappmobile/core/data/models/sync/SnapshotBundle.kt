@@ -36,6 +36,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.G
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.SystemAppSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayFocusItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
@@ -130,6 +133,19 @@ data class SnapshotBundle(
     // null = absent/pre-cutover backup; [] = authoritative empty.
     @SerializedName("workspaceBacklogEntries")
     val workspaceBacklogEntries: List<WorkspaceBacklogEntrySnapshot>? = null,
+
+    // Canonical Hierarchy V2 placement contract.
+    // null = sender does not carry H1; [] = authoritative present-and-empty.
+    @SerializedName("hierarchyPlacements")
+    val hierarchyPlacements: List<HierarchyPlacementSnapshot>? = null,
+    // v176 occurrence-scoped Group/NoGroup provenance.
+    // null = unsupported/absent; [] = authoritative present-and-empty.
+    @SerializedName("hierarchyPlacementGroupScopes")
+    val hierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot>? = null,
+    // v177 sparse exact Workspace linked-presentation provenance.
+    // null = unsupported/absent; [] = authoritative present-and-empty.
+    @SerializedName("hierarchyPlacementLinkedAppearances")
+    val hierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot>? = null,
     @SerializedName("systemApps") val systemApps: List<SystemAppSnapshot> = emptyList(),
     @SerializedName("activityRecords") val activityRecords: List<ActivityRecordSnapshot> = emptyList(),
     @SerializedName("recentProjectEntries") val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),

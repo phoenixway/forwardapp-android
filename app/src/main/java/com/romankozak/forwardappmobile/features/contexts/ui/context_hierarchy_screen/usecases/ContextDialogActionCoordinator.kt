@@ -71,9 +71,8 @@ class ContextDialogActionCoordinator
 
         suspend fun confirmDelete(
             projectId: String,
-            childMap: Map<String, List<Context>>,
         ) {
-            contextActionsUseCase.onDeleteProjectConfirmed(projectId, childMap)
+            contextActionsUseCase.onDeleteProjectConfirmed(projectId)
             dialogUseCase.dismissDialog()
         }
 
@@ -141,18 +140,30 @@ class ContextDialogActionCoordinator
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
         ): String? {
-            val beaconIds =
-                orientationHierarchy
-                    .mapNotNull { item -> (item.node as? OrientationHierarchyNode.Beacon)?.id }
-                    .toSet()
-            return when (currentSubState) {
-                is ProjectHierarchyScreenSubState.OrientationFocused ->
-                    currentSubState.nodeId.takeIf { it in beaconIds }
-                else ->
-                    currentBreadcrumbs
-                        .lastOrNull { it.target == BreadcrumbTarget.OrientationNode && it.id in beaconIds }
-                        ?.id
-            }
+            val focusedNode =
+                when (currentSubState) {
+                    is ProjectHierarchyScreenSubState.OrientationFocused ->
+                        findOrientationHierarchyItem(
+                            items = orientationHierarchy,
+                            nodeId = currentSubState.nodeId,
+                            placementId = currentSubState.placementId,
+                        )?.node
+                    else ->
+                        currentBreadcrumbs
+                            .asReversed()
+                            .firstNotNullOfOrNull { breadcrumb ->
+                                if (breadcrumb.target != BreadcrumbTarget.OrientationNode) {
+                                    null
+                                } else {
+                                    findOrientationHierarchyItem(
+                                        items = orientationHierarchy,
+                                        nodeId = breadcrumb.id,
+                                        placementId = breadcrumb.placementId,
+                                    )?.node
+                                }
+                            }
+                }
+            return (focusedNode as? OrientationHierarchyNode.Beacon)?.id
         }
 
         companion object {

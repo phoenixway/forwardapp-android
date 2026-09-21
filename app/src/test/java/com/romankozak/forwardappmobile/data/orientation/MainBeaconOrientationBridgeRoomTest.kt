@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -49,6 +50,8 @@ class MainBeaconOrientationBridgeRoomTest {
                     orientationDao = database.orientationDao(),
                     mainBeaconDao = database.mainBeaconDao(),
                     bootstrapper = mockk(relaxed = true),
+                    hierarchyPlacementLifecycleCoordinator =
+                        HierarchyPlacementLifecycleCoordinator(database),
                 )
 
             bridge.writeCommon(beacon.copy(title = "Canonical", description = "Owned", updatedAt = 30L))

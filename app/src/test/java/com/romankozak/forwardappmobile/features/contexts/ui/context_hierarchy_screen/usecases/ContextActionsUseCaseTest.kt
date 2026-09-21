@@ -177,33 +177,23 @@ class ContextActionsUseCaseTest {
     }
 
     @Test
-    fun deleteForwardsRootAndDescendantsAsIdsWithoutContextCommandPayload() = runTest {
-        val root = context(id = "root")
-        val child = context(id = "child", parentId = root.id)
-        val grandchild = context(id = "grandchild", parentId = child.id)
-
-        useCase.onDeleteProjectConfirmed(
-            projectId = root.id,
-            childMap = mapOf(root.id to listOf(child), child.id to listOf(grandchild)),
-        )
+    fun deleteDelegatesSubtreeTombstoningToCanonicalWorkspaceOwner() = runTest {
+        useCase.onDeleteProjectConfirmed(projectId = "root")
 
         coVerify(exactly = 1) {
-            contextRepository.deleteContextsByIds(listOf(root.id, child.id, grandchild.id))
+            canonicalWorkspaceRepository.tombstoneSubtree(
+                rootId = "root",
+                now = any(),
+            )
         }
     }
 
     @Test
-    fun deleteTraversalIsCycleSafeAndDoesNotRepeatRootId() = runTest {
-        val root = context(id = "root")
-        val child = context(id = "child", parentId = root.id)
+    fun deleteDoesNotUseLegacyContextSubtreeMutation() = runTest {
+        useCase.onDeleteProjectConfirmed(projectId = "root")
 
-        useCase.onDeleteProjectConfirmed(
-            projectId = root.id,
-            childMap = mapOf(root.id to listOf(child), child.id to listOf(root)),
-        )
-
-        coVerify(exactly = 1) {
-            contextRepository.deleteContextsByIds(listOf(root.id, child.id))
+        coVerify(exactly = 0) {
+            contextRepository.deleteContextsByIds(any())
         }
     }
 

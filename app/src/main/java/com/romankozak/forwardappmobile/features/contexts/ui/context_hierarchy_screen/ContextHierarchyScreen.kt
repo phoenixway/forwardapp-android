@@ -29,6 +29,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItemIndex
 import com.romankozak.forwardappmobile.features.mainscreen.CoreLevelViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardLinkUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorSheet
@@ -344,25 +346,44 @@ fun ProjectHierarchyScreen(
 }
 
 private fun parentBeaconIdForNewBeacon(uiState: ProjectHierarchyScreenUiState): String? {
-    val activeNodeId =
+    val activeIdentity =
         when (val subState = uiState.currentSubState) {
-            is ProjectHierarchyScreenSubState.ProjectFocused -> subState.projectId
-            is ProjectHierarchyScreenSubState.OrientationFocused -> subState.nodeId
+            is ProjectHierarchyScreenSubState.ProjectFocused ->
+                subState.projectId to subState.placementId
+            is ProjectHierarchyScreenSubState.OrientationFocused ->
+                subState.nodeId to subState.placementId
             else -> null
         } ?: return null
 
-    val activeItem = uiState.orientationHierarchy.firstOrNull { it.node.id == activeNodeId }
+    val (activeNodeId, activePlacementId) = activeIdentity
+    val activeItem =
+        findOrientationHierarchyItem(
+            items = uiState.orientationHierarchy,
+            nodeId = activeNodeId,
+            placementId = activePlacementId,
+        )
     return when (activeItem?.node) {
         is OrientationHierarchyNode.Beacon -> activeItem.node.id
-        else -> nearestAncestorBeaconId(uiState.orientationHierarchy, activeNodeId)
+        null -> null
+        else ->
+            nearestAncestorBeaconId(
+                orientationHierarchy = uiState.orientationHierarchy,
+                nodeId = activeNodeId,
+                placementId = activePlacementId,
+            )
     }
 }
 
 private fun groupIdsForNewBeacon(uiState: ProjectHierarchyScreenUiState): Set<String> {
-    val activeNodeId =
-        (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)?.nodeId
+    val subState =
+        uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused
             ?: return emptySet()
-    val activeNode = uiState.orientationHierarchy.firstOrNull { it.node.id == activeNodeId }?.node
+    val activeNode =
+        findOrientationHierarchyItem(
+            items = uiState.orientationHierarchy,
+            nodeId = subState.nodeId,
+            placementId = subState.placementId,
+        )?.node
     return if (activeNode is OrientationHierarchyNode.Group) {
         setOf(activeNode.id)
     } else {
@@ -373,8 +394,14 @@ private fun groupIdsForNewBeacon(uiState: ProjectHierarchyScreenUiState): Set<St
 private fun nearestAncestorBeaconId(
     orientationHierarchy: List<OrientationHierarchyItem>,
     nodeId: String,
+    placementId: String?,
 ): String? {
-    val nodeIndex = orientationHierarchy.indexOfFirst { it.node.id == nodeId }
+    val nodeIndex =
+        findOrientationHierarchyItemIndex(
+            items = orientationHierarchy,
+            nodeId = nodeId,
+            placementId = placementId,
+        )
     if (nodeIndex <= 0) return null
     val nodeLevel = orientationHierarchy[nodeIndex].level
     for (index in nodeIndex - 1 downTo 0) {

@@ -123,7 +123,14 @@ fun ProjectHierarchyScreenContent(
                         selectedSort = uiState.searchResultSort,
                         onFilterChange = { onEvent(ContextHierarchyScreenEvent.SearchFilterChanged(it)) },
                         onSortChange = { onEvent(ContextHierarchyScreenEvent.SearchSortChanged(it)) },
-                        onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
+                        onRevealClick = { projectId, placementId ->
+                            onEvent(
+                                ContextHierarchyScreenEvent.SearchResultClick(
+                                    projectId = projectId,
+                                    placementId = placementId,
+                                ),
+                            )
+                        },
                         onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
                         onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
                     )
@@ -196,10 +203,28 @@ fun ProjectHierarchyScreenContent(
                         } else {
                             null
                         },
+                    focusedProjectPlacementId =
+                        if (isFocusMode) {
+                            when (currentSubState) {
+                                is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.placementId
+                                else -> null
+                            }
+                        } else {
+                            null
+                        },
                     focusedOrientationNodeId =
                         if (isFocusMode) {
                             when (currentSubState) {
                                 is ProjectHierarchyScreenSubState.OrientationFocused -> currentSubState.nodeId
+                                else -> null
+                            }
+                        } else {
+                            null
+                        },
+                    focusedOrientationPlacementId =
+                        if (isFocusMode) {
+                            when (currentSubState) {
+                                is ProjectHierarchyScreenSubState.OrientationFocused -> currentSubState.placementId
                                 else -> null
                             }
                         } else {

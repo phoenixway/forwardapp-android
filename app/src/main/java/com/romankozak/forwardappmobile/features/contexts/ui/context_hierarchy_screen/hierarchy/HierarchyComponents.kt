@@ -861,7 +861,7 @@ private fun LinkAppearanceBadge() {
     ) {
         Icon(
             imageVector = Icons.Outlined.ArrowOutward,
-            contentDescription = "Посилання на контекст",
+            contentDescription = "Посилання на проєкт",
             tint = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.padding(4.dp).size(12.dp),
         )
