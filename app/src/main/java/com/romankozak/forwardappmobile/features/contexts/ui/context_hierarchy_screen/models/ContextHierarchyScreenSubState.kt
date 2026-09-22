@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import android.os.Parcelable
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.orientation.ContextClassificationPreview
 import com.romankozak.forwardappmobile.data.orientation.ContextMigrationCandidate
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
@@ -68,12 +70,16 @@ data class HierarchyProjectMenuAvailability(
 sealed class DialogState {
     data object Hidden : DialogState()
 
-    data class AddProject(val parentId: String?) : DialogState()
+    data class AddProject(
+        val parentId: String?,
+        val parentPlacementId: PlacementId? = null,
+    ) : DialogState()
 
     data class ProjectMenu(
         val projectId: String,
         val projectName: String,
         val availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
+        val occurrence: HierarchyOccurrenceRef? = null,
     ) : DialogState()
 
     data class ContextMigration(

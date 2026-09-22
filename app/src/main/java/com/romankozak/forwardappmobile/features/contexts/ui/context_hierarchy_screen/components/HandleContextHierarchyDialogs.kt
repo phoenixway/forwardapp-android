@@ -42,7 +42,14 @@ fun HandleProjectHierarchyDialogs(
                 preferredRoleCode = if (state.parentId != null) "others" else null,
                 onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 onConfirm = { name, roleCode ->
-                    onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId, roleCode))
+                    onEvent(
+                        ContextHierarchyScreenEvent.AddContextConfirm(
+                            name = name,
+                            parentId = state.parentId,
+                            parentPlacementId = state.parentPlacementId,
+                            roleCode = roleCode,
+                        ),
+                    )
                 },
             )
         }
@@ -54,13 +61,18 @@ fun HandleProjectHierarchyDialogs(
                 isUserFocused = focusedContextIds.contains(state.projectId),
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 onMoveRequest = {
-                    onEvent(ContextHierarchyScreenEvent.MoveRequest(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.MoveRequest(state.projectId, state.occurrence))
                 },
                 onAddSubprojectRequest = {
-                    onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(state.projectId))
+                    onEvent(
+                        ContextHierarchyScreenEvent.AddSubprojectRequest(
+                            parentProjectId = state.projectId,
+                            parentOccurrence = state.occurrence,
+                        ),
+                    )
                 },
                 onDeleteRequest = {
-                    onEvent(ContextHierarchyScreenEvent.DeleteRequest(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.DeleteRequest(state.projectId, state.occurrence))
                 },
                 onEditRequest = {
                     onEvent(ContextHierarchyScreenEvent.EditRequest(state.projectId))
@@ -81,25 +93,25 @@ fun HandleProjectHierarchyDialogs(
                     onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(state.projectId))
                 },
                 onCopyWorkspaceRequest = {
-                    onEvent(ContextHierarchyScreenEvent.CopyWorkspace(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.CopyWorkspace(state.projectId, state.occurrence))
                 },
                 onCutWorkspaceRequest = {
-                    onEvent(ContextHierarchyScreenEvent.CutWorkspace(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.CutWorkspace(state.projectId, state.occurrence))
                 },
                 onPasteWorkspaceRequest = {
-                    onEvent(ContextHierarchyScreenEvent.PasteWorkspace(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.PasteWorkspace(state.projectId, state.occurrence))
                 },
                 onCopyContextLinkRequest = {
-                    onEvent(ContextHierarchyScreenEvent.CopyContextLink(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.CopyContextLink(state.projectId, state.occurrence))
                 },
                 onCutContextLinkRequest = {
-                    onEvent(ContextHierarchyScreenEvent.CutContextLink(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.CutContextLink(state.projectId, state.occurrence))
                 },
                 onPasteContextLinkRequest = {
-                    onEvent(ContextHierarchyScreenEvent.PasteContextLink(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.PasteContextLink(state.projectId, destinationOccurrence = state.occurrence))
                 },
                 onAddContextAppearanceRequest = {
-                    onEvent(ContextHierarchyScreenEvent.AddContextAppearanceHere(state.projectId))
+                    onEvent(ContextHierarchyScreenEvent.AddContextAppearanceHere(state.projectId, state.occurrence))
                 },
                 onAddNoteDocumentRequest = {
                     onEvent(ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest(state.projectId))

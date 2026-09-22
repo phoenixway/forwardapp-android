@@ -1521,16 +1521,38 @@ private fun collectBeaconDescendantIds(
     beacons: List<MainBeaconCardUi>,
     beaconId: String,
 ): Set<String> {
-    val childrenByParent = beacons.groupBy { it.parentBeaconId }
-    val descendants = linkedSetOf<String>()
+    val childrenByParentNodeId =
+        beacons.groupBy { it.structuralParentNodeId() }
+    val rootNodeIds =
+        beacons
+            .asSequence()
+            .filter { it.id == beaconId }
+            .map { it.structuralNodeId() }
+            .toSet()
+
+    val descendantTargetIds = linkedSetOf<String>()
+    val visitedNodeIds = mutableSetOf<String>()
     val pending = ArrayDeque<String>()
-    childrenByParent[beaconId].orEmpty().forEach { pending += it.id }
-    while (pending.isNotEmpty()) {
-        val childId = pending.removeFirst()
-        if (!descendants.add(childId)) continue
-        childrenByParent[childId].orEmpty().forEach { pending += it.id }
+
+    rootNodeIds.forEach { rootNodeId ->
+        childrenByParentNodeId[rootNodeId].orEmpty().forEach { child ->
+            pending += child.structuralNodeId()
+        }
     }
-    return descendants
+
+    val cardsByNodeId = beacons.associateBy { it.structuralNodeId() }
+    while (pending.isNotEmpty()) {
+        val childNodeId = pending.removeFirst()
+        if (!visitedNodeIds.add(childNodeId)) continue
+
+        val child = cardsByNodeId[childNodeId] ?: continue
+        descendantTargetIds += child.id
+        childrenByParentNodeId[childNodeId].orEmpty().forEach { nested ->
+            pending += nested.structuralNodeId()
+        }
+    }
+
+    return descendantTargetIds
 }
 
 private fun buildExternalTarget(

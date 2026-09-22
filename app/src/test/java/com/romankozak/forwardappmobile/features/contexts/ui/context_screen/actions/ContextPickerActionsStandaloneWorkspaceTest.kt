@@ -62,9 +62,6 @@ class ContextPickerActionsStandaloneWorkspaceTest {
                 now = any(),
             )
         }
-        coVerify(exactly = 0) {
-            contextRepository.createContextWithId(any(), any(), any())
-        }
     }
 
     @Test
@@ -93,9 +90,6 @@ class ContextPickerActionsStandaloneWorkspaceTest {
 
         coVerify(exactly = 0) {
             canonicalWorkspaceRepository.create(any(), any(), any(), any(), any())
-        }
-        coVerify(exactly = 0) {
-            contextRepository.createContextWithId(any(), any(), any())
         }
     }
 }

@@ -43,7 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.hierarchy.ChooserHierarchyItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -57,7 +57,7 @@ fun FilterableListChooserScreen(
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    onConfirm: (String?) -> Unit,
+    onConfirm: (ChooserSelection) -> Unit,
     currentParentId: String?,
     disabledIds: Set<String> = emptySet(),
     onAddNewList: suspend (parentId: String?, name: String) -> String?,
@@ -67,7 +67,7 @@ fun FilterableListChooserScreen(
     Log.d("ListChooserScreen", "onConfirm called")
     var isCreatingMode by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
-    var parentForNewProject by remember { mutableStateOf<ContextPresentation?>(null) }
+    var parentForNewProject by remember { mutableStateOf<ChooserHierarchyItem?>(null) }
     var highlightedProjectId by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -381,7 +381,7 @@ fun FilterableListChooserScreen(
                                         isEnabled = currentParentId != null,
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onConfirm(null)
+                                            onConfirm(ChooserSelection(id = "", occurrence = null))
                                         },
                                     )
                                 }
@@ -394,10 +394,10 @@ fun FilterableListChooserScreen(
                                     level = 0,
                                     expandedIds = expandedIds,
                                     onToggleExpanded = onToggleExpanded,
-                                    onSelect = { id ->
+                                    onSelect = { selection ->
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onConfirm(id)
-                                        Log.d("ListChooserScreen", "onConfirm called with id: $id")
+                                        onConfirm(selection)
+                                        Log.d("ListChooserScreen", "onConfirm called with selection: $selection")
                                     },
                                     disabledIds = disabledIds,
                                     highlightedProjectId = highlightedProjectId,
@@ -559,20 +559,22 @@ private fun EnhancedEmptyState(hasFilter: Boolean) {
 
 @Composable
 private fun RecursiveSelectableListItem(
-    project: ContextPresentation,
-    childMap: Map<String, List<ContextPresentation>>,
+    project: ChooserHierarchyItem,
+    childMap: Map<String, List<ChooserHierarchyItem>>,
     level: Int,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
-    onSelect: (String) -> Unit,
+    onSelect: (ChooserSelection) -> Unit,
     disabledIds: Set<String>,
     highlightedProjectId: String?,
-    onAddSubprojectRequest: (parentProject: ContextPresentation) -> Unit,
+    onAddSubprojectRequest: (parentProject: ChooserHierarchyItem) -> Unit,
     filterText: String,
 ) {
     val isExpanded = project.id in expandedIds
     val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
-    val isEnabled = project.id !in disabledIds
+    val isEnabled =
+        project.id !in disabledIds &&
+            project.occurrence.placementId.value !in disabledIds
     val isHighlighted = project.id == highlightedProjectId
     val haptic = LocalHapticFeedback.current
 
@@ -612,7 +614,7 @@ private fun RecursiveSelectableListItem(
                         .fillMaxWidth()
                         .clickable(enabled = isEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSelect(project.id)
+                            onSelect(ChooserSelection(id = project.id, occurrence = project.occurrence))
                         }.padding(vertical = 12.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -142,7 +142,12 @@ fun ProjectHierarchyScreenScaffold(
                 onPasteToFocusedContext = {
                     when {
                         uiState.hasBeaconClipboard && focusedBeaconNode != null ->
-                            onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(focusedBeaconNode.id))
+                            onEvent(
+                                ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(
+                                    beaconNodeId = focusedBeaconNode.id,
+                                    destinationOccurrence = focusedBeaconNode.occurrence,
+                                ),
+                            )
                         uiState.hasBeaconClipboard && focusedGroupNode != null ->
                             onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(focusedGroupNode.id))
                     }

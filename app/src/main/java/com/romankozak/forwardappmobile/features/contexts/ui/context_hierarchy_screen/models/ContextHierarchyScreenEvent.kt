@@ -5,9 +5,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
-import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 
 sealed interface ContextHierarchyScreenEvent {
@@ -44,7 +46,10 @@ sealed interface ContextHierarchyScreenEvent {
         val placementId: String? = null,
     ) : ContextHierarchyScreenEvent
 
-    data class ContextMenuRequest(val projectId: String) : ContextHierarchyScreenEvent
+    data class ContextMenuRequest(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class MigrateRequest(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -60,17 +65,11 @@ sealed interface ContextHierarchyScreenEvent {
 
     data object MigrationExecute : ContextHierarchyScreenEvent
 
-    data class ContextReorder(
-        val fromId: String,
-        val toId: String,
-        val position: DropPosition,
-    ) : ContextHierarchyScreenEvent
-
     data object ToggleSiblingReorderMode : ContextHierarchyScreenEvent
 
     data class ReorderContextSiblings(
-        val parentContextId: String?,
-        val orderedContextIds: List<String>,
+        val parentPlacementId: PlacementId?,
+        val orderedPlacementIds: List<PlacementId>,
     ) : ContextHierarchyScreenEvent
 
     data class ReorderOrientationBeaconSiblings(
@@ -104,11 +103,20 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class AddChecklistToContextRequest(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class ListChooserResult(val projectId: String?) : ContextHierarchyScreenEvent
+    data class ListChooserResult(
+        val projectId: String?,
+        val destinationPlacementId: String? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class DeleteRequest(val projectId: String) : ContextHierarchyScreenEvent
+    data class DeleteRequest(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class MoveRequest(val projectId: String) : ContextHierarchyScreenEvent
+    data class MoveRequest(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class DeleteConfirm(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -164,36 +172,67 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ToggleUserFocusContext(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class CopyWorkspace(val projectId: String) : ContextHierarchyScreenEvent
+    data class CopyWorkspace(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class CutWorkspace(val projectId: String) : ContextHierarchyScreenEvent
+    data class CutWorkspace(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class PasteWorkspace(val projectId: String) : ContextHierarchyScreenEvent
+    data class PasteWorkspace(
+        val projectId: String,
+        val destinationOccurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class CopyContextLink(val projectId: String) : ContextHierarchyScreenEvent
+    data class CopyContextLink(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class CutContextLink(val projectId: String) : ContextHierarchyScreenEvent
+    data class CutContextLink(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class PasteContextLink(
         val projectId: String,
         val mode: BacklogPasteMode = BacklogPasteMode.AS_LINK,
+        val destinationOccurrence: HierarchyOccurrenceRef? = null,
     ) : ContextHierarchyScreenEvent
 
     data class PasteContextLinksIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
     data object PasteContextLinksIntoNoBeacon : ContextHierarchyScreenEvent
 
-    data class CopyBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+    data class CopyBeacon(
+        val beaconNodeId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class CopyBeaconAsLink(val beaconNodeId: String) : ContextHierarchyScreenEvent
+    data class CopyBeaconAsLink(
+        val beaconNodeId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class CutBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+    data class CutBeacon(
+        val beaconNodeId: String,
+        val occurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
-    data class PasteBeaconIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+    data class PasteBeaconIntoBeacon(
+        val beaconNodeId: String,
+        val destinationOccurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class PasteBeaconIntoGroup(val groupNodeId: String?) : ContextHierarchyScreenEvent
 
-    data class AddContextAppearanceHere(val parentProjectId: String) : ContextHierarchyScreenEvent
+    data class AddContextAppearanceHere(
+        val parentProjectId: String,
+        val parentOccurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class ToggleContextSelection(val projectId: String) : ContextHierarchyScreenEvent
 
@@ -250,10 +289,14 @@ sealed interface ContextHierarchyScreenEvent {
     data class AddContextConfirm(
         val name: String,
         val parentId: String?,
+        val parentPlacementId: PlacementId?,
         val roleCode: String? = null,
     ) : ContextHierarchyScreenEvent
 
-    data class AddSubprojectRequest(val parentProjectId: String) : ContextHierarchyScreenEvent
+    data class AddSubprojectRequest(
+        val parentProjectId: String,
+        val parentOccurrence: HierarchyOccurrenceRef? = null,
+    ) : ContextHierarchyScreenEvent
 
     data object CloseSearch : ContextHierarchyScreenEvent
 

@@ -25,6 +25,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -62,6 +63,9 @@ class SystemShellFreeMainScreenViewModelsTest {
             val settingsRepository = mockk<SettingsRepository>()
             val attachmentsRepository = mockk<AttachmentsRepository>(relaxed = true)
             val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
+            val canonicalV2ReactiveHierarchyReadSource =
+                mockk<CanonicalV2ReactiveHierarchyReadSource>()
+            every { canonicalV2ReactiveHierarchyReadSource.observe() } returns emptyFlow()
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
             coEvery { contextRepository.getContextById(id) } returns null
@@ -108,7 +112,8 @@ class SystemShellFreeMainScreenViewModelsTest {
                     musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                     checklistRepository = mockk<ChecklistRepository>(relaxed = true),
                     mainBeaconRepository = mainBeaconRepository,
-                    canonicalV2ReactiveHierarchyReadSource = mockk(relaxed = true),
+                    canonicalV2ReactiveHierarchyReadSource =
+                        canonicalV2ReactiveHierarchyReadSource,
                 )
 
             viewModel.addCoreLink(id)
@@ -131,6 +136,9 @@ class SystemShellFreeMainScreenViewModelsTest {
             val settingsRepository = mockk<SettingsRepository>()
             val attachmentsRepository = mockk<AttachmentsRepository>(relaxed = true)
             val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
+            val canonicalV2ReactiveHierarchyReadSource =
+                mockk<CanonicalV2ReactiveHierarchyReadSource>()
+            every { canonicalV2ReactiveHierarchyReadSource.observe() } returns emptyFlow()
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
             coEvery { contextRepository.getContextById(id) } returns null
@@ -160,7 +168,8 @@ class SystemShellFreeMainScreenViewModelsTest {
                     musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                     checklistRepository = mockk<ChecklistRepository>(relaxed = true),
                     mainBeaconRepository = mainBeaconRepository,
-                    canonicalV2ReactiveHierarchyReadSource = mockk(relaxed = true),
+                    canonicalV2ReactiveHierarchyReadSource =
+                        canonicalV2ReactiveHierarchyReadSource,
                 )
 
             viewModel.addCoreLink(id)

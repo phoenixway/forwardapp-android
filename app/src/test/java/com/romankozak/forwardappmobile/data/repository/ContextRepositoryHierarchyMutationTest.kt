@@ -230,214 +230,13 @@ class ContextRepositoryHierarchyMutationTest {
         coVerify(exactly = 0) { contextDao.getContextById(any()) }
     }
 
-    @Test
-    fun `ordinary move reads current Context and preserves its order and non topology state`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>()
-        coEvery { writeThrough.mutate<Context>(any(), any()) } coAnswers {
-            secondArg<suspend () -> Context>().invoke()
-        }
-        val persisted =
-            Context(
-                id = "context",
-                name = "Fresh persisted name",
-                description = "Fresh persisted description",
-                parentId = "old-parent",
-                createdAt = 1L,
-                updatedAt = 10L,
-                syncedAt = 9L,
-                version = 41L,
-                tags = listOf("fresh", "persisted"),
-                order = 37L,
-                roleCode = "management",
-            )
-        coEvery { contextDao.getContextById(persisted.id) } returns persisted
-        val written = slot<Context>()
-        coEvery { contextDao.update(capture(written)) } returns Unit
-
-        repository(contextDao, writeThrough).moveContextById(persisted.id, "new-parent")
-
-        val actual = written.captured
-        assertEquals("new-parent", actual.parentId)
-        assertEquals(persisted.order, actual.order)
-        assertEquals(persisted.name, actual.name)
-        assertEquals(persisted.description, actual.description)
-        assertEquals(persisted.tags, actual.tags)
-        assertEquals(persisted.roleCode, actual.roleCode)
-        assertTrue(actual.updatedAt != persisted.updatedAt)
-        assertEquals(null, actual.syncedAt)
-        assertEquals(persisted.version + 1L, actual.version)
-        coVerify(exactly = 1) { contextDao.getContextById(persisted.id) }
-    }
-
-    @Test
-    fun `ordinary move is a no op when current parent already matches`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
-        val directionRepository = mockk<DirectionRepository>(relaxed = true)
-        val persisted = context(id = "context", parentId = "parent")
-        coEvery { contextDao.getContextById(persisted.id) } returns persisted
-
-        repository(contextDao, writeThrough, directionRepository = directionRepository)
-            .moveContextById(persisted.id, persisted.parentId)
-
-        coVerify(exactly = 0) { contextDao.update(any<Context>()) }
-        coVerify(exactly = 0) {
-            directionRepository.addDirectionLinkedAtFront(any(), any(), any())
-        }
-    }
-
-    @Test
-    fun `System move delegates by stable id without reading Context`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
-        val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
-
-        repository(
-            contextDao,
-            writeThrough,
-            canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-        ).moveContextById(
-            contextId = SystemContexts.PERSONAL_MANAGEMENT.raw,
-            newParentId = "parent",
-            allowSystemMoves = true,
-        )
-
-        coVerify(exactly = 1) {
-            canonicalWorkspaceRepository.movePreservingOrder(
-                id = SystemContexts.PERSONAL_MANAGEMENT.raw,
-                newParentWorkspaceId = "parent",
-                now = any(),
-            )
-        }
-        coVerify(exactly = 0) { contextDao.getContextById(any()) }
-    }
-
-    @Test
-    fun `System move remains fail closed unless explicitly allowed`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
-        val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
-
-        repository(
-            contextDao,
-            writeThrough,
-            canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-        ).moveContextById(
-            contextId = SystemContexts.PERSONAL_MANAGEMENT.raw,
-            newParentId = "parent",
-        )
-
-        coVerify(exactly = 0) { canonicalWorkspaceRepository.movePreservingOrder(any(), any(), any()) }
-        coVerify(exactly = 0) { contextDao.getContextById(any()) }
-    }
-
-    @Test
-    fun `ordinary hierarchy update preserves fresh persisted non topology state`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>()
-        coEvery { writeThrough.mutate<Int>(any(), any()) } coAnswers {
-            secondArg<suspend () -> Int>().invoke()
-        }
-
-        val persisted =
-            Context(
-                id = "context",
-                name = "Fresh persisted name",
-                description = "Fresh persisted description",
-                parentId = "old-parent",
-                createdAt = 1L,
-                updatedAt = 10L,
-                syncedAt = 9L,
-                isDeleted = false,
-                version = 41L,
-                tags = listOf("fresh", "persisted"),
-                isExpanded = false,
-                order = 3L,
-                isAttachmentsExpanded = true,
-                defaultViewModeName = "DASHBOARD",
-                isCompleted = true,
-                isContextManagementEnabled = true,
-                contextStatus = "persisted-status",
-                contextStatusText = "Persisted status text",
-                contextLogLevel = "persisted-log-level",
-                totalTimeSpentMinutes = 321L,
-                valueImportance = 1.25f,
-                valueImpact = 2.5f,
-                effort = 3.75f,
-                cost = 4.5f,
-                risk = 5.25f,
-                weightEffort = 0.75f,
-                weightCost = 1.25f,
-                weightRisk = 1.5f,
-                rawScore = 6.5f,
-                displayScore = 73,
-                scoringStatus = "persisted-scoring-status",
-                showCheckboxes = true,
-                roleCode = "management",
-            )
-
-        coEvery {
-            contextDao.getContextsByIds(listOf(persisted.id))
-        } returns listOf(persisted)
-
-        val written = mutableListOf<Context>()
-        coEvery {
-            contextDao.update(any<List<Context>>())
-        } coAnswers {
-            val rows = firstArg<List<Context>>()
-            written += rows
-            rows.size
-        }
-
-        val repository = repository(contextDao, writeThrough)
-
-        val result =
-            repository.applyHierarchyUpdates(
-                listOf(
-                    ContextHierarchyUpdate(
-                        id = persisted.id,
-                        parentId = "new-parent",
-                        order = 7L,
-                    ),
-                ),
-            )
-
-        assertEquals(1, result)
-        assertEquals(1, written.size)
-
-        val actual = written.single()
-
-        assertTrue(actual.updatedAt != null)
-        assertTrue(actual.updatedAt != persisted.updatedAt)
-
-        assertEquals(
-            persisted.copy(
-                parentId = "new-parent",
-                order = 7L,
-                updatedAt = actual.updatedAt,
-                syncedAt = null,
-                version = persisted.version + 1L,
-            ),
-            actual,
-        )
-
-        coVerify(exactly = 1) {
-            contextDao.getContextsByIds(listOf(persisted.id))
-        }
-    }
-
     private fun repository(
         contextDao: ContextDao,
-        writeThrough: ContextWorkspaceWriteThrough,
-        directionRepository: DirectionRepository = mockk(relaxed = true),
+        workspaceWriteThrough: ContextWorkspaceWriteThrough,
         canonicalWorkspaceRepository: CanonicalWorkspaceRepository = mockk(relaxed = true),
-        systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority = mockk(relaxed = true),
-    ): ContextRepository {
-        val markerProvider = mockk<Provider<ContextMarkerHandler>>()
-        every { markerProvider.get() } returns mockk(relaxed = true)
-
-        return ContextRepository(
+        systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority = passthroughTagAuthority(),
+    ): ContextRepository =
+        ContextRepository(
             contextDao = contextDao,
             contextTagRefDao = mockk(relaxed = true),
             legacyNoteRepository = mockk(relaxed = true),
@@ -456,11 +255,11 @@ class ContextRepositoryHierarchyMutationTest {
             backlogPlacementCommands = mockk(relaxed = true),
             contextStructureDao = mockk(relaxed = true),
             structurePresetDao = mockk(relaxed = true),
-            directionRepository = directionRepository,
+            directionRepository = mockk(relaxed = true),
             aiEventRepository = mockk(relaxed = true),
-            contextMarkerHandlerProvider = markerProvider,
+            contextMarkerHandlerProvider = mockk(relaxed = true),
             tagAssociationHandler = mockk(relaxed = true),
-            workspaceWriteThrough = writeThrough,
+            workspaceWriteThrough = workspaceWriteThrough,
             canonicalWorkspaceRepository = canonicalWorkspaceRepository,
             canonicalWorkspaceTagRepository = mockk(relaxed = true),
             systemWorkspaceTagAuthority = systemWorkspaceTagAuthority,
@@ -472,7 +271,6 @@ class ContextRepositoryHierarchyMutationTest {
             backlogPresentationLifecycle = mockk(relaxed = true),
             hierarchyPlacementLifecycleCoordinator = mockk(relaxed = true),
         )
-    }
 
     private fun context(
         id: String,

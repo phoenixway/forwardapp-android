@@ -103,6 +103,26 @@ class CanonicalHierarchyPlacementRepository
                 now = now,
             )
 
+        /**
+         * Caller owns the Room transaction.
+         */
+        internal suspend fun createPrimaryAppearanceInCurrentTransaction(
+            target: HierarchyTargetRef,
+            parentPlacementId: PlacementId? = null,
+            position: HierarchyPlacementPosition = HierarchyPlacementPosition.LAST,
+            hierarchyId: HierarchyId = HierarchyId.GENERAL,
+            now: Long,
+        ): PlacementId =
+            createAppearanceInCurrentTransaction(
+                id = PlacementId(UUID.randomUUID().toString()),
+                hierarchyId = hierarchyId,
+                target = target,
+                parentPlacementId = parentPlacementId,
+                placementKind = PlacementKind.PRIMARY,
+                position = position,
+                now = now,
+            )
+
         suspend fun createLinkAppearance(
             target: HierarchyTargetRef,
             parentPlacementId: PlacementId? = null,

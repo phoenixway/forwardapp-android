@@ -136,4 +136,11 @@ class CanonicalV2ReactiveHierarchyReadSource
                 )
             }
         }
+
+        fun observeWorkspacePresentations(): Flow<List<HierarchyContextPresentationNode>> =
+            systemWorkspacePresentationContextProjector
+                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .map { presentations ->
+                    presentations.map { it.toHierarchyPresentationNode() }
+                }
     }

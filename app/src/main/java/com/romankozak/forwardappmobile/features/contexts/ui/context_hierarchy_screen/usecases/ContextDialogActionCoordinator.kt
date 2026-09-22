@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
@@ -45,8 +46,14 @@ class ContextDialogActionCoordinator
             dialogUseCase.onAddProjectRequest(focusedContextId)
         }
 
-        fun requestAddSubcontext(parentProjectId: String) {
-            dialogUseCase.onAddProjectRequest(parentProjectId)
+        fun requestAddSubcontext(
+            parentProjectId: String,
+            parentOccurrence: HierarchyOccurrenceRef?,
+        ) {
+            dialogUseCase.onAddProjectRequest(
+                parentId = parentProjectId,
+                parentOccurrence = parentOccurrence,
+            )
         }
 
         fun requestDelete(
@@ -61,10 +68,14 @@ class ContextDialogActionCoordinator
 
         suspend fun requestMove(
             projectId: String,
-            allProjects: List<Context>,
+            occurrence: HierarchyOccurrenceRef?,
+            hierarchyRead: com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead?,
         ): ProjectUiEvent.Navigate? {
-            val target = contextActionsUseCase.getMoveProjectRoute(projectId, allProjects) ?: return null
+            val sourceOccurrence = occurrence ?: return null
+            val read = hierarchyRead ?: return null
+            val target = contextActionsUseCase.getMoveProjectRoute(sourceOccurrence, read) ?: return null
             savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = projectId
+            savedStateHandle[PROJECT_BEING_MOVED_PLACEMENT_ID_KEY] = sourceOccurrence.placementId.value
             dialogUseCase.dismissDialog()
             return ProjectUiEvent.Navigate(target)
         }
@@ -77,15 +88,14 @@ class ContextDialogActionCoordinator
         }
 
         suspend fun confirmMove(
-            newParentId: String?,
-            allProjects: List<Context>,
+            destinationPlacementId: String?,
         ) {
             contextActionsUseCase.onListChooserResult(
-                newParentId = newParentId,
-                projectBeingMovedId = savedStateHandle[PROJECT_BEING_MOVED_ID_KEY],
-                allProjects = allProjects,
+                destinationPlacementId = destinationPlacementId,
+                sourcePlacementId = savedStateHandle[PROJECT_BEING_MOVED_PLACEMENT_ID_KEY],
             )
             savedStateHandle[PROJECT_BEING_MOVED_ID_KEY] = null
+            savedStateHandle[PROJECT_BEING_MOVED_PLACEMENT_ID_KEY] = null
         }
 
         suspend fun confirmRestoreImport(uri: Uri): ProjectUiEvent.ShowToast {
@@ -112,12 +122,14 @@ class ContextDialogActionCoordinator
         suspend fun confirmAddContext(
             name: String,
             parentId: String?,
+            parentPlacementId: com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId?,
             roleCode: String?,
         ) {
             val newWorkspaceId =
                 contextActionsUseCase.addNewProject(
                     name = name,
                     parentId = parentId,
+                    parentPlacementId = parentPlacementId,
                     roleCode = roleCode,
                 )
 
@@ -168,6 +180,7 @@ class ContextDialogActionCoordinator
 
         companion object {
             private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
+            private const val PROJECT_BEING_MOVED_PLACEMENT_ID_KEY = "projectBeingMovedPlacementId"
             private const val PENDING_BEACON_FOR_NEW_CONTEXT_ID_KEY = "pendingBeaconForNewContextId"
         }
     }

@@ -1,10 +1,18 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
-import com.romankozak.forwardappmobile.data.repository.ContextHierarchyUpdate
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommandService
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommand
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyReadAdapter
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRolePresetInitializer
@@ -12,8 +20,7 @@ import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirect
 import com.romankozak.forwardappmobile.data.workspace.capability.DirectionCapabilityState
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.mockk.coVerify
@@ -27,10 +34,10 @@ import org.junit.Test
 class ContextActionsUseCaseTest {
     private val contextRepository = mockk<ContextRepository>(relaxed = true)
     private val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
+    private val hierarchyOccurrenceCommandService = mockk<HierarchyOccurrenceCommandService>(relaxed = true)
     private val canonicalWorkspaceRolePresetInitializer =
         mockk<CanonicalWorkspaceRolePresetInitializer>(relaxed = true)
     private val canonicalDirectionRepository = mockk<CanonicalDirectionRepository>(relaxed = true)
-    private val contextParentLinkDao = mockk<ContextParentLinkDao>(relaxed = true)
     private val syncRepository = mockk<SyncRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
     private val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
@@ -38,10 +45,10 @@ class ContextActionsUseCaseTest {
     private val useCase =
         ContextActionsUseCase(
             contextRepository = contextRepository,
+            hierarchyOccurrenceCommandService = hierarchyOccurrenceCommandService,
             canonicalWorkspaceRepository = canonicalWorkspaceRepository,
             canonicalWorkspaceRolePresetInitializer = canonicalWorkspaceRolePresetInitializer,
             canonicalDirectionRepository = canonicalDirectionRepository,
-            contextParentLinkDao = contextParentLinkDao,
             syncRepository = syncRepository,
             settingsRepository = settingsRepository,
             mainBeaconRepository = mainBeaconRepository,
@@ -51,7 +58,7 @@ class ContextActionsUseCaseTest {
     @Test
     fun addNewProjectCreatesStandaloneWorkspaceAndReturnsCanonicalId() = runTest {
         coEvery {
-            canonicalWorkspaceRepository.create(
+            canonicalWorkspaceRepository.createWithPrimaryAppearance(
                 nameOverride = "Operations",
                 descriptionOverride = null,
                 parentWorkspaceId = "parent-workspace",
@@ -70,13 +77,14 @@ class ContextActionsUseCaseTest {
         val result =
             useCase.addNewProject(
                 parentId = "parent-workspace",
+                parentPlacementId = null,
                 name = "  Operations  ",
                 roleCode = "management",
             )
 
         assertEquals("workspace-generated-id", result)
         coVerify(exactly = 1) {
-            canonicalWorkspaceRepository.create(
+            canonicalWorkspaceRepository.createWithPrimaryAppearance(
                 nameOverride = "Operations",
                 descriptionOverride = null,
                 parentWorkspaceId = "parent-workspace",
@@ -99,15 +107,12 @@ class ContextActionsUseCaseTest {
                 now = any(),
             )
         }
-        coVerify(exactly = 0) {
-            contextRepository.createContextWithId(any(), any(), any(), any())
-        }
     }
 
     @Test
     fun addNewProjectDoesNotAutoLinkWhenParentDirectionPolicyIsDisabled() = runTest {
         coEvery {
-            canonicalWorkspaceRepository.create(
+            canonicalWorkspaceRepository.createWithPrimaryAppearance(
                 nameOverride = "Child",
                 descriptionOverride = null,
                 parentWorkspaceId = "parent-workspace",
@@ -126,14 +131,12 @@ class ContextActionsUseCaseTest {
         val result =
             useCase.addNewProject(
                 parentId = "parent-workspace",
+                parentPlacementId = null,
                 name = "Child",
                 roleCode = null,
             )
 
         assertEquals("child-workspace", result)
-        coVerify(exactly = 0) {
-            canonicalDirectionRepository.createWorkspaceLinkAtFront(any(), any(), any(), any())
-        }
     }
 
     @Test
@@ -141,39 +144,85 @@ class ContextActionsUseCaseTest {
         val result =
             useCase.addNewProject(
                 parentId = null,
+                parentPlacementId = null,
                 name = "   ",
                 roleCode = "management",
             )
 
         assertNull(result)
         coVerify(exactly = 0) {
-            canonicalWorkspaceRepository.create(any(), any(), any(), any(), any())
+            canonicalWorkspaceRepository.createWithPrimaryAppearance(any(), any(), any(), any(), any())
         }
         coVerify(exactly = 0) {
             canonicalWorkspaceRolePresetInitializer.apply(any(), any(), any())
         }
-        coVerify(exactly = 0) {
-            contextRepository.createContextWithId(any(), any(), any(), any())
-        }
     }
 
     @Test
-    fun getMoveProjectRouteTreatsOrphanedContextAsRoot() = runTest {
-        val orphanParent = "missing-parent"
-        val project =
-            context(
-                id = "orphan",
-                parentId = orphanParent,
+    fun getMoveProjectRouteUsesOccurrenceTopologyAndDisablesDescendants() {
+        val read =
+            v2Read(
+                placements =
+                    listOf(
+                        placement("root-placement", "root", nameOrder = 0),
+                        placement(
+                            "source-placement",
+                            "source",
+                            parentId = "root-placement",
+                            nameOrder = 0,
+                        ),
+                        placement(
+                            "child-placement",
+                            "child",
+                            parentId = "source-placement",
+                            nameOrder = 0,
+                        ),
+                        placement(
+                            "grandchild-placement",
+                            "grandchild",
+                            parentId = "child-placement",
+                            nameOrder = 0,
+                        ),
+                    ),
+                presentations =
+                    listOf(
+                        workspacePresentation("root", "Root"),
+                        workspacePresentation("source", "Source"),
+                        workspacePresentation("child", "Child"),
+                        workspacePresentation("grandchild", "Grandchild"),
+                    ),
+            )
+        val occurrence =
+            requireNotNull(read.occurrence(PlacementId("source-placement")))
+                .toHierarchyOccurrenceRef()
+
+        val route = requireNotNull(useCase.getMoveProjectRoute(occurrence, read))
+
+        assertEquals("Move 'Source'", route.title)
+        assertEquals("root-placement", route.currentParentId)
+        assertEquals(
+            setOf("source-placement", "child-placement", "grandchild-placement"),
+            route.disabledIds?.split(",")?.toSet(),
+        )
+    }
+
+    @Test
+    fun getMoveProjectRouteFailsClosedWhenPlacementIsMissing() {
+        val read =
+            v2Read(
+                placements = listOf(placement("root-placement", "root")),
+                presentations = listOf(workspacePresentation("root", "Root")),
+            )
+        val missing =
+            HierarchyOccurrenceRef(
+                placementId = PlacementId("missing-placement"),
+                target = workspaceTarget("missing"),
+                parentPlacementId = null,
+                placementKind = PlacementKind.PRIMARY,
+                siblingOrder = 0,
             )
 
-        val route = requireNotNull(useCase.getMoveProjectRoute(project.id, allProjects = listOf(project)))
-
-        assertEquals("root", route.currentParentId)
-    }
-
-    @Test
-    fun getMoveProjectRouteFailsClosedWhenRawContextIsMissing() {
-        assertNull(useCase.getMoveProjectRoute("missing", allProjects = emptyList()))
+        assertNull(useCase.getMoveProjectRoute(missing, read))
     }
 
     @Test
@@ -198,129 +247,70 @@ class ContextActionsUseCaseTest {
     }
 
     @Test
-    fun sameParentReorderSendsOnlyNormalizedHierarchyUpdates() = runTest {
-        val parentId = "parent"
-        val parent = context(id = parentId)
-        val first = context(id = "first", parentId = parentId, order = 0)
-        val second = context(id = "second", parentId = parentId, order = 1)
-        val third = context(id = "third", parentId = parentId, order = 2)
-
-        useCase.onProjectReorder(
-            fromId = third.id,
-            toId = first.id,
-            position = DropPosition.BEFORE,
-            isSearchActive = false,
-            allProjects = listOf(parent, first, second, third),
-        )
-
-        coVerify(exactly = 1) {
-            contextRepository.applyHierarchyUpdates(
-                listOf(
-                    ContextHierarchyUpdate(third.id, parentId, 0),
-                    ContextHierarchyUpdate(first.id, parentId, 1),
-                    ContextHierarchyUpdate(second.id, parentId, 2),
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun crossParentReorderSendsSourceAndTargetTopologyUpdates() = runTest {
-        val sourceParentId = "source-parent"
-        val targetParentId = "target-parent"
-        val sourceParent = context(id = sourceParentId)
-        val targetParent = context(id = targetParentId)
-        val sourceSibling = context(id = "source-sibling", parentId = sourceParentId, order = 0)
-        val moved = context(id = "moved", parentId = sourceParentId, order = 1)
-        val target = context(id = "target", parentId = targetParentId, order = 0)
-
-        useCase.onProjectReorder(
-            fromId = moved.id,
-            toId = target.id,
-            position = DropPosition.AFTER,
-            isSearchActive = false,
-            allProjects = listOf(sourceParent, targetParent, sourceSibling, moved, target),
-        )
-
-        coVerify(exactly = 1) {
-            contextRepository.applyHierarchyUpdates(
-                listOf(
-                    ContextHierarchyUpdate(sourceSibling.id, sourceParentId, 0),
-                    ContextHierarchyUpdate(target.id, targetParentId, 0),
-                    ContextHierarchyUpdate(moved.id, targetParentId, 1),
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun reorderContextSiblingsSendsDirectChildrenAsHierarchyUpdates() = runTest {
-        val parentId = "parent"
-        val first = context(id = "first", parentId = parentId, order = 0)
-        val second = context(id = "second", parentId = parentId, order = 1)
-        coEvery { mainBeaconRepository.getBeaconById(parentId) } returns null
-        coEvery { contextParentLinkDao.getActiveLinks() } returns emptyList()
+    fun reorderContextSiblingsDelegatesToHierarchyOccurrenceWriter() = runTest {
+        val parentPlacementId = PlacementId("parent-placement")
+        val childPlacementId = PlacementId("child-placement")
 
         useCase.reorderContextSiblings(
-            parentContextId = parentId,
-            orderedContextIds = listOf(second.id, first.id),
-            allProjects = listOf(first, second),
+            parentPlacementId = parentPlacementId,
+            orderedPlacementIds = listOf(childPlacementId),
         )
 
         coVerify(exactly = 1) {
-            contextRepository.applyHierarchyUpdates(
-                listOf(
-                    ContextHierarchyUpdate(second.id, parentId, 0),
-                    ContextHierarchyUpdate(first.id, parentId, 1),
+            hierarchyOccurrenceCommandService.reorderSiblings(
+                HierarchyOccurrenceCommand.ReorderSiblings(
+                    parentPlacementId = parentPlacementId,
+                    orderedPlacementIds = listOf(childPlacementId),
                 ),
+                any(),
             )
         }
     }
 
-    @Test
-    fun reorderContextSiblingsKeepsAdditionalParentLinksOnTheirDaoPath() = runTest {
-        val parentId = "additional-parent"
-        val linkedChild = context(id = "linked-child", parentId = "primary-parent")
-        coEvery { mainBeaconRepository.getBeaconById(parentId) } returns null
-        coEvery { contextParentLinkDao.getActiveLinks() } returns
-            listOf(ContextParentLink(parentContextId = parentId, childContextId = linkedChild.id))
-
-        useCase.reorderContextSiblings(
-            parentContextId = parentId,
-            orderedContextIds = listOf(linkedChild.id),
-            allProjects = listOf(linkedChild),
+    private fun v2Read(
+        placements: List<HierarchyPlacement>,
+        presentations: List<HierarchyContextPresentationNode>,
+    ) =
+        CanonicalV2ProductionHierarchyReadAdapter().read(
+            placements = placements,
+            admittedWorkspacePresentations = presentations,
+            managedSubjects = emptyList(),
         )
 
-        coVerify(exactly = 1) {
-            contextParentLinkDao.updateOrder(
-                parentContextId = parentId,
-                childContextId = linkedChild.id,
-                order = 0,
-                updatedAt = any(),
-            )
-        }
-        coVerify(exactly = 0) { contextRepository.applyHierarchyUpdates(any()) }
-    }
+    private fun placement(
+        placementId: String,
+        workspaceId: String,
+        parentId: String? = null,
+        nameOrder: Long = 0,
+    ) = HierarchyPlacement(
+        id = PlacementId(placementId),
+        hierarchyId = HierarchyId.GENERAL,
+        target = workspaceTarget(workspaceId),
+        parentPlacementId = parentId?.let(::PlacementId),
+        placementKind = PlacementKind.PRIMARY,
+        siblingOrder = nameOrder,
+        createdAt = 1,
+        updatedAt = 1,
+        syncedAt = null,
+        isDeleted = false,
+        version = 1,
+    )
 
-    @Test
-    fun personalManagementCanBeMovedUnderAnotherContext() = runTest {
-        val targetParent = context(id = "target-parent")
-        val personalManagement = context(id = SystemContexts.PERSONAL_MANAGEMENT.raw)
+    private fun workspacePresentation(
+        id: String,
+        name: String,
+    ) = HierarchyContextPresentationNode(
+        id = id,
+        name = name,
+        description = null,
+        parentId = null,
+        order = 0,
+        roleCode = null,
+        tags = emptyList(),
+    )
 
-        useCase.onListChooserResult(
-            newParentId = targetParent.id,
-            projectBeingMovedId = personalManagement.id,
-            allProjects = listOf(personalManagement, targetParent),
-        )
-
-        coVerify(exactly = 1) {
-            contextRepository.moveContextById(
-                contextId = personalManagement.id,
-                newParentId = targetParent.id,
-                allowSystemMoves = true,
-            )
-        }
-    }
+    private fun workspaceTarget(id: String) =
+        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, id)
 
     private fun context(
         id: String,

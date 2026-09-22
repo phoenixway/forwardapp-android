@@ -2,12 +2,18 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 
 class ContextSettingsActions(
     private val contextRepository: ContextRepository,
+    private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
 ) {
     suspend fun deleteCurrentProject(contextId: String) {
-        contextRepository.deleteContextsByIds(listOf(contextId))
+        if (canonicalWorkspaceRepository.hasLiveWorkspace(contextId)) {
+            canonicalWorkspaceRepository.tombstoneSubtree(contextId)
+        } else {
+            contextRepository.deleteContextsByIds(listOf(contextId))
+        }
     }
 
     suspend fun persistContextViewMode(

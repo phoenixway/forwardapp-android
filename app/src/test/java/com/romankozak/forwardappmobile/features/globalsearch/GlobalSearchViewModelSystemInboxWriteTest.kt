@@ -106,7 +106,7 @@ class GlobalSearchViewModelSystemInboxWriteTest {
                     now = any(),
                 )
             }
-            coVerify(exactly = 0) { contextRepository.createContextWithId(any(), any(), any()) }
+
             assertEquals(
                 NavTarget.ContextHierarchy(projectIdToReveal = "standalone-workspace"),
                 (command.await() as NavigationCommand.NavigateTarget).target,

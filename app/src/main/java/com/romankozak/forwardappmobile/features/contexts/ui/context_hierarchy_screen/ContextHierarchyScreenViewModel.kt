@@ -25,6 +25,8 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.routes.COMMAND_DECK_ROUTE
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -36,6 +38,8 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
@@ -211,6 +215,7 @@ class ContextHierarchyScreenViewModel
                         }
                 },
                 hierarchyPresentationFlat = _hierarchyPresentationFlat,
+                presentationHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy,
             )
             planningUseCase.initialize(
                 scope = viewModelScope,
@@ -336,6 +341,7 @@ class ContextHierarchyScreenViewModel
                         currentSubState = uiState.value.currentSubState,
                         currentBreadcrumbs = uiState.value.currentBreadcrumbs,
                         orientationHierarchy = uiState.value.orientationHierarchy,
+                        canonicalRead = projectHierarchyScreenStateUseCase.canonicalV2Read.value,
                         enterFocus = true,
                         replaceFocusPath = forceFocusMode,
                     )
@@ -410,6 +416,34 @@ class ContextHierarchyScreenViewModel
 
         }
 
+        private fun canonicalBreadcrumbsForPlacement(
+            placementId: String?,
+        ): List<BreadcrumbItem>? =
+            placementId
+                ?.let(::PlacementId)
+                ?.let { id ->
+                    projectHierarchyScreenStateUseCase
+                        .canonicalV2Read
+                        .value
+                        ?.breadcrumbsToOccurrence(id)
+                }
+                ?.map { breadcrumb ->
+                    BreadcrumbItem(
+                        id = breadcrumb.id,
+                        name = breadcrumb.title,
+                        level = breadcrumb.level,
+                        target =
+                            when (breadcrumb.target) {
+                                CanonicalV2BreadcrumbTarget.CONTEXT ->
+                                    BreadcrumbTarget.Context
+                                CanonicalV2BreadcrumbTarget.ORIENTATION_NODE ->
+                                    BreadcrumbTarget.OrientationNode
+                            },
+                        placementId = breadcrumb.placementId?.value,
+                    )
+                }
+
+
         fun onEvent(event: ContextHierarchyScreenEvent) {
             when (event) {
                 is ContextHierarchyScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
@@ -425,6 +459,7 @@ class ContextHierarchyScreenViewModel
                         placementId = event.placementId,
                         currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                         orientationHierarchy = uiState.value.orientationHierarchy,
+                        canonicalBreadcrumbs = canonicalBreadcrumbsForPlacement(event.placementId),
                     )
 
                 is ContextHierarchyScreenEvent.ContextClick -> {
@@ -471,6 +506,7 @@ class ContextHierarchyScreenViewModel
                                     workspaceClipboardCoordinator.canPasteInto(event.projectId),
                                 delete = !isSystemProject,
                             ),
+                        occurrence = event.occurrence,
                     )
                 }
                 is ContextHierarchyScreenEvent.MigrateRequest -> {
@@ -498,26 +534,14 @@ class ContextHierarchyScreenViewModel
                         }
                     }
                 }
-                is ContextHierarchyScreenEvent.ContextReorder -> {
-                    viewModelScope.launch {
-                        contextActionsUseCase.onProjectReorder(
-                            fromId = event.fromId,
-                            toId = event.toId,
-                            position = event.position,
-                            isSearchActive = searchUseCase.isSearchActive(),
-                            allProjects = _rawContextsFlat.value,
-                        )
-                    }
-                }
                 ContextHierarchyScreenEvent.ToggleSiblingReorderMode -> {
                     _isSiblingReorderMode.update { !it }
                 }
                 is ContextHierarchyScreenEvent.ReorderContextSiblings -> {
                     viewModelScope.launch {
                         contextActionsUseCase.reorderContextSiblings(
-                            parentContextId = event.parentContextId,
-                            orderedContextIds = event.orderedContextIds,
-                            allProjects = _rawContextsFlat.value,
+                            parentPlacementId = event.parentPlacementId,
+                            orderedPlacementIds = event.orderedPlacementIds,
                         )
                     }
                 }
@@ -560,10 +584,16 @@ class ContextHierarchyScreenViewModel
                     createChecklistInContext(event.projectId)
                 }
                 is ContextHierarchyScreenEvent.ListChooserResult -> {
-                    confirmMove(event.projectId)
+                    confirmMove(
+                        newParentId = event.projectId,
+                        destinationPlacementId = event.destinationPlacementId,
+                    )
                 }
                 is ContextHierarchyScreenEvent.AddSubprojectRequest ->
-                    contextDialogActionCoordinator.requestAddSubcontext(event.parentProjectId)
+                    contextDialogActionCoordinator.requestAddSubcontext(
+                        parentProjectId = event.parentProjectId,
+                        parentOccurrence = event.parentOccurrence,
+                    )
                 is ContextHierarchyScreenEvent.DeleteRequest -> {
                     val projectName =
                         _hierarchyPresentationFlat.value
@@ -580,7 +610,8 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         contextDialogActionCoordinator.requestMove(
                             projectId = event.projectId,
-                            allProjects = _rawContextsFlat.value,
+                            occurrence = event.occurrence,
+                            hierarchyRead = projectHierarchyScreenStateUseCase.canonicalV2Read.value,
                         )?.let { _uiEventChannel.send(it) }
                     }
                 }
@@ -716,6 +747,7 @@ class ContextHierarchyScreenViewModel
                             currentSubState = uiState.value.currentSubState,
                             currentBreadcrumbs = uiState.value.currentBreadcrumbs,
                             orientationHierarchy = uiState.value.orientationHierarchy,
+                            canonicalRead = projectHierarchyScreenStateUseCase.canonicalV2Read.value,
                             enterFocus = true,
                         )
                     }
@@ -759,19 +791,20 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyContextLink -> {
-                    val toast = contextClipboardCoordinator.copyContextAsLink(event.projectId)
+                    val toast = contextClipboardCoordinator.copyContextAsLink(
+                        contextId = event.projectId,
+                        occurrence = event.occurrence,
+                    )
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
                     }
                 }
                 is ContextHierarchyScreenEvent.CutContextLink -> {
-                    val sourceParentId =
-                        displayedContextParentIds(setOf(event.projectId))[event.projectId]
                     val toast =
                         contextClipboardCoordinator.cutContext(
                             contextId = event.projectId,
-                            sourceParentId = sourceParentId,
+                            occurrence = event.occurrence,
                         )
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
@@ -783,7 +816,8 @@ class ContextHierarchyScreenViewModel
                         emitClipboardResult(
                             contextClipboardCoordinator.pasteIntoContext(
                                 targetContextId = event.projectId,
-                                allProjects = _rawContextsFlat.value,
+                                destinationOccurrence = event.destinationOccurrence,
+                                hierarchyRead = projectHierarchyScreenStateUseCase.canonicalV2Read.value,
                             ),
                         )
                     }
@@ -801,7 +835,6 @@ class ContextHierarchyScreenViewModel
                                 contextClipboardCoordinator.pasteIntoBeacon(
                                     beaconNodeId = event.beaconNodeId,
                                     orientationHierarchy = uiState.value.orientationHierarchy,
-                                    allProjects = _rawContextsFlat.value,
                                 ),
                             )
                         }
@@ -810,9 +843,7 @@ class ContextHierarchyScreenViewModel
                 ContextHierarchyScreenEvent.PasteContextLinksIntoNoBeacon -> {
                     viewModelScope.launch {
                         emitClipboardResult(
-                            contextClipboardCoordinator.pasteIntoNoBeacon(
-                                allProjects = _rawContextsFlat.value,
-                            ),
+                            contextClipboardCoordinator.pasteIntoNoBeacon(),
                         )
                     }
                 }
@@ -860,8 +891,7 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         emitClipboardResult(
                             contextClipboardCoordinator.addContextAppearance(
-                                parentContextId = event.parentProjectId,
-                                allProjects = _rawContextsFlat.value,
+                                parentOccurrence = event.parentOccurrence,
                             ),
                         )
                     }
@@ -1016,6 +1046,7 @@ class ContextHierarchyScreenViewModel
                         contextDialogActionCoordinator.confirmAddContext(
                             name = event.name,
                             parentId = event.parentId,
+                            parentPlacementId = event.parentPlacementId,
                             roleCode = event.roleCode,
                         )
                     }
@@ -1076,6 +1107,7 @@ class ContextHierarchyScreenViewModel
             hierarchyFocusCoordinator.handleBackNavigation(
                 currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                 orientationHierarchy = uiState.value.orientationHierarchy,
+                canonicalRead = projectHierarchyScreenStateUseCase.canonicalV2Read.value,
                 goBack = { enhancedNavigationManager?.goBack() },
             )
         }
@@ -1125,28 +1157,6 @@ class ContextHierarchyScreenViewModel
                 _isBottomNavExpanded.value = isExpanded
                 contextActionsUseCase.onBottomNavExpandedChange(isExpanded)
             }
-        }
-
-        private fun displayedContextParentIds(contextIds: Set<String>): Map<String, String?> {
-            if (contextIds.isEmpty()) return emptyMap()
-            val result = linkedMapOf<String, String?>()
-            val stack = ArrayDeque<Pair<Int, String?>>()
-            uiState.value.orientationHierarchy.forEach { item ->
-                while (stack.isNotEmpty() && stack.last().first >= item.level) {
-                    stack.removeLast()
-                }
-                val projectNode = item.node as? OrientationHierarchyNode.ProjectLike
-                if (projectNode != null) {
-                    val projectId = projectNode.id
-                    if (projectId in contextIds && projectId !in result) {
-                        result[projectId] = stack.lastOrNull()?.second
-                    }
-                    stack.addLast(item.level to projectId)
-                } else {
-                    stack.addLast(item.level to null)
-                }
-            }
-            return result
         }
 
         private fun onRecentItemSelected(item: RecentItem) {
@@ -1247,11 +1257,13 @@ class ContextHierarchyScreenViewModel
             }
         }
 
-        private fun confirmMove(newParentId: String?) {
+        private fun confirmMove(
+            newParentId: String?,
+            destinationPlacementId: String? = null,
+        ) {
             viewModelScope.launch {
                 contextDialogActionCoordinator.confirmMove(
-                    newParentId = newParentId,
-                    allProjects = _rawContextsFlat.value,
+                    destinationPlacementId = destinationPlacementId,
                 )
             }
         }

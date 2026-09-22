@@ -1,8 +1,19 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ContextParentPlanWriter
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyActionPlanDecision
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyClipboardDestination
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyClipboardIntent
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyClipboardOccurrence
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyClipboardOperation
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyClipboardSourceKind
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyMixedDomainCommandSemantics
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommand
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommandService
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
@@ -14,7 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import java.util.UUID
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import javax.inject.Inject
 
 data class ContextClipboardResult(
@@ -26,9 +37,10 @@ data class ContextClipboardResult(
 class ContextClipboardCoordinator
     @Inject
     constructor(
-        private val contextRepository: ContextRepository,
         private val mainBeaconRepository: MainBeaconRepository,
-        private val contextActionsUseCase: ContextActionsUseCase,
+        private val workspaceClipboardCoordinator: WorkspaceClipboardCoordinator,
+        private val hierarchyOccurrenceCommandService: HierarchyOccurrenceCommandService,
+        private val contextParentPlanWriter: CanonicalV2ContextParentPlanWriter,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         private enum class Operation {
@@ -40,7 +52,7 @@ class ContextClipboardCoordinator
         private data class Payload(
             val contextIds: Set<String>,
             val operation: Operation,
-            val sourceParentIds: Map<String, String?> = emptyMap(),
+            val occurrences: Map<String, HierarchyOccurrenceRef> = emptyMap(),
         )
 
         private data class BeaconPayload(
@@ -65,57 +77,32 @@ class ContextClipboardCoordinator
             syncUiState()
         }
 
-        fun canPasteInto(
-            targetContextId: String,
-            allProjects: List<Context>,
-        ): Boolean {
-            val current = payload.value ?: return false
-            return canPasteInto(targetContextId = targetContextId, allProjects = allProjects, payload = current)
-        }
-
-        fun copyContext(contextId: String): String {
-            setPayload(Payload(contextIds = setOf(contextId), operation = Operation.COPY))
-            return "Контекст скопійовано"
-        }
-
-        fun copyContextAsLink(contextId: String): String {
-            setPayload(Payload(contextIds = setOf(contextId), operation = Operation.LINK))
+        fun copyContextAsLink(
+            contextId: String,
+            occurrence: HierarchyOccurrenceRef? = null,
+        ): String {
+            setPayload(
+                Payload(
+                    contextIds = setOf(contextId),
+                    operation = Operation.LINK,
+                    occurrences = occurrence?.let { mapOf(contextId to it) }.orEmpty(),
+                ),
+            )
             return "Посилання на контекст скопійовано"
         }
 
         fun cutContext(
             contextId: String,
-            sourceParentId: String? = null,
+            occurrence: HierarchyOccurrenceRef? = null,
         ): String {
             setPayload(
                 Payload(
                     contextIds = setOf(contextId),
                     operation = Operation.CUT,
-                    sourceParentIds = mapOf(contextId to sourceParentId),
+                    occurrences = occurrence?.let { mapOf(contextId to it) }.orEmpty(),
                 ),
             )
             return "Контекст вирізано"
-        }
-
-        fun copyContexts(contextIds: Set<String>): ContextClipboardResult? {
-            if (contextIds.isEmpty()) return null
-            setPayload(Payload(contextIds = contextIds, operation = Operation.COPY))
-            return ContextClipboardResult(toast = "Контексти скопійовано: ${contextIds.size}")
-        }
-
-        fun cutContexts(
-            contextIds: Set<String>,
-            sourceParentIds: Map<String, String?> = emptyMap(),
-        ): ContextClipboardResult? {
-            if (contextIds.isEmpty()) return null
-            setPayload(
-                Payload(
-                    contextIds = contextIds,
-                    operation = Operation.CUT,
-                    sourceParentIds = sourceParentIds.filterKeys { it in contextIds },
-                ),
-            )
-            return ContextClipboardResult(toast = "Контексти вирізано: ${contextIds.size}")
         }
 
         fun copyBeacon(beaconId: String): String {
@@ -214,98 +201,167 @@ class ContextClipboardCoordinator
 
         suspend fun pasteIntoContext(
             targetContextId: String,
-            allProjects: List<Context>,
+            destinationOccurrence: HierarchyOccurrenceRef? = null,
+            hierarchyRead: CanonicalV2ProductionHierarchyRead? = null,
         ): ContextClipboardResult {
-            val current = payload.value ?: return ContextClipboardResult("Буфер порожній", dismissDialog = true)
-            val targetContext =
-                allProjects.firstOrNull { it.id == targetContextId }
-                    ?: return ContextClipboardResult("Цільовий контекст більше не існує", dismissDialog = true)
-            val sources = resolveClipboardContexts(allProjects, current)
-            if (sources.isEmpty()) {
+            val current =
+                payload.value
+                    ?: return ContextClipboardResult(
+                        "Буфер порожній",
+                        dismissDialog = true,
+                    )
+
+            if (current.contextIds.isEmpty()) {
                 clear()
-                return ContextClipboardResult("Контекст у буфері більше не існує", dismissDialog = true)
+                return ContextClipboardResult(
+                    "Контекст у буфері більше не існує",
+                    dismissDialog = true,
+                )
             }
-            if (!canPasteInto(targetContext.id, allProjects, current)) {
-                return ContextClipboardResult("Неможливо вставити в цей контекст", dismissDialog = true)
-            }
 
-            return when (current.operation) {
-                Operation.CUT -> {
-                    withContext(ioDispatcher) {
-                        sources.forEach { source ->
-                            current.sourceParentIds[source.id]?.let { sourceParentId ->
-                                if (sourceParentId != source.parentId && sourceParentId != targetContext.id) {
-                                    contextActionsUseCase.removeAdditionalParentLink(
-                                        parentContextId = sourceParentId,
-                                        childContextId = source.id,
-                                    )
-                                }
-                            }
-                            contextRepository.moveContextById(
-                                contextId = source.id,
-                                newParentId = targetContext.id,
-                                allowSystemMoves = true,
-                            )
-                        }
-                    }
-                    clear()
-                    ContextClipboardResult(
-                        toast = if (sources.size == 1) "Контекст переміщено" else "Контексти переміщено: ${sources.size}",
-                        dismissDialog = true,
-                    )
-                }
-
-                Operation.COPY -> {
-                    withContext(ioDispatcher) {
-                        val siblingNames =
-                            allProjects
-                                .filter { it.parentId == targetContext.id }
-                                .mapTo(mutableSetOf()) { it.name }
-                        sources.forEach { source ->
-                            val copiedName =
-                                generateCopiedContextName(
-                                    baseName = source.name,
-                                    existingSiblingNames = siblingNames,
-                                )
-                            siblingNames += copiedName
-                            contextRepository.createContextWithId(
-                                id = UUID.randomUUID().toString(),
-                                name = copiedName,
-                                parentId = targetContext.id,
-                                roleCode = source.roleCode,
-                            )
-                        }
-                    }
-                    ContextClipboardResult(
-                        toast =
-                            if (sources.size == 1) {
-                                "Контекст скопійовано в обраний контекст"
-                            } else {
-                                "Контексти скопійовано: ${sources.size}"
-                            },
-                        dismissDialog = true,
-                    )
-                }
-
-                Operation.LINK -> {
-                    val addedCount =
-                        contextActionsUseCase.addAdditionalParentLinks(
-                            parentContextId = targetContext.id,
-                            childContextIds = sources.mapTo(linkedSetOf()) { it.id },
-                            allProjects = allProjects,
+            if (current.operation == Operation.COPY) {
+                withContext(ioDispatcher) {
+                    current.contextIds.forEach { sourceId ->
+                        workspaceClipboardCoordinator.copyWorkspaceInto(
+                            sourceId = sourceId,
+                            targetId = targetContextId,
                         )
-                    ContextClipboardResult(
-                        toast = if (addedCount == 0) "Нові посилання не додано" else "Додано посилання контекстів: $addedCount",
+                    }
+                }
+                return ContextClipboardResult(
+                    toast =
+                        if (current.contextIds.size == 1) {
+                            "Контекст скопійовано в обраний контекст"
+                        } else {
+                            "Контексти скопійовано: ${current.contextIds.size}"
+                        },
+                    dismissDialog = true,
+                )
+            }
+
+            val destination =
+                destinationOccurrence
+                    ?: return ContextClipboardResult(
+                        "Неможливо вставити: відсутня identity occurrence цілі",
                         dismissDialog = true,
                     )
-                }
+
+            if (destination.target.id != targetContextId) {
+                return ContextClipboardResult(
+                    "Неможливо вставити: цільова occurrence не відповідає контексту",
+                    dismissDialog = true,
+                )
             }
+
+            val sources =
+                current.contextIds.map { contextId ->
+                    val occurrence =
+                        current.occurrences[contextId]
+                            ?: return ContextClipboardResult(
+                                "Неможливо вставити: відсутня identity occurrence джерела",
+                                dismissDialog = true,
+                            )
+                    HierarchyClipboardOccurrence(
+                        occurrence = occurrence,
+                        sourceKind = HierarchyClipboardSourceKind.CONTEXT_COMPATIBILITY,
+                        legacySourceId = contextId,
+                    )
+                }
+
+            val primaryOccurrencesByTarget =
+                if (current.operation == Operation.CUT) {
+                    val read =
+                        hierarchyRead
+                            ?: return ContextClipboardResult(
+                                "Неможливо перемістити: canonical V2 hierarchy read недоступний",
+                                dismissDialog = true,
+                            )
+                    buildMap {
+                        sources.forEach { source ->
+                            val primary =
+                                read.workspaceOccurrences(source.occurrence.target.id)
+                                    .firstOrNull { it.placementKind == PlacementKind.PRIMARY }
+                                    ?.toHierarchyOccurrenceRef()
+                                    ?: return ContextClipboardResult(
+                                        "Неможливо перемістити: PRIMARY occurrence не знайдено",
+                                        dismissDialog = true,
+                                    )
+                            put(source.occurrence.target, primary)
+                        }
+                    }
+                } else {
+                    emptyMap()
+                }
+
+            val operation =
+                when (current.operation) {
+                    Operation.COPY -> error("COPY handled before V2 context planning")
+                    Operation.CUT -> HierarchyClipboardOperation.CUT
+                    Operation.LINK -> HierarchyClipboardOperation.LINK
+                }
+
+            val decision =
+                HierarchyMixedDomainCommandSemantics.planContextPasteIntoParent(
+                    intent =
+                        HierarchyClipboardIntent(
+                            operation = operation,
+                            sources = sources,
+                            destination =
+                                HierarchyClipboardDestination.ParentOccurrence(
+                                    parentPlacementId = destination.placementId,
+                                ),
+                        ),
+                    primaryOccurrencesByTarget = primaryOccurrencesByTarget,
+                    destinationParentTarget = destination.target,
+                )
+
+            val plan =
+                when (decision) {
+                    is HierarchyActionPlanDecision.Planned -> decision.plan
+                    is HierarchyActionPlanDecision.Unsupported ->
+                        return ContextClipboardResult(
+                            decision.reason,
+                            dismissDialog = true,
+                        )
+                    is HierarchyActionPlanDecision.RequiresProductDecision ->
+                        return ContextClipboardResult(
+                            decision.reason,
+                            dismissDialog = true,
+                        )
+                }
+
+            withContext(ioDispatcher) {
+                contextParentPlanWriter.execute(plan)
+            }
+
+            if (current.operation == Operation.CUT) {
+                clear()
+            }
+
+            return ContextClipboardResult(
+                toast =
+                    when (current.operation) {
+                        Operation.CUT ->
+                            if (sources.size == 1) {
+                                "Контекст переміщено"
+                            } else {
+                                "Контексти переміщено: ${sources.size}"
+                            }
+                        Operation.LINK ->
+                            if (sources.size == 1) {
+                                "Додано посилання контексту"
+                            } else {
+                                "Додано посилання контекстів: ${sources.size}"
+                            }
+                        Operation.COPY -> error("COPY handled before V2 context planning")
+                    },
+                dismissDialog = true,
+            )
         }
 
         suspend fun pasteIntoBeacon(
             beaconNodeId: String,
             orientationHierarchy: List<OrientationHierarchyItem>,
-            allProjects: List<Context>,
         ): ContextClipboardResult {
             val current = payload.value ?: return ContextClipboardResult("Буфер порожній")
             val beaconNode =
@@ -316,21 +372,26 @@ class ContextClipboardCoordinator
                 return ContextClipboardResult("Вставка доступна тільки в головний орієнтир")
             }
 
-            val sources = resolveClipboardContexts(allProjects, current)
-            if (sources.isEmpty()) {
+            val contextIds = current.contextIds
+            if (contextIds.isEmpty()) {
                 clear()
                 return ContextClipboardResult("Контекст у буфері більше не існує")
             }
 
-            val contextIds = sources.mapTo(linkedSetOf()) { it.id }
             val addedCount =
                 withContext(ioDispatcher) {
                     when (current.operation) {
                         Operation.CUT -> {
-                            sources.forEach { source ->
-                                detachContextFromDisplayedLocation(
-                                    source = source,
-                                    sourceParentId = current.sourceParentIds[source.id],
+                            val occurrences =
+                                contextIds.map { contextId ->
+                                    current.occurrences[contextId]
+                                        ?: return@withContext null
+                                }
+                            occurrences.forEach { occurrence ->
+                                hierarchyOccurrenceCommandService.removeOccurrence(
+                                    HierarchyOccurrenceCommand.RemoveOccurrence(
+                                        placementId = occurrence.placementId,
+                                    ),
                                 )
                             }
                             mainBeaconRepository.moveRelatedContextsToBeacon(
@@ -346,6 +407,12 @@ class ContextClipboardCoordinator
                             )
                     }
                 }
+
+            if (addedCount == null) {
+                return ContextClipboardResult(
+                    "Неможливо перемістити: відсутня identity occurrence",
+                )
+            }
             if (current.operation == Operation.CUT) clear()
             return ContextClipboardResult(
                 toast =
@@ -363,26 +430,32 @@ class ContextClipboardCoordinator
             )
         }
 
-        suspend fun pasteIntoNoBeacon(
-            allProjects: List<Context>,
-        ): ContextClipboardResult {
+        suspend fun pasteIntoNoBeacon(): ContextClipboardResult {
             val current = payload.value ?: return ContextClipboardResult("Буфер порожній")
             if (current.operation != Operation.CUT) {
                 return ContextClipboardResult("У No beacon можна лише перемістити контекст")
             }
 
-            val sources = resolveClipboardContexts(allProjects, current)
-            if (sources.isEmpty()) {
+            val contextIds = current.contextIds
+            if (contextIds.isEmpty()) {
                 clear()
                 return ContextClipboardResult("Контекст у буфері більше не існує")
             }
 
-            val contextIds = sources.mapTo(linkedSetOf()) { it.id }
+            val occurrences =
+                contextIds.map { contextId ->
+                    current.occurrences[contextId]
+                        ?: return ContextClipboardResult(
+                            "Неможливо перемістити: відсутня identity occurrence",
+                        )
+                }
+
             withContext(ioDispatcher) {
-                sources.forEach { source ->
-                    detachContextFromDisplayedLocation(
-                        source = source,
-                        sourceParentId = current.sourceParentIds[source.id],
+                occurrences.forEach { occurrence ->
+                    hierarchyOccurrenceCommandService.removeOccurrence(
+                        HierarchyOccurrenceCommand.RemoveOccurrence(
+                            placementId = occurrence.placementId,
+                        ),
                     )
                 }
                 mainBeaconRepository.removeContextsFromAllBeacons(contextIds)
@@ -391,33 +464,52 @@ class ContextClipboardCoordinator
             clear()
             return ContextClipboardResult(
                 toast =
-                    if (sources.size == 1) {
+                    if (contextIds.size == 1) {
                         "Контекст переміщено в No beacon"
                     } else {
-                        "Контексти переміщено в No beacon: ${sources.size}"
+                        "Контексти переміщено в No beacon: ${contextIds.size}"
                     },
             )
         }
 
         suspend fun addContextAppearance(
-            parentContextId: String,
-            allProjects: List<Context>,
+            parentOccurrence: HierarchyOccurrenceRef?,
         ): ContextClipboardResult {
             val current = payload.value ?: return ContextClipboardResult("Буфер порожній", dismissDialog = true)
-            val sources = resolveClipboardContexts(allProjects, current)
-            if (sources.isEmpty()) {
-                clear()
-                return ContextClipboardResult("Контекст у буфері більше не існує", dismissDialog = true)
+            val destination =
+                parentOccurrence
+                    ?: return ContextClipboardResult(
+                        "Неможливо додати появу: відсутня identity occurrence цілі",
+                        dismissDialog = true,
+                    )
+            val sourceOccurrences =
+                current.contextIds.map { contextId ->
+                    current.occurrences[contextId]
+                        ?: return ContextClipboardResult(
+                            "Неможливо додати появу: відсутня identity occurrence джерела",
+                            dismissDialog = true,
+                        )
+                }
+
+            withContext(ioDispatcher) {
+                sourceOccurrences.forEach { source ->
+                    hierarchyOccurrenceCommandService.createAppearance(
+                        HierarchyOccurrenceCommand.CreateAppearance(
+                            target = source.target,
+                            parentPlacementId = destination.placementId,
+                            placementKind = PlacementKind.LINK,
+                        ),
+                    )
+                }
             }
 
-            val addedCount =
-                contextActionsUseCase.addAdditionalParentLinks(
-                    parentContextId = parentContextId,
-                    childContextIds = sources.mapTo(linkedSetOf()) { it.id },
-                    allProjects = allProjects,
-                )
             return ContextClipboardResult(
-                toast = if (addedCount == 0) "Нові появи не додано" else "Додано появи контекстів: $addedCount",
+                toast =
+                    if (sourceOccurrences.size == 1) {
+                        "Додано появу контексту"
+                    } else {
+                        "Додано появи контекстів: ${sourceOccurrences.size}"
+                    },
                 dismissDialog = true,
             )
         }
@@ -448,89 +540,6 @@ class ContextClipboardCoordinator
 
         private fun syncBeaconUiState() {
             _hasBeaconPayload.value = beaconPayload.value != null
-        }
-
-        private fun canPasteInto(
-            targetContextId: String,
-            allProjects: List<Context>,
-            payload: Payload,
-        ): Boolean {
-            if (targetContextId.isBlank()) return false
-            val target = allProjects.firstOrNull { it.id == targetContextId } ?: return false
-            val sources = resolveClipboardContexts(allProjects, payload)
-            if (sources.isEmpty()) return false
-
-            return when (payload.operation) {
-                Operation.COPY,
-                Operation.LINK -> sources.none { it.id == target.id }
-                Operation.CUT ->
-                    sources.none { it.id == target.id } &&
-                        sources.none { source ->
-                            isDescendantOrSelf(
-                                candidateDescendantId = target.id,
-                                ancestorId = source.id,
-                                allProjects = allProjects,
-                            )
-                        }
-            }
-        }
-
-        private fun resolveClipboardContexts(
-            allProjects: List<Context>,
-            payload: Payload,
-        ): List<Context> {
-            val contextsById = allProjects.associateBy { it.id }
-            val resolvedContexts =
-                payload.contextIds
-                    .mapNotNull(contextsById::get)
-            if (payload.operation == Operation.CUT) {
-                return resolvedContexts
-            }
-            return resolvedContexts
-                .filterNot { candidate ->
-                    payload.contextIds.any { otherId ->
-                        otherId != candidate.id &&
-                            isDescendantOrSelf(
-                                candidateDescendantId = candidate.id,
-                                ancestorId = otherId,
-                                allProjects = allProjects,
-                            )
-                    }
-                }
-        }
-
-        private suspend fun detachContextFromDisplayedLocation(
-            source: Context,
-            sourceParentId: String?,
-        ) {
-            if (sourceParentId != null && sourceParentId != source.parentId) {
-                contextActionsUseCase.removeAdditionalParentLink(
-                    parentContextId = sourceParentId,
-                    childContextId = source.id,
-                )
-            }
-            if (source.parentId != null) {
-                contextRepository.moveContextById(
-                    contextId = source.id,
-                    newParentId = null,
-                    allowSystemMoves = true,
-                )
-            }
-        }
-
-        private fun isDescendantOrSelf(
-            candidateDescendantId: String,
-            ancestorId: String,
-            allProjects: List<Context>,
-        ): Boolean {
-            if (candidateDescendantId == ancestorId) return true
-            val parentById = allProjects.associate { it.id to it.parentId }
-            var currentParent = parentById[candidateDescendantId]
-            while (!currentParent.isNullOrBlank()) {
-                if (currentParent == ancestorId) return true
-                currentParent = parentById[currentParent]
-            }
-            return false
         }
 
         private fun generateCopiedContextName(

@@ -2,10 +2,12 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 class DialogUseCase
     @Inject
@@ -26,11 +27,17 @@ class DialogUseCase
         private val _recordForReminderDialog = MutableStateFlow<ActivityRecord?>(null)
         val recordForReminderDialog: StateFlow<ActivityRecord?> = _recordForReminderDialog.asStateFlow()
 
-        fun onAddProjectRequest(parentId: String? = null) {
+        fun onAddProjectRequest(
+            parentId: String? = null,
+            parentOccurrence: HierarchyOccurrenceRef? = null,
+        ) {
             if (parentId == null) {
                 dialogStateManager.onAddNewProjectRequest()
             } else {
-                dialogStateManager.onAddSubprojectRequest(parentId)
+                dialogStateManager.onAddSubprojectRequest(
+                    parentProjectId = parentId,
+                    parentOccurrence = parentOccurrence,
+                )
             }
         }
 
@@ -38,11 +45,13 @@ class DialogUseCase
             projectId: String,
             projectName: String,
             availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
+            occurrence: HierarchyOccurrenceRef? = null,
         ) {
             dialogStateManager.onMenuRequested(
                 projectId = projectId,
                 projectName = projectName,
                 availability = availability,
+                occurrence = occurrence,
             )
         }
 

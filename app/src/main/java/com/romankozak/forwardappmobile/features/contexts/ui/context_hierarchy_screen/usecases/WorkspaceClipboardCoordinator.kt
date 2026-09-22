@@ -138,6 +138,37 @@ class WorkspaceClipboardCoordinator
             }
         }
 
+
+        suspend fun copyWorkspaceInto(
+            sourceId: String,
+            targetId: String,
+        ): WorkspaceClipboardResult =
+            runCatching {
+                canonicalWorkspaceRepository.copyManyShallow(
+                    ids = setOf(sourceId),
+                    targetParentWorkspaceId = targetId,
+                )
+            }.fold(
+                onSuccess = { copied ->
+                    WorkspaceClipboardResult(
+                        toast = if (copied.size == 1) {
+                            "Копію проєкту створено"
+                        } else {
+                            "Копії проєктів створено: ${copied.size}"
+                        },
+                        success = true,
+                        dismissDialog = true,
+                    )
+                },
+                onFailure = {
+                    WorkspaceClipboardResult(
+                        it.message ?: "Не вдалося скопіювати проєкт",
+                        false,
+                        true,
+                    )
+                },
+            )
+
         suspend fun pasteInto(targetId: String): WorkspaceClipboardResult {
             val current =
                 payload.value

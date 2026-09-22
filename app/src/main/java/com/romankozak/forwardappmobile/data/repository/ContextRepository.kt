@@ -28,7 +28,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
-import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceHierarchyUpdate
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
@@ -52,12 +51,6 @@ import javax.inject.Provider
 import javax.inject.Singleton
 
 enum class ContextTextAction { ADD, REMOVE }
-
-internal data class ContextHierarchyUpdate(
-    val id: String,
-    val parentId: String?,
-    val order: Long,
-)
 
 internal data class ContextSharedStateUpdate(
     val name: String,
@@ -304,49 +297,6 @@ class ContextRepository
                 )
             }
 
-        // --- Операції переміщення та логіки ---
-        @Transaction
-        suspend fun moveContextById(
-            contextId: String,
-            newParentId: String?,
-            allowSystemMoves: Boolean = false,
-        ) {
-            val stableId = ContextId(contextId)
-            val isSystem = SystemContexts.isSystem(stableId)
-            if (isSystem) {
-                if (!allowSystemMoves) return
-                if (SystemContexts.isPinnedRoot(stableId) && newParentId != null) return
-                canonicalWorkspaceRepository.movePreservingOrder(
-                    id = contextId,
-                    newParentWorkspaceId = newParentId,
-                )
-                return
-            }
-
-            val persisted = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
-            val oldParentId = persisted.parentId
-            if (oldParentId == newParentId) return
-
-            // Hierarchy ownership lives only on Context.parentId/Context.order.
-            // Backlog SUBLIST is reserved for explicit user-created context references.
-            val mutationNow = System.currentTimeMillis()
-            val updatedContext = persisted.copy(parentId = newParentId).bumpSync(mutationNow)
-            val persistedUpdate =
-                workspaceWriteThrough.mutate(
-                    now = mutationNow,
-                    mutation = {
-                        contextDao.update(updatedContext)
-                        updatedContext
-                    },
-                )
-            ensureDirectionFrontLinkForParentChangeIfNeeded(
-                oldParentId = oldParentId,
-                newParentId = persistedUpdate.parentId,
-                childId = persistedUpdate.id,
-                childName = persistedUpdate.name,
-            )
-        }
-
         // --- Делегати для інших репозиторіїв (ViewModels їх шукають тут) ---
         suspend fun findContextIdsByTag(tag: String) =
             tagAssociationHandler
@@ -398,6 +348,21 @@ class ContextRepository
          * Safety-net sync: при відкритті контексту гарантує, що активні дочірні контексти
          * мають посилання у front списку direction (якщо флаг авто-додавання увімкнено).
          */
+        suspend fun ensureDirectionFrontLinkIfEnabled(
+            parentContextId: String,
+            childContextId: String,
+        ) {
+            val child =
+                contextDao.getContextById(childContextId)
+                    ?.takeUnless { it.isDeleted }
+                    ?: return
+            ensureChildContextDirectionFrontLinkIfEnabled(
+                parentContextId = parentContextId,
+                childContextId = childContextId,
+                childContextName = child.name,
+            )
+        }
+
         suspend fun ensureDirectionFrontLinksForExistingChildren(parentContextId: String): Int {
             val normalizedParentId = normalizeParentId(parentContextId) ?: return 0
             val parentStructure = contextStructureDao.getStructureByContext(normalizedParentId)
@@ -640,64 +605,6 @@ class ContextRepository
             )
         }
 
-        internal suspend fun applyHierarchyUpdates(updates: List<ContextHierarchyUpdate>): Int {
-            if (updates.isEmpty()) return 0
-
-            val systemUpdates =
-                updates.filter { SystemContexts.isSystem(ContextId(it.id)) }
-            canonicalWorkspaceRepository.updateHierarchyBatch(
-                systemUpdates.map { update ->
-                    CanonicalWorkspaceHierarchyUpdate(
-                        id = update.id,
-                        parentWorkspaceId = update.parentId,
-                        workspaceOrder = update.order,
-                    )
-                },
-            )
-
-            val ordinaryUpdates =
-                updates.filterNot { SystemContexts.isSystem(ContextId(it.id)) }
-            if (ordinaryUpdates.isEmpty()) return systemUpdates.size
-
-            val currentById =
-                contextDao
-                    .getContextsByIds(ordinaryUpdates.map { it.id })
-                    .associateBy { it.id }
-            val writableUpdates =
-                ordinaryUpdates.mapNotNull { update ->
-                    currentById[update.id]
-                        ?.takeUnless { it.isDeleted }
-                        ?.let { current -> update to current }
-                }
-            if (writableUpdates.isEmpty()) return systemUpdates.size
-
-            val now = System.currentTimeMillis()
-            val persistedUpdates =
-                writableUpdates.map { (update, current) ->
-                    current.copy(
-                        parentId = update.parentId,
-                        order = update.order,
-                    ).bumpSync(now)
-                }
-            val updated =
-                workspaceWriteThrough.mutate(
-                    now = now,
-                    mutation = {
-                        contextDao.update(persistedUpdates)
-                    },
-                )
-
-            persistedUpdates.forEach { persisted ->
-                val previous = requireNotNull(currentById[persisted.id])
-                ensureDirectionFrontLinkForParentChangeIfNeeded(
-                    oldParentId = previous.parentId,
-                    newParentId = persisted.parentId,
-                    childId = persisted.id,
-                    childName = persisted.name,
-                )
-            }
-            return systemUpdates.size + updated
-        }
 
         suspend fun addContextComment(
             id: String,
@@ -949,55 +856,6 @@ class ContextRepository
 
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextLogRepository.getContextLogsStream(contextId)
 
-        suspend fun createContextWithId(
-            id: String,
-            name: String,
-            parentId: String?,
-            roleCode: String? = null,
-        ) {
-            require(!SystemContexts.isSystem(ContextId(id))) {
-                "Reserved System Context shells cannot be created: $id"
-            }
-            val now = System.currentTimeMillis()
-            val normalizedRoleCode = roleCode?.trim()?.takeIf { it.isNotBlank() }
-            val preset = normalizedRoleCode?.let { structurePresetDao.getByCode(it) }
-            val newContext =
-                Context(
-                    id = id,
-                    name = name,
-                    parentId = parentId,
-                    description = "",
-                    createdAt = now,
-                    updatedAt = now,
-                    version = 1,
-                    roleCode = normalizedRoleCode,
-                )
-            workspaceWriteThrough.mutate(now) {
-                contextDao.insert(newContext)
-                contextStructureDao.insertStructure(
-                    ContextConfiguration(
-                        id = UUID.randomUUID().toString(),
-                        contextId = id,
-                        basePresetCode = normalizedRoleCode,
-                        enableInbox = preset?.enableInbox,
-                        enableLog = preset?.enableLog,
-                        enableAdvanced = null,
-                        enableDashboard = preset?.enableDashboard,
-                        enableBacklog = preset?.enableBacklog,
-                        enableAttachments = preset?.enableAttachments,
-                        enableAutoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: true,
-                    ),
-                )
-            }
-            tagAssociationHandler.syncContextTags(newContext)
-
-            ensureChildContextDirectionFrontLinkIfEnabled(
-                parentContextId = parentId,
-                childContextId = id,
-                childContextName = name,
-            )
-        }
-
         private suspend fun ensureDirectionFrontLinkForParentChangeIfNeeded(
             oldParentId: String?,
             newParentId: String?,
@@ -1059,29 +917,6 @@ class ContextRepository
          * Глобальний пошук по всьому додатку
          */
         suspend fun searchGlobal(query: String) = searchRepository.searchGlobal(query)
-
-        /**
-         * Створення підконтексту за роллю (потрібно для пресетів структури)
-         */
-        suspend fun ensureSubcontextByRole(
-            parentContextId: String,
-            roleCode: String,
-            title: String,
-        ): Context {
-            val existing = contextDao.findChildByRole(parentContextId, roleCode)
-            if (existing != null) {
-                ensureChildContextDirectionFrontLinkIfEnabled(
-                    parentContextId = parentContextId,
-                    childContextId = existing.id,
-                    childContextName = existing.name,
-                )
-                return existing
-            }
-
-            val newId = java.util.UUID.randomUUID().toString()
-            createContextWithId(id = newId, name = title, parentId = parentContextId, roleCode = roleCode)
-            return contextDao.getContextById(newId) ?: throw IllegalStateException("Failed to create context")
-        }
 
         /**
          * Відв'язування вкладення від конкретного контексту

@@ -22,19 +22,6 @@ fun fuzzyMatch(
     return query.isBlank() || (text.isNotBlank() && queryIndex == lowerQuery.length)
 }
 
-fun findAncestorsRecursive(
-    projectId: String?,
-    projectLookup: Map<String, Context>,
-    ids: MutableSet<String>,
-    visited: MutableSet<String>,
-) {
-    var currentId = projectId
-    while (currentId != null && visited.add(currentId)) {
-        ids.add(currentId)
-        currentId = projectLookup[currentId]?.parentId
-    }
-}
-
 fun findDescendantIdsForDeletion(
     projectId: String,
     childMap: Map<String, List<Context>>,

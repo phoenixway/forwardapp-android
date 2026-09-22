@@ -106,6 +106,7 @@ class CanonicalV2HierarchyScreenPresentationAdapter
                         metadata.linkedBeaconIdsByWorkspaceTargetId[entry.target.id].orEmpty(),
                     isLinkedAppearance = read.isLinkedAppearance(entry.placementId),
                     placementId = entry.placementId,
+                    occurrence = entry.toHierarchyOccurrenceRef(),
                 )
             }
 
@@ -120,6 +121,7 @@ class CanonicalV2HierarchyScreenPresentationAdapter
                     readinessStatus = beacon.readinessStatus,
                     relatedContextCount = beacon.relatedOwnerCount,
                     placementId = entry.placementId,
+                    occurrence = entry.toHierarchyOccurrenceRef(),
                 )
             }
         }

@@ -7,6 +7,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationGraphRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
@@ -78,6 +82,7 @@ class CanonicalWorkspaceRepository
         private val connectionsRepository: CanonicalConnectionsRepository,
         private val backlogRepository: CanonicalBacklogRepository,
         private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
+        private val hierarchyPlacementRepository: CanonicalHierarchyPlacementRepository,
     ) {
         /**
          * Resolves a live canonical Workspace without requiring a Context row.
@@ -90,6 +95,9 @@ class CanonicalWorkspaceRepository
 
         internal suspend fun getCanonicalPresentation(id: String): CanonicalWorkspacePresentation? =
             workspaceDao.getById(id)?.toCanonicalPresentationOrNull()
+
+        suspend fun hasLiveWorkspace(id: String): Boolean =
+            workspaceDao.getById(id)?.let { !it.isDeleted } ?: false
 
         internal suspend fun getCanonicalPresentations(): Map<String, CanonicalWorkspacePresentation> =
             workspaceDao.getAll()
@@ -104,6 +112,49 @@ class CanonicalWorkspaceRepository
                         .associateBy { it.id }
                 }
 
+
+        suspend fun ensureChildWorkspaceByRole(
+            parentWorkspaceId: String,
+            roleCode: String,
+            title: String,
+        ): String {
+            val live = loadLive()
+            val existing = live.values.firstOrNull {
+                it.parentWorkspaceId == parentWorkspaceId &&
+                    it.roleCode == roleCode &&
+                    !it.isDeleted
+            }
+            if (existing != null) return existing.id
+
+            val id = create(
+                nameOverride = title,
+                parentWorkspaceId = parentWorkspaceId,
+                roleCode = roleCode,
+            )
+
+            val parentPlacement =
+                requireNotNull(
+                    hierarchyPlacementRepository.getPrimaryAppearance(
+                        HierarchyTargetRef(
+                            type = HierarchyTargetType.WORKSPACE,
+                            id = parentWorkspaceId,
+                        ),
+                    ),
+                ) {
+                    "Cannot create child workspace without parent PRIMARY appearance: $parentWorkspaceId"
+                }
+
+            hierarchyPlacementRepository.createPrimaryAppearance(
+                target = HierarchyTargetRef(
+                    type = HierarchyTargetType.WORKSPACE,
+                    id = id,
+                ),
+                parentPlacementId = parentPlacement.id,
+            )
+
+            return id
+        }
+
         suspend fun create(
             nameOverride: String,
             descriptionOverride: String? = null,
@@ -112,32 +163,79 @@ class CanonicalWorkspaceRepository
             now: Long = System.currentTimeMillis(),
         ): String =
             database.withTransaction {
-                val name = nameOverride.trim()
-                require(name.isNotEmpty()) { "Standalone Workspace name must not be blank" }
-                val live = loadLive()
-                requireActiveParent(parentWorkspaceId, live)
+                createInCurrentTransaction(
+                    nameOverride = nameOverride,
+                    descriptionOverride = descriptionOverride,
+                    parentWorkspaceId = parentWorkspaceId,
+                    roleCode = roleCode,
+                    now = now,
+                )
+            }
 
-                val id = UUID.randomUUID().toString()
-                val workspace =
-                    WorkspaceEntity(
-                        id = id,
-                        nameOverride = name,
-                        descriptionOverride = descriptionOverride.normalized(),
+        internal suspend fun createWithPrimaryAppearance(
+            nameOverride: String,
+            descriptionOverride: String? = null,
+            parentWorkspaceId: String? = null,
+            parentPlacementId: PlacementId? = null,
+            roleCode: String? = null,
+            now: Long = System.currentTimeMillis(),
+        ): String =
+            database.withTransaction {
+                val id =
+                    createInCurrentTransaction(
+                        nameOverride = nameOverride,
+                        descriptionOverride = descriptionOverride,
                         parentWorkspaceId = parentWorkspaceId,
-                        roleCode = roleCode.normalized(),
-                        workspaceOrder = nextOrder(live.values, parentWorkspaceId),
-                        createdAt = now,
-                        updatedAt = now,
-                        syncedAt = null,
-                        isDeleted = false,
-                        version = 1L,
-                        provenance = WorkspaceProvenance.STANDALONE.name,
-                        sourceContextId = null,
+                        roleCode = roleCode,
+                        now = now,
                     )
-                validateHierarchy(live.values + workspace)
-                workspaceDao.upsert(listOf(workspace))
+
+                hierarchyPlacementRepository.createPrimaryAppearanceInCurrentTransaction(
+                    target =
+                        HierarchyTargetRef(
+                            type = HierarchyTargetType.WORKSPACE,
+                            id = id,
+                        ),
+                    parentPlacementId = parentPlacementId,
+                    now = now,
+                )
+
                 id
             }
+
+        private suspend fun createInCurrentTransaction(
+            nameOverride: String,
+            descriptionOverride: String?,
+            parentWorkspaceId: String?,
+            roleCode: String?,
+            now: Long,
+        ): String {
+            val name = nameOverride.trim()
+            require(name.isNotEmpty()) { "Standalone Workspace name must not be blank" }
+            val live = loadLive()
+            requireActiveParent(parentWorkspaceId, live)
+
+            val id = UUID.randomUUID().toString()
+            val workspace =
+                WorkspaceEntity(
+                    id = id,
+                    nameOverride = name,
+                    descriptionOverride = descriptionOverride.normalized(),
+                    parentWorkspaceId = parentWorkspaceId,
+                    roleCode = roleCode.normalized(),
+                    workspaceOrder = nextOrder(live.values, parentWorkspaceId),
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                    provenance = WorkspaceProvenance.STANDALONE.name,
+                    sourceContextId = null,
+                )
+            validateHierarchy(live.values + workspace)
+            workspaceDao.upsert(listOf(workspace))
+            return id
+        }
 
         suspend fun updateDetails(
             id: String,

@@ -147,7 +147,16 @@ fun ProjectHierarchyScreen(
                         ?.savedStateHandle
                         ?.remove<String?>("list_chooser_result")
                         ?.let { result ->
-                            viewModel.onEvent(ContextHierarchyScreenEvent.ListChooserResult(result))
+                            val occurrence =
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.remove<String?>("list_chooser_occurrence")
+                            viewModel.onEvent(
+                                ContextHierarchyScreenEvent.ListChooserResult(
+                                    projectId = result,
+                                    destinationPlacementId = occurrence,
+                                ),
+                            )
                         }
 
                     navController.currentBackStackEntry

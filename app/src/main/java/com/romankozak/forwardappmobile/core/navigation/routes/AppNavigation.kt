@@ -660,10 +660,22 @@ private fun NavGraphBuilder.mainGraph(
             expandedIds = expandedIds,
             onToggleExpanded = viewModel::toggleExpanded,
             onNavigateBack = { navController.popBackStack() },
-            onConfirm = { selectedId ->
-                navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.set("list_chooser_result", selectedId ?: "root")
+            onConfirm = { selection ->
+                val stateHandle = navController.previousBackStackEntry?.savedStateHandle
+                if (selection.occurrence == null) {
+                    stateHandle?.set("list_chooser_result", "root")
+                    stateHandle?.set("list_chooser_occurrence", null)
+                } else {
+                    stateHandle?.set("list_chooser_result", selection.id)
+                    stateHandle?.set(
+                        "list_chooser_occurrence",
+                        selection.occurrence.placementId.value,
+                    )
+                    stateHandle?.set(
+                        "list_chooser_target",
+                        selection.occurrence.target.toString(),
+                    )
+                }
 
                 navController.popBackStack()
             },

@@ -3,10 +3,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
-import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
+import com.romankozak.forwardappmobile.data.hierarchy.ChooserHierarchyItem
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ChooserProjection
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -15,17 +14,17 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ChooserUiState(
-    val topLevelProjects: List<ContextPresentation> = emptyList(),
-    val childMap: Map<String, List<ContextPresentation>> = emptyMap(),
+    val topLevelProjects: List<ChooserHierarchyItem> = emptyList(),
+    val childMap: Map<String, List<ChooserHierarchyItem>> = emptyMap(),
 )
 
 @HiltViewModel
 class FilterableListChooserViewModel
     @Inject
     constructor(
-        private val contextRepository: ContextRepository,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
-        private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val canonicalV2ReactiveHierarchyReadSource: CanonicalV2ReactiveHierarchyReadSource,
+        private val canonicalV2ChooserProjection: CanonicalV2ChooserProjection,
     ) : ViewModel() {
         private val TAG = "FilterChooserVM"
 
@@ -38,8 +37,15 @@ class FilterableListChooserViewModel
         private val _showDescendants = MutableStateFlow(false)
         val showDescendants: StateFlow<Boolean> = _showDescendants.asStateFlow()
         private val allProjects =
-            systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+            combine(
+                canonicalV2ReactiveHierarchyReadSource.observe(),
+                canonicalV2ReactiveHierarchyReadSource.observeWorkspacePresentations(),
+            ) { read, presentations ->
+                canonicalV2ChooserProjection.project(
+                    read = read,
+                    workspacePresentations = presentations,
+                )
+            }
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
@@ -56,7 +62,7 @@ class FilterableListChooserViewModel
                 val allProjectsById = projects.associateBy { it.id }
                 val displayParentById =
                     projects.associate { project ->
-                        project.id to project.displayParentId(allProjectsById)
+                        project.id to project.parentId
                     }
 
                 if (filter.isBlank()) {
@@ -81,7 +87,7 @@ class FilterableListChooserViewModel
 
                     matchingProjects.forEach { matchedProject ->
                         val path = mutableSetOf<String>()
-                        var current: ContextPresentation? = matchedProject
+                        var current: ChooserHierarchyItem? = matchedProject
                         while (current != null && current.id !in path) {
                             path.add(current.id)
                             visibleIds.add(current.id)
@@ -143,7 +149,7 @@ class FilterableListChooserViewModel
                     val projectMap = projects.associateBy { it.id }
                     val displayParentById =
                         projects.associate { project ->
-                            project.id to project.displayParentId(projectMap)
+                            project.id to project.parentId
                         }
                     val matchingProjects = projects.filter { it.name.contains(text, ignoreCase = true) }
 

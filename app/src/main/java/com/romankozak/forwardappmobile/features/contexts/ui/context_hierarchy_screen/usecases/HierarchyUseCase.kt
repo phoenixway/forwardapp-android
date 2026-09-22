@@ -7,8 +7,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.fuzzyMatch
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.normalizedParentId
 import javax.inject.Inject
@@ -128,10 +126,6 @@ class HierarchyUseCase
             val visibleHierarchy = presentationTreeBuilder.build(visibleProjects)
 
             return visibleHierarchy.copy(allProjects = flatList)
-        }
-
-        fun createLongDescendantsMap(hierarchy: HierarchyPresentationData): Map<String, Boolean> {
-            return createHierarchyDescendantOverflowMap(hierarchy)
         }
 
         fun createSearchResults(

@@ -38,12 +38,6 @@ data class HierarchyPresentationData(
  * compatibility paths. Presentation-only (including shell-free System) ids
  * never receive a backing entry.
  */
-internal data class RawContextHierarchyBacking(
-    val rawContexts: List<Context> = emptyList(),
-    val rawContextsById: Map<String, Context> = emptyMap(),
-    val rawChildMap: Map<String, List<Context>> = emptyMap(),
-)
-
 fun Context.toHierarchyPresentationNode(): HierarchyContextPresentationNode =
     HierarchyContextPresentationNode(
         id = id,

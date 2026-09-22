@@ -32,7 +32,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyPresentationItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
@@ -55,22 +54,19 @@ fun ProjectHierarchyView(
     isSearchActive: Boolean,
     hierarchySettings: HierarchyDisplaySettings,
     listState: LazyListState,
-    longDescendantsMap: Map<String, Boolean>,
     selectedContextIds: Set<String>,
     clipboardContextIds: Set<String>,
     isSelectionMode: Boolean,
     isSiblingReorderMode: Boolean,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    onPasteContextLink: (String) -> Unit,
     onEditBeacon: (String) -> Unit = {},
     onDeleteBeacon: (String) -> Unit = {},
     onProjectClicked: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
-    onMenuRequested: (String) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
+    onMenuRequested: (FlatHierarchyPresentationItem) -> Unit,
     onFocusProject: (String) -> Unit,
-    onAddSubproject: (String) -> Unit,
+    onAddSubproject: (String, com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef?) -> Unit,
     onDeleteProject: (String) -> Unit,
     onEditProject: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -183,13 +179,37 @@ fun ProjectHierarchyView(
                                     },
                                     onEditBeacon = { onEditBeacon(node.id) },
                                     onDeleteBeacon = { onDeleteBeacon(node.id) },
-                                    onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
-                                    onCopyBeaconAsLink = {
-                                        onEvent(ContextHierarchyScreenEvent.CopyBeaconAsLink(node.id))
+                                    onCopyBeacon = {
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.CopyBeacon(
+                                                beaconNodeId = node.id,
+                                                occurrence = node.occurrence,
+                                            ),
+                                        )
                                     },
-                                    onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
+                                    onCopyBeaconAsLink = {
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.CopyBeaconAsLink(
+                                                beaconNodeId = node.id,
+                                                occurrence = node.occurrence,
+                                            ),
+                                        )
+                                    },
+                                    onCutBeacon = {
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.CutBeacon(
+                                                beaconNodeId = node.id,
+                                                occurrence = node.occurrence,
+                                            ),
+                                        )
+                                    },
                                     onPasteBeacon = {
-                                        onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id))
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(
+                                                beaconNodeId = node.id,
+                                                destinationOccurrence = node.occurrence,
+                                            ),
+                                        )
                                     },
                                 )
                             OrientationHierarchyNode.NoGroup ->
@@ -215,6 +235,7 @@ fun ProjectHierarchyView(
                                         isLinkedAppearance = node.isLinkedAppearance,
                                         isCanonicalWorkspace = node.isCanonicalWorkspace,
                                         placementId = node.placementId,
+                                        occurrence = node.occurrence,
                                     ),
                                     childCount = directChildrenByNodeId[node.structuralKey].orEmpty().size,
                                     isSearchActive = isSearchActive,
@@ -222,7 +243,14 @@ fun ProjectHierarchyView(
                                     isFocused = node.id == focusedProjectId,
                                     isHighlighted = node.id == highlightedProjectId,
                                     onProjectClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
-                                    onMenuRequested = onMenuRequested,
+                                    onMenuRequested = { row ->
+                                        onEvent(
+                                            ContextHierarchyScreenEvent.ContextMenuRequest(
+                                                projectId = row.project.id,
+                                                occurrence = row.occurrence,
+                                            ),
+                                        )
+                                    },
                                     isSelectionMode = isSelectionMode,
                                     isSelected = node.id in selectedContextIds,
                                     onToggleSelection = onToggleSelection,
@@ -249,7 +277,7 @@ fun ProjectHierarchyView(
                             isFocused = presentationItem.project.id == focusedProjectId,
                             isHighlighted = presentationItem.project.id == highlightedProjectId,
                             onProjectClick = onProjectClicked,
-                            onMenuRequested = onMenuRequested,
+                            onMenuRequested = { row -> onMenuRequested(row) },
                             isSelectionMode = isSelectionMode,
                             isSelected = presentationItem.project.id in selectedContextIds,
                             onToggleSelection = onToggleSelection,

@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models
 
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 
 /**
@@ -16,7 +17,14 @@ data class FlatHierarchyPresentationItem(
     val isLinkedAppearance: Boolean = false,
     val isCanonicalWorkspace: Boolean = false,
     val placementId: PlacementId? = null,
-)
+    val occurrence: HierarchyOccurrenceRef? = null,
+) {
+    init {
+        require(occurrence == null || placementId == occurrence.placementId) {
+            "Hierarchy row placementId must match its occurrence identity"
+        }
+    }
+}
 
 data class OrientationHierarchyItem(
     val node: OrientationHierarchyNode,
@@ -33,6 +41,14 @@ sealed interface OrientationHierarchyNode {
      * PlacementId.
      */
     val placementId: PlacementId?
+        get() = null
+
+    /**
+     * Complete occurrence-native command identity when this concrete row came
+     * from the V2 occurrence projection. CURRENT V1 and synthetic rows remain
+     * null rather than inferring an occurrence from target identity.
+     */
+    val occurrence: HierarchyOccurrenceRef?
         get() = null
 
     /**
@@ -63,7 +79,14 @@ sealed interface OrientationHierarchyNode {
         val readinessStatus: MainBeaconReadinessStatus,
         val relatedContextCount: Int,
         override val placementId: PlacementId? = null,
-    ) : OrientationHierarchyNode
+        override val occurrence: HierarchyOccurrenceRef? = null,
+    ) : OrientationHierarchyNode {
+        init {
+            require(occurrence == null || placementId == occurrence.placementId) {
+                "Beacon placementId must match its occurrence identity"
+            }
+        }
+    }
 
     data object NoBeacon : OrientationHierarchyNode {
         override val id: String = NO_BEACON_NODE_ID
@@ -80,7 +103,14 @@ sealed interface OrientationHierarchyNode {
         override val linkedBeaconIds: Set<String>,
         override val isLinkedAppearance: Boolean = false,
         override val placementId: PlacementId? = null,
+        override val occurrence: HierarchyOccurrenceRef? = null,
     ) : ProjectLike {
+        init {
+            require(occurrence == null || placementId == occurrence.placementId) {
+                "Workspace placementId must match its occurrence identity"
+            }
+        }
+
         override val id: String = presentation.id
         override val title: String = presentation.name
         override val isCanonicalWorkspace: Boolean = true

@@ -612,6 +612,8 @@ class CanonicalWorkspaceRepositoryRoomTest {
             inboxRepository = inboxRepository(database),
             connectionsRepository = connectionsRepository(database),
             backlogRepository = backlogRepository(database),
+            hierarchyPlacementRepository =
+                com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository(database),
             hierarchyPlacementLifecycleCoordinator =
                 HierarchyPlacementLifecycleCoordinator(database),
         )

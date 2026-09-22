@@ -75,6 +75,26 @@ class CanonicalV2HierarchyScreenPresentationAdapterTest {
             listOf(PlacementId("primary"), PlacementId("link")),
             workspaces.map { it.placementId },
         )
+        assertEquals(
+            listOf(
+                HierarchyOccurrenceRef(
+                    placementId = PlacementId("primary"),
+                    target = target,
+                    parentPlacementId = null,
+                    placementKind = PlacementKind.PRIMARY,
+                    siblingOrder = 10L,
+                ),
+                HierarchyOccurrenceRef(
+                    placementId = PlacementId("link"),
+                    target = target,
+                    parentPlacementId = null,
+                    placementKind = PlacementKind.LINK,
+                    siblingOrder = 20L,
+                ),
+            ),
+            workspaces.map { it.occurrence },
+        )
+        assertEquals(2, workspaces.map { it.occurrence?.placementId }.distinct().size)
         assertEquals(2, workspaces.map { it.structuralKey }.distinct().size)
         assertFalse(workspaces[0].isLinkedAppearance)
         assertTrue(workspaces[1].isLinkedAppearance)

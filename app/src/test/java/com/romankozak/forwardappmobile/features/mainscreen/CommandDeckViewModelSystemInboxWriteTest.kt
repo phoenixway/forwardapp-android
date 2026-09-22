@@ -108,7 +108,6 @@ class CommandDeckViewModelSystemInboxWriteTest {
                     now = any(),
                 )
             }
-            coVerify(exactly = 0) { contextRepository.createContextWithId(any(), any(), any()) }
         }
 
     private fun createViewModel(

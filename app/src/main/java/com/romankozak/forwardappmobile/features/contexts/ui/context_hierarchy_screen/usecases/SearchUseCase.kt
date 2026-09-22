@@ -6,6 +6,9 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
@@ -44,17 +47,20 @@ class SearchUseCase
         private lateinit var uiEventChannel: Channel<ProjectUiEvent>
         private lateinit var onProjectAccess: suspend (String) -> Unit
         private lateinit var hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>
+        private lateinit var presentationHierarchy: StateFlow<HierarchyPresentationData>
 
         fun initialize(
             scope: CoroutineScope,
             uiEventChannel: Channel<ProjectUiEvent>,
             onProjectAccess: suspend (String) -> Unit,
             hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>,
+            presentationHierarchy: StateFlow<HierarchyPresentationData>,
         ) {
             this.scope = scope
             this.uiEventChannel = uiEventChannel
             this.onProjectAccess = onProjectAccess
             this.hierarchyPresentationFlat = hierarchyPresentationFlat
+            this.presentationHierarchy = presentationHierarchy
             initializeSearchState()
         }
 
@@ -175,17 +181,15 @@ class SearchUseCase
                         }
                     }
 
-                    val presentationLookup =
-                        hierarchyPresentationFlat.value.associateBy { it.id }
-                    if (projectId !in presentationLookup) {
+                    if (hierarchyPresentationFlat.value.none { it.id == projectId }) {
                         Log.w(TAG, "Reveal rejected: $projectId is absent from the presentation universe")
                         return@withContext RevealResult.Failure
                     }
                     val breadcrumbNames =
-                        buildBreadcrumbNames(
-                            projectId,
-                            presentationLookup,
-                        )
+                        buildPresentationPathToProject(
+                            targetId = projectId,
+                            hierarchy = presentationHierarchy.value,
+                        ).map { it.name }
                     val shouldFocus =
                         shouldUseHierarchyFocusModeForBreadcrumbNames(
                             breadcrumbNames = breadcrumbNames,
@@ -206,23 +210,6 @@ class SearchUseCase
                     RevealResult.Failure
                 }
             }
-        }
-
-        private fun buildBreadcrumbNames(
-            projectId: String,
-            projectLookup: Map<String, HierarchyContextPresentationNode>,
-        ): List<String> {
-            val names = mutableListOf<String>()
-            val visited = mutableSetOf<String>()
-            var currentId: String? = projectId
-
-            while (currentId != null && visited.add(currentId)) {
-                val project = projectLookup[currentId] ?: break
-                names.add(project.name)
-                currentId = project.parentId
-            }
-
-            return names.asReversed()
         }
 
         fun navigateToProject(
@@ -359,15 +346,11 @@ class SearchUseCase
             placementId: String? = null,
             currentHierarchy: HierarchyPresentationData,
             orientationHierarchy: List<OrientationHierarchyItem> = emptyList(),
+            canonicalBreadcrumbs: List<BreadcrumbItem>? = null,
         ) {
             scope.launch {
                 if (placementId != null) {
-                    val breadcrumbs =
-                        buildOrientationBreadcrumbsToContext(
-                            items = orientationHierarchy,
-                            contextId = projectId,
-                            placementId = placementId,
-                        )
+                    val breadcrumbs = canonicalBreadcrumbs ?: emptyList()
                     if (breadcrumbs.isEmpty()) {
                         uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
                         return@launch
@@ -532,6 +515,7 @@ class SearchUseCase
         fun handleBackNavigation(
             currentHierarchy: HierarchyPresentationData,
             orientationHierarchy: List<OrientationHierarchyItem>,
+            canonicalRead: CanonicalV2ProductionHierarchyRead? = null,
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
@@ -546,11 +530,24 @@ class SearchUseCase
                             val placementId = previousFocusedState.placementId
                             if (placementId != null) {
                                 val exactBreadcrumbs =
-                                    buildOrientationBreadcrumbsToContext(
-                                        items = orientationHierarchy,
-                                        contextId = previousFocusedState.projectId,
-                                        placementId = placementId,
-                                    )
+                                    canonicalRead
+                                        ?.breadcrumbsToOccurrence(PlacementId(placementId))
+                                        ?.map { breadcrumb ->
+                                            BreadcrumbItem(
+                                                id = breadcrumb.id,
+                                                name = breadcrumb.title,
+                                                level = breadcrumb.level,
+                                                target =
+                                                    when (breadcrumb.target) {
+                                                        CanonicalV2BreadcrumbTarget.CONTEXT ->
+                                                            BreadcrumbTarget.Context
+                                                        CanonicalV2BreadcrumbTarget.ORIENTATION_NODE ->
+                                                            BreadcrumbTarget.OrientationNode
+                                                    },
+                                                placementId = breadcrumb.placementId?.value,
+                                            )
+                                        }
+                                        ?: emptyList()
                                 if (exactBreadcrumbs.isEmpty()) {
                                     // Exact occurrence history must never degrade into
                                     // target-only V1 presentation navigation.

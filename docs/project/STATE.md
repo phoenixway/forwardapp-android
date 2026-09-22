@@ -273,10 +273,12 @@ versus target-deletion intent, and a dormant normal-ingress versus
 Restore-compatibility hierarchy policy seam.
 
 The authority audit remains clean: the new command service, Beacon resolver,
-and ingress policy have no CURRENT production callers; CURRENT hierarchy UI
-events do not gain `PlacementId`; Canonical V1 remains sole runtime hierarchy
-read/write authority; no dual-write, runtime rematerialization, silent fallback,
-or writer redirect was introduced.
+and ingress policy have no CURRENT production callers. The later pre-P2
+Command/UI Boundary preparation now allows exact `HierarchyOccurrenceRef`
+metadata to travel through UI events where a concrete V2 presentation occurrence
+is already known, but it does not execute V2 mutation. Canonical V1 remains sole
+runtime hierarchy read/write authority; no dual-write, runtime rematerialization,
+silent fallback, or writer redirect was introduced.
 
 Focused H4.0a plus H1/H3.1 regression tests and
 `:app:compileProdDebugKotlin` are HOST green.
@@ -421,6 +423,53 @@ V1 fallback or P2 activation was introduced.
 
 The 13-point pre-P2 readiness gate now has no unresolved semantic blocker.
 Authority-bearing items remain activation-defined and deliberately inactive.
+
+### Hierarchy V2 pre-P2 Command/UI Boundary checkpoint
+
+Status: **COMPLETE / HOST VERIFIED** with zero production authority transfer.
+P2 remains **READY / NOT STARTED**.
+
+Exact occurrence identity now survives the V2 presentation -> hierarchy row ->
+menu/Beacon action boundary wherever the rendered node already owns a concrete
+`HierarchyOccurrenceRef`. Workspace/Context menu actions and Beacon
+copy/link/cut/paste carriers can preserve the selected or destination
+`PlacementId`, target, parent occurrence and `PlacementKind`; legacy/current
+target-only callers remain nullable and are never upgraded by inference.
+
+`HierarchyOccurrenceUiCommandAdapter` is the fail-closed preparation seam for
+occurrence-native move/move-many, complete sibling reorder, appearance creation,
+occurrence removal/restoration and clipboard carriers. Duplicate same-target
+appearances remain independently addressable; selected LINK identity is
+preserved and never collapsed to PRIMARY. Partial sibling reorder, mixed-parent
+siblings, missing source identity and missing required destination occurrence
+are typed unresolved states.
+
+Target lifecycle remains separate from placement lifecycle. Workspace/Beacon
+target clone, Direction/Orientation semantics, Group `PART_OF`, Beacon
+operational ownership and WorkspaceBinding are not structural placement
+parentage. Group / `NoGroup` / `NoBeacon` remain synthetic presentation scopes.
+
+CURRENT execution is intentionally unchanged. The ViewModel and existing
+Context/Workspace clipboard/action coordinators still execute the approved V1
+target-oriented paths. Remaining target-id-only drag/reorder and move-dialog
+interactions must acquire exact source/destination occurrence identity at the
+combined P2 activation boundary or fail closed; target-id -> first-placement,
+implicit PRIMARY, list-order and UUID/order inference remain forbidden.
+
+Focused occurrence adapter and V2 presentation/UI tests are HOST green, and
+`:app:compileProdDebugKotlin` is HOST green.
+
+Final static census: production remains `CURRENT_PRE_CUTOVER`; Canonical V1 is
+the sole CURRENT GENERAL hierarchy authority; the dormant V2 mutation
+service/writer have no external production callers; no V2 reader/writer
+activation, V1 writer redirect, dual-write, runtime V1 -> V2 rematerialization,
+V2 -> V1 structural fallback, or authority switch was introduced.
+
+The smallest remaining authority-bearing unit is still the **combined P2
+production hierarchy authority activation**: wire exact occurrence execution,
+close remaining target-only structural interaction boundaries, switch all
+GENERAL readers/writers and normal ingress coherently, and re-run the 13-point
+activation gate.
 
 **NEXT: P2 combined production hierarchy authority activation.**
 P2 remains **NOT STARTED**.

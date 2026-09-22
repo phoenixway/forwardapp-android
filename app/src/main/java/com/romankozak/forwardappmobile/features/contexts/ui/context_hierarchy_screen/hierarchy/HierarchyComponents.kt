@@ -1004,7 +1004,7 @@ internal fun PresentationHierarchyRow(
     isFocused: Boolean,
     isHighlighted: Boolean,
     onProjectClick: (String) -> Unit,
-    onMenuRequested: (String) -> Unit,
+    onMenuRequested: (FlatHierarchyPresentationItem) -> Unit,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onToggleSelection: (String) -> Unit = {},
@@ -1092,7 +1092,7 @@ internal fun PresentationHierarchyRow(
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = { onMenuRequested(project.id) }) {
+            IconButton(onClick = { onMenuRequested(item) }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "Дії з проєктом",

@@ -343,7 +343,12 @@ class ContextScreenViewModel
             )
         }
         private val creationResultActions = CreationResultActions()
-        private val contextSettingsActions by lazy { ContextSettingsActions(contextRepository = contextRepository) }
+        private val contextSettingsActions by lazy {
+            ContextSettingsActions(
+                contextRepository = contextRepository,
+                canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+            )
+        }
         private val currentContextActions by lazy {
             CurrentContextActions(
                 stateManager = stateManager,

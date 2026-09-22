@@ -960,6 +960,103 @@ activation**. It must perform the authority transfer coherently and re-run the
 13-point production gate as activation evidence. H4.0e does not activate P2.
 
 
+#### Pre-P2 Command/UI Boundary - occurrence-native command preparation
+
+Status: **COMPLETE / HOST VERIFIED / P2 STILL NOT STARTED**. Zero production
+authority transfer.
+
+The hierarchy UI/command boundary can now carry exact occurrence identity from
+the dormant V2 presentation wherever that identity is already known. Concrete
+rows preserve `HierarchyOccurrenceRef`, including exact `PlacementId`, target,
+parent occurrence, `PlacementKind`, and sibling order. Workspace/Context menu
+actions and Beacon row actions carry the selected occurrence; paste destinations
+carry the concrete destination occurrence where the rendered V2 row supplies
+one. Search/focus adjacency continues to preserve exact placement identity.
+
+`HierarchyOccurrenceUiCommandAdapter` is a preparation-only seam. It translates
+known occurrence identity into the existing dormant occurrence-native command
+model for:
+
+- `Move` and `MoveMany`;
+- complete `ReorderSiblings` by `PlacementId`;
+- `CreateAppearance`;
+- `RemoveOccurrence`;
+- `RestoreOccurrence`;
+- occurrence-preserving clipboard carriers.
+
+The adapter executes no mutation. Missing source occurrence, missing required
+destination occurrence, partial sibling sets, mixed sibling parents, and
+duplicate placement identity fail closed with typed unresolved results. It does
+not infer a placement from target id, choose a PRIMARY for a LINK, use first
+matching occurrence, derive identity from list order, or synthesize identity
+from UUID/order heuristics.
+
+Occurrence identity is deliberately distinct from target lifecycle. Removing
+one placement is not target deletion; restoring one placement is not target
+restoration; creating a LINK appearance is not target cloning. Workspace target
+clone semantics, Beacon target clone semantics, Direction/Orientation companion
+effects, Group `PART_OF`, Beacon operational-owner association and
+WorkspaceBinding remain independently owned.
+
+The CURRENT event/execution path remains compatible and target-oriented where
+that is its approved behavior. The new occurrence fields are preparatory
+metadata only: `ContextHierarchyScreenViewModel`, `ContextActionsUseCase`,
+`WorkspaceClipboardCoordinator`, and `ContextClipboardCoordinator` continue to
+invoke the existing V1 executors. Legacy/non-row callers may therefore carry
+`null` occurrence identity rather than guessing one.
+
+Structural intent classification at this boundary:
+
+- move: Context/Workspace move and CUT structural operands become exact
+  occurrence moves when V2 authority is activated;
+- move-many: multi-selection requires concrete source occurrences before an
+  occurrence-native structural move can be prepared;
+- reorder: GENERAL structural sibling reorder requires one complete ordered set
+  of sibling `PlacementId`s under the same concrete parent occurrence;
+- create appearance: Context/Workspace/Beacon LINK appearance creation is
+  placement creation, separate from target clone;
+- remove occurrence: LINK/appearance removal addresses one exact placement,
+  separate from target deletion;
+- restore occurrence: placement restoration addresses one exact removed
+  placement, separate from target restoration.
+
+`ReorderOrientationGroups` is semantic Group ordering, not GENERAL structural
+placement reorder. Group membership remains `PART_OF`; Beacon-owner operations
+remain operational. Synthetic Group / `NoGroup` / `NoBeacon` are not persisted
+as hierarchy placements.
+
+The remaining target-id-only CURRENT reorder/drag and move-dialog paths are not
+silently upgraded. Until their rendered interaction supplies a complete exact
+occurrence set and, where required, a concrete destination occurrence, the
+occurrence-native preparation contract is unresolved rather than inferred.
+This is an activation-boundary requirement, not permission for target-id ->
+placement lookup.
+
+Focused tests establish exact PRIMARY identity, exact LINK identity, duplicate
+same-target separation, concrete-parent move, atomic complete sibling
+`PlacementId` reorder, fail-closed partial reorder, occurrence removal versus
+target deletion, exact occurrence restore, target-only failure, selected LINK
+clipboard identity, and LINK appearance versus target clone. V2 presentation
+tests establish propagation of the exact occurrence carrier into hierarchy
+rows.
+
+HOST verification for this preparatory slice is green, including the focused
+occurrence adapter/presentation/UI regressions and
+`:app:compileProdDebugKotlin`.
+
+The final authority census remains unchanged: production resolves to
+`CURRENT_PRE_CUTOVER`; Canonical V1 remains the sole CURRENT GENERAL hierarchy
+read/write authority; the V2 mutation service/writer have no external
+production caller; no reader activation, writer redirect, dual-write, runtime
+V1 -> V2 rematerialization, V2 -> V1 structural fallback, or authority switch
+was introduced.
+
+Therefore this Command/UI Boundary slice is complete, while P2 itself remains
+**READY / NOT STARTED**. The next authority-bearing unit remains the combined P2
+production cutover. It must wire exact occurrence command execution and the
+remaining target-only interaction boundaries together with the reader,
+writer, ingress and anti-fallback authority transfer in one coherent boundary.
+
 **P2 - production authority activation**
 
 P2 is the first authority-bearing slice.

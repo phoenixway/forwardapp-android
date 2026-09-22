@@ -46,23 +46,6 @@ internal fun buildOrientationBreadcrumbs(
     return buildDisplayedOrientationBreadcrumbs(items, nodeIndex)
 }
 
-internal fun buildOrientationBreadcrumbsToContext(
-    items: List<OrientationHierarchyItem>,
-    contextId: String,
-    placementId: String? = null,
-): List<BreadcrumbItem> {
-    val nodeIndex =
-        findOrientationHierarchyItemIndex(
-            items = items,
-            nodeId = contextId,
-            placementId = placementId,
-        ).takeIf { index ->
-            index >= 0 && items[index].node is OrientationHierarchyNode.ProjectLike
-        } ?: -1
-    if (nodeIndex == -1) return emptyList()
-    return buildDisplayedOrientationBreadcrumbs(items, nodeIndex)
-}
-
 private fun buildDisplayedOrientationBreadcrumbs(
     items: List<OrientationHierarchyItem>,
     nodeIndex: Int,

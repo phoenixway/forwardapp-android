@@ -14,7 +14,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2CoreLevelOccurrence
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyConsumerReadiness
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
-import com.romankozak.forwardappmobile.data.hierarchy.HierarchyReadAuthorityRouter
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
@@ -145,21 +144,14 @@ class CoreLevelViewModel
                 )
 
         private val coreLevelOccurrences: StateFlow<List<CanonicalV2CoreLevelOccurrence>> =
-            HierarchyReadAuthorityRouter().route(
-                currentPreCutover = {
-                    MutableStateFlow(emptyList())
-                },
-                v2Authority = {
-                    canonicalV2ReactiveHierarchyReadSource
-                        .observe()
-                        .map(canonicalV2HierarchyConsumerReadiness::coreLevelOccurrences)
-                        .stateIn(
-                            scope = viewModelScope,
-                            started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
-                            initialValue = emptyList(),
-                        )
-                },
-            )
+            canonicalV2ReactiveHierarchyReadSource
+                .observe()
+                .map(canonicalV2HierarchyConsumerReadiness::coreLevelOccurrences)
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    initialValue = emptyList(),
+                )
 
         val uiState: StateFlow<CoreLevelUiState> =
             combine(
@@ -192,32 +184,25 @@ class CoreLevelViewModel
                             )
                         },
                     beacons =
-                        HierarchyReadAuthorityRouter().route(
-                            currentPreCutover = {
-                                beacons.map { details ->
-                                    details.toCoreLevelCard()
-                                }
-                            },
-                            v2Authority = {
-                                val detailsByBeaconId =
-                                    beacons.associateBy { details -> details.beacon.id }
-                                occurrences.map { occurrence ->
-                                    val details =
-                                        requireNotNull(
-                                            detailsByBeaconId[occurrence.beaconPresentationId],
-                                        ) {
-                                            "V2 CoreLevel occurrence ${occurrence.placementId.value} " +
-                                                "references missing MainBeacon presentation " +
-                                                occurrence.beaconPresentationId
-                                        }
-                                    details.toCoreLevelCard(
-                                        placementId = occurrence.placementId.value,
-                                        parentPlacementId = occurrence.parentPlacementId?.value,
-                                        structuralGroupId = occurrence.groupPresentationId,
-                                    )
-                                }
-                            },
-                        ),
+                        run {
+                            val detailsByBeaconId =
+                                beacons.associateBy { details -> details.beacon.id }
+                            occurrences.map { occurrence ->
+                                val details =
+                                    requireNotNull(
+                                        detailsByBeaconId[occurrence.beaconPresentationId],
+                                    ) {
+                                        "V2 CoreLevel occurrence ${occurrence.placementId.value} " +
+                                            "references missing MainBeacon presentation " +
+                                            occurrence.beaconPresentationId
+                                    }
+                                details.toCoreLevelCard(
+                                    placementId = occurrence.placementId.value,
+                                    parentPlacementId = occurrence.parentPlacementId?.value,
+                                    structuralGroupId = occurrence.groupPresentationId,
+                                )
+                            }
+                        },
                 )
             }.stateIn(
                 scope = viewModelScope,

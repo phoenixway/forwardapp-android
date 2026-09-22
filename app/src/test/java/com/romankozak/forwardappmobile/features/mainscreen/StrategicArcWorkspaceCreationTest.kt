@@ -121,10 +121,6 @@ class StrategicArcWorkspaceCreationTest {
                     now = any(),
                 )
             }
-            coVerify(exactly = 0) {
-                contextRepository.createContextWithId(any(), any(), any())
-            }
-
             viewModel.addArcLink(workspaceId)
             advanceUntilIdle()
 

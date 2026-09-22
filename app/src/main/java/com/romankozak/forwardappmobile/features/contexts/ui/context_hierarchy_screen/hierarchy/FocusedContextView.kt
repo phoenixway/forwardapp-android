@@ -120,6 +120,7 @@ private fun FocusedPresentationProjectView(
                             project = project,
                             level = 0,
                             placementId = focusedNode?.placementId,
+                            occurrence = focusedNode?.occurrence,
                         ),
                     childCount = children.size,
                     isSearchActive = isSearchActive,
@@ -135,7 +136,14 @@ private fun FocusedPresentationProjectView(
                             ),
                         )
                     },
-                    onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
+                    onMenuRequested = { row ->
+                        onEvent(
+                            ContextHierarchyScreenEvent.ContextMenuRequest(
+                                projectId = row.project.id,
+                                occurrence = row.occurrence,
+                            ),
+                        )
+                    },
                     isSelectionMode = isSelectionMode,
                     isSelected = project.id in selectedContextIds,
                     onToggleSelection = { onEvent(ContextHierarchyScreenEvent.ToggleContextSelection(it)) },
@@ -163,7 +171,14 @@ private fun FocusedPresentationProjectView(
                             ),
                         )
                     },
-                    onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
+                    onMenuRequested = { row ->
+                        onEvent(
+                            ContextHierarchyScreenEvent.ContextMenuRequest(
+                                projectId = row.project.id,
+                                occurrence = row.occurrence,
+                            ),
+                        )
+                    },
                     isSelectionMode = isSelectionMode,
                     isSelected = child.project.id in selectedContextIds,
                     onToggleSelection = { onEvent(ContextHierarchyScreenEvent.ToggleContextSelection(it)) },
@@ -185,6 +200,7 @@ internal fun focusedPresentationItems(
                 isLinkedAppearance = node.isLinkedAppearance,
                 isCanonicalWorkspace = node.isCanonicalWorkspace,
                 placementId = node.placementId,
+                occurrence = node.occurrence,
             )
         }
     }.distinctBy { it.structuralKey }
@@ -277,10 +293,38 @@ fun FocusedOrientationNodeView(
                         node = node, level = 0, childCount = directChildren.size,
                         onEditBeacon = { onEditBeacon(node.id) },
                         onDeleteBeacon = { onDeleteBeacon(node.id) },
-                        onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
-                        onCopyBeaconAsLink = { onEvent(ContextHierarchyScreenEvent.CopyBeaconAsLink(node.id)) },
-                        onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
-                        onPasteBeacon = { onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id)) },
+                        onCopyBeacon = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.CopyBeacon(
+                                    beaconNodeId = node.id,
+                                    occurrence = node.occurrence,
+                                ),
+                            )
+                        },
+                        onCopyBeaconAsLink = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.CopyBeaconAsLink(
+                                    beaconNodeId = node.id,
+                                    occurrence = node.occurrence,
+                                ),
+                            )
+                        },
+                        onCutBeacon = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.CutBeacon(
+                                    beaconNodeId = node.id,
+                                    occurrence = node.occurrence,
+                                ),
+                            )
+                        },
+                        onPasteBeacon = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(
+                                    beaconNodeId = node.id,
+                                    destinationOccurrence = node.occurrence,
+                                ),
+                            )
+                        },
                     )
                     OrientationHierarchyNode.NoGroup -> NoGroupRootHeaderRow(
                         level = 0, childCount = directChildren.size,
@@ -307,10 +351,38 @@ fun FocusedOrientationNodeView(
                 },
                 onEditBeacon = { onEditBeacon(node.id) },
                 onDeleteBeacon = { onDeleteBeacon(node.id) },
-                onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
-                onCopyBeaconAsLink = { onEvent(ContextHierarchyScreenEvent.CopyBeaconAsLink(node.id)) },
-                onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
-                onPasteBeacon = { onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id)) },
+                onCopyBeacon = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.CopyBeacon(
+                            beaconNodeId = node.id,
+                            occurrence = node.occurrence,
+                        ),
+                    )
+                },
+                onCopyBeaconAsLink = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.CopyBeaconAsLink(
+                            beaconNodeId = node.id,
+                            occurrence = node.occurrence,
+                        ),
+                    )
+                },
+                onCutBeacon = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.CutBeacon(
+                            beaconNodeId = node.id,
+                            occurrence = node.occurrence,
+                        ),
+                    )
+                },
+                onPasteBeacon = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(
+                            beaconNodeId = node.id,
+                            destinationOccurrence = node.occurrence,
+                        ),
+                    )
+                },
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
@@ -331,7 +403,14 @@ fun FocusedOrientationNodeView(
                         ),
                     )
                 },
-                onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
+                onMenuRequested = { row ->
+                    onEvent(
+                        ContextHierarchyScreenEvent.ContextMenuRequest(
+                            projectId = row.project.id,
+                            occurrence = row.occurrence,
+                        ),
+                    )
+                },
                 isSelectionMode = isSelectionMode,
                 isSelected = item.project.id in selectedContextIds,
                 onToggleSelection = { onEvent(ContextHierarchyScreenEvent.ToggleContextSelection(it)) },

@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import java.util.Locale
@@ -21,6 +22,7 @@ class StructurePresetService
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
         private val contextRepository: ContextRepository,
+        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
     ) {
         suspend fun applyPresetToContext(
             contextId: String,
@@ -136,8 +138,8 @@ class StructurePresetService
             contextId: String,
             item: ContextStructureItem,
         ) {
-            contextRepository.ensureSubcontextByRole(
-                parentContextId = contextId,
+            canonicalWorkspaceRepository.ensureChildWorkspaceByRole(
+                parentWorkspaceId = contextId,
                 roleCode = item.roleCode,
                 title = item.title,
             )

@@ -146,6 +146,12 @@ data class CanonicalV2ProductionHierarchyRead(
                 it.target.id == targetId
         }
 
+
+    fun workspaceOccurrences(): List<CanonicalV2PresentedHierarchyEntry.Occurrence> =
+        presentedOccurrences.filter {
+            it.target.type == HierarchyTargetType.WORKSPACE
+        }
+
     /**
      * Target navigation is explicitly separate from structural focus.
      */

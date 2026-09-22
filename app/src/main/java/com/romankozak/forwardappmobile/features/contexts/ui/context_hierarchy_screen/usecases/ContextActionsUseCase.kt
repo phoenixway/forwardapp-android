@@ -1,23 +1,19 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import android.net.Uri
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.data.repository.ContextHierarchyUpdate
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommand
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommandService
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRolePresetInitializer
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.NO_GROUP_NODE_ID
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -30,10 +26,10 @@ class ContextActionsUseCase
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val hierarchyOccurrenceCommandService: HierarchyOccurrenceCommandService,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
         private val canonicalWorkspaceRolePresetInitializer: CanonicalWorkspaceRolePresetInitializer,
         private val canonicalDirectionRepository: CanonicalDirectionRepository,
-        private val contextParentLinkDao: ContextParentLinkDao,
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
         private val mainBeaconRepository: MainBeaconRepository,
@@ -41,6 +37,7 @@ class ContextActionsUseCase
     ) {
         suspend fun addNewProject(
             parentId: String?,
+            parentPlacementId: PlacementId?,
             name: String,
             roleCode: String? = null,
         ): String? = withContext(ioDispatcher) {
@@ -48,10 +45,11 @@ class ContextActionsUseCase
             if (normalizedName.isEmpty()) return@withContext null
 
             val newWorkspaceId =
-                canonicalWorkspaceRepository.create(
+                canonicalWorkspaceRepository.createWithPrimaryAppearance(
                     nameOverride = normalizedName,
                     descriptionOverride = null,
                     parentWorkspaceId = parentId,
+                    parentPlacementId = parentPlacementId,
                     roleCode = roleCode,
                 )
 
@@ -89,188 +87,62 @@ class ContextActionsUseCase
         }
 
         fun getMoveProjectRoute(
-            projectId: String,
-            allProjects: List<Context>,
+            occurrence: com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef,
+            read: CanonicalV2ProductionHierarchyRead,
         ): NavTarget.ListChooser? {
-            val project = allProjects.firstOrNull { it.id == projectId } ?: return null
-            val title = "Move '${project.name}'"
-            val projectsById = allProjects.associateBy { it.id }
-            val childMap =
-                allProjects
-                    .mapNotNull { context ->
-                        context.displayParentId(projectsById)?.let { parentId -> parentId to context }
-                    }.groupBy(
-                        keySelector = { it.first },
-                        valueTransform = { it.second },
-                    )
-            val descendantIds = getDescendantIds(project.id, childMap).joinToString(",")
-            val currentParentId = project.displayParentId(projectsById) ?: "root"
-            val disabledIds = "${project.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
+            val source = read.occurrence(occurrence.placementId) ?: return null
+
+            val descendantPlacementIds = buildList {
+                val pending = ArrayDeque<PlacementId>()
+                read.childrenOf(source.placementId).forEach { pending.addLast(it.placementId) }
+
+                while (pending.isNotEmpty()) {
+                    val placementId = pending.removeFirst()
+                    add(placementId)
+                    read.childrenOf(placementId).forEach { child ->
+                        pending.addLast(child.placementId)
+                    }
+                }
+            }
+
+            val disabledIds =
+                (listOf(source.placementId) + descendantPlacementIds)
+                    .joinToString(",") { it.value }
+
             return NavTarget.ListChooser(
-                title = title,
-                currentParentId = currentParentId,
+                title = "Move '${source.title}'",
+                currentParentId = source.parentPlacementId?.value ?: "root",
                 disabledIds = disabledIds,
             )
         }
 
         suspend fun onListChooserResult(
-            newParentId: String?,
-            projectBeingMovedId: String?,
-            allProjects: List<Context>,
+            destinationPlacementId: String?,
+            sourcePlacementId: String?,
         ) = withContext(ioDispatcher) {
-            val projectToMoveId = projectBeingMovedId ?: return@withContext
-            val projectToMove = allProjects.find { it.id == projectToMoveId } ?: return@withContext
-            val finalNewParentId = if (newParentId == "root") null else newParentId
-            val projectsById = allProjects.associateBy { it.id }
+            val placementId = sourcePlacementId?.let(::PlacementId)
+                ?: return@withContext
 
-            if (projectToMove.displayParentId(projectsById) == finalNewParentId) return@withContext
-            if (SystemContexts.isPinnedRoot(ContextId(projectToMove.id)) && finalNewParentId != null) {
-                return@withContext
-            }
-
-            contextRepository.moveContextById(
-                contextId = projectToMove.id,
-                newParentId = finalNewParentId,
-                allowSystemMoves = true,
+            hierarchyOccurrenceCommandService.move(
+                HierarchyOccurrenceCommand.Move(
+                    placementId = placementId,
+                    newParentPlacementId = destinationPlacementId?.let(::PlacementId),
+                ),
             )
         }
 
-        suspend fun onProjectReorder(
-            fromId: String,
-            toId: String,
-            position: DropPosition,
-            isSearchActive: Boolean,
-            allProjects: List<Context>,
-        ) = withContext(ioDispatcher) {
-            if (fromId == toId || isSearchActive) return@withContext
-
-            val fromProject = allProjects.find { it.id == fromId }
-            val toProject = allProjects.find { it.id == toId }
-
-            if (fromProject == null || toProject == null) {
-                return@withContext
-            }
-
-            val projectsById = allProjects.associateBy { it.id }
-            val newParentId = toProject.displayParentId(projectsById)
-            if (SystemContexts.isPinnedRoot(ContextId(fromProject.id)) && newParentId != null) {
-                return@withContext
-            }
-            val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
-            val descendantsOfFrom = getDescendantIds(fromProject.id, childMap)
-            if (newParentId == fromProject.id || (newParentId != null && descendantsOfFrom.contains(newParentId))) {
-                return@withContext // Prevent cycles
-            }
-
-            val sourceParentId = fromProject.displayParentId(projectsById)
-            val sourceSiblings =
-                allProjects
-                    .filter { it.displayParentId(projectsById) == sourceParentId }
-                    .sortedBy { it.order }
-            val targetSiblings =
-                allProjects
-                    .filter { it.displayParentId(projectsById) == newParentId }
-                    .sortedBy { it.order }
-
-            val targetList = targetSiblings.filterNot { it.id == fromId }.toMutableList()
-            val targetIndex = targetList.indexOfFirst { it.id == toId }
-            if (targetIndex == -1) return@withContext
-
-            val insertionIndex =
-                when (position) {
-                    DropPosition.BEFORE -> targetIndex
-                    DropPosition.AFTER -> targetIndex + 1
-                }.coerceIn(0, targetList.size)
-
-            targetList.add(insertionIndex, fromProject)
-
-            val updates = mutableListOf<ContextHierarchyUpdate>()
-
-            if (newParentId == sourceParentId) {
-                val reordered =
-                    targetList.mapIndexed { index, project ->
-                        ContextHierarchyUpdate(
-                            id = project.id,
-                            parentId = sourceParentId,
-                            order = index.toLong(),
-                        )
-                    }
-                updates.addAll(reordered)
-            } else {
-                val sourceWithout =
-                    sourceSiblings
-                        .filterNot { it.id == fromId }
-                        .mapIndexed { index, project ->
-                            ContextHierarchyUpdate(
-                                id = project.id,
-                                parentId = sourceParentId,
-                                order = index.toLong(),
-                            )
-                        }
-
-                val targetWithOrder =
-                    targetList.mapIndexed { index, project ->
-                        ContextHierarchyUpdate(
-                            id = project.id,
-                            parentId = newParentId,
-                            order = index.toLong(),
-                        )
-                    }
-
-                updates.addAll(sourceWithout)
-                updates.addAll(targetWithOrder)
-            }
-
-            if (updates.isNotEmpty()) {
-                contextRepository.applyHierarchyUpdates(updates)
-            }
-        }
-
         suspend fun reorderContextSiblings(
-            parentContextId: String?,
-            orderedContextIds: List<String>,
-            allProjects: List<Context>,
+            parentPlacementId: PlacementId?,
+            orderedPlacementIds: List<PlacementId>,
         ) = withContext(ioDispatcher) {
-            if (orderedContextIds.isEmpty()) return@withContext
-            if (parentContextId != null && mainBeaconRepository.getBeaconById(parentContextId) != null) {
-                mainBeaconRepository.reorderBeaconContexts(parentContextId, orderedContextIds)
-                return@withContext
-            }
-            val contextsById = allProjects.associateBy { it.id }
-            val activeLinks = contextParentLinkDao.getActiveLinks()
-            val linkedChildIds =
-                parentContextId
-                    ?.let { parentId ->
-                        activeLinks
-                            .filter { it.parentContextId == parentId }
-                            .mapTo(hashSetOf()) { it.childContextId }
-                    }
-                    .orEmpty()
-            val now = System.currentTimeMillis()
-            val contextUpdates = mutableListOf<ContextHierarchyUpdate>()
+            if (orderedPlacementIds.isEmpty()) return@withContext
 
-            orderedContextIds.forEachIndexed { index, contextId ->
-                val context = contextsById[contextId] ?: return@forEachIndexed
-                if (context.parentId == parentContextId) {
-                    contextUpdates +=
-                        ContextHierarchyUpdate(
-                            id = context.id,
-                            parentId = parentContextId,
-                            order = index.toLong(),
-                        )
-                } else if (parentContextId != null && contextId in linkedChildIds) {
-                    contextParentLinkDao.updateOrder(
-                        parentContextId = parentContextId,
-                        childContextId = contextId,
-                        order = index.toLong(),
-                        updatedAt = now,
-                    )
-                }
-            }
-
-            if (contextUpdates.isNotEmpty()) {
-                contextRepository.applyHierarchyUpdates(contextUpdates)
-            }
+            hierarchyOccurrenceCommandService.reorderSiblings(
+                HierarchyOccurrenceCommand.ReorderSiblings(
+                    parentPlacementId = parentPlacementId,
+                    orderedPlacementIds = orderedPlacementIds,
+                ),
+            )
         }
 
         suspend fun reorderOrientationBeaconSiblings(
@@ -295,64 +167,6 @@ class ContextActionsUseCase
             withContext(ioDispatcher) {
                 mainBeaconRepository.reorderGroups(orderedGroupIds)
             }
-
-        suspend fun addAdditionalParentLinks(
-            parentContextId: String,
-            childContextIds: Set<String>,
-            allProjects: List<Context>,
-        ): Int = withContext(ioDispatcher) {
-            if (childContextIds.isEmpty()) return@withContext 0
-            val contextsById = allProjects.associateBy { it.id }
-            if (parentContextId !in contextsById) return@withContext 0
-
-            val activeLinks = contextParentLinkDao.getActiveLinks()
-            val existingPairs = activeLinks.mapTo(hashSetOf()) { it.parentContextId to it.childContextId }
-            var nextOrder = contextParentLinkDao.getMaxOrderForParent(parentContextId) + 1L
-            val acceptedLinks = mutableListOf<ContextParentLink>()
-
-            childContextIds.forEach { childContextId ->
-                if (childContextId !in contextsById) return@forEach
-                if (childContextId == parentContextId) return@forEach
-                if (contextsById[childContextId]?.parentId == parentContextId) return@forEach
-                if ((parentContextId to childContextId) in existingPairs) return@forEach
-
-                val candidateLinks =
-                    activeLinks + acceptedLinks
-                if (wouldCreateParentLinkCycle(
-                        parentContextId = parentContextId,
-                        childContextId = childContextId,
-                        allProjects = allProjects,
-                        parentLinks = candidateLinks,
-                    )
-                ) {
-                    return@forEach
-                }
-
-                acceptedLinks +=
-                    ContextParentLink(
-                        parentContextId = parentContextId,
-                        childContextId = childContextId,
-                        order = nextOrder++,
-                        createdAt = System.currentTimeMillis(),
-                    )
-                existingPairs += parentContextId to childContextId
-            }
-
-            if (acceptedLinks.isNotEmpty()) {
-                contextParentLinkDao.insertAll(acceptedLinks)
-            }
-            acceptedLinks.size
-        }
-
-        suspend fun removeAdditionalParentLink(
-            parentContextId: String,
-            childContextId: String,
-        ) = withContext(ioDispatcher) {
-            contextParentLinkDao.softDelete(
-                parentContextId = parentContextId,
-                childContextId = childContextId,
-            )
-        }
 
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
@@ -383,35 +197,4 @@ class ContextActionsUseCase
         suspend fun onBottomNavExpandedChange(expanded: Boolean) =
             withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }
 
-        private fun wouldCreateParentLinkCycle(
-            parentContextId: String,
-            childContextId: String,
-            allProjects: List<Context>,
-            parentLinks: List<ContextParentLink>,
-        ): Boolean {
-            val childrenByParentId = mutableMapOf<String, MutableList<String>>()
-            allProjects.forEach { context ->
-                context.parentId?.let { parentId ->
-                    childrenByParentId.getOrPut(parentId) { mutableListOf() } += context.id
-                }
-            }
-            parentLinks
-                .asSequence()
-                .filterNot { it.isDeleted }
-                .filter { it.parentContextId != parentContextId || it.childContextId != childContextId }
-                .forEach { link ->
-                    childrenByParentId.getOrPut(link.parentContextId) { mutableListOf() } += link.childContextId
-                }
-
-            val pending = ArrayDeque<String>()
-            val visited = mutableSetOf<String>()
-            pending += childContextId
-            while (pending.isNotEmpty()) {
-                val currentId = pending.removeFirst()
-                if (!visited.add(currentId)) continue
-                if (currentId == parentContextId) return true
-                childrenByParentId[currentId].orEmpty().forEach(pending::add)
-            }
-            return false
-        }
     }

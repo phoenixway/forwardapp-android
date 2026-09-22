@@ -2,13 +2,14 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyProjectMenuAvailability
 import dagger.hilt.android.scopes.ViewModelScoped
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
 
 @ViewModelScoped
 class DialogStateManager
@@ -18,23 +19,35 @@ class DialogStateManager
         val dialogState: StateFlow<DialogState> = _dialogState.asStateFlow()
 
         fun onAddNewProjectRequest() {
-            _dialogState.value = DialogState.AddProject(null)
+            _dialogState.value = DialogState.AddProject(parentId = null, parentPlacementId = null)
         }
 
-        fun onAddSubprojectRequest(parentProjectId: String) {
-            _dialogState.value = DialogState.AddProject(parentProjectId)
+        fun onAddSubprojectRequest(
+            parentProjectId: String,
+            parentOccurrence: HierarchyOccurrenceRef?,
+        ) {
+            require(parentOccurrence == null || parentOccurrence.target.id == parentProjectId) {
+                "Add-subproject occurrence target does not match parent project"
+            }
+            _dialogState.value =
+                DialogState.AddProject(
+                    parentId = parentProjectId,
+                    parentPlacementId = parentOccurrence?.placementId,
+                )
         }
 
         fun onMenuRequested(
             projectId: String,
             projectName: String,
             availability: HierarchyProjectMenuAvailability = HierarchyProjectMenuAvailability(),
+            occurrence: HierarchyOccurrenceRef? = null,
         ) {
             _dialogState.value =
                 DialogState.ProjectMenu(
                     projectId = projectId,
                     projectName = projectName,
                     availability = availability,
+                    occurrence = occurrence,
                 )
         }
 

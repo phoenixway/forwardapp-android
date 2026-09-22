@@ -235,15 +235,11 @@ fun ProjectHierarchyScreenContent(
                     isSearchActive = isSearchActive,
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
-                    longDescendantsMap = uiState.longDescendantsMap,
                     selectedContextIds = uiState.selectedContextIds,
                     clipboardContextIds = uiState.clipboardContextIds,
                     isSelectionMode = uiState.isSelectionMode,
                     isSiblingReorderMode = uiState.isSiblingReorderMode,
                     onEvent = onEvent,
-                    onPasteContextLink = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.PasteContextLink(projectId))
-                    },
                     onEditBeacon = onEditBeacon,
                     onDeleteBeacon = onDeleteBeacon,
                     sharedTransitionScope = sharedTransitionScope,
@@ -251,17 +247,24 @@ fun ProjectHierarchyScreenContent(
                     onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
                     onToggleSelection = { onEvent(ContextHierarchyScreenEvent.ToggleContextSelection(it)) },
                     onStartSelection = { onEvent(ContextHierarchyScreenEvent.StartContextSelection(it)) },
-                    onMenuRequested = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(projectId))
-                    },
-                    onProjectReorder = { from, to, pos ->
-                        onEvent(ContextHierarchyScreenEvent.ContextReorder(from, to, pos))
+                    onMenuRequested = { row ->
+                        onEvent(
+                            ContextHierarchyScreenEvent.ContextMenuRequest(
+                                projectId = row.project.id,
+                                occurrence = row.occurrence,
+                            ),
+                        )
                     },
                     onFocusProject = { projectId ->
                         onEvent(ContextHierarchyScreenEvent.FocusHierarchyProject(projectId))
                     },
-                    onAddSubproject = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(projectId))
+                    onAddSubproject = { projectId, occurrence ->
+                        onEvent(
+                            ContextHierarchyScreenEvent.AddSubprojectRequest(
+                                parentProjectId = projectId,
+                                parentOccurrence = occurrence,
+                            ),
+                        )
                     },
                     onDeleteProject = { projectId ->
                         onEvent(ContextHierarchyScreenEvent.DeleteRequest(projectId))

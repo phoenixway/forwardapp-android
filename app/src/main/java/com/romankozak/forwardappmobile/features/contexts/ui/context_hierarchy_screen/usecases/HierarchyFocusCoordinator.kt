@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
@@ -55,6 +58,7 @@ class HierarchyFocusCoordinator
             currentSubState: MainSubState,
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
+            canonicalRead: CanonicalV2ProductionHierarchyRead? = null,
             enterFocus: Boolean,
             replaceFocusPath: Boolean = false,
         ) {
@@ -64,11 +68,28 @@ class HierarchyFocusCoordinator
             if (currentHierarchy.allProjects.none { it.id == projectId }) return
 
             val orientationBreadcrumbs =
-                buildOrientationBreadcrumbsToContext(
-                    items = orientationHierarchy,
-                    contextId = projectId,
-                    placementId = placementId,
-                )
+                when {
+                    placementId == null -> emptyList()
+                    canonicalRead == null -> emptyList()
+                    else ->
+                        canonicalRead
+                            .breadcrumbsToOccurrence(PlacementId(placementId))
+                            .map { breadcrumb ->
+                                BreadcrumbItem(
+                                    id = breadcrumb.id,
+                                    name = breadcrumb.title,
+                                    level = breadcrumb.level,
+                                    target =
+                                        when (breadcrumb.target) {
+                                            CanonicalV2BreadcrumbTarget.CONTEXT ->
+                                                BreadcrumbTarget.Context
+                                            CanonicalV2BreadcrumbTarget.ORIENTATION_NODE ->
+                                                BreadcrumbTarget.OrientationNode
+                                        },
+                                    placementId = breadcrumb.placementId?.value,
+                                )
+                            }
+                }
 
             // Exact occurrence identity is authoritative when supplied.
             // Never reinterpret a missing/malformed PlacementId as target-only
