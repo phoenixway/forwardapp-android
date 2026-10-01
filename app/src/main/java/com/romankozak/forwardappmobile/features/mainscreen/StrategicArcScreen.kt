@@ -480,7 +480,7 @@ fun StrategicArcScreen(
         LinkedTargetsPickerDialog(
             contextOptions =
                 uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                    ProjectOption(id = it.id, name = it.name)
                 },
             attachmentOptions = emptyList(),
             preselectedContextIds = uiState.arcQuests.mapNotNull { it.linkedContextId }.toSet(),
@@ -535,7 +535,7 @@ fun StrategicArcScreen(
         LinkedTargetsPickerDialog(
             contextOptions =
                 uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                    ProjectOption(id = it.id, name = it.name)
                 },
             attachmentOptions =
                 attachmentOptions.map {

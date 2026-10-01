@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.sync
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
@@ -106,7 +106,7 @@ class ConnectionsCanonicalDeltaTest {
         )
 
     private fun workspace() =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = "workspace-1",
             nameOverride = "Workspace",
             descriptionOverride = null,

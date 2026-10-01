@@ -20,6 +20,10 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_HIERARCHY_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
@@ -71,7 +75,6 @@ class FullBackupLocalDataSourceImpl
         private val db: AppDatabase,
         val settingsRepository: SettingsRepository,
         private val contextDao: ContextDao,
-        private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
         private val noteDocumentDao: NoteDocumentDao,
         private val musicNoteDao: MusicNoteDao,
@@ -369,17 +372,14 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
             return SnapshotBundle(
                 version = 2,
+                hierarchyFormatVersion = CURRENT_HIERARCHY_FORMAT_VERSION,
                 exportedAt = System.currentTimeMillis(),
                 // Core & Structure
                 contexts = contextsForTransport.map { it.toSnapshot() },
-                contextParentLinks =
-                    contextParentLinkDao
-                        .getAllRaw()
-                        .filterNot { link ->
-                            link.parentContextId in retiredContextIds ||
-                                link.childContextId in retiredContextIds
-                        }
-                        .map { it.toSnapshot() },
+                // Modern Android snapshots carry canonical H1 as the sole
+                // structural hierarchy authority. Legacy links remain a
+                // Restore-only input shape and are never emitted anew.
+                contextParentLinks = emptyList(),
                 goals = goalDao.getAllRaw().map { it.toSnapshot() },
                 backlogItems = emptyList(),
                 backlogOrders = emptyList(),
@@ -434,7 +434,10 @@ class FullBackupLocalDataSourceImpl
                 legacySubjectMappings = db.orientationDao().getAllLegacyMappings(),
                 orientationRelations = db.orientationDao().getAllOrientationRelations(),
                 aspectOrientationRefs = db.orientationDao().getAllAspectOrientationRefs(),
-                workspaces = db.workspaceDao().getAll(),
+                workspaces =
+                    db.workspaceDao()
+                        .getAll()
+                        .map { it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology() },
                 workspaceBindings = db.orientationDao().getAllWorkspaceBindings(),
                 workspaceCapabilityInstances = db.orientationDao().getAllWorkspaceCapabilities(),
                 savedOrientationViews = db.orientationDao().getAllSavedViews(),
@@ -447,10 +450,13 @@ class FullBackupLocalDataSourceImpl
                 conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
                 aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
                 aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
-                mainBeacons = mainBeaconDao.getAllBeaconsSync().map { it.toSnapshot() },
+                mainBeacons =
+                    mainBeaconDao.getAllBeaconsSync().map {
+                        it.toSnapshot().withoutEmbeddedMainBeaconTopology()
+                    },
                 mainBeaconGroups = mainBeaconDao.getAllGroupsSync().map { it.toSnapshot() },
                 mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync().map { it.toSnapshot() },
-                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync().map { it.toSnapshot() },
+                mainBeaconParentLinks = emptyList(),
                 mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync().map { it.toSnapshot() },

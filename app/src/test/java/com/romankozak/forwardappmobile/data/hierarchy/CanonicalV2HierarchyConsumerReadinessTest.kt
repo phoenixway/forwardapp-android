@@ -187,12 +187,10 @@ class CanonicalV2HierarchyConsumerReadinessTest {
 
     private fun workspacePresentation(
         id: String,
-    ) = HierarchyContextPresentationNode(
+    ) = CanonicalV2WorkspacePresentation(
         id = id,
         name = id,
         description = null,
-        parentId = null,
-        order = 0,
         roleCode = null,
         tags = emptyList(),
     )

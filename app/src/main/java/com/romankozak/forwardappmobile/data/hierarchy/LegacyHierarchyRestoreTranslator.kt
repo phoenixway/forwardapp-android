@@ -1,11 +1,15 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyBackupGeneration
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementIngressBoundary
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.classifyHierarchyBackupGeneration
 import com.romankozak.forwardappmobile.core.data.models.sync.hasLegacyGeneralHierarchyEvidence
 import com.romankozak.forwardappmobile.core.data.models.sync.hierarchyPlacementIngressDecision
 import com.romankozak.forwardappmobile.core.data.models.sync.requireCanonicalHierarchyRestoreOutput
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 
@@ -28,16 +32,34 @@ internal class LegacyHierarchyRestoreTranslator(
         canonical: SnapshotBundle,
         authorityMode: HierarchyPlacementAuthorityMode =
             HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
+        hierarchyBackupGeneration: HierarchyBackupGeneration =
+            source.classifyHierarchyBackupGeneration(),
     ): SnapshotBundle {
+        // Historical characterization only. Production restore calls this translator
+        // explicitly with V2_AUTHORITY and never selects CURRENT at runtime.
+        if (authorityMode == HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER) {
+            return canonical
+        }
+
         val policy =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.RESTORE_COMPATIBILITY,
                 authorityMode = authorityMode,
             )
 
-        // H4.0c prepares the future restore seam without activating P2.
+        // Restore translation is selected by the explicit RESTORE_COMPATIBILITY boundary.
         if (!policy.legacyHierarchyTranslationAllowed) {
             return canonical
+        }
+
+        if (
+            hierarchyBackupGeneration == HierarchyBackupGeneration.CURRENT_CANONICAL ||
+            hierarchyBackupGeneration == HierarchyBackupGeneration.HISTORICAL_CANONICAL
+        ) {
+            require(source.hierarchyPlacements != null)
+            require(source.hierarchyPlacementGroupScopes != null)
+            require(source.hierarchyPlacementLinkedAppearances != null)
+            return canonical.withoutConsumedLegacyStructuralEvidence(authorityMode)
         }
 
         var nativeForLinkedRecovery: SnapshotBundle? = null
@@ -75,14 +97,14 @@ internal class LegacyHierarchyRestoreTranslator(
                 authorityMode != HierarchyPlacementAuthorityMode.V2_AUTHORITY ||
                 nativeCanonical.hierarchyPlacementLinkedAppearances != null
             ) {
-                return nativeCanonical
+                return nativeCanonical.withoutConsumedLegacyStructuralEvidence(authorityMode)
             }
 
             val nativeH1 = requireNotNull(nativeCanonical.hierarchyPlacements)
             if (nativeH1.none { it.targetType == "WORKSPACE" }) {
-                return nativeCanonical.copy(
-                    hierarchyPlacementLinkedAppearances = emptyList(),
-                )
+                return nativeCanonical
+                    .copy(hierarchyPlacementLinkedAppearances = emptyList())
+                    .withoutConsumedLegacyStructuralEvidence(authorityMode)
             }
 
             // Pre-v177 backup compatibility. We may recover sparse display
@@ -106,28 +128,60 @@ internal class LegacyHierarchyRestoreTranslator(
                 authorityMode = authorityMode,
                 canonicalH1Present = true,
             )
-            return explicitEmpty
+            return explicitEmpty.withoutConsumedLegacyStructuralEvidence(authorityMode)
         }
 
         val liveWorkspaces =
             canonical.workspaces
                 .orEmpty()
                 .filterNot { it.isDeleted }
+        val sourceWorkspaceById = source.workspaces.orEmpty().associateBy { it.id }
+        require(sourceWorkspaceById.size == source.workspaces.orEmpty().size) {
+            "Restore legacy Workspace topology evidence contains duplicate ids"
+        }
+        val sourceContextById = source.contexts.associateBy { it.id }
+        require(sourceContextById.size == source.contexts.size) {
+            "Restore legacy Context topology evidence contains duplicate ids"
+        }
         val workspaceInputs =
             liveWorkspaces
+                .map { workspace ->
+                    val workspaceEvidence = sourceWorkspaceById[workspace.id]
+                    val contextEvidence = sourceContextById[workspace.id]
+                    val topology =
+                        when {
+                            workspaceEvidence != null ->
+                                LegacyWorkspaceTopologyEvidence(
+                                    parentWorkspaceId = workspaceEvidence.parentWorkspaceId,
+                                    order = workspaceEvidence.workspaceOrder,
+                                )
+
+                            contextEvidence != null ->
+                                LegacyWorkspaceTopologyEvidence(
+                                    parentWorkspaceId = contextEvidence.parentId,
+                                    order = contextEvidence.order.toLong(),
+                                )
+
+                            else ->
+                                error(
+                                    "Canonical Workspace ${workspace.id} has no source topology evidence",
+                                )
+                        }
+                    workspace to topology
+                }
                 .sortedWith(
                     compareBy(
-                        { it.workspaceOrder },
-                        { (it.nameOverride ?: it.id).lowercase() },
-                        { it.id },
+                        { it.second.order },
+                        { (it.first.nameOverride ?: it.first.id).lowercase() },
+                        { it.first.id },
                     ),
                 )
-                .mapIndexed { ordinal, workspace ->
-                    CanonicalV1WorkspaceSnapshotInput(
+                .mapIndexed { ordinal, (workspace, topology) ->
+                    CanonicalHierarchyEstablishmentWorkspaceInput(
                         id = workspace.id,
                         name = workspace.nameOverride ?: workspace.id,
-                        parentWorkspaceId = workspace.parentWorkspaceId,
-                        order = workspace.workspaceOrder,
+                        canonicalParentId = topology.parentWorkspaceId,
+                        order = topology.order,
                         sourceOrdinal = ordinal,
                     )
                 }
@@ -218,13 +272,13 @@ internal class LegacyHierarchyRestoreTranslator(
                         .orEmpty()
                         .sortedWith(compareBy({ it.order }, { it.groupId }))
 
-                CanonicalV1BeaconSnapshotInput(
-                    legacyBeaconId = beacon.id,
+                CanonicalHierarchyEstablishmentBeaconInput(
+                    sourceId = beacon.id,
                     target = target,
                     title = resolvedSubject.title,
                     order = beacon.order,
-                    parentBeaconId = beacon.parentBeaconId,
-                    relatedOwnerIds = ownerRows.map { it.contextId },
+                    canonicalParentSourceId = beacon.parentBeaconId,
+                    operationalOwnerWorkspaceIds = ownerRows.map { it.contextId },
                     groupIds = groupRows.map { it.groupId },
                     groupOrders = groupRows.associate { it.groupId to it.order },
                     sourceOrdinal = ordinal,
@@ -256,8 +310,8 @@ internal class LegacyHierarchyRestoreTranslator(
                         "Restore Main Beacon Group ${group.id} canonical subject is not a live Orientation"
                     }
 
-                    CanonicalV1BeaconGroupSnapshotInput(
-                        id = group.id,
+                    CanonicalHierarchyEstablishmentGroupInput(
+                        sourceId = group.id,
                         title = subject.title,
                         order = group.order,
                         sourceOrdinal = ordinal,
@@ -277,7 +331,7 @@ internal class LegacyHierarchyRestoreTranslator(
                     ),
                 )
                 .mapIndexed { ordinal, link ->
-                    CanonicalV1ContextParentLinkSnapshotInput(
+                    CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
                         parentWorkspaceId = link.parentContextId,
                         childWorkspaceId = link.childContextId,
                         order = link.order,
@@ -296,9 +350,9 @@ internal class LegacyHierarchyRestoreTranslator(
                     ),
                 )
                 .mapIndexed { ordinal, link ->
-                    CanonicalV1BeaconParentLinkSnapshotInput(
-                        parentBeaconId = link.parentBeaconId,
-                        childBeaconId = link.childBeaconId,
+                    CanonicalHierarchyEstablishmentAdditionalBeaconRoute(
+                        parentSourceId = link.parentBeaconId,
+                        childSourceId = link.childBeaconId,
                         order = link.order,
                         sourceOrdinal = ordinal,
                     )
@@ -307,12 +361,12 @@ internal class LegacyHierarchyRestoreTranslator(
         val snapshot =
             builder.build(
                 input =
-                    CanonicalV1HierarchySnapshotInput(
+                    CanonicalHierarchyEstablishmentInput(
                         workspaces = workspaceInputs,
                         beacons = beaconInputs,
                         groups = groupInputs,
-                        contextParentLinks = contextParentLinks,
-                        beaconParentLinks = beaconParentLinks,
+                        additionalWorkspaceRoutes = contextParentLinks,
+                        additionalBeaconRoutes = beaconParentLinks,
                     ),
                 hierarchyId = HierarchyId.GENERAL,
             )
@@ -358,7 +412,7 @@ internal class LegacyHierarchyRestoreTranslator(
                 authorityMode = authorityMode,
                 canonicalH1Present = true,
             )
-            return recovered
+            return recovered.withoutConsumedLegacyStructuralEvidence(authorityMode)
         }
 
         val result =
@@ -371,9 +425,36 @@ internal class LegacyHierarchyRestoreTranslator(
             authorityMode = authorityMode,
             canonicalH1Present = result.hierarchyPlacements != null,
         )
-        return result
+        return result.withoutConsumedLegacyStructuralEvidence(authorityMode)
     }
 }
+
+private data class LegacyWorkspaceTopologyEvidence(
+    val parentWorkspaceId: String?,
+    val order: Long,
+)
+
+/**
+ * Restore-only V1 structural evidence is consumed while deriving H1 and must
+ * not cross the canonicalization boundary into current runtime persistence.
+ * Embedded Workspace/MainBeacon topology is likewise consumed, not persisted.
+ */
+private fun SnapshotBundle.withoutConsumedLegacyStructuralEvidence(
+    authorityMode: HierarchyPlacementAuthorityMode,
+): SnapshotBundle =
+    if (authorityMode == HierarchyPlacementAuthorityMode.V2_AUTHORITY) {
+        copy(
+            contextParentLinks = emptyList(),
+            mainBeaconParentLinks = emptyList(),
+            mainBeacons = mainBeacons.map { it.withoutEmbeddedMainBeaconTopology() },
+            workspaces =
+                workspaces?.map { workspace ->
+                    workspace.withoutEmbeddedWorkspaceTopology()
+                },
+        )
+    } else {
+        this
+    }
 
 private fun exactStructuralHierarchyMatch(
     native: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot>,

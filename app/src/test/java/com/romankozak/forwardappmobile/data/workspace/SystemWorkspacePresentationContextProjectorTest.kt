@@ -83,9 +83,9 @@ class SystemWorkspacePresentationContextProjectorTest {
 
             assertEquals("Canonical Inbox", synthesized.name)
             assertEquals("canonical-description", synthesized.description)
-            assertEquals(SystemContexts.TODAY.raw, synthesized.parentId)
+            assertNull(synthesized.parentId)
             assertEquals("canonical-role", synthesized.roleCode)
-            assertEquals(3L, synthesized.order)
+            assertEquals(0L, synthesized.order)
             assertEquals(listOf("focus", "inbox"), synthesized.tags)
             assertEquals(synthesized, resolved)
             assertEquals(
@@ -168,8 +168,8 @@ class SystemWorkspacePresentationContextProjectorTest {
 
             assertEquals(standaloneId, presentation.id)
             assertEquals("Operations", presentation.name)
-            assertEquals("parent-workspace", presentation.parentId)
-            assertEquals(7L, presentation.order)
+            assertNull(presentation.parentId)
+            assertEquals(0L, presentation.order)
             assertEquals(listOf("operations"), presentation.tags)
             assertEquals(presentation, projector.resolvePresentation(standaloneId, context = null))
         }
@@ -237,9 +237,9 @@ class SystemWorkspacePresentationContextProjectorTest {
             assertEquals(listOf(retiredId), universe.map { it.id })
             assertEquals("Canonical project", retired.name)
             assertEquals("canonical-description", retired.description)
-            assertEquals("canonical-parent", retired.parentId)
+            assertNull(retired.parentId)
             assertEquals("canonical-role", retired.roleCode)
-            assertEquals(4L, retired.order)
+            assertEquals(0L, retired.order)
             assertEquals(listOf("canonical-tag"), retired.tags)
 
             assertEquals(
@@ -305,7 +305,7 @@ class SystemWorkspacePresentationContextProjectorTest {
             assertEquals(listOf(retiredId), universe.map { it.id })
             val retired = universe.single()
             assertEquals("Canonical reactive", retired.name)
-            assertEquals(8L, retired.order)
+            assertEquals(0L, retired.order)
             assertEquals(listOf("canonical-reactive"), retired.tags)
         }
 
@@ -508,8 +508,8 @@ class SystemWorkspacePresentationContextProjectorTest {
             )
             val system = requireNotNull(universe.singleOrNull { it.id == systemId })
             assertEquals("Canonical Inbox", system.name)
-            assertEquals(SystemContexts.TODAY.raw, system.parentId)
-            assertEquals(4L, system.order)
+            assertNull(system.parentId)
+            assertEquals(0L, system.order)
             assertEquals(listOf("focus", "inbox"), system.tags)
         }
 
@@ -561,9 +561,7 @@ class SystemWorkspacePresentationContextProjectorTest {
         id = id,
         nameOverride = name,
         descriptionOverride = "canonical-description",
-        parentWorkspaceId = parentId,
         roleCode = "canonical-role",
-        workspaceOrder = order,
         createdAt = 1L,
         updatedAt = 2L,
         syncedAt = null,

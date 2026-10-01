@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
@@ -117,12 +116,10 @@ class CanonicalV2HierarchyScreenMetadataAssemblerTest {
     }
 
     private fun workspace(id: String) =
-        HierarchyContextPresentationNode(
+        CanonicalV2WorkspacePresentation(
             id = id,
             name = id,
             description = null,
-            parentId = "legacy-parent-is-metadata-only",
-            order = 999L,
             roleCode = null,
             tags = emptyList(),
         )

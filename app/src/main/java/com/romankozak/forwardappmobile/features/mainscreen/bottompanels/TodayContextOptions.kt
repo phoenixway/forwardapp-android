@@ -8,6 +8,5 @@ internal fun buildTodayContextOptions(options: List<LinkOption>): List<ProjectOp
         ProjectOption(
             id = option.id,
             name = option.name,
-            parentId = null,
         )
     }

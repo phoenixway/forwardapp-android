@@ -30,28 +30,27 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
             brokenLinkedTarget = false,
         )
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(
-                    MIGRATION_155_156,
-                    MIGRATION_156_157,
-                    MIGRATION_157_158,
-                    MIGRATION_158_159,
-                    MIGRATION_159_160,
-                    MIGRATION_160_161,
-                    MIGRATION_161_162,
-                    MIGRATION_162_163,
-                    MIGRATION_163_164,
-                    MIGRATION_164_165,
-                    MIGRATION_165_166,
-                    MIGRATION_166_167,
-                    MIGRATION_167_168,
-                )
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_155_156,
+                MIGRATION_156_157,
+                MIGRATION_157_158,
+                MIGRATION_158_159,
+                MIGRATION_159_160,
+                MIGRATION_160_161,
+                MIGRATION_161_162,
+                MIGRATION_162_163,
+                MIGRATION_163_164,
+                MIGRATION_164_165,
+                MIGRATION_165_166,
+                MIGRATION_166_167,
+                MIGRATION_167_168,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "direction_items"))
@@ -163,7 +162,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -177,28 +176,27 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
             deletedLinkedTarget = true,
         )
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(
-                    MIGRATION_155_156,
-                    MIGRATION_156_157,
-                    MIGRATION_157_158,
-                    MIGRATION_158_159,
-                    MIGRATION_159_160,
-                    MIGRATION_160_161,
-                    MIGRATION_161_162,
-                    MIGRATION_162_163,
-                    MIGRATION_163_164,
-                    MIGRATION_164_165,
-                    MIGRATION_165_166,
-                    MIGRATION_166_167,
-                    MIGRATION_167_168,
-                )
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_155_156,
+                MIGRATION_156_157,
+                MIGRATION_157_158,
+                MIGRATION_158_159,
+                MIGRATION_159_160,
+                MIGRATION_160_161,
+                MIGRATION_161_162,
+                MIGRATION_162_163,
+                MIGRATION_163_164,
+                MIGRATION_164_165,
+                MIGRATION_165_166,
+                MIGRATION_166_167,
+                MIGRATION_167_168,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "direction_items"))
@@ -250,7 +248,7 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -263,19 +261,20 @@ class Migration155To156DirectionCutoverRoomAcceptanceTest {
             brokenLinkedTarget = true,
         )
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_155_156)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_155_156,
+            )
 
         val failure =
             try {
                 runCatching {
-                    room.openHelper.writableDatabase
+                    helper.writableDatabase
                 }.exceptionOrNull()
             } finally {
-                room.close()
+                helper.close()
             }
 
         assertNotNull(failure)

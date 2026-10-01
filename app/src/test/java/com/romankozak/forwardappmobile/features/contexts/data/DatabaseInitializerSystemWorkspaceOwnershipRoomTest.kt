@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data
 
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -47,7 +49,6 @@ class DatabaseInitializerSystemWorkspaceOwnershipRoomTest {
                     )
                     assertNull(workspace.sourceContextId)
                     assertEquals(definition.defaultName, workspace.nameOverride)
-                    assertEquals(definition.defaultParentId, workspace.parentWorkspaceId)
                 }
 
             } finally {
@@ -82,9 +83,7 @@ class DatabaseInitializerSystemWorkspaceOwnershipRoomTest {
                     val workspace = requireNotNull(workspaces[legacyContext.id])
                     assertEquals(legacyContext.name, workspace.nameOverride)
                     assertEquals(legacyContext.description, workspace.descriptionOverride)
-                    assertEquals(legacyContext.parentId, workspace.parentWorkspaceId)
                     assertEquals(legacyContext.roleCode, workspace.roleCode)
-                    assertEquals(legacyContext.order, workspace.workspaceOrder)
                     assertEquals(legacyContext.createdAt, workspace.createdAt)
                     assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, workspace.provenance)
                     assertNull(workspace.sourceContextId)
@@ -176,8 +175,17 @@ class DatabaseInitializerSystemWorkspaceOwnershipRoomTest {
             workspaceDao = database.workspaceDao(),
         )
 
-    private fun database(): AppDatabase =
-        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+    private fun database(): AppDatabase {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        database.openHelper.writableDatabase.execSQL(
+            """
+            INSERT OR REPLACE INTO hierarchy_establishment_origin(hierarchyId, origin)
+            VALUES('${HierarchyId.GENERAL.value}', '${HierarchyEstablishmentOrigin.LEGACY_UPGRADE_REQUIRES_CAPTURE.name}')
+            """.trimIndent(),
+        )
+        return database
+    }
 }

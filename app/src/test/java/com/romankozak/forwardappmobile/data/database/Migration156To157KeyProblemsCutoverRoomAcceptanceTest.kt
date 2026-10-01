@@ -85,14 +85,15 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations156To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations156To166,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
@@ -190,7 +191,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -218,14 +219,15 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations156To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations156To166,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             db.query(
                 """
@@ -256,7 +258,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
                 ),
             )
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -274,14 +276,15 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations156To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations156To166,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
@@ -298,7 +301,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
                 assertFalse(cursor.moveToNext())
             }
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -331,17 +334,18 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
         dbName: String,
         expectedLegacyContextId: String,
     ) {
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations156To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations156To166,
+            )
 
         val failure =
             try {
-                runCatching { room.openHelper.writableDatabase }.exceptionOrNull()
+                runCatching { helper.writableDatabase }.exceptionOrNull()
             } finally {
-                room.close()
+                helper.close()
             }
 
         assertNotNull(failure)

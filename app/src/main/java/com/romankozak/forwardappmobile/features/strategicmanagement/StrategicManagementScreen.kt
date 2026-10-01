@@ -431,7 +431,7 @@ fun StrategicManagementScreen(
         LinkedTargetsPickerDialog(
             contextOptions =
                 uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                    ProjectOption(id = it.id, name = it.name)
                 },
             attachmentOptions =
                 attachmentOptions.map {

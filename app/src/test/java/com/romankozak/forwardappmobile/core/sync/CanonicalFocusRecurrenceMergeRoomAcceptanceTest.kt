@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
 import com.romankozak.forwardappmobile.data.recurrence.toAndroidEntity
 import com.romankozak.forwardappmobile.data.recurrence.toCanonicalSeries
@@ -26,6 +27,8 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFo
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringResponsibilitySeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
+import io.mockk.coEvery
+import io.mockk.mockk
 import io.mockk.mockkClass
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -717,11 +720,30 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
                     DayTaskDao::class.java -> db.dayTaskDao()
                     DayFocusItemDao::class.java -> db.dayFocusItemDao()
                     CanonicalRecurringSeriesDao::class.java -> db.canonicalRecurringSeriesDao()
+                    ContextWorkspaceWriteThrough::class.java -> contextWorkspaceWriteThrough()
                     else -> relaxedMock(parameterType)
                 }
             }.toTypedArray()
 
         return constructor.newInstance(*arguments) as MergeLocalDataSourceImpl
+    }
+
+    private fun contextWorkspaceWriteThrough(): ContextWorkspaceWriteThrough {
+        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
+        coEvery {
+            writeThrough.mutateAndAfterWorkspaceRefresh<Any?>(
+                any(),
+                any(),
+                any(),
+            )
+        } coAnswers {
+            val mutation = secondArg<suspend () -> Any?>()
+            val afterRefresh = thirdArg<suspend (Any?) -> Unit>()
+            val result = mutation()
+            afterRefresh(result)
+            result
+        }
+        return writeThrough
     }
 
     @Suppress("UNCHECKED_CAST")

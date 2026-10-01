@@ -28,43 +28,628 @@ current code and persisted contracts to establish subsystem behavior.
 
 ### Architecture epoch and hierarchy authority checkpoint
 
-ForwardApp's implemented canonical runtime model is currently
-**Canonical V1**.
+ForwardApp's GENERAL structural hierarchy is now
+**Canonical Hierarchy V2 / P2 PRODUCTION AUTHORITY ACTIVATED / HOST VERIFIED**.
 
-For structural Workspace hierarchy, CURRENT V1 authority remains canonical
-Workspace parent/order state, including `parentWorkspaceId`.
+Production resolves `currentHierarchyPlacementAuthorityMode()` to
+`V2_AUTHORITY`. Persisted `HierarchyPlacement` is the sole GENERAL structural
+authority for occurrence identity, parentage, root/sibling order, PRIMARY/LINK
+appearance identity, structural ancestry and occurrence-sensitive mutation.
 
-Existing Workspace hierarchy move/reorder/clipboard behavior that mutates
-that state is therefore a CURRENT V1 implementation contract. It is not
-retroactively invalidated by the accepted V2 design.
+Workspace/Context/MainBeacon legacy parent/order/link state may remain as
+compatibility, presentation, migration or historical storage, but it no longer
+independently authors GENERAL topology. Production has no hierarchy dual-write,
+no V2 -> V1 structural fallback and no ongoing V1 -> V2 rematerialization.
 
-Canonical Hierarchy V2 is **IMPLEMENTED AS A DORMANT FOUNDATION / NOT CUT OVER**.
+First V2 startup establishes required canonical prerequisites, captures the
+finite pre-cutover V1 picture, deterministically materializes H1 and writes the
+local activation marker in the establishment boundary. Activation marker v2
+also proves that embedded Workspace parent/order has been neutralized in the
+same transaction. Existing marker-v1 databases upgrade that storage invariant
+without recapturing V1. Once a marker exists, later startup does not reread V1
+hierarchy authority. Supported old-backup
+legacy translation remains a finite Restore-only compatibility boundary; normal
+merge/sync/selective ingress requires coherent H1 authority.
 
-`HierarchyPlacement` persistence, validation, repository/lifecycle behavior,
-backup/restore/merge transport, Wi-Fi graph closure, tombstones, versioning and
-ACK semantics exist. They do not own production hierarchy reads or ordinary
-hierarchy mutations. Canonical V1 remains the only CURRENT runtime hierarchy
-authority until explicit H3/H4 cutovers.
-
-The project therefore has two separately tracked migration programs:
+The project still has two separately tracked migration programs:
 
 - **Epic A, Legacy -> Canonical V1: CURRENT / IN PROGRESS.** Context
   Persistence Extinction Step 12D remains unfinished and Step 12E is
   `DECIDED / NOT STARTED`.
-- **Epic B, Canonical V1 -> Canonical V2 hierarchy: IN PROGRESS.** H0, H1
-  and H2 are complete. H3.1 projection/parity is complete; H3.2 established
-  that production read authority cannot cut over independently of the
-  structural mutation authority required to keep `HierarchyPlacement` current.
-
-V2 does not bypass V1 and does not use legacy state as new authority.
-A specific V1 hierarchy authority remains CURRENT until its explicit V2
-cutover completes.
+- **Epic B, Canonical V1 -> Canonical V2 hierarchy: P2 and H5 COMPLETE / HOST
+  VERIFIED; H6 CURRENT / IN PROGRESS.** H0-H4 preparation and the coordinated
+  P2 production authority transfer are complete. H5 retired the production V1
+  runtime/composition seams. H6 has completed its initial dependency census;
+  no legacy structural table or column is yet globally removable because
+  startup, Restore, transport, bootstrap/presentation, or Epic A dependencies
+  remain.
 
 Cross-epoch rules are canonical in
 `docs/governance/PROJECT-CONSTITUTION.md`.
 
 The accepted V2 target is defined in
 `docs/architecture/orientation-workspace-refactor/HIERARCHY-PLACEMENT-CONTRACT-V2.md`.
+
+
+
+### Hierarchy V2 P2 production authority checkpoint
+
+P2 is **COMPLETE / HOST VERIFIED**.
+
+The 13-point production activation gate is closed:
+
+1. supported visible occurrences are persisted in H1;
+2. ordinary structural commands mutate V2;
+3. ContextParentLink/MainBeacon parent-link state no longer authors GENERAL topology;
+4. Workspace/Context/MainBeacon parent/order state cannot independently mutate GENERAL topology;
+5. occurrence-sensitive clipboard mutation carries exact `PlacementId`;
+6. merge/sync/selective ingress requires H1 authority for hierarchy-bearing state;
+7. supported old restore translates legacy hierarchy only at the Restore boundary;
+8. duplicate appearances and LINK-owned child subtrees are lifecycle-safe;
+9. hierarchy-screen production structure reads V2;
+10. Core Level structural nesting is V2-owned;
+11. search/ancestry/focus/breadcrumb structural reads use V2 occurrence identity;
+12. Group / `NoGroup` / `NoBeacon` remain synthetic presentation scopes;
+13. malformed/missing V2 state does not silently fall back to V1 topology.
+
+Final HOST verification is green for the full `:app:testProdDebugUnitTest`
+suite plus `:app:compileProdDebugKotlin` and `:app:compileExpDebugKotlin`.
+`git diff --check` is clean.
+
+`CURRENT_PRE_CUTOVER` remains only as an explicit compatibility/test mode for
+bounded historical fixtures and finite pre-activation behavior. It is not the
+production hierarchy authority.
+
+### Hierarchy V2 H6 dependency checkpoint
+
+H6 is **CURRENT / IN PROGRESS**. The initial storage/API census is recorded in
+`docs/architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`.
+
+The census proves zero production V1 GENERAL read/write authority, but it also
+proves active non-authority dependencies: bounded first establishment,
+Restore-only legacy translation, SnapshotBundle/full-backup/delta/merge and
+selective-import contracts, Workspace/System bootstrap and presentation use,
+Main Beacon presentation/editor state, and Epic A Context persistence.
+
+H6.E1 first-activation lineage control is **COMPLETE / HOST VERIFIED**.
+Schema 179 introduces local-only `hierarchy_establishment_origin` metadata.
+Migration 178 -> 179 classifies marker-less upgraded databases as
+`LEGACY_UPGRADE_REQUIRES_CAPTURE` and databases already carrying activation
+marker v1/v2 as `ESTABLISHED`; direct current-schema creation is explicitly
+classified `FRESH_NATIVE` by the Room creation callback. Classification never
+inspects hierarchy topology and the migration does not materialize H1.
+The current activator remains functional and transitions the origin to
+`ESTABLISHED` atomically with activation. Restore preserves this local-only
+control-plane state. H6.E5 has now removed the activator's direct
+`CanonicalV1HierarchySnapshotReader` dependency; the reader remains only behind
+the finite origin-authorized legacy-upgrade source.
+
+H6.E2 source-neutral H2 establishment input is **COMPLETE / HOST VERIFIED**.
+The single deterministic occurrence/provenance builder now consumes
+`CanonicalHierarchyEstablishmentInput` rather than a persisted-V1-shaped input
+contract. Persisted V1 Workspace/MainBeacon/link terminology is confined to
+legacy ingress adaptation in `CanonicalV1HierarchySnapshotReader` and the
+Restore-only translator. The frozen occurrence-key, PlacementId, PRIMARY/LINK,
+sibling-order, GroupScope and LinkedAppearance algorithms are unchanged and
+covered by exact parity plus a concrete PlacementId fingerprint.
+
+H6.E3 native fresh hierarchy source is **COMPLETE / HOST VERIFIED**.
+`CanonicalFreshHierarchyEstablishmentSource` now constructs the same
+source-neutral establishment evidence from exact canonical System Workspace
+prerequisites and `SystemOperationalDefinitions`. Factory parentage comes from
+definitions rather than persisted Workspace/Context/MainBeacon topology. The
+source is read-only, rejects missing/malformed System owners and any unexpected
+pre-establishment user hierarchy, and produces an H2 snapshot exactly equal to
+the historical fresh factory detour, including deterministic placement
+identity, parentage, kind, order and empty GroupScope/LinkedAppearance state.
+
+H6.E3 deliberately did **not** switch the activator by establishment origin,
+retire the V1 snapshot reader, change Restore support, or change Room
+schema/migrations. Schema remains 179.
+
+H6.E4 finite legacy establishment source is **COMPLETE / HOST VERIFIED**.
+`CanonicalLegacyHierarchyEstablishmentSource` is the explicit local
+legacy-upgrade authorization boundary. It permits persisted-V1 establishment
+evidence only when durable origin is
+`LEGACY_UPGRADE_REQUIRES_CAPTURE` and no hierarchy activation marker exists.
+`FRESH_NATIVE`, `ESTABLISHED`, missing/corrupt origin, and any existing
+activation marker fail closed before the physical V1 reader is entered.
+
+The physical `CanonicalV1HierarchySnapshotReader` now exposes its finite
+persisted-V1 acquisition as source-neutral
+`CanonicalHierarchyEstablishmentInput`; its existing snapshot API continues to
+feed the same frozen H2 builder, so occurrence identity/provenance semantics are
+unchanged. Representative Room parity covers Workspace/Beacon canonical
+parent/order, Context/MainBeacon additional-parent routes, Group membership
+provenance and operational-owner projection.
+
+H6.E5 origin-aware establishment coordinator cutover is **COMPLETE / HOST
+VERIFIED**. `CanonicalHierarchyAuthorityActivator` checks the activation marker
+before origin/source routing. Marker-less `FRESH_NATIVE` databases use
+`CanonicalFreshHierarchyEstablishmentSource`; marker-less
+`LEGACY_UPGRADE_REQUIRES_CAPTURE` databases use the finite guarded
+`CanonicalLegacyHierarchyEstablishmentSource`. Missing, corrupt or
+marker-less `ESTABLISHED` origin fails closed.
+
+Both legal routes converge through the same frozen
+`CanonicalV1HierarchySnapshotBuilder` and
+`CanonicalV1HierarchyMaterializer` inside one Room transaction, followed by
+Workspace embedded-topology neutralization and atomic marker-v2 plus
+`ESTABLISHED` persistence. Existing marker v1/v2 takes precedence and never
+enters either source. The activator has zero direct
+`CanonicalV1HierarchySnapshotReader` references. Fresh/current installation no
+longer performs the persisted-V1 establishment detour; supported legacy
+upgrades retain one finite origin-authorized capture path.
+
+Schema remains 179. Restore/raw SnapshotBundle compatibility is unchanged.
+H6.E6 post-cutover dependency census is **COMPLETE**. It proves that the local
+persisted-V1 reader remains required only for finite origin-authorized legacy
+establishment, while raw Restore evidence is a separate boundary. The exact
+supported-upgrade release window remains unresolved and blocks retirement of
+that bridge and its local parent-link tables.
+
+H6.E6a zero-production-caller API retirement is **COMPLETE / HOST VERIFIED**.
+The reader's snapshot convenience wrappers and builder dependency, the unused
+`ContextParentLinkDao` DI provider, and declaration-only MainBeacon parent/order
+mutators are removed. Tests now compose reader evidence with the shared H2
+builder explicitly. The reader, its source-neutral evidence API, the guarded
+legacy source, Restore, schema 179 and physical legacy storage remain intact.
+
+H6.E6b fresh-native exact-System embedded-topology write retirement is
+**COMPLETE / HOST VERIFIED**. Marker-less `FRESH_NATIVE` System ownership
+materialization now persists canonical identity/metadata only, with
+`parentWorkspaceId = null` and `workspaceOrder = 0`. Factory topology remains
+in `SystemOperationalDefinitions` and feeds the native fresh establishment
+source directly. Marker-less `LEGACY_UPGRADE_REQUIRES_CAPTURE` retains the
+bounded historical embedded topology required by the finite reader; marker
+presence takes precedence and cannot resurrect it. Restore, schema 179 and the
+frozen H2 builder/materializer are unchanged.
+
+H6.E6c CURRENT_PRE_CUTOVER compatibility/runtime-selector retirement is
+**COMPLETE / HOST VERIFIED**. Production runtime hierarchy behavior is
+unconditionally canonical H1/V2. Explicit historical Restore compatibility
+remains a finite ingress boundary, not a runtime authority selector.
+
+H6.E6d Workspace embedded-topology runtime retirement is
+**COMPLETE / HOST VERIFIED**. Current production Workspace hierarchy behavior
+is fully decoupled from `Workspace.parentWorkspaceId/workspaceOrder`.
+Canonical creation persists neutral Workspace topology, ordinary bootstrap and
+current V2 validation do not consume it, normal merge strips it, and
+post-activation System materialization exits before legacy evidence reads.
+Remaining physical-field reads are bounded to finite origin-authorized legacy
+establishment and raw pre-V2 Restore evidence. Schema remains 179 and migration
+178 -> 179 is unchanged.
+
+H6.E6e historical Workspace transport DTO decoupling is
+**COMPLETE / HOST VERIFIED**. `SnapshotBundle.workspaces` now uses the dedicated
+`WorkspaceSnapshot` wire contract rather than Room `WorkspaceEntity`.
+`parentWorkspaceId` and `workspaceOrder` remain serialized only as historical
+compatibility fields so raw pre-V2 Restore can reconstruct exact H1. Current
+full backup, canonical sync, Wi-Fi delta, selective import and merge emit or
+persist topology-neutral Workspace rows (`null` / `0`). Historical JSON that
+predates Workspace provenance remains readable and is normalized to
+`CONTEXT_BACKED` at the transport boundary. The finite local legacy Room
+establishment reader remains unchanged. Schema stays 179 and migration
+178 -> 179 is unchanged.
+
+H6.E6f historical Workspace Restore compatibility census is
+**COMPLETE / NO SAFE RETIREMENT**. The only production component that assigns
+structural meaning to raw `WorkspaceSnapshot.parentWorkspaceId` and
+`workspaceOrder` is the Restore-only `LegacyHierarchyRestoreTranslator`.
+Pre-H1 Workspace-era payloads need both fields to reconstruct parentage and
+deterministic sibling order through the shared H2 builder. A complete canonical
+H1 triplet is authoritative and bypasses this reconstruction; pre-v177 H1
+without linked-appearance provenance may consult the raw fields only to recover
+that provenance after exact structural parity. Normal merge, sync, Wi-Fi,
+selective import and Desktop/shared code do not use these fields as hierarchy.
+
+The supported old-backup window is shape-based rather than version-bounded:
+`backupSchemaVersion` and `snapshotVersion` are not used to select a minimum
+hierarchy epoch, and SnapshotBundle V2 spans pre-H1 and H1 payloads. Raw
+Workspace topology therefore remains a deliberate Restore-only compatibility
+contract until an explicit backup-support cutoff or replacement generation
+contract is accepted. No production, test or schema code changed in E6f.
+
+H6.E6g historical backup support and malformed-topology contract is
+**COMPLETE / HOST VERIFIED**. Restore support remains explicitly shape-based;
+no numeric `backupSchemaVersion` / `SnapshotBundle.version` cutoff is invented.
+The currently accepted hierarchy generations are:
+
+- pre-H1 legacy structural input, reconstructed through the frozen H2 builder;
+- native H1 without linked-appearance provenance, where legacy evidence may be
+  consulted only for exact structural parity and sparse provenance recovery;
+- complete H1 + GroupScope + LinkedAppearance, which is authoritative and does
+  not permit legacy Workspace topology to reinterpret it;
+- Desktop import remains a separate Context-shaped compatibility contract and
+  is not an owner of `WorkspaceSnapshot.parentWorkspaceId/workspaceOrder`.
+
+Malformed historical Restore behavior is now explicit rather than described as
+uniformly fail-closed. Duplicate source identities, ambiguous PRIMARY evidence,
+invalid canonical H1 and pre-v177 native-vs-legacy divergence are
+`MUST_REJECT`. Missing/deleted historical canonical parents are
+`MAY_PROMOTE_TO_ROOT`; duplicate/sparse/negative legacy order is
+`MAY_NORMALIZE` through deterministic sorting and dense sibling order; self or
+unresolvable additional legacy routes are `MAY_DROP_LEGACY_EVIDENCE`.
+Characterization additionally freezes the current rootless-cycle behavior:
+closed Workspace parent cycles do not invent PRIMARY authority.
+
+Focused `LegacyHierarchyRestoreTranslatorTest` verification is HOST green after
+three new historical characterization cases: missing-parent root projection,
+closed-cycle non-authority, and deterministic order densification. Production
+Kotlin and unit-test compilation also passed on that HOST run. Schema remains
+179 and no E6g production semantic change was introduced.
+
+H6.E6h MainBeacon historical structural compatibility census is
+**COMPLETE / HOST VERIFIED**.
+`MainBeacon.parentBeaconId` has no current GENERAL-hierarchy authority: its
+semantic consumers are the finite origin-authorized local establishment reader
+and raw historical Restore. Normal V2 creation requires it to be null; current
+merge, backup, delta and selective-import paths neutralize it. Metadata update
+only preserves the stored value as a compatibility guard. Conversely,
+`beacon_order` remains current local flat-list/create ordering and is not
+eligible for hierarchy-driven physical removal. `MainBeaconGroup.order` and
+`MainBeaconGroupMember.member_order` remain Group presentation/membership
+semantics, not GENERAL hierarchy.
+
+The local `main_beacon_parent_links` table has one production reader, the
+finite legacy establishment source through `CanonicalV1HierarchySnapshotReader`,
+and no production writer. Raw `MainBeaconParentLinkSnapshot` remains a separate
+Restore-only compatibility member. Generic entity/snapshot conversion for that
+link is removed so the two lifetimes are no longer coupled by a current
+transport mapper. At the E6h checkpoint successful activation could leave
+historical embedded Beacon parents and local parent-link rows physically
+present; marker precedence prevented rereading them. That finding defined the
+subsequent E6i neutralization slice. Schema remained 179.
+
+H6.E6i MainBeacon post-establishment topology neutralization is
+**COMPLETE / HOST VERIFIED**. Activation marker v3 is the durable local proof
+that H1 is established, Workspace embedded topology is neutral, every persisted
+`MainBeacon.parentBeaconId` is null, and local `main_beacon_parent_links` is
+empty. Marker v1/v2 databases converge to v3 in one transaction without source
+reads or H1 rematerialization. First legacy establishment captures Beacon
+parent/order/link evidence before the same transaction neutralizes it and
+commits marker v3 plus `ESTABLISHED`. `beacon_order`, Group membership,
+operational-owner refs and H1 are preserved exactly. Raw historical Restore and
+unestablished finite legacy capture remain supported; schema stays 179.
+
+H6.E6j established-runtime MainBeacon raw-parent seam retirement is
+**COMPLETE / HOST VERIFIED**. Core Level card/editor parent identity now comes
+only from the exact H1 occurrence. Metadata save always persists
+`parentBeaconId = null`, and repository update rejects stale persisted or
+incoming embedded parent topology instead of preserving it. The nested-create
+`parentBeaconId + parentPlacementId` pair remains only exact occurrence/target
+validation and never persists structural parentage.
+
+Focused MainBeacon Room/editor tests are HOST green, including stale-parent
+contamination rollback coverage, and `:app:compileExpLocalKotlin` is HOST green.
+Schema remains 179.
+
+H6.E6k-B1 explicit hierarchy backup generation marker is
+**COMPLETE / HOST VERIFIED**. `SnapshotBundle.hierarchyFormatVersion` is a
+hierarchy-specific nullable wire marker independent of SnapshotBundle version,
+full-backup schema version, Room schema and local activation-marker version.
+`CURRENT_HIERARCHY_FORMAT_VERSION = 1` requires all three canonical hierarchy
+streams to be present: H1, GroupScope and LinkedAppearance.
+
+Marker absence deliberately preserves existing historical shape-based Restore
+behavior. Explicit current payloads with any missing hierarchy stream fail
+closed, as do unknown explicit future versions, before compatibility
+reconstruction or normal merge interpretation. Current full backup emits marker
+1. Hierarchy-bearing canonical Wi-Fi deltas emit marker 1 with the complete
+triplet; unrelated partial deltas remain marker-less. Selective import validates
+the source marker, clears it while closure is rebuilt, and preserves it only
+when the resulting triplet remains complete.
+
+Focused ingress/full-backup/Wi-Fi tests are HOST green.
+`:app:compileExpLocalKotlin` and `:sync:compileDebugKotlin` are HOST green.
+Schema remains 179 and B1 does not change migration 178 -> 179, activation
+marker v3 or finite legacy establishment.
+
+H6.E6k-B2 staged historical backup retirement policy and B2a code contract are
+**DECIDED / IMPLEMENTED / HOST VERIFIED**.
+
+Hierarchy backup generations are now classified centrally:
+
+- `CURRENT_CANONICAL`: explicit `hierarchyFormatVersion = 1` plus complete
+  H1 + GroupScope + LinkedAppearance;
+- `HISTORICAL_CANONICAL`: marker-less complete canonical triplet, retained as
+  a long-term supported historical format;
+- `LEGACY_PRE_H1`, `LEGACY_EARLY_H1`, and `LEGACY_PRE_V177`: supported legacy
+  compatibility inputs during an explicit transition window, but deprecated;
+- malformed explicit current and unknown explicit future generations remain
+  fail-closed.
+
+A/B/C Restore behavior is unchanged. The finite translator still owns their
+historical reconstruction/parity semantics. D bypasses legacy reconstruction
+and remains supported despite lacking the B1 marker.
+
+A real Room bridge characterization proves:
+legacy supported Restore -> canonical current DB -> next full backup ->
+`hierarchyFormatVersion = 1` with the complete canonical triplet.
+
+There is no new user-facing warning framework in B2a. The machine-readable
+deprecation tier exists in the generation classifier; the current import
+surface has no structured non-fatal compatibility-warning channel.
+
+A/B/C may be retired only by a separate explicit compatibility-window closure
+decision. No cutoff is inferred from `SnapshotBundle.version`,
+`backupSchemaVersion`, or Room schema version.
+
+**NEXT H6 frontier:** H6.E6k-L owns the finite local direct-upgrade /
+`LEGACY_UPGRADE_REQUIRES_CAPTURE` support-window decision. Physical
+legacy hierarchy storage remains blocked by that local-upgrade boundary and
+the remaining schema/cross-client/Epic A dependencies.
+
+H6.E6k-L3a migration-time establishment feasibility is **COMPLETE** as a
+design/proof checkpoint; no production migration has been registered. The
+current registered chain remains continuous from schema 100 through schema
+179, and H6 physical cleanup must not silently narrow that proven technical
+path. A future destructive hierarchy-storage migration can preserve it by
+running after the database has converged to the schema-179 compatibility
+shape, adapting historical SQL evidence into
+`CanonicalHierarchyEstablishmentInput`, and invoking the existing pure
+`CanonicalV1HierarchySnapshotBuilder`. No second occurrence, PRIMARY/LINK,
+GroupScope, LinkedAppearance, occurrence-key, or PlacementId algorithm is
+needed.
+
+The proof also identifies the required implementation boundary. A skipped
+release reaches schema 179 before `Application.onCreate()`, so migration-time
+establishment must provide migration-safe prerequisite convergence for exact
+System Workspace ownership and MainBeacon/MainBeaconGroup canonical
+ManagedSubject/CUT_OVER mappings before capture. Marker v1/v2 databases need
+only invariant convergence; marker v3 databases need no recapture; marker-less
+`LEGACY_UPGRADE_REQUIRES_CAPTURE` databases use migration legacy evidence; and
+marker-less `FRESH_NATIVE` databases require a distinct migration-native fresh
+branch. The future persistence adapter must write the exact H1 triplet,
+neutralize Workspace/MainBeacon legacy topology, and commit marker v3 plus
+`ESTABLISHED` in the same migration transaction. Schema remains 179.
+
+H6.E6k-L3b is **PROTOTYPE COMPLETE / HOST VERIFIED**. Its feasibility
+evidence has now been promoted into H6.E6k-L3c.
+
+H6.E6k-L3c is **COMPLETE / HOST VERIFIED**. One dormant production
+migration-time establishment kernel now exists in `src/main`:
+
+`CanonicalHierarchyMigrationEstablisher`
+-> `CanonicalHierarchyMigrationPrerequisiteAdapter`
+-> `CanonicalHierarchyMigrationEvidenceReader`
+-> shared `CanonicalV1HierarchySnapshotBuilder`
+-> `CanonicalHierarchyMigrationPersistenceAdapter`.
+
+The former test-only implementation is removed. Fixture construction and state
+comparison remain test-only. The production kernel has zero runtime callers and
+zero registered-migration callers.
+
+Exact HOST parity covers:
+
+- exported schema-150 skipped-release convergence;
+- rich schema-178 hierarchy/provenance convergence;
+- migration-reader input equality with the runtime legacy source;
+- marker-less `FRESH_NATIVE`;
+- marker v1 -> v3 invariant convergence without recapture;
+- marker v2 -> v3 invariant convergence without recapture;
+- marker v3 inert rerun;
+- exact rerun acceptance and divergent-H1 rejection;
+- rollback after canonical writes and after topology neutralization.
+
+The shared H2 builder remains the only occurrence/PlacementId/PRIMARY-LINK/
+ordering/GroupScope/LinkedAppearance semantic engine. Shared materialization
+validation remains reused rather than duplicated.
+
+No Room migration is registered. Schema remains 179. `MIGRATION_179_180` is
+absent and migration 178 -> 179 remains the establishment-origin bridge.
+
+After a future successful migration-kernel execution, the local Room surfaces
+eligible for physical retirement are Workspace embedded parent/order,
+`context_parent_links`, `MainBeacon.parent_beacon_id`, and
+`main_beacon_parent_links`. `Context.parentId/goal_order` remains blocked by
+Epic A, while `MainBeacon.beacon_order` remains current semantic state and must
+be retained. Historical backup DTO fields remain a separate B2 wire contract.
+
+**NEXT H6 frontier: H6.E6k-L3d.** Implement and verify the real future Room
+migration that executes the production kernel before physical cleanup, using
+the L3c acceptance matrix and without silently reducing the proven continuous
+direct-upgrade path.
+
+Consequently no legacy hierarchy table or column has been deleted. The first
+bounded H6 implementation slice removed only zero-production-caller
+DAO/repository methods, V1 Workspace topology APIs, and the unused
+`CanonicalV1HierarchyMigration` wrapper. Startup activation, Restore,
+transport, merge, selective import, schema and current V2 occurrence behavior
+were left intact.
+
+The exact-System/first-activation embedded-Workspace slice is **COMPLETE / HOST
+VERIFIED**. Fresh-native exact-System owner materialization is topology-neutral;
+only the explicitly classified finite legacy-upgrade path may supply factory
+topology for historical H1 capture. The activation transaction then
+neutralizes all Workspace
+`parentWorkspaceId/workspaceOrder` and writes marker v2. Marker-v1 databases
+neutralize and upgrade without V1 recapture; after any marker exists, missing
+or promotable exact-System owners fail closed rather than rebuilding topology.
+
+The following bounded Restore cleanup is **HOST VERIFIED**:
+legacy Context/MainBeacon parent links may still be consumed by the
+Restore-only translator to derive canonical H1, but production V2
+canonicalization clears them before the atomic canonical writer runs. Restore
+therefore no longer repopulates those legacy link tables.
+
+The matching Restore topology-isolation slice is also **COMPLETE / HOST
+VERIFIED**. Pre-V2 Workspace/Context parent and order are read only from the
+raw Restore source and passed as explicit transient evidence to the H1
+translator and frozen structural-BACKLOG accounting. Synthesized canonical
+Workspaces are topology-neutral from creation (`parentWorkspaceId = null`,
+`workspaceOrder = 0`); canonical Workspace state is no longer used as a
+temporary carrier for old hierarchy evidence.
+
+A consumer-first normal-merge follow-up is **COMPLETE / HOST VERIFIED**:
+normal and selective merge never persist incoming `ContextParentLink` or
+`MainBeaconParentLink` rows, including explicit `CURRENT_PRE_CUTOVER` test
+fixtures. That mode remains only for separately classified bootstrap and exact
+System compatibility coverage; Restore is the sole supported legacy hierarchy
+translation boundary.
+
+The subsequent legacy-link writer API retirement is **COMPLETE / HOST
+VERIFIED**. `ContextParentLinkDao.insertAll` and
+`MainBeaconDao.insertParentLinks` had no production callers and are removed.
+Marker-gated activation and historical-reader tests seed the physical V1 rows
+through a test-source-only SQL fixture; production retains readers, tables and
+Restore input but exposes no legacy parent-link writer API.
+
+The matching raw-inspection API retirement is **COMPLETE / HOST VERIFIED**:
+`ContextParentLinkDao.getAllRaw` had test assertions only and is removed; those
+assertions use the same test-source physical-storage fixture. The bounded
+`getActiveLinksOrdered` reader remains required by first establishment.
+
+That activation reader is **BLOCKED, not dead**. Migration 174 -> 175 creates
+empty H1 tables without materialization, and 177 -> 178 creates an empty marker
+table by design. Therefore a supported marker-less database still requires the
+one-shot transactional V1 capture before marker v2 can be written.
+
+The matching producer follow-up is **COMPLETE / HOST VERIFIED**.
+Current Android full backup and delta producers emit coherent canonical H1 and
+leave `contextParentLinks` / `mainBeaconParentLinks` empty. H1 triplet presence
+is the hierarchy transport-generation marker inside SnapshotBundle V2, so no
+format-number bump is required for this bounded omission. The fields remain in
+the model as Restore-only historical input; no payload member or Room structure
+is removed. Context-based Desktop compatibility remains outside the supported
+modern hierarchy peer boundary under the accepted Context Big Cut.
+
+The first embedded-field audit slice is **COMPLETE / HOST VERIFIED** for its
+bounded dead-API result. `CanonicalWorkspaceRepository` no longer exposes the
+zero-production-caller target-id ancestry projection or V1
+`tombstoneSubtree` mutation. Current deletion remains single-target and H1
+lifecycle-coordinated. The underlying Workspace/MainBeacon parent/order fields
+remain blocked by startup capture, old Restore, presentation/bootstrap and
+Main Beacon editor compatibility; no column or schema change was made.
+
+The following Workspace-presentation decoupling slice is **COMPLETE / HOST
+VERIFIED**. Production V2 hierarchy admission, target resolution, screen
+metadata and occurrence-native chooser projection now consume the topology-free
+`CanonicalV2WorkspacePresentation`. It cannot carry `parentId` or `order`;
+H1 remains the only GENERAL topology input. This slice removes no Workspace
+column or transport field.
+
+The Main Beacon editor/presentation decoupling slice is also **COMPLETE / HOST
+VERIFIED**. Core Level cards and editor sessions now carry exact H1
+`placementId`, `parentPlacementId`, and parent Beacon presentation identity.
+Existing V2 metadata saves validate that occurrence evidence and cannot infer
+or mutate GENERAL topology from `MainBeacon.parentBeaconId` or `beacon_order`.
+Duplicate same-target appearances require an exact occurrence and otherwise
+fail closed. The embedded fields remain frozen compatibility evidence for
+startup/Restore/transport and have not been removed.
+
+The modern Main Beacon transport/persistence neutralization slice is
+**COMPLETE / HOST VERIFIED**. Android full backup, local/Wi-Fi delta and
+selective-import output retain Beacon identity and semantic metadata but emit
+`parentBeaconId = null` / `order = 0`; production V2 merge applies the same
+projection before Room persistence. Restore may still consume raw embedded
+Beacon topology to derive H1, but its canonical output is neutral. Marker-gated
+first activation and the physical fields remain separate H6 blockers.
+
+A following non-hierarchy Workspace read-DTO slice is **COMPLETE / HOST
+VERIFIED**. Internal `CanonicalWorkspacePresentation`, used for canonical owner
+admission/details/deletion reads, no longer contains `parentWorkspaceId` or
+`workspaceOrder`; its two production consumers never read those fields. This
+does not change the broader `ContextPresentation` picker/screen contract or any
+persisted Workspace field.
+
+The Context Screen linked-target picker decoupling is **COMPLETE / HOST
+VERIFIED**. Context Screen, Connections, Key Problems and Goal Settings now
+pass flat Workspace target metadata; `LinkedTargetsPickerDialog` derives every
+visual parent/child occurrence from the existing canonical V2 chooser source.
+The removed `subprojectChildren` flow no longer groups canonical targets by
+`ContextPresentation.parentId`.
+
+The target-level Context Detail cleanup is **COMPLETE / HOST VERIFIED**.
+`ContextLinkProjectReadModel` no longer carries parent/order, and the owner
+screen no longer hides backlog links by comparing a linked target's
+presentation parent with the current target. Context Detail therefore owns no
+GENERAL structural ancestry. Explicit `originContextId` navigation remains
+navigation history, not hierarchy parentage.
+
+The Android Workspace Explorer/shared-adapter census is **COMPLETE / HOST
+VERIFIED**. Repository-wide reference evidence found no production
+route, composable, DI binding, or other caller for
+`SharedWorkspaceExplorerViewModel`; `AndroidWorkspaceRepositoryAdapter` was
+reachable only from that orphan ViewModel and its dedicated tests. Those
+Android-only dead surfaces have been removed. The cross-platform
+`SharedContextSummary.parentId`, snapshot importer, file-based Desktop
+repository, and Desktop sync payload mapping remain intact as separately
+classified shared/Desktop compatibility and transport contracts; they are not
+Android runtime hierarchy authority.
+
+The shared `ProjectOption` picker DTO cleanup is **COMPLETE / HOST VERIFIED**.
+`parentId` had multiple producers but zero production
+readers; linked-target/project picker topology already comes exclusively from
+canonical V2 chooser occurrences. The field and its Workspace presentation
+copy sites are removed. The zero-caller production `ParentIdRules` V1
+display-parent helper is removed with it. Selective-import `Context.parentId`
+remains a separate active historical-input contract.
+
+The production `ContextPresentation` topology-neutralization slice is
+**COMPLETE / HOST VERIFIED**. `SystemWorkspacePresentationContextProjector`
+no longer copies Workspace or Context parent/order into runtime presentations,
+and Search obtains ancestry only from its selected canonical H1 occurrence.
+The nullable `parentId` and numeric `order` members remain temporarily as
+historical DTO/test-fixture shape, but production projection always emits
+`null` / `0`; they are not hierarchy authority. Persisted Workspace fields
+remain blocked by startup/bootstrap, Restore, transport and Epic A.
+
+The V2 Restore Workspace-topology output cleanup is **COMPLETE / HOST
+VERIFIED**. `LegacyHierarchyRestoreTranslator` still accepts embedded
+Workspace parent/order as finite old-backup input and consumes it while
+building or parity-checking canonical H1. After that translation boundary,
+production `V2_AUTHORITY` Restore emits Workspace rows with
+`parentWorkspaceId = null` and `workspaceOrder = 0`; the atomic canonical
+writer therefore does not repersist redundant Workspace topology. Explicit
+`CURRENT_PRE_CUTOVER` compatibility mode remains unchanged. Restore input,
+startup/bootstrap, transport and Epic A still block physical field removal.
+
+The ordinary Workspace bootstrap structural decoupling is **COMPLETE / HOST
+VERIFIED**. Under production `V2_AUTHORITY`,
+`CanonicalWorkspaceBootstrapper` no longer constructs or merges a
+Context-derived Workspace metadata/topology projection. Ordinary Context rows
+cannot create, tombstone, reparent, reorder or otherwise rewrite Workspaces;
+existing Workspace and H1 state remain unchanged. The bootstrapper itself
+remains current for canonical capability/bootstrap-state work, and the legacy
+projection algorithm remains compiled only for explicit
+`CURRENT_PRE_CUTOVER` compatibility tests. Exact-System materialization and
+marker-gated first activation remain separate H6 consumers.
+
+`WorkspaceDao.observeAll()` is now deterministic by stable Workspace id and no
+longer orders the bulk identity stream by legacy parent/order. Its active
+consumers use invalidation, lookup or their own canonical presentation order;
+the physical parent/order indexes remain schema pending explicit retirement.
+
+Modern Android Workspace transport projection is **COMPLETE / HOST VERIFIED**
+for embedded topology omission. Full backup and Wi-Fi canonical delta preserve
+Workspace identity, metadata and freshness but emit
+`parentWorkspaceId = null` / `workspaceOrder = 0`; coherent H1 remains the sole
+GENERAL structural payload. Historical non-neutral fields remain accepted only
+as bounded Restore/compatibility input.
+
+Canonical H1 selective import now uses the same topology-free Workspace
+transport projection and is **COMPLETE / HOST VERIFIED**. Its dependency
+closures retain and validate only exact Workspace owner/target IDs; they do not
+walk embedded Workspace parents. Emitted Workspace dependencies always carry
+`parentWorkspaceId = null` / `workspaceOrder = 0`, and exact selected H1
+occurrences remain the sole GENERAL topology. BACKLOG capability/reference
+validation likewise uses exact Workspace identity rather than V1 parentage.
+
+Production V2 merge Workspace persistence is also **COMPLETE / HOST VERIFIED**
+for embedded topology retirement. A coherent-H1 payload may still contain old
+non-neutral Workspace fields for wire compatibility, but the merge boundary
+normalizes accepted Workspace winners to `parentWorkspaceId = null` and
+`workspaceOrder = 0` before shared canonical validation/persistence. Explicit
+`CURRENT_PRE_CUTOVER` compatibility behavior is unchanged.
+
+Canonical Orientation reference validation is now explicitly epoch-aware and
+**COMPLETE / HOST VERIFIED** for current V2 ingress. Production V2 validates
+Workspace identity and canonical reference endpoints without treating embedded
+Workspace parentage as GENERAL topology. Explicit `CURRENT_PRE_CUTOVER`
+compatibility still validates the historical single-parent Workspace graph.
+Shared/Desktop validation and Restore-only historical evidence remain separate
+contracts.
 
 
 ### Hierarchy V2 H0 completion checkpoint
@@ -80,10 +665,11 @@ Canonical V1 structural authorities include Workspace parent/order,
 
 Canonical Beacon Group membership remains semantic `PART_OF`. Beacon
 operational-owner references remain an independent operational association.
-`OrientationHierarchyBuilder` is a `TRANSITIONAL_PROJECTION` of those inputs,
-not future hierarchy authority.
+Historically, `OrientationHierarchyBuilder` was the CURRENT
+`TRANSITIONAL_PROJECTION` of those inputs. H5.1 removed it from production;
+a test-only copy remains solely for pre-cutover/H2 characterization.
 
-H2 will use a deterministic read-only `CanonicalV1HierarchySnapshot` of visible
+H2 uses a deterministic read-only `CanonicalV1HierarchySnapshot` of visible
 appearance occurrences, then materialize `HierarchyPlacement` from that
 snapshot rather than translating old persistence rows one-to-one.
 
@@ -349,10 +935,11 @@ are deleted and does not mirror V1 structural topology.
 Focused ingress/translator tests, translated-H1 Room restore, existing H1
 merge/store regressions, and `:app:compileProdDebugKotlin` are HOST green.
 
-Canonical V1 remains sole CURRENT runtime hierarchy read/write authority.
-P2 remains separately gated and **NOT STARTED**. The next hierarchy unit is
-**H4.0d production V2 reader-adapter / consumer-migration readiness**, still
-with zero authority transfer.
+At the H4.0c checkpoint, Canonical V1 still remained the sole CURRENT
+runtime hierarchy read/write authority and P2 had not started. The next unit at
+that historical checkpoint was H4.0d reader/consumer readiness. This paragraph
+is provenance only; the current P2 checkpoint above supersedes its authority
+status.
 
 
 ### Hierarchy V2 H4.0d reader / consumer readiness checkpoint
@@ -385,7 +972,9 @@ caller; no writer redirect, dual-read, V1 -> V2 runtime rematerialization,
 V2 -> V1 fallback or P2 activation exists.
 
 Focused H4.0d plus H3.1 presentation/parity tests and
-`:app:compileProdDebugKotlin` are HOST green. P2 remains **NOT STARTED**.
+`:app:compileProdDebugKotlin` were HOST green. At that historical checkpoint P2
+had **NOT STARTED**; current production status is recorded in the P2 checkpoint
+above.
 
 H4.0e is **COMPLETE / HOST VERIFIED** as the final pre-P2
 authority-readiness closure, with zero production authority transfer. The
@@ -465,14 +1054,56 @@ service/writer have no external production callers; no V2 reader/writer
 activation, V1 writer redirect, dual-write, runtime V1 -> V2 rematerialization,
 V2 -> V1 structural fallback, or authority switch was introduced.
 
-The smallest remaining authority-bearing unit is still the **combined P2
-production hierarchy authority activation**: wire exact occurrence execution,
-close remaining target-only structural interaction boundaries, switch all
-GENERAL readers/writers and normal ingress coherently, and re-run the 13-point
-activation gate.
+### Hierarchy V2 final pre-activation recheck - 2026-09-24
 
-**NEXT: P2 combined production hierarchy authority activation.**
-P2 remains **NOT STARTED**.
+Status: **COMPLETE / HOST VERIFIED / P2 READY / NOT STARTED**.
+
+The final narrow production recheck found no unresolved semantic blocker to the
+coordinated P2 authority switch. Production still resolves to
+`CURRENT_PRE_CUTOVER`; Canonical V1 therefore remains the CURRENT GENERAL
+hierarchy authority until the explicit P2 switch.
+
+The former Group-ordering blocker is closed. Under future V2 authority,
+`MainBeaconGroup.order` is synthetic presentation metadata only. Reordering
+Groups may change synthetic Group-scope presentation order, but must not mutate
+H1 parentage/order, GroupScope provenance, canonical `PART_OF`, Beacon
+membership/parentage, parent links, or target identity. V2 Group reorder
+validates the complete active canonical Group sibling set and fails closed for
+empty, partial, duplicate, unknown, or inconsistent Group identity sets.
+Legacy Beacon structural reorder remains unavailable under V2 authority.
+
+The production V2 read contract now explicitly permits synthetic Group
+presentation order to differ from persisted H1 structural root order while
+preserving the exact persisted occurrence membership. Structural
+`childrenOf()`, ancestry, occurrence paths and sibling/root ordering continue
+to come only from H1.
+
+The future V2 startup establishment boundary is already wired fail-closed.
+Before UI/sync startup is released it establishes required canonical System
+Workspace, Orientation and Workspace prerequisites, then performs the finite
+CURRENT V1 -> H1 materialization and writes the local durable
+`hierarchy_authority_activation_state` marker in the same Room transaction.
+Once that marker exists, later startup returns before reading CURRENT V1, so
+post-cutover V1 drift cannot rematerialize or repair H1. Restore replacement
+preserves the local activation marker; the marker is not sync/backup topology
+authority.
+
+The 13-point P2 production gate has been rechecked against current production
+reader, writer, clipboard, lifecycle, ingress, restore, synthetic-scope and
+anti-fallback seams. All thirteen items have an explicit activation-ready path
+and no remaining semantic/product blocker. Authority-bearing items are
+deliberately inactive while production remains `CURRENT_PRE_CUTOVER`; this
+checkpoint does not claim that the P2 cutover has occurred.
+
+HOST verification after the final Group-order/read regression repair is green
+for the focused hierarchy/Group suite, production and experimental Kotlin
+compile, and the full `:app:testProdDebugUnitTest` gate. `git diff --check` is
+clean.
+
+At the final pre-activation checkpoint, the smallest remaining
+authority-bearing unit was the combined P2 production hierarchy authority
+activation. That unit has since completed and is HOST verified; the current
+authority state is recorded at the top of this document.
 
 
 ### Non-system Context retirement
@@ -614,9 +1245,10 @@ System capability ownership is now split deliberately:
 - Context session/input-panel overrides and `CapabilityGate` are implemented to
   prevent contradictory legacy flags from resurrecting disabled, archived,
   deleted, or malformed canonical System Inbox/Direction state;
-- host-verified PATCH 2 routes `AndroidWorkspaceRepositoryAdapter` System
-  reads and writes through that same canonical boundary and builds shared
-  summaries from the post-persistence canonical winner;
+- historical host-verified PATCH 2 routed the now-retired
+  `AndroidWorkspaceRepositoryAdapter` System reads and writes through that
+  canonical boundary; H6 later removed the orphan adapter after proving it had
+  no production caller;
 - lifecycle/configuration routing ignores `CONTEXT_BACKED` System Workspaces
   and acts only on live same-id `CANONICAL_ONLY` System Workspaces.
 
@@ -1044,8 +1676,12 @@ proven Context-backed Workspace, maps supported typed external targets, and
 fails closed on unresolved or unsupported legacy states.
 
 Stage 4 froze migration semantics in the shared `BacklogMigrationPlanner`.
-`BacklogMigrationDryRunAdapter` snapshots the relevant Room evidence without
-mutation and requires complete item/order/source accounting. Owner lifecycle,
+Historically, `BacklogMigrationDryRunAdapter` snapshotted the relevant Room
+evidence without mutation and required complete item/order/source accounting.
+After the old FullBackup apply path was retired, H6 proved that adapter and all
+of its types had zero production callers and removed it. Current Restore uses
+the shared planner directly, while schema 161 -> 162 retains the frozen
+migration contract. Owner lifecycle,
 target lifecycle, deterministic capability identity, destination contamination,
 identity collisions, malformed projections, unsupported targets, orphan legacy
 order evidence, and invalid lifecycle/version state are all accounted for
@@ -1109,7 +1745,8 @@ that treated a placement id as an Attachment id and deleted legacy
 Verification is green for the shared migration planner, schema
 159 -> 160 -> 161 historical checkpoints, the schema 161 -> 162 atomic
 cutover acceptance tests, `CanonicalBacklogRepositoryRoomTest`,
-`BacklogCanonicalTargetResolverTest`, `BacklogMigrationDryRunAdapterRoomTest`,
+`BacklogCanonicalTargetResolverTest`, historical dry-run coverage now owned by
+the shared planner and Restore canonicalizer tests,
 `CanonicalBacklogCompatibilityReaderRoomTest`,
 `BacklogPlacementCommandsTest`, `BacklogItemActionsTest`,
 `SearchRepositoryTest`, `:shared-core-domain:jsNodeTest`,
@@ -2589,9 +3226,9 @@ compatibility shell as write authority:
 - `createContextWithId()` rejects exact reserved ids;
 - sync selection, SnapshotBundle delta export and ACK exclude exact reserved
   Context rows, so ACK cannot rewrite or resurrect a shell;
-- Context Settings and `AndroidWorkspaceRepositoryAdapter` resolve shell-free
-  `ContextPresentation` and can read/update supported System state without a
-  Context entity;
+- Context Settings resolves shell-free `ContextPresentation` and can
+  read/update supported System state without a Context entity; the former
+  Android shared adapter was later removed as an orphan in H6;
 - System Settings/shared writes no longer persist `context_structures` merely
   as a promoted-System compatibility authority;
 - legacy-only Context status/default-view/scoring/Project Management semantics
@@ -2894,6 +3531,27 @@ shell-free tag routing, and OrientationHierarchyBuilder Beacon admission.
 
 After this verified slice, four external production `createContextWithId()`
 callers remained, plus the internal preset-driven `SUBCONTEXT` helper.
+
+
+### H5.1 dead CURRENT runtime hierarchy composition retirement
+
+H5.1 is **COMPLETE / HOST VERIFIED**.
+
+- production hierarchy screen reads directly from the Canonical V2 read stack;
+- production references to `HierarchyReadAuthorityRouter` are zero;
+- production references to `OrientationHierarchyBuilder` are zero;
+- the old CURRENT screen composition from Workspace parent/order,
+  `ContextParentLink`, Main Beacon parent/order and `MainBeaconParentLink` is
+  no longer a production path;
+- `OrientationHierarchyBuilder` survives only in `app/src/test` as historical
+  characterization for H2/V2 parity;
+- H2 startup establishment and Restore-only legacy translation remain intact;
+- targeted H5.1 hierarchy tests, `:app:compileProdDebugKotlin`, and the full
+  `:app:testProdDebugUnitTest` suite are HOST green.
+
+H5 remains **IN PROGRESS**. H5.1 does not authorize H6 persistence/schema
+retirement or Epic A Context-persistence cleanup.
+
 
 ### Step 12D hierarchy standalone creation and canonical role/preset initialization
 

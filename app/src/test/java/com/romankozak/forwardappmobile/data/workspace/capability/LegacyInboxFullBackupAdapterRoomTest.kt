@@ -39,7 +39,7 @@ class LegacyInboxFullBackupAdapterRoomTest {
                 listOf(
                     WorkspaceEntity(
                         id = "owner", nameOverride = "Canonical owner", descriptionOverride = null,
-                        parentWorkspaceId = null, roleCode = null, workspaceOrder = 0L,
+roleCode = null,
                         createdAt = 1L, updatedAt = 2L, syncedAt = null, isDeleted = false,
                         version = 3L, provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
                         sourceContextId = null,
@@ -85,7 +85,7 @@ class LegacyInboxFullBackupAdapterRoomTest {
                 listOf(
                     WorkspaceEntity(
                         id = "owner", nameOverride = "owner", descriptionOverride = null,
-                        parentWorkspaceId = null, roleCode = null, workspaceOrder = 0L,
+roleCode = null,
                         createdAt = 1L, updatedAt = 1L, syncedAt = null, isDeleted = false,
                         version = 1L, provenance = provenance, sourceContextId = null,
                     ),

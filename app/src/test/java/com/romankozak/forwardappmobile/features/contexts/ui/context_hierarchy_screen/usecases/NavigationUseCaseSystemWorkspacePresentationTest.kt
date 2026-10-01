@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationState
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.ClearCommand
 import com.romankozak.forwardappmobile.core.navigation.ClearResult
@@ -77,18 +77,12 @@ class NavigationUseCaseSystemWorkspacePresentationTest {
         )
 
     private fun workspace(id: String, name: String) =
-        WorkspaceEntity(
+        WorkspacePresentationState(
             id = id,
             nameOverride = name,
             descriptionOverride = null,
-            parentWorkspaceId = null,
             roleCode = null,
-            workspaceOrder = 0L,
-            createdAt = 1L,
-            updatedAt = 2L,
-            syncedAt = null,
             isDeleted = false,
-            version = 1L,
             provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
             sourceContextId = null,
         )

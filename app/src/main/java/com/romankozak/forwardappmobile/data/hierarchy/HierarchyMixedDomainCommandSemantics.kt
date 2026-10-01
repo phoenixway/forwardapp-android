@@ -35,7 +35,7 @@ sealed interface HierarchyStructuralOperand {
 /**
  * Occurrence-scoped synthetic Group/NoGroup mutation.
  *
- * These operands are deliberately separate from H1 topology. A future P2
+ * These operands are deliberately separate from H1 topology. P2
  * executor must apply them atomically with their structural sibling operands.
  */
 sealed interface HierarchyOccurrenceScopeOperand {

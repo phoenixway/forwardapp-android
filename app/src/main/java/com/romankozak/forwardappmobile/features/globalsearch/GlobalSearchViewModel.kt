@@ -1272,10 +1272,10 @@ class GlobalSearchViewModel
                 val rawContext = contextRepository.getContextById(projectId)?.takeUnless { it.isDeleted }
                 when {
                     rawContext != null ->
-                        enhancedNavigationManager.navigateToProject(projectId, rawContext.name)
+                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, rawContext.name)
 
                     presentation != null ->
-                        enhancedNavigationManager.navigateToProject(projectId, presentation.name)
+                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, presentation.name)
 
                     else -> Unit
                 }

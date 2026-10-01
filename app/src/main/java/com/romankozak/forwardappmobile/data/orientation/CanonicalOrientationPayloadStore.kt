@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 
@@ -13,10 +15,14 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
     bundle: SnapshotBundle,
     merge: Boolean,
     workspaceDao: WorkspaceDao,
+    validateEmbeddedWorkspaceTopology: Boolean,
 ) {
     requireValidCanonicalOrientationPayload(bundle)
     if (!bundle.hasCanonicalOrientationPayload()) return
-    validateCanonicalPayloadReferences(bundle)
+    validateCanonicalPayloadReferences(
+        bundle = bundle,
+        validateEmbeddedWorkspaceTopology = validateEmbeddedWorkspaceTopology,
+    )
 
     val incomingSubjects = requireNotNull(bundle.managedSubjects)
     val subjectsToWrite =
@@ -40,7 +46,12 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
     if (aspects.isNotEmpty()) upsertAspects(aspects)
 
     bundle.workspaces?.let { rawIncoming ->
-        val incoming = rawIncoming.map { it.normalizeProvenanceForPersistence() }
+        val incoming =
+            rawIncoming.map {
+                it.withoutEmbeddedWorkspaceTopology()
+                    .toWorkspaceEntity()
+                    .normalizeProvenanceForPersistence()
+            }
         val workspaces =
             mergeByFreshnessIfNeeded(
                 merge,

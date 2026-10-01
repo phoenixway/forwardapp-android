@@ -16,7 +16,7 @@ data class MainBeaconCardUi(
     val relatedContextIds: List<String>,
     val relatedAttachmentIds: List<String>,
     val groupIds: List<String>,
-    val parentBeaconId: String?,
+    val parentPresentationId: String?,
     val isExpanded: Boolean,
     val placementId: String? = null,
     val parentPlacementId: String? = null,
@@ -36,6 +36,8 @@ data class MainBeaconCardLinkUi(
 
 data class MainBeaconEditorState(
     val id: String? = null,
+    /** Exact edited H1 occurrence. Null only for a new Beacon. */
+    val placementId: String? = null,
     val title: String = "",
     val description: String = "",
     val whyItMatters: String = "",
@@ -50,6 +52,8 @@ data class MainBeaconEditorState(
     val relatedAttachmentIds: Set<String> = emptySet(),
     val groupIds: Set<String> = emptySet(),
     val parentBeaconId: String? = null,
+    /** Exact V2 parent occurrence, never inferred from legacy persistence. */
+    val parentPlacementId: String? = null,
     val levelStatuses: List<MainBeaconLevelEditorState> = emptyList(),
     val createdAt: Long? = null,
     val updatedAt: Long? = null,

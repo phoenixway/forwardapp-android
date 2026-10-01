@@ -78,7 +78,6 @@ class DayFocusesViewModel
                         ProjectOption(
                             id = context.id,
                             name = context.name,
-                            parentId = context.parentId,
                         )
                     }
                 }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

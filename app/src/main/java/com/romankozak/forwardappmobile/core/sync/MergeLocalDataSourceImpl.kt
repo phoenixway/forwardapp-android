@@ -25,6 +25,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
@@ -36,6 +38,7 @@ import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
@@ -65,7 +68,6 @@ class MergeLocalDataSourceImpl
     constructor(
         private val db: AppDatabase,
         private val contextDao: ContextDao,
-        private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
         private val attachmentDao: AttachmentDao,
         private val noteDocumentDao: NoteDocumentDao,
@@ -511,15 +513,6 @@ class MergeLocalDataSourceImpl
             contextWorkspaceWriteThrough.mutateAndAfterWorkspaceRefresh(
                 mutation = {
                 contextDao.insertAll(contextSnapshotsForPersistence.map { it.toEntity() })
-                contextParentLinkDao.insertAll(
-                    bundle.contextParentLinks
-                        .filterNot { link ->
-                            isReservedSystemContextId(link.parentContextId) ||
-                                isReservedSystemContextId(link.childContextId) ||
-                                link.parentContextId in retiredContextIds ||
-                                link.childContextId in retiredContextIds
-                        }.map { it.toEntity() },
-                )
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
                 musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
@@ -616,7 +609,9 @@ class MergeLocalDataSourceImpl
                 aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
                 aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
                 mainBeaconDao.insertGroups(bundle.mainBeaconGroups.map { it.toEntity() })
-                mainBeaconDao.insertBeacons(bundle.mainBeacons.map { it.toEntity() })
+                val mainBeaconsForPersistence =
+                    bundle.mainBeacons.map { it.withoutEmbeddedMainBeaconTopology() }
+                mainBeaconDao.insertBeacons(mainBeaconsForPersistence.map { it.toEntity() })
                 lifeManagementLevelStatusDao.upsertAll(bundle.lifeManagementLevelStatuses.map { it.toEntity() })
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
                 structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
@@ -636,10 +631,21 @@ class MergeLocalDataSourceImpl
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
                 mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
-                mainBeaconDao.insertParentLinks(bundle.mainBeaconParentLinks.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
-                db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+                val canonicalOrientationBundle =
+                    bundle.copy(
+                        workspaces =
+                            bundle.workspaces?.map {
+                                it.withoutEmbeddedWorkspaceTopology()
+                            },
+                    )
+                db.orientationDao().storeCanonicalPayload(
+                    canonicalOrientationBundle,
+                    merge = true,
+                    workspaceDao = db.workspaceDao(),
+                    validateEmbeddedWorkspaceTopology = false,
+                )
 
                 val contextsById = contextDao.getAllRaw().associateBy { it.id }
                 val workspacesById = db.workspaceDao().getAll().associateBy { it.id }
@@ -707,6 +713,30 @@ class MergeLocalDataSourceImpl
                 )
 
                 mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+                // Legacy Beacon rows have no tombstone of their own. Once the
+                // canonical freshness merge is complete, retire imported
+                // compatibility rows for deleted canonical targets, including
+                // their parent links, memberships and operational cross-refs.
+                // This runs inside the same merge transaction, before the
+                // post-merge orientation bootstrap reads legacy rows.
+                val orientationDao = db.orientationDao()
+                val subjectsById = orientationDao.getAllManagedSubjects().associateBy { it.id }
+                val retiredMappings = orientationDao.getAllLegacyMappings()
+                    .asSequence()
+                    .filter { mapping ->
+                        mapping.isDeleted || subjectsById[mapping.subjectId]?.isDeleted == true
+                    }
+                    .toList()
+                retiredMappings
+                    .filter { it.sourceType == LegacyOrientationSourceType.MAIN_BEACON.name }
+                    .map { it.sourceId }
+                    .distinct()
+                    .forEach { retiredId -> mainBeaconDao.deleteBeacon(retiredId) }
+                retiredMappings
+                    .filter { it.sourceType == LegacyOrientationSourceType.MAIN_BEACON_GROUP.name }
+                    .map { it.sourceId }
+                    .distinct()
+                    .forEach { retiredId -> mainBeaconDao.deleteGroup(retiredId) }
                 canonicalWorkspaceTagTransportStore.mergeIncoming(bundle.workspaceTagRefs)
                 bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
                     canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
@@ -738,6 +768,7 @@ class MergeLocalDataSourceImpl
                         bundle.hierarchyPlacementLinkedAppearances,
                     )
                 }
+                canonicalHierarchyPlacementSyncStore.requireCurrentHierarchyValid()
                 },
                 afterRefresh = {
                     // Exact reserved System Contexts are never projected as

@@ -110,7 +110,7 @@ class GoalSettingsViewModel
                 }.collect { (contexts, attachments, relatedLinks) ->
                     val contextOptions =
                         contexts.map { context ->
-                            ProjectOption(id = context.id, name = context.name, parentId = context.parentId)
+                            ProjectOption(id = context.id, name = context.name)
                         }
                     val attachmentOptions = attachments.mapNotNull { it.toAttachmentOption() }.filterNot { it.linkType == LinkType.CONTEXT }
                     _uiState.update {

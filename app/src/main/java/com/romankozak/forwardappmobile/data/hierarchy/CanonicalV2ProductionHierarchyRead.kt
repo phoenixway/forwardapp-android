@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
@@ -22,7 +21,7 @@ enum class CanonicalV2TargetNavigationPolicy {
 }
 
 /**
- * Dormant production-facing H4.0d read contract.
+ * Production-facing canonical V2 hierarchy read contract.
  *
  * Structural ancestry is occurrence-native and comes only from the V2
  * HierarchyPlacement projection. Synthetic scopes are presentation only.
@@ -60,11 +59,14 @@ data class CanonicalV2ProductionHierarchyRead(
         }
 
     init {
+        val presentedPlacementIds = presentedOccurrences.map { it.placementId }
+        val projectedPlacementIds = hierarchy.occurrences.map { it.placementId }
+
         require(
-            presentedOccurrences.map { it.placementId } ==
-                hierarchy.occurrences.map { it.placementId },
+            presentedPlacementIds.size == projectedPlacementIds.size &&
+                presentedPlacementIds.toSet() == projectedPlacementIds.toSet(),
         ) {
-            "Production V2 read must preserve projected occurrence order and membership"
+            "Production V2 read must preserve projected occurrence membership"
         }
         require(occurrenceByPlacementId.size == presentedOccurrences.size) {
             "Production V2 read contains duplicate PlacementId presentation entries"
@@ -237,7 +239,7 @@ class CanonicalV2ProductionHierarchyReadAdapter(
 ) {
     fun read(
         placements: Collection<HierarchyPlacement>,
-        admittedWorkspacePresentations: Collection<HierarchyContextPresentationNode>,
+        admittedWorkspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
         managedSubjects: Collection<ManagedSubjectEntity>,
         legacySubjectMappings: Collection<LegacySubjectMappingEntity> = emptyList(),
         syntheticScopes: List<CanonicalV2SyntheticScopeInput> = emptyList(),
@@ -294,7 +296,7 @@ class CanonicalV2PersistedHierarchyReadAdapter
         private val delegate = CanonicalV2ProductionHierarchyReadAdapter()
 
         suspend fun read(
-            admittedWorkspacePresentations: Collection<HierarchyContextPresentationNode>,
+            admittedWorkspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
             managedSubjects: Collection<ManagedSubjectEntity>,
             legacySubjectMappings: Collection<LegacySubjectMappingEntity> = emptyList(),
             syntheticScopes: List<CanonicalV2SyntheticScopeInput> = emptyList(),
@@ -312,4 +314,3 @@ class CanonicalV2PersistedHierarchyReadAdapter
                 hierarchyId = hierarchyId,
             )
     }
-

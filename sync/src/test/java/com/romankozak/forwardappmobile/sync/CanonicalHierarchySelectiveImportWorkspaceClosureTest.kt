@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import org.junit.Assert.assertEquals
@@ -264,12 +264,14 @@ class CanonicalHierarchySelectiveImportWorkspaceClosureTest {
         assertEquals("selected-root", selected.id)
         assertEquals(null, selected.parentPlacementId)
 
-        // parentWorkspaceId is retained only as a canonical validator dependency.
-        // It does not become an H1 ancestor.
         assertEquals(
-            listOf("claimed-parent", "selected"),
+            listOf("selected"),
             filtered.workspaces?.map { it.id },
         )
+        filtered.workspaces.orEmpty().forEach { workspace ->
+            assertEquals(null, workspace.parentWorkspaceId)
+            assertEquals(0L, workspace.workspaceOrder)
+        }
     }
 
     @Test
@@ -394,7 +396,7 @@ class CanonicalHierarchySelectiveImportWorkspaceClosureTest {
         WorkspaceSelectiveImportSelection(selectedContextIds = ids.toSet())
 
     private fun source(
-        workspaces: List<WorkspaceEntity>,
+        workspaces: List<WorkspaceSnapshot>,
         placements: List<HierarchyPlacementSnapshot>,
         linkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
     ) =
@@ -434,7 +436,7 @@ class CanonicalHierarchySelectiveImportWorkspaceClosureTest {
         id: String,
         parentId: String? = null,
     ) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = id,
             nameOverride = id,
             descriptionOverride = null,

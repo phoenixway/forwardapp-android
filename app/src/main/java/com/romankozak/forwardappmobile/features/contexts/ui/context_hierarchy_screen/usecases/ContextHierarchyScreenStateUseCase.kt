@@ -1,32 +1,28 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenMetadataAssembler
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenOperationalBeaconMetadata
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyScreenPresentationAdapter
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2WorkspacePresentation
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
-import com.romankozak.forwardappmobile.data.hierarchy.HierarchyReadAuthorityRouter
+import com.romankozak.forwardappmobile.data.hierarchy.toCanonicalV2WorkspacePresentation
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyPresentationNode
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
@@ -46,7 +42,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.fuzzyMatch
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
-import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
@@ -69,7 +64,6 @@ class ProjectHierarchyScreenStateUseCase
     constructor(
         private val searchUseCase: SearchUseCase,
         private val planningUseCase: PlanningUseCase,
-        private val hierarchyUseCase: HierarchyUseCase,
         private val dialogUseCase: DialogUseCase,
         private val syncUseCase: SyncUseCase,
         private val navigationUseCase: NavigationUseCase,
@@ -78,10 +72,7 @@ class ProjectHierarchyScreenStateUseCase
         private val contextMarkerHandler: ContextMarkerHandler,
         private val recentItemsRepository: RecentItemsRepository,
         private val mainBeaconRepository: MainBeaconRepository,
-        private val contextParentLinkDao: ContextParentLinkDao,
-        private val workspaceDao: WorkspaceDao,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
-        private val orientationHierarchyBuilder: OrientationHierarchyBuilder,
         private val canonicalV2ReactiveHierarchyReadSource: CanonicalV2ReactiveHierarchyReadSource,
         private val canonicalV2HierarchyScreenMetadataAssembler: CanonicalV2HierarchyScreenMetadataAssembler,
         private val canonicalV2HierarchyScreenPresentationAdapter: CanonicalV2HierarchyScreenPresentationAdapter,
@@ -115,7 +106,7 @@ class ProjectHierarchyScreenStateUseCase
                 .observePresentationUniverse(contexts)
                 .map { presentations ->
                     presentations.map { presentation ->
-                        presentation.toHierarchyPresentationNode()
+                        presentation.toCanonicalV2WorkspacePresentation()
                     }
                 }
 
@@ -144,111 +135,41 @@ class ProjectHierarchyScreenStateUseCase
                     .onEach { canonicalV2ReadInternal.value = it }
 
             val presentationHierarchyState =
-                HierarchyReadAuthorityRouter().route(
-                    currentPreCutover = {
-                        HierarchyStateBuilder(hierarchyUseCase)
-                            .buildHierarchyState(
-                                scope = scope,
-                                filterStates = planningUseCase.filterStateFlow,
-                            )
-                    },
-                    v2Authority = {
-                        observeHierarchyPresentationUniverse(rawContextsFlat)
-                            .map(::buildNonStructuralPresentationUniverse)
-                            .stateIn(
-                                scope,
-                                SharingStarted.Eagerly,
-                                HierarchyPresentationData(),
-                            )
-                    },
-                )
+                observeHierarchyPresentationUniverse(rawContextsFlat)
+                    .map(::buildNonStructuralPresentationUniverse)
+                    .stateIn(
+                        scope,
+                        SharingStarted.Eagerly,
+                        HierarchyPresentationData(),
+                    )
 
-            // Raw Context backing for focused and mutation-adjacent paths.
-            // Normal hierarchy rendering consumes presentation nodes directly;
-            // this only joins stable IDs to existing raw rows.
+            // Canonical V2 is the sole production hierarchy read authority.
+            // Raw Context rows contribute presentation metadata only; structural
+            // occurrence identity, ancestry and ordering come from H1.
             val orientationHierarchyFlow: Flow<List<OrientationHierarchyItem>> =
-                HierarchyReadAuthorityRouter().route(
-                    currentPreCutover = {
-                        val retiredOrdinaryContextIdsState =
-                            systemWorkspacePresentationContextProjector
-                                .observeRetiredOrdinaryContextIds()
-                                .stateIn(scope, SharingStarted.Eagerly, emptySet())
-                        val hierarchyProjectionFlow =
-                            combine(
-                                presentationHierarchyState,
-                                workspaceDao.observeAll(),
-                                retiredOrdinaryContextIdsState,
-                            ) { presentationHierarchy, workspaces, retiredOrdinaryContextIds ->
-                                HierarchyProjection(
-                                    presentationHierarchy = presentationHierarchy,
-                                    workspaces = workspaces,
-                                    retiredOrdinaryContextIds = retiredOrdinaryContextIds,
-                                )
-                            }
-
-                        val mainBeaconDetailsFlow =
-                            mainBeaconRepository.observeMainBeaconDetails()
-                        val mainBeaconGroupsFlow =
-                            mainBeaconRepository.observeGroups()
-                        val contextParentLinksFlow =
-                            contextParentLinkDao.observeActiveLinks()
-                        val mainBeaconParentLinksFlow =
-                            mainBeaconRepository.observeParentLinks()
-                        val orientationHierarchyInputsFlow =
-                            combine(
-                                mainBeaconDetailsFlow,
-                                mainBeaconGroupsFlow,
-                                contextParentLinksFlow,
-                                mainBeaconParentLinksFlow,
-                            ) { beacons, groups, parentLinks, beaconParentLinks ->
-                                OrientationHierarchyInputs(
-                                    beacons = beacons.map { it.toOrientationBeaconInput() },
-                                    groups = groups,
-                                    parentLinks = parentLinks,
-                                    beaconParentLinks = beaconParentLinks,
-                                )
-                            }
-
-                        combine(
-                            hierarchyProjectionFlow,
-                            orientationHierarchyInputsFlow,
-                        ) { hierarchyProjection, orientationHierarchyInputs ->
-                            orientationHierarchyBuilder.build(
-                                presentationHierarchy = hierarchyProjection.presentationHierarchy,
-                                beacons = orientationHierarchyInputs.beacons,
-                                groups = orientationHierarchyInputs.groups,
-                                parentLinks = orientationHierarchyInputs.parentLinks,
-                                beaconParentLinks = orientationHierarchyInputs.beaconParentLinks,
-                                workspaces = hierarchyProjection.workspaces,
-                            )
-                        }
-                    },
-                    v2Authority = {
-                        combine(
-                            canonicalV2ReadFlow,
-                            observeHierarchyPresentationUniverse(rawContextsFlat),
-                            mainBeaconRepository.observeMainBeaconDetails(),
-                        ) { read, workspacePresentations, beacons ->
-                            val metadata =
-                                canonicalV2HierarchyScreenMetadataAssembler.assemble(
-                                    read = read,
-                                    workspacePresentations = workspacePresentations,
-                                    beacons =
-                                        beacons.map { beacon ->
-                                            CanonicalV2HierarchyScreenOperationalBeaconMetadata(
-                                                presentationId = beacon.beacon.id,
-                                                readinessStatus = beacon.beacon.readinessStatus,
-                                                relatedOwnerIds = beacon.relatedOwnerIds,
-                                            )
-                                        },
-                                )
-                            canonicalV2HierarchyScreenPresentationAdapter.adapt(
-                                read = read,
-                                metadata = metadata,
-                            )
-                        }
-                    },
-                )
+                combine(
+                    canonicalV2ReadFlow,
+                    observeHierarchyPresentationUniverse(rawContextsFlat),
+                    mainBeaconRepository.observeMainBeaconDetails(),
+                ) { read, workspacePresentations, beacons ->
+                    val metadata =
+                        canonicalV2HierarchyScreenMetadataAssembler.assemble(
+                            read = read,
+                            workspacePresentations = workspacePresentations,
+                            beacons =
+                                beacons.map { beacon ->
+                                    CanonicalV2HierarchyScreenOperationalBeaconMetadata(
+                                        presentationId = beacon.beacon.id,
+                                        readinessStatus = beacon.beacon.readinessStatus,
+                                        relatedOwnerIds = beacon.relatedOwnerIds,
+                                    )
+                                },
+                        )
+                    canonicalV2HierarchyScreenPresentationAdapter.adapt(
+                        read = read,
+                        metadata = metadata,
+                    )
+                }
 
             scope.launch {
                 planningUseCase.filterStateFlow.collect { state ->
@@ -259,35 +180,19 @@ class ProjectHierarchyScreenStateUseCase
             }
 
             val searchResultsFlow =
-                HierarchyReadAuthorityRouter().route(
-                    currentPreCutover = {
-                        combine(
-                            planningUseCase.filterStateFlow,
-                            presentationHierarchyState,
-                        ) { filterState, hierarchy ->
-                            if (!filterState.isReady) {
-                                emptyList()
-                            } else {
-                                hierarchyUseCase.createSearchResults(filterState, hierarchy)
-                            }
-                        }
-                    },
-                    v2Authority = {
-                        combine(
-                            planningUseCase.filterStateFlow,
-                            canonicalV2ReadFlow,
-                        ) { filterState, read ->
-                            if (!filterState.isReady) {
-                                emptyList()
-                            } else {
-                                createCanonicalV2SearchResults(
-                                    filterState = filterState,
-                                    read = read,
-                                )
-                            }
-                        }
-                    },
-                ).stateIn(scope, SharingStarted.Lazily, emptyList())
+                combine(
+                    planningUseCase.filterStateFlow,
+                    canonicalV2ReadFlow,
+                ) { filterState, read ->
+                    if (!filterState.isReady) {
+                        emptyList()
+                    } else {
+                        createCanonicalV2SearchResults(
+                            filterState = filterState,
+                            read = read,
+                        )
+                    }
+                }.stateIn(scope, SharingStarted.Lazily, emptyList())
 
             val expensiveCalculationsFlow =
                 combine(
@@ -477,25 +382,6 @@ class ProjectHierarchyScreenStateUseCase
         val canonicalV2Read: StateFlow<CanonicalV2ProductionHierarchyRead?>
             get() = canonicalV2ReadInternal
 
-        private data class OrientationHierarchyInputs(
-            val beacons: List<OrientationBeaconInput> = emptyList(),
-            val groups: List<MainBeaconGroup> = emptyList(),
-            val parentLinks: List<ContextParentLink> = emptyList(),
-            val beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
-        )
-
-        private fun MainBeaconWithRelations.toOrientationBeaconInput(): OrientationBeaconInput =
-            OrientationBeaconInput(
-                id = beacon.id,
-                title = beacon.title,
-                order = beacon.order,
-                readinessStatus = beacon.readinessStatus,
-                parentBeaconId = beacon.parentBeaconId,
-                relatedOwnerIds = relatedOwnerIds,
-                groupIds = groupIds,
-                groupOrders = groupOrders,
-            )
-
         private data class CoreUiState(
             val subStateStack: List<ProjectHierarchyScreenSubState>,
             val searchQuery: TextFieldValue,
@@ -504,12 +390,6 @@ class ProjectHierarchyScreenStateUseCase
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,
             val presentationHierarchy: HierarchyPresentationData,
-        )
-
-        private data class HierarchyProjection(
-            val presentationHierarchy: HierarchyPresentationData,
-            val workspaces: List<WorkspaceEntity>,
-            val retiredOrdinaryContextIds: Set<String>,
         )
 
         private data class DialogUiState(
@@ -543,16 +423,6 @@ class ProjectHierarchyScreenStateUseCase
             return rolesByCode.values.toList()
         }
     }
-
-/**
- * Координує побудову ієрархії для головного екрану, кешуючи останній валідний snapshot.
- *
- * Зберігає:
- * - [lastNonEmptyFlatList] — використовується, коли `PlanningUseCase` переходить у ready-стан із порожнім flatList;
- * - [lastNonEmptyHierarchy] — дозволяє повертати останню згенеровану ієрархію, поки стан ще не готовий.
- *
- * Логи `HierarchyDebug` залишено без змін, аби не втратити діагностику, якою користується команда.
- */
 
 /**
  * Raw Context backing bridge for focused and mutation-adjacent paths.
@@ -623,10 +493,10 @@ internal fun createCanonicalV2SearchResults(
  * occurrence identity live only in HierarchyPlacement / the V2 read surface.
  */
 internal fun buildNonStructuralPresentationUniverse(
-    presentations: List<HierarchyContextPresentationNode>,
+    presentations: List<CanonicalV2WorkspacePresentation>,
 ): HierarchyPresentationData =
     HierarchyPresentationData(
-        allProjects = presentations,
+        allProjects = presentations.map { it.toHierarchyPresentationNode() },
         topLevelProjects = emptyList(),
         childMap = emptyMap(),
     )

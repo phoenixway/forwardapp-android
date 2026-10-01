@@ -44,7 +44,7 @@ fun StrategicArcBottomPanel(
         visible = showContextPicker,
         contextOptions =
             uiState.allProjects.map {
-                ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                ProjectOption(id = it.id, name = it.name)
             },
         preselectedContextIds = uiState.arcQuests.mapNotNull { it.linkedContextId }.toSet(),
         onDismiss = { showContextPicker = false },

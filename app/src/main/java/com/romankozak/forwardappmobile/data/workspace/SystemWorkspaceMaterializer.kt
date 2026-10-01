@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.context.SystemOperationalDefinition
 import com.romankozak.forwardappmobile.core.context.SystemOperationalDefinitions
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
@@ -14,6 +15,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapab
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationV2
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DashboardCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -77,6 +79,7 @@ class SystemWorkspaceMaterializer
         ): SystemWorkspaceMaterializationResult =
             database.withTransaction {
                 val definitions = orderedDefinitions()
+                val topologyPolicy = resolveTopologyPersistencePolicy()
                 val importedLegacyEvidence = linkedMapOf<String, SystemWorkspaceLegacyContextEvidence>()
                 legacyContextEvidence.forEach { evidence ->
                     require(SystemContexts.isSystem(ContextId(evidence.id))) {
@@ -92,42 +95,28 @@ class SystemWorkspaceMaterializer
                     workspaceDao.getByIds(definitionIds)
                         .associateBy { it.id }
 
-                /*
-                 * Historical Context state is migration evidence only. On a
-                 * settled database every reserved owner is CANONICAL_ONLY, so
-                 * there is no reason to materialize arbitrary ordinary
-                 * Contexts on every startup.
-                 *
-                 * Local same-id Context evidence is required only when there
-                 * is no incoming transient evidence and either:
-                 * - the canonical Workspace is still missing, or
-                 * - an old same-id CONTEXT_BACKED projection must be validated
-                 *   before promotion.
-                 */
-                val localEvidenceIds =
-                    definitions.mapNotNull { definition ->
-                        if (definition.id in importedLegacyEvidence) {
-                            null
-                        } else {
-                            val workspace = workspaces[definition.id]
-                            when {
-                                workspace == null -> definition.id
-                                workspace.isDeleted -> null
-                                workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                                    workspace.sourceContextId == definition.id -> definition.id
-                                else -> null
-                            }
-                        }
+                if (
+                    topologyPolicy ==
+                    SystemWorkspaceTopologyPersistencePolicy.FRESH_NATIVE_NEUTRAL
+                ) {
+                    /*
+                     * FRESH_NATIVE describes the destination database's physical
+                     * hierarchy origin, not the generation of an imported wire
+                     * payload. Historical Context-shaped transport evidence is
+                     * therefore allowed here as transient compatibility input.
+                     *
+                     * Persisted CONTEXT_BACKED System Workspace ownership remains
+                     * forbidden: schema 180 must never revive physical legacy
+                     * ownership/topology in the current database.
+                     */
+                    require(
+                        workspaces.values.none {
+                            it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name
+                        },
+                    ) {
+                        "FRESH_NATIVE System Workspace materialization cannot promote CONTEXT_BACKED owners"
                     }
-
-                val contexts =
-                    if (localEvidenceIds.isEmpty()) {
-                        emptyMap()
-                    } else {
-                        contextDao.getContextsByIds(localEvidenceIds)
-                            .associateBy { it.id }
-                            .mapValues { (_, context) -> context.toLegacySystemWorkspaceEvidence() }
-                    }
+                }
 
                 val toCreate = mutableListOf<WorkspaceEntity>()
                 val toPromote = mutableListOf<WorkspaceEntity>()
@@ -135,26 +124,29 @@ class SystemWorkspaceMaterializer
 
                 definitions.forEach { definition ->
                     val workspace = workspaces[definition.id]
-                    // Imported evidence has precedence over a surviving local
-                    // shell because before Step 11 ingress retirement the
-                    // incoming Context row was persisted first and therefore
-                    // was the evidence observed by this materializer.
-                    val legacyContext =
-                        importedLegacyEvidence[definition.id]
-                            ?: contexts[definition.id]
+
+                    if (topologyPolicy == SystemWorkspaceTopologyPersistencePolicy.POST_ACTIVATION) {
+                        val established =
+                            requireNotNull(workspace) {
+                                "V2 System Workspace ownership is incomplete after hierarchy activation: ${definition.id}"
+                            }
+                        require(!established.isDeleted) {
+                            "Reserved System Workspace is deleted: ${definition.id}"
+                        }
+                        require(
+                            established.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                                established.sourceContextId == null,
+                        ) {
+                            "V2 System Workspace ownership is not canonical after hierarchy activation: " +
+                                "${definition.id}, provenance=${established.provenance}, " +
+                                "sourceContextId=${established.sourceContextId}"
+                        }
+                        preservedCanonical += 1
+                        return@forEach
+                    }
 
                     if (workspace == null) {
-                        if (legacyContext?.isDeleted == true) {
-                            error("Reserved System Context is deleted: ${definition.id}")
-                        }
-
-                        val created =
-                            if (legacyContext == null) {
-                                definition.toWorkspace(now)
-                            } else {
-                                legacyContext.toCanonicalSystemWorkspace()
-                            }
-                        toCreate += created
+                        toCreate += definition.toTopologyNeutralWorkspace(now)
                         return@forEach
                     }
 
@@ -168,55 +160,12 @@ class SystemWorkspaceMaterializer
                             preservedCanonical += 1
                         }
 
-                        workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                            workspace.sourceContextId == definition.id -> {
-                            val context =
-                                requireNotNull(legacyContext) {
-                                    "Context-backed System Workspace has no live same-id Context: ${definition.id}"
-                                }
-                            require(!context.isDeleted) {
-                                "Context-backed System Workspace has deleted same-id Context: ${definition.id}"
-                            }
-
-                            val staleFields =
-                                buildList {
-                                    if (workspace.nameOverride != context.name) add("name")
-                                    if (workspace.descriptionOverride != context.description) add("description")
-                                    if (workspace.parentWorkspaceId != context.parentId) add("parent")
-                                    if (workspace.roleCode != context.roleCode) add("role")
-                                    if (workspace.workspaceOrder != context.order) add("order")
-                                }
-                            require(staleFields.isEmpty()) {
-                                "System Workspace projection is stale for ${definition.id}: " +
-                                    staleFields.joinToString()
-                            }
-
-                            toPromote +=
-                                workspace.copy(
-                                    updatedAt = now,
-                                    syncedAt = null,
-                                    version = nextVersion(workspace.version),
-                                    provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
-                                    sourceContextId = null,
-                                )
-                        }
-
                         else ->
                             error(
                                 "Unexpected System Workspace ownership state for ${definition.id}: " +
                                     "provenance=${workspace.provenance}, " +
                                     "sourceContextId=${workspace.sourceContextId}",
                             )
-                    }
-                }
-
-                val resultingWorkspaceIds =
-                    workspaces.keys + toCreate.map { it.id } + toPromote.map { it.id }
-                (toCreate + toPromote).forEach { workspace ->
-                    val parentId = workspace.parentWorkspaceId
-                    require(parentId == null || parentId in resultingWorkspaceIds) {
-                        "Reserved System Workspace has no live parent: " +
-                            "${workspace.id} -> $parentId"
                     }
                 }
 
@@ -278,6 +227,43 @@ class SystemWorkspaceMaterializer
                     seededFactoryCapabilities = seededFactoryCapabilities,
                 )
             }
+
+        private suspend fun resolveTopologyPersistencePolicy():
+            SystemWorkspaceTopologyPersistencePolicy {
+            val hierarchyId = HierarchyId.GENERAL.value
+            if (database.hierarchyAuthorityActivationStateDao().get(hierarchyId) != null) {
+                return SystemWorkspaceTopologyPersistencePolicy.POST_ACTIVATION
+            }
+
+            val stored =
+                requireNotNull(database.hierarchyEstablishmentOriginDao().get(hierarchyId)) {
+                    "Missing durable hierarchy establishment origin for $hierarchyId"
+                }
+            return when (
+                val origin =
+                    runCatching { HierarchyEstablishmentOrigin.valueOf(stored.origin) }
+                        .getOrElse {
+                            error(
+                                "Unsupported hierarchy establishment origin ${stored.origin} " +
+                                    "for $hierarchyId",
+                            )
+                        }
+            ) {
+                HierarchyEstablishmentOrigin.FRESH_NATIVE ->
+                    SystemWorkspaceTopologyPersistencePolicy.FRESH_NATIVE_NEUTRAL
+
+                HierarchyEstablishmentOrigin.LEGACY_UPGRADE_REQUIRES_CAPTURE ->
+                    error(
+                        "Schema 180 cannot materialize legacy physical Workspace topology",
+                    )
+
+                HierarchyEstablishmentOrigin.ESTABLISHED ->
+                    error(
+                        "Hierarchy $hierarchyId is classified ESTABLISHED " +
+                            "without an activation marker",
+                    )
+            }
+        }
 
         private fun orderedDefinitions(): List<SystemOperationalDefinition> {
             val definitions = SystemOperationalDefinitions.all
@@ -395,46 +381,14 @@ class SystemWorkspaceMaterializer
                 "WORKSPACE:CAPABILITY:$workspaceId:${type.name}:$DEFAULT_INSTANCE_KEY",
             ).toString()
 
-        private fun com.romankozak.forwardappmobile.core.data.models.entities.Context.toLegacySystemWorkspaceEvidence():
-            SystemWorkspaceLegacyContextEvidence =
-            SystemWorkspaceLegacyContextEvidence(
-                id = id,
-                name = name,
-                description = description,
-                parentId = parentId,
-                roleCode = roleCode,
-                order = order,
-                createdAt = createdAt,
-                updatedAt = updatedAt,
-                isDeleted = isDeleted,
-                version = version,
-            )
-
-        private fun SystemWorkspaceLegacyContextEvidence.toCanonicalSystemWorkspace(): WorkspaceEntity =
-            WorkspaceEntity(
-                id = id,
-                nameOverride = name,
-                descriptionOverride = description,
-                parentWorkspaceId = parentId,
-                roleCode = roleCode,
-                workspaceOrder = order,
-                createdAt = createdAt,
-                updatedAt = updatedAt ?: createdAt,
-                syncedAt = null,
-                isDeleted = false,
-                version = version.coerceAtLeast(1L),
-                provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
-                sourceContextId = null,
-            )
-
-        private fun SystemOperationalDefinition.toWorkspace(now: Long): WorkspaceEntity =
+        private fun SystemOperationalDefinition.toTopologyNeutralWorkspace(
+            now: Long,
+        ): WorkspaceEntity =
             WorkspaceEntity(
                 id = id,
                 nameOverride = defaultName,
                 descriptionOverride = null,
-                parentWorkspaceId = defaultParentId,
                 roleCode = null,
-                workspaceOrder = 0L,
                 createdAt = now,
                 updatedAt = now,
                 syncedAt = null,
@@ -443,6 +397,7 @@ class SystemWorkspaceMaterializer
                 provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
                 sourceContextId = null,
             )
+
         private fun nextVersion(current: Long): Long =
             if (current == Long.MAX_VALUE) Long.MAX_VALUE else current + 1L
 
@@ -453,4 +408,8 @@ class SystemWorkspaceMaterializer
                 WorkspaceCapabilityType.entries.withIndex().associate { it.value to it.index }
         }
 
+        private enum class SystemWorkspaceTopologyPersistencePolicy {
+            FRESH_NATIVE_NEUTRAL,
+            POST_ACTIVATION,
+        }
     }

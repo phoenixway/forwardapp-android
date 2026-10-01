@@ -124,8 +124,12 @@ The following directories contain subsystem documentation:
 - `DECIDED`
 - Accepted Canonical V2 target for the independent structural/visual
   hierarchy. Defines `HierarchyPlacement`, V1/V2 authority boundaries,
-  invariants, and H0-H6 cutover stages. It is not CURRENT runtime authority
-  until the relevant explicit V2 cutover completes.
+  invariants, and H0-H6 cutover stages. P2 is CURRENT production authority.
+
+`architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`
+- `CURRENT / IN PROGRESS`
+- Evidence baseline and dependency-ordered retirement plan for surviving
+  Canonical V1/legacy structural storage and APIs after H5 closure.
 
 
 `architecture/orientation-workspace-refactor/PHASE2-IMPLEMENTATION.md`

@@ -292,7 +292,6 @@ class TacticalMissionViewModel
                         ProjectOption(
                             id = it.id,
                             name = it.name,
-                            parentId = it.parentId,
                         )
                     }
                 val contextIds = contextOptions.mapTo(hashSetOf()) { it.id }
@@ -304,7 +303,6 @@ class TacticalMissionViewModel
                             ProjectOption(
                                 id = id,
                                 name = label,
-                                parentId = null,
                             )
                         }
                         .toList()
@@ -1193,7 +1191,6 @@ class TacticalMissionViewModel
 data class ProjectOption(
     val id: String,
     val name: String,
-    val parentId: String? = null,
 )
 
 data class AttachmentOption(

@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.content.ContentValues
 import android.content.Context
-import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -57,14 +56,15 @@ class Migration173To174OrdinaryWorkspaceTagsRoomAcceptanceTest {
             insertLegacyTag(db, ACTIVE_ID, "active-legacy")
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_173_174)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_173_174,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(174L, scalarLong(db, "PRAGMA user_version"))
 
@@ -108,7 +108,7 @@ class Migration173To174OrdinaryWorkspaceTagsRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

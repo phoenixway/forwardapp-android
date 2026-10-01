@@ -58,10 +58,12 @@ class DialogUseCase
         fun onDeleteRequest(
             projectId: String,
             projectName: String,
+            occurrence: HierarchyOccurrenceRef,
         ) {
             dialogStateManager.onDeleteRequest(
                 projectId = projectId,
                 projectName = projectName,
+                occurrence = occurrence,
             )
         }
 

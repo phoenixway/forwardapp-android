@@ -8,34 +8,43 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Pure H2 projection of CURRENT V1 visible occurrence topology.
+ * Pure deterministic H2 projection from source-neutral establishment evidence.
  *
- * Unlike OrientationHierarchyBuilder, this retains incoming-edge provenance so
- * PRIMARY evidence is never reconstructed from first-seen rendering order.
+ * Source adapters own persisted V1/fresh-native acquisition. This builder owns
+ * the single occurrence/provenance algorithm, retaining incoming-edge evidence
+ * so PRIMARY is never reconstructed from first-seen rendering order.
  */
 @Singleton
 class CanonicalV1HierarchySnapshotBuilder
     @Inject
     constructor() {
+        /**
+         * Builds the frozen deterministic H2 occurrence projection from
+         * source-neutral establishment evidence.
+         *
+         * Literal occurrence-key segments such as `context-parent-link` and
+         * `beacon-parent-link` are historical identity tokens. They remain
+         * unchanged because PlacementId is derived from occurrenceKey.
+         */
         fun build(
-            input: CanonicalV1HierarchySnapshotInput,
+            input: CanonicalHierarchyEstablishmentInput,
             hierarchyId: HierarchyId = HierarchyId.GENERAL,
         ): CanonicalV1HierarchySnapshot {
             require(hierarchyId == HierarchyId.GENERAL) {
                 "H2 currently supports only ${HierarchyId.GENERAL.value}"
             }
             requireDistinct("Workspace", input.workspaces.map { it.id })
-            requireDistinct("Beacon", input.beacons.map { it.legacyBeaconId })
-            requireDistinct("Beacon Group", input.groups.map { it.id })
+            requireDistinct("Beacon", input.beacons.map { it.sourceId })
+            requireDistinct("Beacon Group", input.groups.map { it.sourceId })
             input.beacons.forEach { beacon ->
                 require(beacon.target.type == HierarchyTargetType.MANAGED_SUBJECT) {
-                    "Beacon ${beacon.legacyBeaconId} must resolve to MANAGED_SUBJECT"
+                    "Beacon ${beacon.sourceId} must resolve to MANAGED_SUBJECT"
                 }
             }
 
             val workspacesById = input.workspaces.associateBy { it.id }
             val workspaceComparator =
-                compareBy<CanonicalV1WorkspaceSnapshotInput> { it.order }
+                compareBy<CanonicalHierarchyEstablishmentWorkspaceInput> { it.order }
                     .thenBy { it.name.lowercase() }
                     .thenBy { it.sourceOrdinal }
                     .thenBy { it.id }
@@ -43,7 +52,7 @@ class CanonicalV1HierarchySnapshotBuilder
             val canonicalWorkspaceChildren =
                 input.workspaces
                     .mapNotNull { child ->
-                        child.parentWorkspaceId
+                        child.canonicalParentId
                             ?.takeIf { it in workspacesById }
                             ?.let { it to child }
                     }
@@ -51,14 +60,14 @@ class CanonicalV1HierarchySnapshotBuilder
                     .mapValues { (_, children) -> children.sortedWith(workspaceComparator) }
 
             val activeContextLinks =
-                input.contextParentLinks
+                input.additionalWorkspaceRoutes
                     .filter { it.parentWorkspaceId != it.childWorkspaceId }
                     .filter {
                         it.parentWorkspaceId in workspacesById &&
                             it.childWorkspaceId in workspacesById
                     }
                     .sortedWith(
-                        compareBy<CanonicalV1ContextParentLinkSnapshotInput> { it.parentWorkspaceId }
+                        compareBy<CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute> { it.parentWorkspaceId }
                             .thenBy { it.order }
                             .thenBy { it.sourceOrdinal }
                             .thenBy { it.childWorkspaceId },
@@ -76,16 +85,16 @@ class CanonicalV1HierarchySnapshotBuilder
                 )
 
             val beaconComparator =
-                compareBy<CanonicalV1BeaconSnapshotInput> { it.order }
+                compareBy<CanonicalHierarchyEstablishmentBeaconInput> { it.order }
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.sourceOrdinal }
-                    .thenBy { it.legacyBeaconId }
+                    .thenBy { it.sourceId }
             val sortedBeacons = input.beacons.sortedWith(beaconComparator)
-            val beaconsById = sortedBeacons.associateBy { it.legacyBeaconId }
+            val beaconsById = sortedBeacons.associateBy { it.sourceId }
 
             val beaconChildren = linkedMapOf<String, MutableList<BeaconEdge>>()
             sortedBeacons.forEach { child ->
-                child.parentBeaconId?.let { parentId ->
+                child.canonicalParentSourceId?.let { parentId ->
                     beaconChildren.getOrPut(parentId) { mutableListOf() } +=
                         BeaconEdge(
                             child = child,
@@ -94,19 +103,19 @@ class CanonicalV1HierarchySnapshotBuilder
                         )
                 }
             }
-            input.beaconParentLinks
+            input.additionalBeaconRoutes
                 .asSequence()
-                .filter { it.parentBeaconId != it.childBeaconId }
+                .filter { it.parentSourceId != it.childSourceId }
                 .sortedWith(
-                    compareBy<CanonicalV1BeaconParentLinkSnapshotInput> { it.parentBeaconId }
+                    compareBy<CanonicalHierarchyEstablishmentAdditionalBeaconRoute> { it.parentSourceId }
                         .thenBy { it.order }
                         .thenBy { it.sourceOrdinal }
-                        .thenBy { it.childBeaconId },
+                        .thenBy { it.childSourceId },
                 )
                 .forEach { link ->
-                    val child = beaconsById[link.childBeaconId] ?: return@forEach
-                    val siblings = beaconChildren.getOrPut(link.parentBeaconId) { mutableListOf() }
-                    if (siblings.none { it.child.legacyBeaconId == child.legacyBeaconId }) {
+                    val child = beaconsById[link.childSourceId] ?: return@forEach
+                    val siblings = beaconChildren.getOrPut(link.parentSourceId) { mutableListOf() }
+                    if (siblings.none { it.child.sourceId == child.sourceId }) {
                         siblings +=
                             BeaconEdge(
                                 child = child,
@@ -118,16 +127,16 @@ class CanonicalV1HierarchySnapshotBuilder
                 }
 
             val linkedBeaconParents =
-                input.beaconParentLinks
+                input.additionalBeaconRoutes
                     .asSequence()
-                    .filter { it.parentBeaconId != it.childBeaconId }
+                    .filter { it.parentSourceId != it.childSourceId }
                     .groupBy(
-                        keySelector = { it.childBeaconId },
-                        valueTransform = { it.parentBeaconId },
+                        keySelector = { it.childSourceId },
+                        valueTransform = { it.parentSourceId },
                     )
                     .mapValues { (_, ids) -> ids.toSet() }
 
-            val knownGroupIds = input.groups.mapTo(hashSetOf()) { it.id }
+            val knownGroupIds = input.groups.mapTo(hashSetOf()) { it.sourceId }
             val beaconsByGroup =
                 sortedBeacons
                     .flatMap { beacon ->
@@ -148,14 +157,14 @@ class CanonicalV1HierarchySnapshotBuilder
                                 compareBy<GroupedBeacon> { it.order }
                                     .thenBy { it.beacon.title.lowercase() }
                                     .thenBy { it.beacon.sourceOrdinal }
-                                    .thenBy { it.beacon.legacyBeaconId },
+                                    .thenBy { it.beacon.sourceId },
                             )
                             .map { it.beacon }
                     }
 
             val beaconLinkedWorkspaceIds =
                 sortedBeacons
-                    .flatMap { it.relatedOwnerIds }
+                    .flatMap { it.operationalOwnerWorkspaceIds }
                     .filterTo(hashSetOf()) { it in workspacesById }
 
             val raw = mutableListOf<RawOccurrence>()
@@ -185,12 +194,12 @@ class CanonicalV1HierarchySnapshotBuilder
             }
 
             fun hasLinkedOwnerAncestor(
-                workspace: CanonicalV1WorkspaceSnapshotInput,
+                workspace: CanonicalHierarchyEstablishmentWorkspaceInput,
                 candidates: Set<String>,
             ): Boolean {
                 val visited = mutableSetOf<String>()
                 val pending = ArrayDeque<String>()
-                workspace.parentWorkspaceId?.let(pending::add)
+                workspace.canonicalParentId?.let(pending::add)
                 additionalWorkspaceParents[workspace.id].orEmpty().forEach(pending::add)
 
                 while (pending.isNotEmpty()) {
@@ -198,7 +207,7 @@ class CanonicalV1HierarchySnapshotBuilder
                     if (!visited.add(parentId)) continue
                     if (parentId in candidates) return true
                     val parent = workspacesById[parentId] ?: continue
-                    parent.parentWorkspaceId?.let(pending::add)
+                    parent.canonicalParentId?.let(pending::add)
                     additionalWorkspaceParents[parent.id].orEmpty().forEach(pending::add)
                 }
                 return false
@@ -206,7 +215,7 @@ class CanonicalV1HierarchySnapshotBuilder
 
 
             fun appendWorkspace(
-                workspace: CanonicalV1WorkspaceSnapshotInput,
+                workspace: CanonicalHierarchyEstablishmentWorkspaceInput,
                 parentKey: String?,
                 key: String,
                 authority: CanonicalV1HierarchySourceAuthority,
@@ -267,7 +276,7 @@ class CanonicalV1HierarchySnapshotBuilder
             }
 
             fun appendBeacon(
-                beacon: CanonicalV1BeaconSnapshotInput,
+                beacon: CanonicalHierarchyEstablishmentBeaconInput,
                 parentKey: String?,
                 key: String,
                 authority: CanonicalV1HierarchySourceAuthority,
@@ -275,7 +284,7 @@ class CanonicalV1HierarchySnapshotBuilder
                 visited: LinkedHashSet<String>,
                 rootGroupScope: CanonicalV1RootGroupScope? = null,
             ) {
-                if (!visited.add(beacon.legacyBeaconId)) return
+                if (!visited.add(beacon.sourceId)) return
 
                 val evidence =
                     when {
@@ -296,14 +305,14 @@ class CanonicalV1HierarchySnapshotBuilder
                     rootGroupScope = rootGroupScope,
                 )
 
-                beaconChildren[beacon.legacyBeaconId].orEmpty().forEach { edge ->
+                beaconChildren[beacon.sourceId].orEmpty().forEach { edge ->
                     appendBeacon(
                         beacon = edge.child,
                         parentKey = key,
                         key =
                             "$key/${segment(
                                 if (edge.canonical) "beacon-parent" else "beacon-parent-link",
-                                edge.child.legacyBeaconId,
+                                edge.child.sourceId,
                             )}",
                         authority = edge.authority,
                         canonicalRoute = canonicalRoute && edge.canonical,
@@ -312,7 +321,7 @@ class CanonicalV1HierarchySnapshotBuilder
                 }
 
                 val linkedOwners =
-                    beacon.relatedOwnerIds
+                    beacon.operationalOwnerWorkspaceIds
                         .filter { it in workspacesById }
                         .toCollection(linkedSetOf())
 
@@ -337,29 +346,29 @@ class CanonicalV1HierarchySnapshotBuilder
 
             input.groups
                 .sortedWith(
-                    compareBy<CanonicalV1BeaconGroupSnapshotInput> { it.order }
+                    compareBy<CanonicalHierarchyEstablishmentGroupInput> { it.order }
                         .thenBy { it.title.lowercase() }
                         .thenBy { it.sourceOrdinal }
-                        .thenBy { it.id },
+                        .thenBy { it.sourceId },
                 )
                 .forEach { group ->
-                    val members = beaconsByGroup[group.id].orEmpty()
-                    val memberIds = members.mapTo(hashSetOf()) { it.legacyBeaconId }
-                    val scope = segment("group", group.id)
+                    val members = beaconsByGroup[group.sourceId].orEmpty()
+                    val memberIds = members.mapTo(hashSetOf()) { it.sourceId }
+                    val scope = segment("group", group.sourceId)
 
                     members
                         .filter { beacon ->
-                            beacon.parentBeaconId !in memberIds &&
-                                linkedBeaconParents[beacon.legacyBeaconId]
+                            beacon.canonicalParentSourceId !in memberIds &&
+                                linkedBeaconParents[beacon.sourceId]
                                     .orEmpty()
                                     .none { it in memberIds }
                         }
                         .forEach { beacon ->
-                            val canonicalRoot = beacon.parentBeaconId == null
+                            val canonicalRoot = beacon.canonicalParentSourceId == null
                             appendBeacon(
                                 beacon = beacon,
                                 parentKey = null,
-                                key = "$scope/${segment("beacon", beacon.legacyBeaconId)}",
+                                key = "$scope/${segment("beacon", beacon.sourceId)}",
                                 authority =
                                     if (canonicalRoot) {
                                         CanonicalV1HierarchySourceAuthority.MAIN_BEACON_ROOT
@@ -380,21 +389,21 @@ class CanonicalV1HierarchySnapshotBuilder
                 sortedBeacons.filter { beacon ->
                     beacon.groupIds.none { it in knownGroupIds }
                 }
-            val noGroupIds = noGroupBeacons.mapTo(hashSetOf()) { it.legacyBeaconId }
+            val noGroupIds = noGroupBeacons.mapTo(hashSetOf()) { it.sourceId }
 
             noGroupBeacons
                 .filter { beacon ->
-                    beacon.parentBeaconId !in noGroupIds &&
-                        linkedBeaconParents[beacon.legacyBeaconId]
+                    beacon.canonicalParentSourceId !in noGroupIds &&
+                        linkedBeaconParents[beacon.sourceId]
                             .orEmpty()
                             .none { it in noGroupIds }
                 }
                 .forEach { beacon ->
-                    val canonicalRoot = beacon.parentBeaconId == null
+                    val canonicalRoot = beacon.canonicalParentSourceId == null
                     appendBeacon(
                         beacon = beacon,
                         parentKey = null,
-                        key = "scope:no-group/${segment("beacon", beacon.legacyBeaconId)}",
+                        key = "scope:no-group/${segment("beacon", beacon.sourceId)}",
                         authority =
                             if (canonicalRoot) {
                                 CanonicalV1HierarchySourceAuthority.MAIN_BEACON_ROOT
@@ -409,13 +418,13 @@ class CanonicalV1HierarchySnapshotBuilder
 
             input.workspaces
                 .filter { workspace ->
-                    workspace.parentWorkspaceId == null ||
-                        workspace.parentWorkspaceId !in workspacesById
+                    workspace.canonicalParentId == null ||
+                        workspace.canonicalParentId !in workspacesById
                 }
                 .filter { it.id !in beaconLinkedWorkspaceIds }
                 .sortedWith(workspaceComparator)
                 .forEach { workspace ->
-                    val canonicalRoot = workspace.parentWorkspaceId == null
+                    val canonicalRoot = workspace.canonicalParentId == null
                     appendWorkspace(
                         workspace = workspace,
                         parentKey = null,
@@ -501,13 +510,13 @@ class CanonicalV1HierarchySnapshotBuilder
         }
 
         private data class BeaconEdge(
-            val child: CanonicalV1BeaconSnapshotInput,
+            val child: CanonicalHierarchyEstablishmentBeaconInput,
             val authority: CanonicalV1HierarchySourceAuthority,
             val canonical: Boolean,
         )
 
         private data class GroupedBeacon(
-            val beacon: CanonicalV1BeaconSnapshotInput,
+            val beacon: CanonicalHierarchyEstablishmentBeaconInput,
             val order: Long,
         )
 

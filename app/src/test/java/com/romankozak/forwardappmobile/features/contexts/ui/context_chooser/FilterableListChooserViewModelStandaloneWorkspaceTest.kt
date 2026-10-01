@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ChooserProjection
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -49,10 +50,11 @@ class FilterableListChooserViewModelStandaloneWorkspaceTest {
             every { chooserProjection.project(any(), any()) } returns emptyList()
 
             coEvery {
-                canonicalWorkspaceRepository.create(
+                canonicalWorkspaceRepository.createWithV2PrimaryAppearance(
                     nameOverride = "Operations",
                     descriptionOverride = null,
                     parentWorkspaceId = "parent-workspace",
+                    parentPlacementId = PlacementId("parent-placement"),
                     roleCode = null,
                     now = any(),
                 )
@@ -67,16 +69,18 @@ class FilterableListChooserViewModelStandaloneWorkspaceTest {
 
             val id = viewModel.addNewProject(
                 parentId = "parent-workspace",
+                parentPlacementId = "parent-placement",
                 name = "  Operations  ",
             )
 
             assertEquals("standalone-child", id)
 
             coVerify(exactly = 1) {
-                canonicalWorkspaceRepository.create(
+                canonicalWorkspaceRepository.createWithV2PrimaryAppearance(
                     nameOverride = "Operations",
                     descriptionOverride = null,
                     parentWorkspaceId = "parent-workspace",
+                    parentPlacementId = PlacementId("parent-placement"),
                     roleCode = null,
                     now = any(),
                 )
@@ -104,7 +108,7 @@ class FilterableListChooserViewModelStandaloneWorkspaceTest {
                     canonicalV2ChooserProjection = chooserProjection,
                 )
 
-            assertNull(viewModel.addNewProject(parentId = null, name = "   "))
+            assertNull(viewModel.addNewProject(parentId = null, parentPlacementId = null, name = "   "))
 
             coVerify(exactly = 0) {
                 canonicalWorkspaceRepository.create(any(), any(), any(), any(), any())

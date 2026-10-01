@@ -9,8 +9,6 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "workspaces",
     indices = [
-        Index("parentWorkspaceId"),
-        Index(value = ["parentWorkspaceId", "workspaceOrder"]),
         Index("updatedAt"),
         Index("isDeleted"),
         Index(value = ["sourceContextId"], unique = true),
@@ -20,9 +18,7 @@ data class WorkspaceEntity(
     @PrimaryKey val id: String,
     val nameOverride: String?,
     val descriptionOverride: String?,
-    val parentWorkspaceId: String?,
     val roleCode: String?,
-    val workspaceOrder: Long,
     val createdAt: Long,
     val updatedAt: Long,
     val syncedAt: Long?,

@@ -59,10 +59,12 @@ class ContextDialogActionCoordinator
         fun requestDelete(
             projectId: String,
             projectName: String,
+            occurrence: HierarchyOccurrenceRef,
         ) {
             dialogUseCase.onDeleteRequest(
                 projectId = projectId,
                 projectName = projectName,
+                occurrence = occurrence,
             )
         }
 
@@ -82,8 +84,9 @@ class ContextDialogActionCoordinator
 
         suspend fun confirmDelete(
             projectId: String,
+            occurrence: HierarchyOccurrenceRef,
         ) {
-            contextActionsUseCase.onDeleteProjectConfirmed(projectId)
+            contextActionsUseCase.onDeleteProjectConfirmed(projectId, occurrence)
             dialogUseCase.dismissDialog()
         }
 

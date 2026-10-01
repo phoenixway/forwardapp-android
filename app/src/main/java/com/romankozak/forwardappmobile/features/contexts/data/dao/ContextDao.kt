@@ -16,7 +16,7 @@ interface ContextDao {
     @Query("SELECT * FROM contexts ORDER BY goal_order ASC")
     fun getAllContextsForSync(): Flow<List<Context>>
 
-    @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC")
+    @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC, id ASC")
     fun getAllContexts(): Flow<List<Context>>
 
     @Query("SELECT * FROM contexts WHERE is_deleted = 0 ORDER BY goal_order ASC")

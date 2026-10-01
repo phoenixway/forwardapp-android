@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.core.sync
 
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
@@ -29,24 +28,25 @@ class CanonicalMergeIngressGuardTest {
     }
 
     @Test
-    fun `CURRENT production mode keeps existing hierarchy ingress behavior`() {
-        requireCanonicalMergeIngress(
-            SnapshotBundle(workspaces = listOf(workspace("w"))),
-        )
-    }
-
-    @Test
-    fun `future V2 mode rejects legacy structural payload without H1`() {
+    fun `production V2 mode rejects legacy structural payload without H1`() {
         assertThrows(IllegalArgumentException::class.java) {
             requireCanonicalMergeIngress(
-                bundle = SnapshotBundle(workspaces = listOf(workspace("w"))),
-                hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                SnapshotBundle(workspaces = listOf(workspace("w"))),
             )
         }
     }
 
     @Test
-    fun `future V2 mode admits hierarchy bearing payload with H1 present or empty`() {
+    fun `normal merge rejects legacy structural payload without H1`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            requireCanonicalMergeIngress(
+                bundle = SnapshotBundle(workspaces = listOf(workspace("w"))),
+                )
+        }
+    }
+
+    @Test
+    fun `normal merge admits hierarchy bearing payload with H1 present or empty`() {
         requireCanonicalMergeIngress(
             bundle =
                 SnapshotBundle(
@@ -55,7 +55,6 @@ class CanonicalMergeIngressGuardTest {
                     hierarchyPlacementGroupScopes = emptyList(),
                     hierarchyPlacementLinkedAppearances = emptyList(),
                 ),
-            hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
         )
         requireCanonicalMergeIngress(
             bundle =
@@ -65,12 +64,11 @@ class CanonicalMergeIngressGuardTest {
                     hierarchyPlacementGroupScopes = emptyList(),
                     hierarchyPlacementLinkedAppearances = emptyList(),
                 ),
-            hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
         )
     }
 
     @Test
-    fun `future V2 mode rejects partial canonical hierarchy transport`() {
+    fun `normal merge rejects partial canonical hierarchy transport`() {
         listOf(
             SnapshotBundle(
                 hierarchyPlacements = emptyList(),
@@ -106,14 +104,13 @@ class CanonicalMergeIngressGuardTest {
             assertThrows(IllegalArgumentException::class.java) {
                 requireCanonicalMergeIngress(
                     bundle = bundle,
-                    hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
-                )
+                        )
             }
         }
     }
 
     @Test
-    fun `future V2 mode admits semantic only beacon relations without H1`() {
+    fun `normal merge admits semantic only beacon relations without H1`() {
         requireCanonicalMergeIngress(
             bundle =
                 SnapshotBundle(
@@ -122,7 +119,6 @@ class CanonicalMergeIngressGuardTest {
                     mainBeaconContextCrossRefs =
                         listOf(MainBeaconContextCrossRefSnapshot("beacon", "w", 0L)),
                 ),
-            hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
         )
     }
 
@@ -145,7 +141,7 @@ class CanonicalMergeIngressGuardTest {
     }
 
     private fun workspace(id: String) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = id,
             nameOverride = id,
             descriptionOverride = null,

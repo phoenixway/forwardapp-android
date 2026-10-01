@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import org.junit.Assert.assertEquals
@@ -60,7 +60,7 @@ class CanonicalBacklogSelectiveImportPreviewTest {
             aspectOrientationRefs = emptyList(),
             workspaces =
                 listOf(
-                    WorkspaceEntity(
+                    WorkspaceSnapshot(
                         "workspace", "Owner", null, null, null, 0L, 1L, 1L, null, false, 1L,
                         "CANONICAL_ONLY", null,
                     ),

@@ -31,21 +31,20 @@ class Migration146To148DayThemeRoomAcceptanceTest {
 
         createFixtureDatabase(dbName)
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(
-                    MIGRATION_146_147,
-                    MIGRATION_147_148,
-                    MIGRATION_148_149,
-                    MIGRATION_149_150,
-                    MIGRATION_150_151,
-                    MIGRATION_151_152,
-                )
-                .allowMainThreadQueries()
-                .build()
+        val historical =
+            openHistoricalMigrationDatabase(
+                context,
+                dbName,
+                MIGRATION_146_147,
+                MIGRATION_147_148,
+                MIGRATION_148_149,
+                MIGRATION_149_150,
+                MIGRATION_150_151,
+                MIGRATION_151_152,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = historical.writableDatabase
 
             assertEquals(152L, scalarLong(db, "PRAGMA user_version"))
             assertTrue(tableExists(db, "day_theme_documents"))
@@ -76,6 +75,26 @@ class Migration146To148DayThemeRoomAcceptanceTest {
                 assertEquals(7L, cursor.getLong(1))
             }
 
+            db.query("PRAGMA foreign_key_check").use {
+                assertEquals(0, it.count)
+            }
+            assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
+        } finally {
+            historical.close()
+        }
+
+        val tailMigrations =
+            ALL_MIGRATIONS
+                .filter { it.startVersion >= 152 }
+                .toTypedArray()
+
+        val room =
+            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+                .addMigrations(*tailMigrations)
+                .allowMainThreadQueries()
+                .build()
+
+        try {
             val bootstrapper =
                 CanonicalDayThemeBootstrapper(
                     database = room,
@@ -148,6 +167,7 @@ class Migration146To148DayThemeRoomAcceptanceTest {
                 assertEquals(1, room.dayThemeDocumentDao().getAllSync().size)
             }
 
+            val db = room.openHelper.writableDatabase
             db.query("PRAGMA foreign_key_check").use {
                 assertEquals(0, it.count)
             }

@@ -3,13 +3,21 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,11 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyPresentationItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
@@ -33,7 +41,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 fun FocusedProjectView(
     focusedProjectId: String,
     focusedPlacementId: String?,
-    presentationHierarchy: HierarchyPresentationData,
     orientationHierarchy: List<OrientationHierarchyItem>,
     directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
     breadcrumbs: List<BreadcrumbItem>,
@@ -51,13 +58,7 @@ fun FocusedProjectView(
                 placementId = focusedPlacementId,
             )?.node as? OrientationHierarchyNode.ProjectLike
         }
-    val focusedPresentation =
-        focusedNode?.presentation
-            ?: if (focusedPlacementId == null) {
-                presentationHierarchy.allProjects.firstOrNull { it.id == focusedProjectId }
-            } else {
-                null
-            }
+    val focusedPresentation = focusedNode?.presentation
     val focusedStructuralKey =
         focusedNode?.structuralKey
             ?: focusedPlacementId?.let { "placement:$it" }
@@ -75,9 +76,7 @@ fun FocusedProjectView(
         focusedNode = focusedNode,
         children =
             focusedProjectLikeItems(
-                focusedProjectId = focusedProjectId,
                 directChildren = directChildrenByNodeId[focusedStructuralKey].orEmpty(),
-                presentationHierarchy = presentationHierarchy,
                 focusedPlacementId = focusedPlacementId,
             ),
         breadcrumbs = breadcrumbs,
@@ -209,22 +208,14 @@ private val FlatHierarchyPresentationItem.structuralKey: String
     get() = placementId?.let { "placement:${it.value}" } ?: project.id
 
 internal fun focusedProjectLikeItems(
-    focusedProjectId: String,
     directChildren: List<OrientationHierarchyItem>,
-    presentationHierarchy: HierarchyPresentationData,
     focusedPlacementId: String? = null,
 ): List<FlatHierarchyPresentationItem> {
     val occurrenceChildren = focusedPresentationItems(directChildren)
     if (focusedPlacementId != null) {
         return occurrenceChildren
     }
-    return occurrenceChildren
-        .ifEmpty {
-            presentationHierarchy.childMap[focusedProjectId]
-                .orEmpty()
-                .map { FlatHierarchyPresentationItem(project = it, level = 0) }
-        }
-        .distinctBy { it.structuralKey }
+    return occurrenceChildren.distinctBy { it.structuralKey }
 }
 
 internal fun focusedPresentationClickEvent(
@@ -253,8 +244,9 @@ fun FocusedOrientationNodeView(
     searchQuery: String,
     isSelectionMode: Boolean,
     selectedContextIds: Set<String>,
+    isSiblingReorderMode: Boolean,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    onEditBeacon: (String) -> Unit = {},
+    onEditBeacon: (String, String?) -> Unit = { _, _ -> },
     onDeleteBeacon: (String) -> Unit = {},
 ) {
     if (focusedRoot == null) {
@@ -273,6 +265,30 @@ fun FocusedOrientationNodeView(
         }
     val projectChildren = remember(directChildren) { focusedPresentationItems(directChildren) }
     val beaconChildren = directChildren.filter { it.node is OrientationHierarchyNode.Beacon }
+    val focusedBeacon = focusedRoot.node as? OrientationHierarchyNode.Beacon
+    val parentOccurrence = focusedBeacon?.occurrence
+    val canReorderBeaconOccurrences =
+        isSiblingReorderMode &&
+            !isSearchActive &&
+            !isSelectionMode &&
+            parentOccurrence != null &&
+            directChildren.size > 1 &&
+            directChildren.all { item ->
+                val node = item.node as? OrientationHierarchyNode.Beacon
+                node?.occurrence != null &&
+                    node.occurrence.parentPlacementId == parentOccurrence.placementId
+            } &&
+            directChildren.mapNotNull { it.node.placementId }.distinct().size == directChildren.size
+
+    fun reorderedBeaconChildren(from: Int, to: Int): List<Pair<String, HierarchyOccurrenceRef>> {
+        val ordered = directChildren.map { item ->
+            val node = requireNotNull(item.node as? OrientationHierarchyNode.Beacon)
+            node.id to requireNotNull(node.occurrence)
+        }.toMutableList()
+        val selected = ordered.removeAt(from)
+        ordered.add(to, selected)
+        return ordered
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         stickyHeader(key = "focused-orientation-header") {
@@ -291,7 +307,9 @@ fun FocusedOrientationNodeView(
                     )
                     is OrientationHierarchyNode.Beacon -> BeaconRootHeaderRow(
                         node = node, level = 0, childCount = directChildren.size,
-                        onEditBeacon = { onEditBeacon(node.id) },
+                        onEditBeacon = {
+                            onEditBeacon(node.id, node.placementId?.value)
+                        },
                         onDeleteBeacon = { onDeleteBeacon(node.id) },
                         onCopyBeacon = {
                             onEvent(
@@ -335,8 +353,9 @@ fun FocusedOrientationNodeView(
                 }
             }
         }
-        itemsIndexed(beaconChildren, key = { index, item -> "beacon-${item.node.id}-$index" }) { _, item ->
+        itemsIndexed(beaconChildren, key = { _, item -> item.node.structuralKey }) { index, item ->
             val node = item.node as OrientationHierarchyNode.Beacon
+            Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
             BeaconRootHeaderRow(
                 node = node,
                 level = 0,
@@ -349,7 +368,9 @@ fun FocusedOrientationNodeView(
                         ),
                     )
                 },
-                onEditBeacon = { onEditBeacon(node.id) },
+                onEditBeacon = {
+                    onEditBeacon(node.id, node.placementId?.value)
+                },
                 onDeleteBeacon = { onDeleteBeacon(node.id) },
                 onCopyBeacon = {
                     onEvent(
@@ -383,8 +404,46 @@ fun FocusedOrientationNodeView(
                         ),
                     )
                 },
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                modifier = Modifier.weight(1f),
             )
+            if (canReorderBeaconOccurrences) {
+                val parent = requireNotNull(parentOccurrence)
+                val parentBeacon = requireNotNull(focusedBeacon)
+                Column {
+                    IconButton(
+                        onClick = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.ReorderBeaconOccurrences(
+                                    parentBeaconId = parentBeacon.id,
+                                    parentOccurrence = parent,
+                                    orderedChildren = reorderedBeaconChildren(index, index - 1),
+                                ),
+                            )
+                        },
+                        enabled = index > 0,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Beacon occurrence up")
+                    }
+                    Spacer(modifier = Modifier.size(2.dp))
+                    IconButton(
+                        onClick = {
+                            onEvent(
+                                ContextHierarchyScreenEvent.ReorderBeaconOccurrences(
+                                    parentBeaconId = parentBeacon.id,
+                                    parentOccurrence = parent,
+                                    orderedChildren = reorderedBeaconChildren(index, index + 1),
+                                ),
+                            )
+                        },
+                        enabled = index < beaconChildren.lastIndex,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move Beacon occurrence down")
+                    }
+                }
+            }
+            }
         }
         items(projectChildren, key = { "project-${it.structuralKey}" }) { item ->
             PresentationHierarchyRow(

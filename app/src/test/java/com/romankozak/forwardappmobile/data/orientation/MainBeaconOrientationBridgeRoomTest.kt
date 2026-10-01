@@ -5,12 +5,12 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -69,6 +69,311 @@ class MainBeaconOrientationBridgeRoomTest {
             database.close()
         }
     }
+
+    @Test
+    fun `bootstrap accepts caller generated Goal subject identity after CUT_OVER`() = runBlocking {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        try {
+            val goal =
+                Goal(
+                    id = "goal-cut-over",
+                    text = "Mapped goal",
+                    completed = false,
+                    createdAt = 10L,
+                    updatedAt = 20L,
+                )
+            val canonicalSubjectId = "caller-generated-subject"
+            val canonicalProjection =
+                goal.toEffectiveOrientation(
+                    LegacySubjectIdResolver {
+                        canonicalSubjectId
+                    },
+                )
+            val rows =
+                canonicalProjection.toCanonicalRows(
+                    Gson(),
+                    migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                )
+
+            database.goalDao().insertGoal(goal)
+            database.orientationDao().upsertManagedSubjects(listOf(rows.subject))
+            database.orientationDao().upsertOrientations(listOf(rows.orientation))
+            database.orientationDao().upsertAssessmentRevisions(listOf(rows.revision))
+            database.orientationDao().upsertAssessments(listOf(rows.assessment))
+            database.orientationDao().upsertLegacyMappings(
+                listOf(
+                    rows.mapping.copy(
+                        state = LegacySubjectMappingState.CUT_OVER.name,
+                    ),
+                ),
+            )
+
+            val dayThemeBootstrapper =
+                CanonicalDayThemeBootstrapper(
+                    database = database,
+                    legacyDao = database.dayThemeDocumentDao(),
+                    canonicalDao = database.canonicalDayThemeDao(),
+                )
+            val bootstrapper =
+                CanonicalOrientationBootstrapper(
+                    database = database,
+                    orientationDao = database.orientationDao(),
+                    goalDao = database.goalDao(),
+                    mainBeaconDao = database.mainBeaconDao(),
+                    arcQuestDao = database.arcQuestDao(),
+                    canonicalDayThemeDao = database.canonicalDayThemeDao(),
+                    canonicalDayThemeBootstrapper = dayThemeBootstrapper,
+                )
+
+            val report = bootstrapper.ensureBootstrapped()
+
+            assertTrue(
+                report.issues.none {
+                    it.sourceType == LegacyOrientationSourceType.GOAL.name &&
+                        it.sourceId == goal.id
+                },
+            )
+
+            val mapping =
+                database.orientationDao()
+                    .getAllLegacyMappings()
+                    .single {
+                        it.sourceType == LegacyOrientationSourceType.GOAL.name &&
+                            it.sourceId == goal.id
+                    }
+
+            assertEquals(canonicalSubjectId, mapping.subjectId)
+            assertEquals(LegacySubjectMappingState.CUT_OVER.name, mapping.state)
+            assertEquals(
+                "Mapped goal",
+                database.orientationDao().getManagedSubject(canonicalSubjectId)?.title,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `bootstrap accepts canonical Goal assessment after CUT_OVER even when legacy scoring shadow is stale`() =
+        runBlocking {
+            val database =
+                Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val goal =
+                    Goal(
+                        id = "goal-cut-over-assessment",
+                        text = "Mapped goal",
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                    )
+                val canonicalSubjectId = "caller-generated-assessment-subject"
+                val rows =
+                    goal.toEffectiveOrientation(
+                        LegacySubjectIdResolver { canonicalSubjectId },
+                    ).toCanonicalRows(
+                        Gson(),
+                        migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                    )
+
+                database.goalDao().insertGoal(goal)
+                database.orientationDao().upsertManagedSubjects(listOf(rows.subject))
+                database.orientationDao().upsertOrientations(listOf(rows.orientation))
+                database.orientationDao().upsertAssessmentRevisions(listOf(rows.revision))
+                database.orientationDao().upsertAssessments(
+                    listOf(
+                        rows.assessment.copy(
+                            importanceValue = "MEDIUM",
+                            importanceOrigin = "DERIVED",
+                            impactValue = "MEDIUM",
+                            impactOrigin = "DERIVED",
+                        ),
+                    ),
+                )
+                database.orientationDao().upsertLegacyMappings(
+                    listOf(rows.mapping.copy(state = LegacySubjectMappingState.CUT_OVER.name)),
+                )
+
+                val dayThemeBootstrapper =
+                    CanonicalDayThemeBootstrapper(
+                        database = database,
+                        legacyDao = database.dayThemeDocumentDao(),
+                        canonicalDao = database.canonicalDayThemeDao(),
+                    )
+                val bootstrapper =
+                    CanonicalOrientationBootstrapper(
+                        database = database,
+                        orientationDao = database.orientationDao(),
+                        goalDao = database.goalDao(),
+                        mainBeaconDao = database.mainBeaconDao(),
+                        arcQuestDao = database.arcQuestDao(),
+                        canonicalDayThemeDao = database.canonicalDayThemeDao(),
+                        canonicalDayThemeBootstrapper = dayThemeBootstrapper,
+                    )
+
+                val report = bootstrapper.ensureBootstrapped()
+
+                assertTrue(
+                    report.issues.none {
+                        it.sourceType == LegacyOrientationSourceType.GOAL.name &&
+                            it.sourceId == goal.id
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `bootstrap accepts canonical Goal lifecycle after CUT_OVER when legacy status shadow is stale`() =
+        runBlocking {
+            val database =
+                Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val goal =
+                    Goal(
+                        id = "goal-cut-over-lifecycle",
+                        text = "Mapped lifecycle goal",
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                    )
+                val canonicalSubjectId = "caller-generated-lifecycle-subject"
+                val rows =
+                    goal.toEffectiveOrientation(
+                        LegacySubjectIdResolver { canonicalSubjectId },
+                    ).toCanonicalRows(
+                        Gson(),
+                        migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                    )
+
+                database.goalDao().insertGoal(goal)
+                database.orientationDao().upsertManagedSubjects(listOf(rows.subject))
+                database.orientationDao().upsertOrientations(
+                    listOf(
+                        rows.orientation.copy(
+                            lifecycle = "IN_PROGRESS",
+                        ),
+                    ),
+                )
+                database.orientationDao().upsertAssessmentRevisions(listOf(rows.revision))
+                database.orientationDao().upsertAssessments(listOf(rows.assessment))
+                database.orientationDao().upsertLegacyMappings(
+                    listOf(rows.mapping.copy(state = LegacySubjectMappingState.CUT_OVER.name)),
+                )
+
+                val dayThemeBootstrapper =
+                    CanonicalDayThemeBootstrapper(
+                        database = database,
+                        legacyDao = database.dayThemeDocumentDao(),
+                        canonicalDao = database.canonicalDayThemeDao(),
+                    )
+                val bootstrapper =
+                    CanonicalOrientationBootstrapper(
+                        database = database,
+                        orientationDao = database.orientationDao(),
+                        goalDao = database.goalDao(),
+                        mainBeaconDao = database.mainBeaconDao(),
+                        arcQuestDao = database.arcQuestDao(),
+                        canonicalDayThemeDao = database.canonicalDayThemeDao(),
+                        canonicalDayThemeBootstrapper = dayThemeBootstrapper,
+                    )
+
+                val report = bootstrapper.ensureBootstrapped()
+
+                assertTrue(
+                    report.issues.none {
+                        it.sourceType == LegacyOrientationSourceType.GOAL.name &&
+                            it.sourceId == goal.id
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `bootstrap accepts deleted CUT_OVER Goal aggregate through tombstoned mapping identity`() =
+        runBlocking {
+            val database =
+                Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            try {
+                val goal =
+                    Goal(
+                        id = "goal-deleted-cut-over",
+                        text = "Deleted mapped goal",
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                        isDeleted = true,
+                        version = 1L,
+                    )
+                val canonicalSubjectId = "caller-generated-deleted-subject"
+                val rows =
+                    goal.toEffectiveOrientation(
+                        LegacySubjectIdResolver { canonicalSubjectId },
+                    ).toCanonicalRows(
+                        Gson(),
+                        migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                    )
+
+                database.goalDao().insertGoal(goal)
+                database.orientationDao().upsertManagedSubjects(
+                    listOf(rows.subject.copy(isDeleted = true)),
+                )
+                database.orientationDao().upsertOrientations(listOf(rows.orientation))
+                database.orientationDao().upsertAssessmentRevisions(listOf(rows.revision))
+                database.orientationDao().upsertAssessments(
+                    listOf(rows.assessment.copy(isDeleted = true)),
+                )
+                database.orientationDao().upsertLegacyMappings(
+                    listOf(
+                        rows.mapping.copy(
+                            state = LegacySubjectMappingState.CUT_OVER.name,
+                            isDeleted = true,
+                            version = rows.mapping.version + 1L,
+                        ),
+                    ),
+                )
+
+                val dayThemeBootstrapper =
+                    CanonicalDayThemeBootstrapper(
+                        database = database,
+                        legacyDao = database.dayThemeDocumentDao(),
+                        canonicalDao = database.canonicalDayThemeDao(),
+                    )
+                val bootstrapper =
+                    CanonicalOrientationBootstrapper(
+                        database = database,
+                        orientationDao = database.orientationDao(),
+                        goalDao = database.goalDao(),
+                        mainBeaconDao = database.mainBeaconDao(),
+                        arcQuestDao = database.arcQuestDao(),
+                        canonicalDayThemeDao = database.canonicalDayThemeDao(),
+                        canonicalDayThemeBootstrapper = dayThemeBootstrapper,
+                    )
+
+                val report = bootstrapper.ensureBootstrapped()
+
+                assertTrue(
+                    report.issues.none {
+                        it.sourceType == LegacyOrientationSourceType.GOAL.name &&
+                            it.sourceId == goal.id
+                    },
+                )
+            } finally {
+                database.close()
+            }
+        }
 
     @Test
     fun `bootstrap cuts over and repairs legacy common fields and membership from canonical`() = runBlocking {
@@ -272,17 +577,6 @@ class MainBeaconOrientationBridgeRoomTest {
                     ),
                 ),
             )
-            database.mainBeaconDao().insertParentLinks(
-                listOf(
-                    MainBeaconParentLink(
-                        parentBeaconId = parent.id,
-                        childBeaconId = child.id,
-                        order = 4L,
-                        createdAt = 30L,
-                        updatedAt = 30L,
-                    ),
-                ),
-            )
             database.mainBeaconDao().insertLevelStatuses(
                 listOf(
                     MainBeaconLevelStatus(
@@ -314,19 +608,6 @@ class MainBeaconOrientationBridgeRoomTest {
                 ),
                 database.mainBeaconDao().getAllGroupMembersSync(),
             )
-            assertEquals(
-                listOf(
-                    MainBeaconParentLink(
-                        parentBeaconId = parent.id,
-                        childBeaconId = child.id,
-                        order = 4L,
-                        createdAt = 30L,
-                        updatedAt = 30L,
-                    ),
-                ),
-                database.mainBeaconDao().getAllParentLinksSync(),
-            )
-
             val statuses = database.mainBeaconDao().getAllLevelStatusesSync()
             assertEquals(1, statuses.size)
             assertEquals("level-status-1", statuses.single().id)

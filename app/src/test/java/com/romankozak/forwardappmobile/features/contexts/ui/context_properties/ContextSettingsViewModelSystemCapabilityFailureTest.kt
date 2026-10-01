@@ -35,6 +35,7 @@ import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxR
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.InboxCapabilityState
+import com.romankozak.forwardappmobile.domain.structure.PresetParentOccurrenceRequiredException
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationV1
@@ -45,9 +46,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -86,11 +90,11 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                             id = id,
                             nameOverride = "Canonical Inbox",
                             descriptionOverride = "Canonical description",
-                            parentWorkspaceId = "canonical-parent",
                             roleCode = "canonical-role",
-                            workspaceOrder = 7L,
                             isDeleted = false,
                         ),
+                    projectedParentId = "canonical-parent",
+                    projectedOrder = 7L,
                 )
 
             advanceUntilIdle()
@@ -100,7 +104,6 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             val option =
                 fixture.viewModel.uiState.value.availableContexts.single { it.id == id }
             assertEquals("Canonical Inbox", option.name)
-            assertEquals("canonical-parent", option.parentId)
         }
 
     @Test
@@ -280,11 +283,34 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             coVerify(exactly = 0) { fixture.structureRepository.updateStructure(any()) }
         }
 
+    @Test
+    fun `target-only preset failure emits message without navigating away or reloading`() =
+        runTest(dispatcher) {
+            val fixture = fixture(SystemInboxDirectionState(null, null))
+            coEvery {
+                fixture.presetService.applyPresetToContext(SystemContexts.INBOX.raw, "child_preset")
+            } throws PresetParentOccurrenceRequiredException()
+            advanceUntilIdle()
+
+            val event = async(start = CoroutineStart.UNDISPATCHED) {
+                fixture.viewModel.events.first()
+            }
+            fixture.viewModel.onApplyPreset("child_preset")
+            advanceUntilIdle()
+
+            val result = event.await()
+            assertTrue(result is ContextSettingsEvent.ShowMessage)
+            assertTrue((result as ContextSettingsEvent.ShowMessage).message.isNotBlank())
+            coVerify(exactly = 0) { fixture.structureRepository.applyPresetToContext(any(), any()) }
+        }
+
     private fun fixture(
         canonical: SystemInboxDirectionState,
         historicalEnableAdvanced: Boolean? = null,
         backlogState: SystemBacklogLifecycleState = SystemBacklogLifecycleState(null, false),
         canonicalPresentation: CanonicalWorkspacePresentation? = null,
+        projectedParentId: String? = null,
+        projectedOrder: Long = 0L,
         id: String = SystemContexts.INBOX.raw,
         canonicalOrdinaryOwner: Boolean = false,
     ): Fixture {
@@ -338,9 +364,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                     id = id,
                     nameOverride = "Canonical ordinary",
                     descriptionOverride = null,
-                    parentWorkspaceId = null,
                     roleCode = null,
-                    workspaceOrder = 0L,
                     isDeleted = false,
                 )
             } else {
@@ -369,9 +393,9 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 context.copy(
                     name = requireNotNull(presentation.nameOverride),
                     description = presentation.descriptionOverride,
-                    parentId = presentation.parentWorkspaceId,
+                    parentId = projectedParentId,
                     roleCode = presentation.roleCode,
-                    order = presentation.workspaceOrder,
+                    order = projectedOrder,
                 )
             } ?: context
         val presented =

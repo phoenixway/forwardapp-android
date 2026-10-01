@@ -72,9 +72,11 @@ sealed interface ContextHierarchyScreenEvent {
         val orderedPlacementIds: List<PlacementId>,
     ) : ContextHierarchyScreenEvent
 
-    data class ReorderOrientationBeaconSiblings(
-        val parentNodeId: String,
-        val orderedBeaconIds: List<String>,
+    /** A complete, occurrence-native sibling set under one concrete Beacon parent. */
+    data class ReorderBeaconOccurrences(
+        val parentBeaconId: String,
+        val parentOccurrence: HierarchyOccurrenceRef,
+        val orderedChildren: List<Pair<String, HierarchyOccurrenceRef>>,
     ) : ContextHierarchyScreenEvent
 
     data class ReorderOrientationGroups(
@@ -118,7 +120,10 @@ sealed interface ContextHierarchyScreenEvent {
         val occurrence: HierarchyOccurrenceRef? = null,
     ) : ContextHierarchyScreenEvent
 
-    data class DeleteConfirm(val projectId: String) : ContextHierarchyScreenEvent
+    data class DeleteConfirm(
+        val projectId: String,
+        val occurrence: HierarchyOccurrenceRef,
+    ) : ContextHierarchyScreenEvent
 
     data class MoveConfirm(val newParentId: String?) : ContextHierarchyScreenEvent
 

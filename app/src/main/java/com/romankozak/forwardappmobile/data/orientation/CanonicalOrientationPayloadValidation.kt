@@ -7,12 +7,20 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.*
 import com.romankozak.forwardappmobile.shared.core.models.orientation.*
 
-internal fun validateCanonicalPayloadReferences(bundle: SnapshotBundle) {
-    val violations = validateCanonicalOrientationReferences(bundle.toCanonicalOrientationValidationGraph())
+internal fun validateCanonicalPayloadReferences(
+    bundle: SnapshotBundle,
+    validateEmbeddedWorkspaceTopology: Boolean,
+) {
+    val violations =
+        validateCanonicalOrientationReferences(
+            bundle.toCanonicalOrientationValidationGraph(validateEmbeddedWorkspaceTopology),
+        )
     require(violations.isEmpty()) { violations.first().message }
 }
 
-private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOrientationValidationGraph {
+private fun SnapshotBundle.toCanonicalOrientationValidationGraph(
+    validateEmbeddedWorkspaceTopology: Boolean,
+): CanonicalOrientationValidationGraph {
     val gson = Gson()
     return CanonicalOrientationValidationGraph(
         subjects = requireNotNull(managedSubjects).map {
@@ -37,7 +45,16 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOri
         },
         relations = requireNotNull(orientationRelations).map { it.toModel() },
         aspectRefs = requireNotNull(aspectOrientationRefs).map { it.toModel() },
-        workspaces = workspaces?.map { CanonicalWorkspaceReference(it.id, it.parentWorkspaceId) },
+        workspaces =
+            workspaces?.map {
+                CanonicalWorkspaceReference(
+                    id = it.id,
+                    parentWorkspaceId =
+                        it.parentWorkspaceId.takeIf {
+                            validateEmbeddedWorkspaceTopology
+                        },
+                )
+            },
         bindings = requireNotNull(workspaceBindings).map { it.toModel() },
         capabilities = requireNotNull(workspaceCapabilityInstances).map { it.toModel() },
         savedViews = requireNotNull(savedOrientationViews).map {

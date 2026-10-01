@@ -36,6 +36,16 @@ class CanonicalHierarchyPlacementSyncStore(
             it.toHierarchyPlacementStrict().toTransportSnapshot()
         }
 
+    /**
+     * Validate the complete persisted graph after target and H1 merge writes.
+     * The caller owns the transaction so target tombstones roll back on failure.
+     */
+    suspend fun requireCurrentHierarchyValid() {
+        database.requireValidProspectiveHierarchy(
+            dao.getAll().map { it.toHierarchyPlacementStrict() },
+        )
+    }
+
     suspend fun mergeIncoming(incoming: List<HierarchyPlacementSnapshot>?) {
         if (incoming == null || incoming.isEmpty()) return
 

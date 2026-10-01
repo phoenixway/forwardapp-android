@@ -54,11 +54,16 @@ class DialogStateManager
         fun onDeleteRequest(
             projectId: String,
             projectName: String,
+            occurrence: HierarchyOccurrenceRef,
         ) {
+            require(occurrence.target.id == projectId) {
+                "Delete occurrence does not match selected project"
+            }
             _dialogState.value =
                 DialogState.ConfirmDelete(
                     projectId = projectId,
                     projectName = projectName,
+                    occurrence = occurrence,
                 )
         }
 

@@ -3,11 +3,13 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommandService
+import com.romankozak.forwardappmobile.data.hierarchy.LegacyBeaconHierarchyTargetResolver
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommand
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyReadAdapter
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
+import com.romankozak.forwardappmobile.data.hierarchy.toCanonicalV2WorkspacePresentation
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
@@ -29,6 +31,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ContextActionsUseCaseTest {
@@ -41,6 +44,7 @@ class ContextActionsUseCaseTest {
     private val syncRepository = mockk<SyncRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
     private val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
+    private val beaconTargetResolver = mockk<LegacyBeaconHierarchyTargetResolver>(relaxed = true)
 
     private val useCase =
         ContextActionsUseCase(
@@ -52,6 +56,7 @@ class ContextActionsUseCaseTest {
             syncRepository = syncRepository,
             settingsRepository = settingsRepository,
             mainBeaconRepository = mainBeaconRepository,
+            beaconTargetResolver = beaconTargetResolver,
             ioDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
         )
 
@@ -226,24 +231,26 @@ class ContextActionsUseCaseTest {
     }
 
     @Test
-    fun deleteDelegatesSubtreeTombstoningToCanonicalWorkspaceOwner() = runTest {
-        useCase.onDeleteProjectConfirmed(projectId = "root")
+    fun deleteDelegatesExactOccurrenceSubtreeWithoutTargetDeletion() = runTest {
+        val occurrence =
+            HierarchyOccurrenceRef(
+                placementId = PlacementId("selected-link"),
+                target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "root"),
+                parentPlacementId = null,
+                placementKind = PlacementKind.LINK,
+                siblingOrder = 0L,
+            )
+        coEvery { hierarchyOccurrenceCommandService.occurrence(occurrence.placementId) } returns occurrence
+
+        useCase.onDeleteProjectConfirmed(projectId = "root", occurrence = occurrence)
 
         coVerify(exactly = 1) {
-            canonicalWorkspaceRepository.tombstoneSubtree(
-                rootId = "root",
+            hierarchyOccurrenceCommandService.removeOccurrenceSubtree(
+                HierarchyOccurrenceCommand.RemoveOccurrenceSubtree(occurrence.placementId),
                 now = any(),
             )
         }
-    }
-
-    @Test
-    fun deleteDoesNotUseLegacyContextSubtreeMutation() = runTest {
-        useCase.onDeleteProjectConfirmed(projectId = "root")
-
-        coVerify(exactly = 0) {
-            contextRepository.deleteContextsByIds(any())
-        }
+        coVerify(exactly = 0) { contextRepository.deleteContextsByIds(any()) }
     }
 
     @Test
@@ -267,13 +274,106 @@ class ContextActionsUseCaseTest {
         }
     }
 
+    @Test
+    fun reorderBeaconOccurrencesDelegatesExactLinkOwnedChildren() = runTest {
+        val parentTarget = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "parent-subject")
+        val childTarget = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "child-subject")
+        val parent = HierarchyOccurrenceRef(
+            placementId = PlacementId("parent-link"),
+            target = parentTarget,
+            parentPlacementId = null,
+            placementKind = PlacementKind.LINK,
+            siblingOrder = 1L,
+        )
+        val childPrimary = HierarchyOccurrenceRef(
+            placementId = PlacementId("child-primary"),
+            target = childTarget,
+            parentPlacementId = parent.placementId,
+            placementKind = PlacementKind.PRIMARY,
+            siblingOrder = 0L,
+        )
+        val childLink = childPrimary.copy(
+            placementId = PlacementId("child-link"),
+            placementKind = PlacementKind.LINK,
+            siblingOrder = 1L,
+        )
+        coEvery { beaconTargetResolver.resolve("parent-beacon") } returns parentTarget
+        coEvery { beaconTargetResolver.resolve("child-beacon") } returns childTarget
+        for (occurrence in listOf(parent, childPrimary, childLink)) {
+            coEvery { hierarchyOccurrenceCommandService.occurrence(occurrence.placementId) } returns occurrence
+        }
+
+        useCase.reorderBeaconOccurrences(
+            parentBeaconId = "parent-beacon",
+            parentOccurrence = parent,
+            orderedChildren = listOf("child-beacon" to childLink, "child-beacon" to childPrimary),
+        )
+
+        coVerify(exactly = 1) {
+            hierarchyOccurrenceCommandService.reorderSiblings(
+                HierarchyOccurrenceCommand.ReorderSiblings(
+                    parentPlacementId = parent.placementId,
+                    orderedPlacementIds = listOf(childLink.placementId, childPrimary.placementId),
+                ),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun reorderBeaconOccurrencesRejectsTargetMismatchBeforeWriting() = runTest {
+        val parentTarget = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "parent-subject")
+        val parent = HierarchyOccurrenceRef(
+            placementId = PlacementId("parent-link"),
+            target = parentTarget,
+            parentPlacementId = null,
+            placementKind = PlacementKind.LINK,
+            siblingOrder = 0L,
+        )
+        val wrongChild = HierarchyOccurrenceRef(
+            placementId = PlacementId("wrong-child-link"),
+            target = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "other-subject"),
+            parentPlacementId = parent.placementId,
+            placementKind = PlacementKind.LINK,
+            siblingOrder = 0L,
+        )
+        coEvery { beaconTargetResolver.resolve("parent-beacon") } returns parentTarget
+        coEvery { beaconTargetResolver.resolve("child-beacon") } returns
+            HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "child-subject")
+        coEvery { hierarchyOccurrenceCommandService.occurrence(parent.placementId) } returns parent
+
+        val failure = runCatching {
+            useCase.reorderBeaconOccurrences(
+                parentBeaconId = "parent-beacon",
+                parentOccurrence = parent,
+                orderedChildren = listOf("child-beacon" to wrongChild),
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalArgumentException)
+        coVerify(exactly = 0) {
+            hierarchyOccurrenceCommandService.reorderSiblings(any(), any())
+        }
+    }
+
+    @Test
+    fun v2GroupPresentationReorderDelegatesToPresentationOnlyRepositoryRoute() = runTest {
+
+        useCase.reorderOrientationGroups(listOf("group-b", "group-a"))
+
+        coVerify(exactly = 1) {
+            mainBeaconRepository.reorderGroups(listOf("group-b", "group-a"))
+        }
+    }
+
     private fun v2Read(
         placements: List<HierarchyPlacement>,
         presentations: List<HierarchyContextPresentationNode>,
     ) =
         CanonicalV2ProductionHierarchyReadAdapter().read(
             placements = placements,
-            admittedWorkspacePresentations = presentations,
+            admittedWorkspacePresentations =
+                presentations.map { it.toCanonicalV2WorkspacePresentation() },
             managedSubjects = emptyList(),
         )
 

@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
@@ -10,7 +10,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -30,7 +32,11 @@ class LegacyHierarchyRestoreTranslatorTest {
         val source =
             SnapshotBundle(
                 exportedAt = 100L,
-                workspaces = listOf(workspace("root")),
+                workspaces =
+                    listOf(
+                        workspace("root"),
+                        workspace("child", parentId = "root", order = 7L),
+                    ),
             )
 
         val result =
@@ -41,6 +47,46 @@ class LegacyHierarchyRestoreTranslatorTest {
             )
 
         assertNull(result.hierarchyPlacements)
+        val child = requireNotNull(result.workspaces).single { it.id == "child" }
+        assertEquals("root", child.parentWorkspaceId)
+        assertEquals(7L, child.workspaceOrder)
+    }
+
+    @Test
+    fun `V2 translation reads topology only from source evidence`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                workspaces =
+                    listOf(
+                        workspace("root", order = 3L),
+                        workspace("child", parentId = "root", order = 7L),
+                    ),
+            )
+        val neutralCanonical =
+            source.copy(
+                workspaces =
+                    requireNotNull(source.workspaces).map {
+                        it.copy(parentWorkspaceId = null, workspaceOrder = 0L)
+                    },
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = neutralCanonical,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val placements = requireNotNull(result.hierarchyPlacements)
+        val root = placements.single { it.targetId == "root" }
+        val child = placements.single { it.targetId == "child" }
+        assertEquals(root.id, child.parentPlacementId)
+        assertTrue(
+            requireNotNull(result.workspaces).all {
+                it.parentWorkspaceId == null && it.workspaceOrder == 0L
+            },
+        )
     }
 
     @Test
@@ -49,9 +95,40 @@ class LegacyHierarchyRestoreTranslatorTest {
             SnapshotBundle(
                 exportedAt = 100L,
                 workspaces = listOf(workspace("root")),
+                mainBeacons =
+                    listOf(
+                        beacon(
+                            id = "legacy-beacon-child",
+                            parentId = "legacy-beacon-parent",
+                            order = 17L,
+                        ),
+                    ),
                 hierarchyPlacements = listOf(h1("native", "root")),
                 hierarchyPlacementGroupScopes = emptyList(),
                 hierarchyPlacementLinkedAppearances = emptyList(),
+                contextParentLinks =
+                    listOf(
+                        ContextParentLinkSnapshot(
+                            parentContextId = "legacy-parent",
+                            childContextId = "legacy-child",
+                            order = 0L,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        ),
+                    ),
+                mainBeaconParentLinks =
+                    listOf(
+                        MainBeaconParentLinkSnapshot(
+                            parentBeaconId = "legacy-beacon-parent",
+                            childBeaconId = "legacy-beacon-child",
+                            order = 0L,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                        ),
+                    ),
             )
         val nativeResult =
             subject.translate(
@@ -62,6 +139,16 @@ class LegacyHierarchyRestoreTranslatorTest {
         assertEquals(native.hierarchyPlacements, nativeResult.hierarchyPlacements)
         assertTrue(requireNotNull(nativeResult.hierarchyPlacementGroupScopes).isEmpty())
         assertTrue(requireNotNull(nativeResult.hierarchyPlacementLinkedAppearances).isEmpty())
+        assertTrue(nativeResult.contextParentLinks.isEmpty())
+        assertTrue(nativeResult.mainBeaconParentLinks.isEmpty())
+        assertTrue(
+            nativeResult.mainBeacons.all {
+                it.parentBeaconId == null && it.order == 0L
+            },
+        )
+        val restoredWorkspace = requireNotNull(nativeResult.workspaces).single()
+        assertNull(restoredWorkspace.parentWorkspaceId)
+        assertEquals(0L, restoredWorkspace.workspaceOrder)
 
         val explicitEmpty =
             native.copy(
@@ -117,6 +204,10 @@ class LegacyHierarchyRestoreTranslatorTest {
         val expectedH1 = requireNotNull(translated.hierarchyPlacements)
         val expectedLinked =
             requireNotNull(translated.hierarchyPlacementLinkedAppearances)
+        requireNotNull(translated.workspaces).forEach { workspace ->
+            assertNull(workspace.parentWorkspaceId)
+            assertEquals(0L, workspace.workspaceOrder)
+        }
 
         val preV177 =
             legacy.copy(
@@ -238,6 +329,80 @@ class LegacyHierarchyRestoreTranslatorTest {
     }
 
     @Test
+    fun `historical Workspace JSON keeps embedded topology for Restore translation`() {
+        val json =
+            """
+            {
+              "exportedAt": 100,
+              "workspaces": [
+                {
+                  "id": "root",
+                  "nameOverride": "root",
+                  "descriptionOverride": null,
+                  "parentWorkspaceId": null,
+                  "roleCode": null,
+                  "workspaceOrder": 3,
+                  "createdAt": 1,
+                  "updatedAt": 1,
+                  "syncedAt": null,
+                  "isDeleted": false,
+                  "version": 1,
+                  "provenance": "CANONICAL_ONLY",
+                  "sourceContextId": null
+                },
+                {
+                  "id": "child",
+                  "nameOverride": "child",
+                  "descriptionOverride": null,
+                  "parentWorkspaceId": "root",
+                  "roleCode": null,
+                  "workspaceOrder": 17,
+                  "createdAt": 1,
+                  "updatedAt": 1,
+                  "syncedAt": null,
+                  "isDeleted": false,
+                  "version": 1,
+                  "provenance": "CANONICAL_ONLY",
+                  "sourceContextId": null
+                }
+              ]
+            }
+            """.trimIndent()
+
+        val decoded = Gson().fromJson(json, SnapshotBundle::class.java)
+        val decodedChild = requireNotNull(decoded.workspaces).single { it.id == "child" }
+
+        assertEquals("root", decodedChild.parentWorkspaceId)
+        assertEquals(17L, decodedChild.workspaceOrder)
+
+        val canonical =
+            decoded.copy(
+                workspaces =
+                    requireNotNull(decoded.workspaces).map {
+                        it.copy(parentWorkspaceId = null, workspaceOrder = 0L)
+                    },
+            )
+
+        val translated =
+            subject.translate(
+                source = decoded,
+                canonical = canonical,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val placements = requireNotNull(translated.hierarchyPlacements)
+        val rootPlacement = placements.single { it.targetId == "root" }
+        val childPlacement = placements.single { it.targetId == "child" }
+
+        assertEquals(rootPlacement.id, childPlacement.parentPlacementId)
+        assertTrue(
+            requireNotNull(translated.workspaces).all {
+                it.parentWorkspaceId == null && it.workspaceOrder == 0L
+            },
+        )
+    }
+
+    @Test
     fun `V2 Workspace restore translation is deterministic and preserves parent occurrence`() {
         val firstSource =
             SnapshotBundle(
@@ -289,6 +454,112 @@ class LegacyHierarchyRestoreTranslatorTest {
         assertEquals(root.id, child.parentPlacementId)
         assertEquals("PRIMARY", root.placementKind)
         assertEquals("PRIMARY", child.placementKind)
+    }
+
+    @Test
+    fun `historical Workspace with missing parent is deterministically projected as root`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                workspaces =
+                    listOf(
+                        workspace("child", parentId = "missing-parent", order = 17L),
+                    ),
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = source,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val placement = requireNotNull(result.hierarchyPlacements).single()
+        assertEquals("child", placement.targetId)
+        assertNull(placement.parentPlacementId)
+        assertEquals("LINK", placement.placementKind)
+        assertEquals(0L, placement.siblingOrder)
+
+        val restoredWorkspace = requireNotNull(result.workspaces).single()
+        assertNull(restoredWorkspace.parentWorkspaceId)
+        assertEquals(0L, restoredWorkspace.workspaceOrder)
+    }
+
+    @Test
+    fun `historical cyclic Workspace parent evidence does not invent primary authority`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                workspaces =
+                    listOf(
+                        workspace("a", parentId = "b", order = 0L),
+                        workspace("b", parentId = "a", order = 0L),
+                    ),
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = source,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        assertTrue(requireNotNull(result.hierarchyPlacements).isEmpty())
+        assertTrue(requireNotNull(result.hierarchyPlacementGroupScopes).isEmpty())
+        assertTrue(requireNotNull(result.hierarchyPlacementLinkedAppearances).isEmpty())
+
+        assertTrue(
+            requireNotNull(result.workspaces).all {
+                it.parentWorkspaceId == null && it.workspaceOrder == 0L
+            },
+        )
+    }
+
+    @Test
+    fun `historical Workspace order anomalies deterministically densify sibling order`() {
+        val firstSource =
+            SnapshotBundle(
+                exportedAt = 100L,
+                workspaces =
+                    listOf(
+                        workspace("z", order = -5L),
+                        workspace("a", order = -5L),
+                        workspace("m", order = 99L),
+                    ),
+            )
+        val secondSource =
+            firstSource.copy(
+                workspaces = requireNotNull(firstSource.workspaces).reversed(),
+            )
+
+        val first =
+            subject.translate(
+                source = firstSource,
+                canonical = firstSource,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+        val second =
+            subject.translate(
+                source = secondSource,
+                canonical = secondSource,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        assertEquals(first.hierarchyPlacements, second.hierarchyPlacements)
+
+        val roots =
+            requireNotNull(first.hierarchyPlacements)
+                .filter { it.parentPlacementId == null }
+                .sortedBy { it.siblingOrder }
+
+        assertEquals(listOf("a", "z", "m"), roots.map { it.targetId })
+        assertEquals(listOf(0L, 1L, 2L), roots.map { it.siblingOrder })
+
+        assertTrue(
+            requireNotNull(first.workspaces).all {
+                it.parentWorkspaceId == null && it.workspaceOrder == 0L
+            },
+        )
     }
 
     @Test
@@ -365,6 +636,150 @@ class LegacyHierarchyRestoreTranslatorTest {
     }
 
     @Test
+    fun `V2 restore consumes embedded Beacon topology into H1 and neutralizes transport rows`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                mainBeacons =
+                    listOf(
+                        beacon("parent"),
+                        beacon("child", parentId = "parent", order = 13L),
+                    ),
+                managedSubjects =
+                    listOf(
+                        managedSubject("parent-subject"),
+                        managedSubject("child-subject"),
+                    ),
+                legacySubjectMappings =
+                    listOf(
+                        beaconMapping("parent", "parent-subject"),
+                        beaconMapping("child", "child-subject"),
+                    ),
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = source,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val placements = requireNotNull(result.hierarchyPlacements)
+        val parentPlacement = placements.single { it.targetId == "parent-subject" }
+        val childPlacement = placements.single { it.targetId == "child-subject" }
+        assertEquals(parentPlacement.id, childPlacement.parentPlacementId)
+        assertTrue(result.mainBeacons.all { it.parentBeaconId == null && it.order == 0L })
+    }
+
+    @Test
+    fun `historical Beacon with missing parent is deterministically projected as root without primary authority`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                mainBeacons = listOf(beacon("child", parentId = "missing-parent", order = 17L)),
+                managedSubjects = listOf(managedSubject("child-subject")),
+                legacySubjectMappings = listOf(beaconMapping("child", "child-subject")),
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = source,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val placement = requireNotNull(result.hierarchyPlacements).single()
+        assertEquals("child-subject", placement.targetId)
+        assertNull(placement.parentPlacementId)
+        assertEquals("LINK", placement.placementKind)
+        assertEquals(0L, placement.siblingOrder)
+        assertTrue(result.mainBeacons.all { it.parentBeaconId == null && it.order == 0L })
+    }
+
+    @Test
+    fun `historical cyclic Beacon parent evidence does not invent primary authority`() {
+        val source =
+            SnapshotBundle(
+                exportedAt = 100L,
+                mainBeacons =
+                    listOf(
+                        beacon("a", parentId = "b"),
+                        beacon("b", parentId = "a"),
+                    ),
+                managedSubjects =
+                    listOf(
+                        managedSubject("a-subject"),
+                        managedSubject("b-subject"),
+                    ),
+                legacySubjectMappings =
+                    listOf(
+                        beaconMapping("a", "a-subject"),
+                        beaconMapping("b", "b-subject"),
+                    ),
+            )
+
+        val result =
+            subject.translate(
+                source = source,
+                canonical = source,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        assertTrue(requireNotNull(result.hierarchyPlacements).isEmpty())
+        assertTrue(requireNotNull(result.hierarchyPlacementGroupScopes).isEmpty())
+        assertTrue(requireNotNull(result.hierarchyPlacementLinkedAppearances).isEmpty())
+        assertTrue(result.mainBeacons.all { it.parentBeaconId == null && it.order == 0L })
+    }
+
+    @Test
+    fun `historical Beacon order anomalies deterministically densify sibling order`() {
+        val firstSource =
+            SnapshotBundle(
+                exportedAt = 100L,
+                mainBeacons =
+                    listOf(
+                        beacon("z", order = -5L),
+                        beacon("a", order = -5L),
+                        beacon("m", order = 99L),
+                    ),
+                managedSubjects =
+                    listOf(
+                        managedSubject("z-subject"),
+                        managedSubject("a-subject"),
+                        managedSubject("m-subject"),
+                    ),
+                legacySubjectMappings =
+                    listOf(
+                        beaconMapping("z", "z-subject"),
+                        beaconMapping("a", "a-subject"),
+                        beaconMapping("m", "m-subject"),
+                    ),
+            )
+        val secondSource = firstSource.copy(mainBeacons = firstSource.mainBeacons.reversed())
+
+        val first =
+            subject.translate(
+                source = firstSource,
+                canonical = firstSource,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+        val second =
+            subject.translate(
+                source = secondSource,
+                canonical = secondSource,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+            )
+
+        val firstOrder = requireNotNull(first.hierarchyPlacements).map { it.targetId to it.siblingOrder }
+        val secondOrder = requireNotNull(second.hierarchyPlacements).map { it.targetId to it.siblingOrder }
+        assertEquals(
+            listOf("a-subject" to 0L, "z-subject" to 1L, "m-subject" to 2L),
+            firstOrder,
+        )
+        assertEquals(firstOrder, secondOrder)
+    }
+
+    @Test
     fun `additional parent preserves duplicate LINK occurrence subtree`() {
         val source =
             SnapshotBundle(
@@ -418,6 +833,7 @@ class LegacyHierarchyRestoreTranslatorTest {
             requireNotNull(result.hierarchyPlacementLinkedAppearances)
         assertEquals(listOf(linkedShared.id), linkedProvenance.map { it.placementId })
         assertTrue(linkedProvenance.none { it.placementId == linkedLeaf.id })
+        assertTrue(result.contextParentLinks.isEmpty())
     }
 
     @Test
@@ -549,7 +965,7 @@ class LegacyHierarchyRestoreTranslatorTest {
         id: String,
         parentId: String? = null,
         order: Long = 0L,
-    ) = WorkspaceEntity(
+    ) = WorkspaceSnapshot(
         id = id,
         nameOverride = id,
         descriptionOverride = null,
@@ -565,7 +981,11 @@ class LegacyHierarchyRestoreTranslatorTest {
         sourceContextId = null,
     )
 
-    private fun beacon(id: String) =
+    private fun beacon(
+        id: String,
+        parentId: String? = null,
+        order: Long = 0L,
+    ) =
         MainBeaconSnapshot(
             id = id,
             title = id,
@@ -578,8 +998,8 @@ class LegacyHierarchyRestoreTranslatorTest {
             readinessStatus = "READY",
             blockerText = null,
             nextActionText = null,
-            parentBeaconId = null,
-            order = 0L,
+            parentBeaconId = parentId,
+            order = order,
             isExpanded = true,
             updatedAt = 1L,
             createdAt = 1L,

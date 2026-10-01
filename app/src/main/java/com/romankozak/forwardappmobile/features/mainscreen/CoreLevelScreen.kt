@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -114,7 +115,7 @@ private fun MainBeaconCardUi.structuralParentNodeId(): String? =
     if (placementId != null) {
         parentPlacementId
     } else {
-        parentBeaconId
+        parentPresentationId
     }
 
 private fun MainBeaconCardUi.isStructurallyInGroup(groupId: String): Boolean =
@@ -300,7 +301,10 @@ fun CoreLevelScreen(
                 }
             uiState.beacons
                 .filterNot { it.id in excludedIds }
-                .map { beacon -> MainBeaconSelectableItem(id = beacon.id, label = beacon.title) }
+                .mapNotNull { beacon ->
+                    val optionId = beacon.placementId
+                    optionId?.let { MainBeaconSelectableItem(id = it, label = beacon.title) }
+                }
         }
     Scaffold(
         containerColor = Color.Transparent,
@@ -433,7 +437,10 @@ fun CoreLevelScreen(
                                             onToggleExpanded = {
                                                 viewModel.setBeaconExpanded(beacon.id, !beacon.isExpanded)
                                             },
-                                            onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                            onEditClick = {
+                                                editingBeacon =
+                                                    viewModel.buildEditorState(beacon.id, beacon.placementId)
+                                            },
                                             onContextClick = { contextId ->
                                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                             },
@@ -445,8 +452,8 @@ fun CoreLevelScreen(
                                             ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            onEditBeacon = { beaconId ->
-                                                editingBeacon = viewModel.buildEditorState(beaconId)
+                                            onEditBeacon = { beaconId, placementId ->
+                                                editingBeacon = viewModel.buildEditorState(beaconId, placementId)
                                             },
                                             onBeaconExpandedChange = viewModel::setBeaconExpanded,
                                             onContextClick = { contextId ->
@@ -493,7 +500,10 @@ fun CoreLevelScreen(
                                             onToggleExpanded = {
                                                 viewModel.setBeaconExpanded(beacon.id, !beacon.isExpanded)
                                             },
-                                            onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                            onEditClick = {
+                                                editingBeacon =
+                                                    viewModel.buildEditorState(beacon.id, beacon.placementId)
+                                            },
                                             onContextClick = { contextId ->
                                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                             },
@@ -505,8 +515,8 @@ fun CoreLevelScreen(
                                             ownerLabels = uiState.ownerLabels,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            onEditBeacon = { beaconId ->
-                                                editingBeacon = viewModel.buildEditorState(beaconId)
+                                            onEditBeacon = { beaconId, placementId ->
+                                                editingBeacon = viewModel.buildEditorState(beaconId, placementId)
                                             },
                                             onBeaconExpandedChange = viewModel::setBeaconExpanded,
                                             onContextClick = { contextId ->
@@ -573,10 +583,29 @@ fun CoreLevelScreen(
                 },
             onDismiss = { editingBeacon = null },
             onStateChange = { editingBeacon = it },
-            onEditGroups = { showGroupPicker = true },
-            onEditParentBeacon = { showParentBeaconPicker = true },
+            onEditGroups = {
+                if (editor.id != null) {
+                    Toast.makeText(context, "Use a hierarchy occurrence command to change Beacon Groups", Toast.LENGTH_LONG).show()
+                } else {
+                    showGroupPicker = true
+                }
+            },
+            onEditParentBeacon = {
+                if (editor.id != null) {
+                    Toast.makeText(context, "Use a hierarchy occurrence command to move this Beacon", Toast.LENGTH_LONG).show()
+                } else {
+                    showParentBeaconPicker = true
+                }
+            },
             onClearParentBeacon = {
-                editingBeacon = editingBeacon?.copy(parentBeaconId = null)
+                if (editor.id != null) {
+                    Toast.makeText(context, "Use a hierarchy occurrence command to move this Beacon", Toast.LENGTH_LONG).show()
+                } else {
+                    editingBeacon = editingBeacon?.copy(
+                        parentBeaconId = null,
+                        parentPlacementId = null,
+                    )
+                }
             },
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
@@ -711,10 +740,17 @@ fun CoreLevelScreen(
         MainBeaconMultiSelectDialog(
             title = "Parent beacon",
             options = parentBeaconOptions,
-            selectedIds = editingBeacon?.parentBeaconId?.let { setOf(it) }.orEmpty(),
+            selectedIds =
+                editingBeacon?.parentPlacementId?.let { setOf(it) }.orEmpty(),
             onDismiss = { showParentBeaconPicker = false },
             onConfirm = { selected ->
-                editingBeacon = editingBeacon?.copy(parentBeaconId = selected.firstOrNull())
+                val selectedId = selected.firstOrNull()
+                val selectedBeacon =
+                    uiState.beacons.firstOrNull { it.placementId == selectedId }
+                editingBeacon = editingBeacon?.copy(
+                    parentBeaconId = selectedBeacon?.id,
+                    parentPlacementId = selectedBeacon?.placementId,
+                )
                 showParentBeaconPicker = false
             },
         )
@@ -798,7 +834,7 @@ fun CoreLevelScreen(
         isVisible = isScopeLinksSheetVisible,
         projectOptions =
             uiState.allProjects.map {
-                ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                ProjectOption(id = it.id, name = it.name)
             },
         attachmentOptions = attachmentOptions,
         linkedProjectIds = uiState.projects.map { it.id },
@@ -884,7 +920,7 @@ fun CoreLevelScreen(
         LinkedTargetsPickerDialog(
             contextOptions =
                 uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                    ProjectOption(id = it.id, name = it.name)
                 },
             attachmentOptions =
                 attachmentOptions.map {
@@ -1061,7 +1097,7 @@ private fun NestedBeaconCards(
     ownerLabels: Map<String, String>,
     attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
     connectionItems: List<ConnectionItemUi>,
-    onEditBeacon: (String) -> Unit,
+    onEditBeacon: (String, String?) -> Unit,
     onBeaconExpandedChange: (String, Boolean) -> Unit,
     onContextClick: (String) -> Unit,
     onConnectionClick: (ConnectionItemUi) -> Unit,
@@ -1101,7 +1137,7 @@ private fun NestedBeaconCards(
                 onToggleExpanded = {
                     onBeaconExpandedChange(beacon.id, !beacon.isExpanded)
                 },
-                onEditClick = { onEditBeacon(beacon.id) },
+                onEditClick = { onEditBeacon(beacon.id, beacon.placementId) },
                 onContextClick = onContextClick,
                 onConnectionClick = onConnectionClick,
             )

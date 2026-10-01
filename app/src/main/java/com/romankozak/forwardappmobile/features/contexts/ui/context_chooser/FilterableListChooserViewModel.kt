@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_chooser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.hierarchy.ChooserHierarchyItem
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ChooserProjection
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ReactiveHierarchyReadSource
@@ -15,8 +16,65 @@ import javax.inject.Inject
 
 data class ChooserUiState(
     val topLevelProjects: List<ChooserHierarchyItem> = emptyList(),
+    // Keys are PlacementId.value, never Workspace target IDs.
     val childMap: Map<String, List<ChooserHierarchyItem>> = emptyMap(),
 )
+
+/**
+ * Occurrence-native chooser tree. A Workspace appearing twice must retain
+ * independent ancestry and expansion state. Non-Workspace parents are
+ * presentation boundaries, not synthetic Workspace target parents.
+ */
+internal fun buildChooserUiState(
+    projects: List<ChooserHierarchyItem>,
+    filter: String,
+    showDescendants: Boolean,
+): ChooserUiState {
+    val byPlacement = projects.associateBy { it.occurrence.placementId.value }
+    val children = projects
+        .filter { project ->
+            project.occurrence.parentPlacementId?.value in byPlacement
+        }
+        .groupBy { project -> requireNotNull(project.occurrence.parentPlacementId).value }
+        .mapValues { (_, entries) -> entries.sortedBy { it.order } }
+    val roots = projects
+        .filter { project ->
+            project.occurrence.parentPlacementId?.value !in byPlacement
+        }
+        .sortedBy { it.order }
+
+    if (filter.isBlank()) {
+        return ChooserUiState(topLevelProjects = roots, childMap = children)
+    }
+
+    val matching = projects.filter { it.name.contains(filter, ignoreCase = true) }
+    val visiblePlacements = mutableSetOf<String>()
+    matching.forEach { match ->
+        var current: ChooserHierarchyItem? = match
+        while (current != null && visiblePlacements.add(current.occurrence.placementId.value)) {
+            current = current.occurrence.parentPlacementId?.value?.let(byPlacement::get)
+        }
+    }
+
+    if (showDescendants) {
+        val queue = ArrayDeque(matching)
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            children[current.occurrence.placementId.value].orEmpty().forEach { child ->
+                if (visiblePlacements.add(child.occurrence.placementId.value)) {
+                    queue.add(child)
+                }
+            }
+        }
+    }
+
+    return ChooserUiState(
+        topLevelProjects = roots.filter { it.occurrence.placementId.value in visiblePlacements },
+        childMap = children.mapValues { (_, entries) ->
+            entries.filter { it.occurrence.placementId.value in visiblePlacements }
+        },
+    )
+}
 
 @HiltViewModel
 class FilterableListChooserViewModel
@@ -39,7 +97,7 @@ class FilterableListChooserViewModel
         private val allProjects =
             combine(
                 canonicalV2ReactiveHierarchyReadSource.observe(),
-                canonicalV2ReactiveHierarchyReadSource.observeWorkspacePresentations(),
+                canonicalV2ReactiveHierarchyReadSource.observeCanonicalWorkspacePresentations(),
             ) { read, presentations ->
                 canonicalV2ChooserProjection.project(
                     read = read,
@@ -59,79 +117,11 @@ class FilterableListChooserViewModel
                 allProjects,
                 showDescendants,
             ) { filter, projects, shouldShowDescendants ->
-                val allProjectsById = projects.associateBy { it.id }
-                val displayParentById =
-                    projects.associate { project ->
-                        project.id to project.parentId
-                    }
-
-                if (filter.isBlank()) {
-                    val fullChildMap =
-                        projects
-                            .mapNotNull { project ->
-                                displayParentById[project.id]?.let { parentId -> parentId to project }
-                            }.groupBy(
-                                keySelector = { it.first },
-                                valueTransform = { it.second },
-                            )
-                            .mapValues { (_, children) -> children.sortedBy { it.order } }
-                    val fullTopLevelProjects =
-                        projects
-                            .filter { displayParentById[it.id] == null }
-                            .sortedBy { it.order }
-                    ChooserUiState(topLevelProjects = fullTopLevelProjects, childMap = fullChildMap)
-                } else {
-                    val matchingProjects = projects.filter { it.name.contains(filter, ignoreCase = true) }
-
-                    val visibleIds = mutableSetOf<String>()
-
-                    matchingProjects.forEach { matchedProject ->
-                        val path = mutableSetOf<String>()
-                        var current: ChooserHierarchyItem? = matchedProject
-                        while (current != null && current.id !in path) {
-                            path.add(current.id)
-                            visibleIds.add(current.id)
-                            current = displayParentById[current.id]?.let { parentId -> allProjectsById[parentId] }
-                        }
-                    }
-
-                    if (shouldShowDescendants) {
-                        val fullChildMapForTraversal =
-                            projects
-                                .mapNotNull { project ->
-                                    displayParentById[project.id]?.let { parentId -> parentId to project }
-                                }.groupBy(
-                                    keySelector = { it.first },
-                                    valueTransform = { it.second },
-                                )
-                        val descendantsQueue = ArrayDeque(matchingProjects)
-
-                        while (descendantsQueue.isNotEmpty()) {
-                            val current = descendantsQueue.removeFirst()
-                            visibleIds.add(current.id)
-                            val children = fullChildMapForTraversal[current.id] ?: emptyList()
-                            descendantsQueue.addAll(children)
-                        }
-                    }
-                    val visibleProjects = projects.filter { project -> project.id in visibleIds }
-
-                    val filteredChildMap =
-                        visibleProjects
-                            .mapNotNull { project ->
-                                displayParentById[project.id]?.let { parentId -> parentId to project }
-                            }.groupBy(
-                                keySelector = { it.first },
-                                valueTransform = { it.second },
-                            )
-                            .mapValues { entry -> entry.value.sortedBy { child -> child.order } }
-
-                    val filteredTopLevelProjects =
-                        visibleProjects
-                            .filter { project -> displayParentById[project.id] == null }
-                            .sortedBy { project -> project.order }
-
-                    ChooserUiState(topLevelProjects = filteredTopLevelProjects, childMap = filteredChildMap)
-                }
+                buildChooserUiState(
+                    projects = projects,
+                    filter = filter,
+                    showDescendants = shouldShowDescendants,
+                )
             }.flowOn(Dispatchers.Default)
                 .stateIn(
                     scope = viewModelScope,
@@ -145,22 +135,18 @@ class FilterableListChooserViewModel
                 _expandedIds.value = emptySet()
             } else {
                 viewModelScope.launch(Dispatchers.Default) {
-                    val projects = allProjects.value
-                    val projectMap = projects.associateBy { it.id }
-                    val displayParentById =
-                        projects.associate { project ->
-                            project.id to project.parentId
-                        }
-                    val matchingProjects = projects.filter { it.name.contains(text, ignoreCase = true) }
-
-                    val idsToExpand = mutableSetOf<String>()
-                    matchingProjects.forEach { project ->
-                        var parentId = displayParentById[project.id]
-                        while (parentId != null) {
-                            idsToExpand.add(parentId)
-                            parentId = displayParentById[parentId]
-                        }
+                    val byPlacement = allProjects.value.associateBy {
+                        it.occurrence.placementId.value
                     }
+                    val idsToExpand = mutableSetOf<String>()
+                    allProjects.value
+                        .filter { it.name.contains(text, ignoreCase = true) }
+                        .forEach { project ->
+                            var parentId = project.occurrence.parentPlacementId?.value
+                            while (parentId != null && idsToExpand.add(parentId)) {
+                                parentId = byPlacement[parentId]?.occurrence?.parentPlacementId?.value
+                            }
+                        }
                     _expandedIds.value = idsToExpand
                 }
             }
@@ -170,25 +156,28 @@ class FilterableListChooserViewModel
             _showDescendants.value = !_showDescendants.value
         }
 
-        fun toggleExpanded(projectId: String) {
+        fun toggleExpanded(placementId: String) {
             _expandedIds.value =
-                if (projectId in _expandedIds.value) {
-                    _expandedIds.value - projectId
+                if (placementId in _expandedIds.value) {
+                    _expandedIds.value - placementId
                 } else {
-                    _expandedIds.value + projectId
+                    _expandedIds.value + placementId
                 }
         }
 
         suspend fun addNewProject(
             parentId: String?,
+            parentPlacementId: String?,
             name: String,
         ): String? {
             val trimmed = name.trim()
             if (trimmed.isBlank()) return null
-            return canonicalWorkspaceRepository.create(
+
+            return canonicalWorkspaceRepository.createWithV2PrimaryAppearance(
                 nameOverride = trimmed,
                 descriptionOverride = null,
                 parentWorkspaceId = parentId,
+                parentPlacementId = parentPlacementId?.let(::PlacementId),
                 roleCode = null,
             )
         }

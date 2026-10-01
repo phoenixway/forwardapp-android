@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkspaceDao {
-    @Query("SELECT * FROM workspaces ORDER BY parentWorkspaceId, workspaceOrder")
+    @Query("SELECT * FROM workspaces ORDER BY id")
     fun observeAll(): Flow<List<WorkspaceEntity>>
 
     @Query("SELECT * FROM workspaces")

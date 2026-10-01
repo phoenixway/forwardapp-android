@@ -8,18 +8,22 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.hasLegacyGeneralHierarchyEvidence
 import com.romankozak.forwardappmobile.core.data.models.sync.requireHierarchyPlacementIngress
+import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
 
 /**
  * Ordinary merge/sync ingress.
  *
- * Default remains CURRENT_PRE_CUTOVER. P2 must explicitly change this only
- * together with the coherent reader/writer authority cutover.
+ * Production follows the single hierarchy authority seam. Under P2
+ * V2_AUTHORITY, hierarchy-bearing ingress must satisfy canonical H1 authority
+ * requirements and cannot fall back to legacy GENERAL topology.
  */
 internal fun requireCanonicalMergeIngress(
     bundle: SnapshotBundle,
     hierarchyAuthorityMode: HierarchyPlacementAuthorityMode =
         currentHierarchyPlacementAuthorityMode(),
 ) {
+    bundle.requireSupportedHierarchyFormat()
+
     requireHierarchyPlacementIngress(
         boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
         authorityMode = hierarchyAuthorityMode,

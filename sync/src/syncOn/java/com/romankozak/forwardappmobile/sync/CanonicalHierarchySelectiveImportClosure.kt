@@ -2,9 +2,11 @@ package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -328,7 +330,7 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
             .mapTo(linkedSetOf()) { it.workspaceId }
 
     val requiredWorkspaceIds =
-        collectCanonicalWorkspaceDependencyClosure(
+        requireCanonicalWorkspaceDependencies(
             roots =
                 backlogWorkspaceIds +
                     executionLogWorkspaceIds +
@@ -338,7 +340,9 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
         )
 
     val workspaceDependencies =
-        sourceWorkspaces.filter { it.id in requiredWorkspaceIds }
+        sourceWorkspaces
+            .filter { it.id in requiredWorkspaceIds }
+            .map { it.withoutEmbeddedWorkspaceTopology() }
 
     val transportedBeaconSubjectIds =
         closure.selectedManagedSubjectTargetIds
@@ -535,26 +539,19 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
     )
 }
 
-private fun collectCanonicalWorkspaceDependencyClosure(
+private fun requireCanonicalWorkspaceDependencies(
     roots: Set<String>,
-    workspaceById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity>,
+    workspaceById: Map<String, WorkspaceSnapshot>,
 ): Set<String> {
-    val required = linkedSetOf<String>()
-    roots.forEach { rootId ->
-        var currentId: String? = rootId
-        while (currentId != null && required.add(currentId)) {
-            val workspace = requireNotNull(workspaceById[currentId]) {
-                "Canonical hierarchy Workspace dependency $currentId is missing."
-            }
-            require(!workspace.isDeleted) {
-                "Canonical hierarchy Workspace dependency $currentId is deleted."
-            }
-            // This parent walk exists only to satisfy the canonical Workspace
-            // reference validator. It never selects or reconstructs H1 topology.
-            currentId = workspace.parentWorkspaceId
+    roots.forEach { workspaceId ->
+        val workspace = requireNotNull(workspaceById[workspaceId]) {
+            "Canonical hierarchy Workspace dependency $workspaceId is missing."
+        }
+        require(!workspace.isDeleted) {
+            "Canonical hierarchy Workspace dependency $workspaceId is deleted."
         }
     }
-    return required
+    return roots
 }
 
 private fun requireSelectedGroupScopeSemantics(

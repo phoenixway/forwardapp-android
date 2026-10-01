@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.data.database
 
 import android.content.Context
-import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -80,14 +79,15 @@ class Migration177To178HierarchyAuthorityActivationRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_177_178)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_177_178,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(178L, scalarLong(db, "PRAGMA user_version"))
             assertTrue(tableExists(db, "hierarchy_authority_activation_state"))
@@ -166,7 +166,7 @@ class Migration177To178HierarchyAuthorityActivationRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
@@ -37,7 +38,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 
 data class CanonicalExecutionLogSyncVersion(
@@ -76,7 +76,7 @@ data class CanonicalOrientationSyncPayload(
     val legacyMappings: List<LegacySubjectMappingEntity> = emptyList(),
     val relations: List<OrientationRelationEntity> = emptyList(),
     val aspectRefs: List<AspectOrientationRefEntity> = emptyList(),
-    val workspaces: List<WorkspaceEntity> = emptyList(),
+    val workspaces: List<WorkspaceSnapshot> = emptyList(),
     val workspaceBindings: List<WorkspaceBindingEntity> = emptyList(),
     val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity> = emptyList(),
     val workspaceTagRefs: List<WorkspaceTagRefEntity> = emptyList(),

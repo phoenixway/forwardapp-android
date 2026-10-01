@@ -6,6 +6,12 @@ import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
+import com.romankozak.forwardappmobile.data.database.HierarchyAuthorityActivationStateEntity
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOriginEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -33,7 +39,11 @@ class TransactionAwareRoomClearerTest {
                 assertThrows(IllegalStateException::class.java) {
                     runBlocking {
                         restoreDataSource(database) {
-                            database.workspaceDao().upsert(requireNotNull(it.workspaces))
+                            database.workspaceDao().upsert(
+                                requireNotNull(it.workspaces).map {
+                                    it.withoutEmbeddedWorkspaceTopology().toWorkspaceEntity()
+                                },
+                            )
                             error("forced restore failure")
                         }.replaceWith(canonicalBundle(restored()))
                     }
@@ -115,11 +125,81 @@ class TransactionAwareRoomClearerTest {
                 database.workspaceDao().upsert(listOf(sentinel()))
 
                 restoreDataSource(database) { bundle ->
-                    database.workspaceDao().upsert(requireNotNull(bundle.workspaces))
+                    database.workspaceDao().upsert(
+                        requireNotNull(bundle.workspaces).map {
+                            it.withoutEmbeddedWorkspaceTopology().toWorkspaceEntity()
+                        },
+                    )
                 }.replaceWith(canonicalBundle(restored()))
 
                 assertNull(database.workspaceDao().getById(SENTINEL_ID))
                 assertNotNull(database.workspaceDao().getById(RESTORED_ID))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `successful restore preserves local hierarchy authority activation marker`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.workspaceDao().upsert(listOf(sentinel()))
+                database.hierarchyAuthorityActivationStateDao().upsert(
+                    HierarchyAuthorityActivationStateEntity(
+                        hierarchyId = "GENERAL",
+                        version = 1,
+                        activatedAt = 123L,
+                    ),
+                )
+
+                restoreDataSource(database) { bundle ->
+                    database.workspaceDao().upsert(
+                        requireNotNull(bundle.workspaces).map {
+                            it.withoutEmbeddedWorkspaceTopology().toWorkspaceEntity()
+                        },
+                    )
+                }.replaceWith(canonicalBundle(restored()))
+
+                assertNull(database.workspaceDao().getById(SENTINEL_ID))
+                assertNotNull(database.workspaceDao().getById(RESTORED_ID))
+
+                val marker =
+                    database.hierarchyAuthorityActivationStateDao()
+                        .get("GENERAL")
+                assertNotNull(marker)
+                assertEquals(1, marker?.version)
+                assertEquals(123L, marker?.activatedAt)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `successful restore preserves local hierarchy establishment origin`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.workspaceDao().upsert(listOf(sentinel()))
+                database.hierarchyEstablishmentOriginDao().upsert(
+                    HierarchyEstablishmentOriginEntity(
+                        hierarchyId = "GENERAL",
+                        origin = HierarchyEstablishmentOrigin.ESTABLISHED.name,
+                    ),
+                )
+
+                restoreDataSource(database) { bundle ->
+                    database.workspaceDao().upsert(
+                        requireNotNull(bundle.workspaces).map {
+                            it.withoutEmbeddedWorkspaceTopology().toWorkspaceEntity()
+                        },
+                    )
+                }.replaceWith(canonicalBundle(restored()))
+
+                assertEquals(
+                    HierarchyEstablishmentOrigin.ESTABLISHED.name,
+                    database.hierarchyEstablishmentOriginDao().get("GENERAL")?.origin,
+                )
             } finally {
                 database.close()
             }
@@ -156,9 +236,7 @@ class TransactionAwareRoomClearerTest {
             id = id,
             nameOverride = id,
             descriptionOverride = null,
-            parentWorkspaceId = null,
             roleCode = null,
-            workspaceOrder = 0L,
             createdAt = 1L,
             updatedAt = 1L,
             syncedAt = null,
@@ -179,7 +257,12 @@ class TransactionAwareRoomClearerTest {
             legacySubjectMappings = emptyList(),
             orientationRelations = emptyList(),
             aspectOrientationRefs = emptyList(),
-            workspaces = listOf(workspace),
+            workspaces =
+                listOf(
+                    workspace
+                        .toWorkspaceSnapshot()
+                        .withoutEmbeddedWorkspaceTopology(),
+                ),
             workspaceBindings = emptyList(),
             workspaceCapabilityInstances = emptyList(),
             savedOrientationViews = emptyList(),

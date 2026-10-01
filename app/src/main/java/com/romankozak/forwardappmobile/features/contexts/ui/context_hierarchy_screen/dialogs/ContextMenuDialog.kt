@@ -307,12 +307,12 @@ fun ContextMenuDialog(
                 }
 
                 DestructiveContextAction(
-                    title = "Видалити проєкт",
+                    title = "Прибрати гілку з ієрархії",
                     subtitle =
                         if (isSystemContext) {
                             "Системний проєкт не можна видалити"
                         } else {
-                            "Разом із вкладеними проєктами та вмістом"
+                            "Лише це розміщення й вкладені розміщення; проєкти та вміст залишаться"
                         },
                     enabled = availability.delete && !isSystemContext,
                     onClick = onDeleteRequest,

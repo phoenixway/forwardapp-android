@@ -12,7 +12,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyPresentationTreeBuilder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationBeaconInput
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationHierarchyBuilder
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbsToContext
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
@@ -152,7 +152,7 @@ class CanonicalV2HierarchyCurrentPresentationParityTest {
         )
 
         val currentBreadcrumbs =
-            buildOrientationBreadcrumbsToContext(current, "shared")
+            buildOrientationBreadcrumbs(current, "shared")
                 .map {
                     BreadcrumbParity(
                         id = it.id,
@@ -267,7 +267,7 @@ class CanonicalV2HierarchyCurrentPresentationParityTest {
         )
 
         val currentBreadcrumbs =
-            buildOrientationBreadcrumbsToContext(
+            buildOrientationBreadcrumbs(
                 current,
                 SystemContexts.INBOX.raw,
             ).map {
@@ -364,26 +364,26 @@ class CanonicalV2HierarchyCurrentPresentationParityTest {
         beaconLinks: List<MainBeaconParentLink>,
     ): CanonicalV1HierarchySnapshot =
         CanonicalV1HierarchySnapshotBuilder().build(
-            CanonicalV1HierarchySnapshotInput(
+            CanonicalHierarchyEstablishmentInput(
                 workspaces =
                     presentations.mapIndexed { index, presentation ->
-                        CanonicalV1WorkspaceSnapshotInput(
+                        CanonicalHierarchyEstablishmentWorkspaceInput(
                             id = presentation.id,
                             name = presentation.name,
-                            parentWorkspaceId = presentation.parentId,
+                            canonicalParentId = presentation.parentId,
                             order = presentation.order,
                             sourceOrdinal = index,
                         )
                     },
                 beacons =
                     beacons.mapIndexed { index, beacon ->
-                        CanonicalV1BeaconSnapshotInput(
-                            legacyBeaconId = beacon.id,
+                        CanonicalHierarchyEstablishmentBeaconInput(
+                            sourceId = beacon.id,
                             target = subjectTarget(beacon.id),
                             title = beacon.title,
                             order = beacon.order,
-                            parentBeaconId = beacon.parentBeaconId,
-                            relatedOwnerIds = beacon.relatedOwnerIds,
+                            canonicalParentSourceId = beacon.parentBeaconId,
+                            operationalOwnerWorkspaceIds = beacon.relatedOwnerIds,
                             groupIds = beacon.groupIds,
                             groupOrders = beacon.groupOrders,
                             sourceOrdinal = index,
@@ -391,28 +391,28 @@ class CanonicalV2HierarchyCurrentPresentationParityTest {
                     },
                 groups =
                     groups.mapIndexed { index, group ->
-                        CanonicalV1BeaconGroupSnapshotInput(
-                            id = group.id,
+                        CanonicalHierarchyEstablishmentGroupInput(
+                            sourceId = group.id,
                             title = group.title,
                             order = group.order,
                             canonicalSubjectId = "test-group-subject:${group.id}",
                             sourceOrdinal = index,
                         )
                     },
-                contextParentLinks =
+                additionalWorkspaceRoutes =
                     contextLinks.mapIndexed { index, link ->
-                        CanonicalV1ContextParentLinkSnapshotInput(
+                        CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
                             parentWorkspaceId = link.parentContextId,
                             childWorkspaceId = link.childContextId,
                             order = link.order,
                             sourceOrdinal = index,
                         )
                     },
-                beaconParentLinks =
+                additionalBeaconRoutes =
                     beaconLinks.mapIndexed { index, link ->
-                        CanonicalV1BeaconParentLinkSnapshotInput(
-                            parentBeaconId = link.parentBeaconId,
-                            childBeaconId = link.childBeaconId,
+                        CanonicalHierarchyEstablishmentAdditionalBeaconRoute(
+                            parentSourceId = link.parentBeaconId,
+                            childSourceId = link.childBeaconId,
                             order = link.order,
                             sourceOrdinal = index,
                         )
@@ -507,9 +507,7 @@ class CanonicalV2HierarchyCurrentPresentationParityTest {
         id = id,
         nameOverride = id,
         descriptionOverride = null,
-        parentWorkspaceId = parentId,
         roleCode = null,
-        workspaceOrder = order,
         createdAt = 1,
         updatedAt = 1,
         syncedAt = null,

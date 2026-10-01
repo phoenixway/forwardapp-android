@@ -289,9 +289,21 @@ internal fun planBootstrap(
         val sourceKey = projection.source.sourceType.name to projection.source.sourceId
         val subjectId = projection.subject.id
         val sourceMapping = mappingBySource[sourceKey]
+        val cutOverMapping =
+            sourceMapping?.takeIf {
+                it.state == LegacySubjectMappingState.CUT_OVER.name
+            }
         val subjectMapping = mappingBySubject[subjectId]
         val collision =
             when {
+                /*
+                 * Once a source is CUT_OVER, the durable mapping owns canonical
+                 * identity, including after the deletion lifecycle tombstones
+                 * that mapping. Goal creation intentionally uses caller-generated
+                 * subject IDs, so recomputing LegacySubjectUuid here must not
+                 * reinterpret an already-established identity.
+                 */
+                cutOverMapping != null -> null
                 sourceMapping != null && sourceMapping.subjectId != subjectId -> "Source already maps to ${sourceMapping.subjectId}"
                 subjectMapping != null &&
                     (subjectMapping.sourceType != sourceKey.first || subjectMapping.sourceId != sourceKey.second) ->
@@ -323,13 +335,23 @@ private suspend fun compareCanonicalRows(
     val assessmentsById = assessments.associateBy { it.orientationId }
     val mappingsBySource = mappings.associateBy { it.sourceType to it.sourceId }
     return projections.mapNotNull { expected ->
-        val subject = subjectsById[expected.subject.id]
-        val orientation = orientationsById[expected.subject.id]
-        val assessment = assessmentsById[expected.subject.id]
-        val expectedAssessment = expected.orientation.assessment
         val mapping = mappingsBySource[expected.source.sourceType.name to expected.source.sourceId]
+        val canonicalSubjectId =
+            mapping
+                ?.takeIf {
+                    it.state == LegacySubjectMappingState.CUT_OVER.name
+                }
+                ?.subjectId
+                ?: expected.subject.id
+        val subject = subjectsById[canonicalSubjectId]
+        val orientation = orientationsById[canonicalSubjectId]
+        val assessment = assessmentsById[canonicalSubjectId]
+        val expectedAssessment = expected.orientation.assessment
         val isCutOverMainBeacon =
             expected.source.sourceType in MAIN_BEACON_SOURCE_TYPES &&
+                mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val isCutOverGoal =
+            expected.source.sourceType == LegacyOrientationSourceType.GOAL &&
                 mapping?.state == LegacySubjectMappingState.CUT_OVER.name
         val identityMismatch =
             subject == null || orientation == null || assessment == null ||
@@ -342,15 +364,71 @@ private suspend fun compareCanonicalRows(
                 subject.title != expected.subject.title ||
                     subject.description != expected.subject.description ||
                     subject.isDeleted != expected.subject.isDeleted ||
-                    orientation.lifecycle != expected.orientation.lifecycle?.name ||
-                    orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name ||
+                    (
+                        !isCutOverGoal &&
+                            orientation.lifecycle != expected.orientation.lifecycle?.name
+                    ) ||
+                    (
+                        !isCutOverGoal &&
+                            orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name
+                    ) ||
                     subject.createdAt != expected.subject.createdAt ||
                     subject.updatedAt != expected.subject.updatedAt ||
-                    !assessment.hasSameAxisValues(expectedAssessment)
+                    (
+                        isCutOverGoal &&
+                            assessment.isDeleted != expected.subject.isDeleted
+                    ) ||
+                    (
+                        !isCutOverGoal &&
+                            !assessment.hasSameAxisValues(expectedAssessment)
+                    )
             }
         val mismatch = identityMismatch || shadowOnlyMismatch
         if (mismatch) {
-            expected.issue("SHADOW_MISMATCH", "Canonical row differs from the legacy projection")
+            val mismatchFields =
+                buildList {
+                    if (subject == null) add("subject.missing")
+                    if (orientation == null) add("orientation.missing")
+                    if (assessment == null) add("assessment.missing")
+
+                    if (subject != null) {
+                        if (subject.subjectType != expected.subject.subjectType.name) add("subject.subjectType")
+                        if (subject.title != expected.subject.title) add("subject.title")
+                        if (subject.description != expected.subject.description) add("subject.description")
+                        if (subject.isDeleted != expected.subject.isDeleted) add("subject.isDeleted")
+                        if (subject.createdAt != expected.subject.createdAt) add("subject.createdAt")
+                        if (subject.updatedAt != expected.subject.updatedAt) add("subject.updatedAt")
+                    }
+
+                    if (orientation != null) {
+                        if (orientation.kind != expected.orientation.kind.name) add("orientation.kind")
+                        if (
+                            !isCutOverGoal &&
+                                orientation.lifecycle != expected.orientation.lifecycle?.name
+                        ) {
+                            add("orientation.lifecycle")
+                        }
+                        if (
+                            !isCutOverGoal &&
+                                orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name
+                        ) {
+                            add("orientation.lifecycleOrigin")
+                        }
+                    }
+
+                    if (assessment != null) {
+                        if (isCutOverGoal) {
+                            if (assessment.isDeleted != expected.subject.isDeleted) add("assessment.isDeleted")
+                        } else if (!assessment.hasSameAxisValues(expectedAssessment)) {
+                            add("assessment.axes")
+                        }
+                    }
+                }
+
+            expected.issue(
+                "SHADOW_MISMATCH",
+                "Canonical row differs from the legacy projection: ${mismatchFields.joinToString(",")}",
+            )
         } else {
             null
         }

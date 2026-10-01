@@ -2,13 +2,11 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.content.ContentValues
 import android.content.Context
-import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.JsonParser
-import com.romankozak.forwardappmobile.database.AppDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,19 +23,18 @@ class Migration151To154ExecutionLogOwnershipBridgeTest {
         val dbName = "migration_151_154_execution_log_bridge"
         createFixtureDatabase(dbName)
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(
-                    MIGRATION_151_152,
-                    MIGRATION_152_153,
-                    MIGRATION_153_154,
-                    MIGRATION_154_155,
-                )
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_151_152,
+                MIGRATION_152_153,
+                MIGRATION_153_154,
+                MIGRATION_154_155,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(155L, scalarLong(db, "PRAGMA user_version"))
 
@@ -169,7 +166,7 @@ class Migration151To154ExecutionLogOwnershipBridgeTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

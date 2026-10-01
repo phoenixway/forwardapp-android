@@ -4,13 +4,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Leg
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
@@ -30,11 +30,18 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
 
     @Test
     fun `selected Beacon root retains exact GroupScope and canonical PART_OF provenance`() {
-        val source =
+        val sourceWithCanonicalHierarchy =
             beaconSource(
                 placements = listOf(beaconPlacement("beacon-root")),
                 scopes = listOf(scope("beacon-root", "group-subject")),
                 grouped = true,
+            )
+        val source =
+            sourceWithCanonicalHierarchy.copy(
+                mainBeacons =
+                    sourceWithCanonicalHierarchy.mainBeacons.map {
+                        it.copy(parentBeaconId = "legacy-parent", order = 14L)
+                    },
             )
 
         val filtered = filter.filter(source, WorkspaceSelectiveImportSelection())
@@ -43,6 +50,11 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
         assertEquals("beacon-root", placement.id)
         assertEquals("beacon-subject", placement.targetId)
         assertNull(placement.parentPlacementId)
+        assertTrue(filtered.mainBeacons.all { it.parentBeaconId == null })
+        assertEquals(
+            source.mainBeacons.map { it.order },
+            filtered.mainBeacons.map { it.order },
+        )
 
         val selectedScope = requireNotNull(filtered.hierarchyPlacementGroupScopes).single()
         assertEquals("beacon-root", selectedScope.placementId)
@@ -236,7 +248,7 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
         extraSubjects: List<ManagedSubjectEntity> = emptyList(),
         extraOrientations: List<OrientationEntity> = emptyList(),
         extraMappings: List<LegacySubjectMappingEntity> = emptyList(),
-        workspaces: List<WorkspaceEntity> = emptyList(),
+        workspaces: List<WorkspaceSnapshot> = emptyList(),
     ): SnapshotBundle {
         val groupSubjects =
             if (grouped) listOf(subject("group-subject")) else emptyList()
@@ -294,7 +306,7 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
         orientations: List<OrientationEntity> = emptyList(),
         mappings: List<LegacySubjectMappingEntity> = emptyList(),
         relations: List<OrientationRelationEntity> = emptyList(),
-        workspaces: List<WorkspaceEntity> = emptyList(),
+        workspaces: List<WorkspaceSnapshot> = emptyList(),
         placements: List<HierarchyPlacementSnapshot>,
         scopes: List<HierarchyPlacementGroupScopeSnapshot>,
     ) =
@@ -481,7 +493,7 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
         )
 
     private fun workspace(id: String) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = id,
             nameOverride = id,
             descriptionOverride = null,

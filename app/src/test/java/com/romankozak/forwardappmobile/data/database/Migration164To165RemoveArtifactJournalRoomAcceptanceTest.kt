@@ -60,14 +60,15 @@ class Migration164To165RemoveArtifactJournalRoomAcceptanceTest {
     ) {
         createFixture(dbName, startVersion)
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
 
@@ -299,7 +300,7 @@ class Migration164To165RemoveArtifactJournalRoomAcceptanceTest {
             }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

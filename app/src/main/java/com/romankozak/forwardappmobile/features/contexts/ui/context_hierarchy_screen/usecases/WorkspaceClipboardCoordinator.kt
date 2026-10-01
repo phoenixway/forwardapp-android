@@ -1,6 +1,10 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import javax.inject.Singleton
@@ -29,6 +33,7 @@ class WorkspaceClipboardCoordinator
         private data class Payload(
             val workspaceIds: Set<String>,
             val operation: Operation,
+            val cutOccurrences: Map<String, PlacementId> = emptyMap(),
             val token: String = UUID.randomUUID().toString(),
         )
 
@@ -39,15 +44,37 @@ class WorkspaceClipboardCoordinator
         val uiState: StateFlow<Pair<Set<String>, ContextClipboardOperationUi?>> =
             _uiState.asStateFlow()
 
-        fun copyWorkspace(id: String) = copyWorkspaces(linkedSetOf(id))
+        fun copyWorkspace(
+            id: String,
+            occurrence: HierarchyOccurrenceRef? = null,
+        ): WorkspaceClipboardResult =
+            copyWorkspaces(linkedSetOf(id))
 
-        fun cutWorkspace(id: String) = cutWorkspaces(linkedSetOf(id))
+        fun cutWorkspace(
+            id: String,
+            occurrence: HierarchyOccurrenceRef? = null,
+        ): WorkspaceClipboardResult {
+            if (occurrence?.target != HierarchyTargetRef(HierarchyTargetType.WORKSPACE, id)) {
+                return WorkspaceClipboardResult(
+                    "Неможливо вирізати: відсутня точна occurrence проєкту",
+                    false,
+                )
+            }
+            return setSources(
+                ids = linkedSetOf(id),
+                operation = Operation.CUT,
+                cutOccurrences = mapOf(id to occurrence.placementId),
+            )
+        }
 
         fun copyWorkspaces(ids: Set<String>): WorkspaceClipboardResult =
             setSources(ids, Operation.COPY)
 
         fun cutWorkspaces(ids: Set<String>): WorkspaceClipboardResult =
-            setSources(ids, Operation.CUT)
+            WorkspaceClipboardResult(
+                "Масове вирізання потребує точних occurrences кожного проєкту",
+                false,
+            )
 
         fun hasPayload(): Boolean = payload.value != null
 
@@ -142,11 +169,19 @@ class WorkspaceClipboardCoordinator
         suspend fun copyWorkspaceInto(
             sourceId: String,
             targetId: String,
+            destinationOccurrence: HierarchyOccurrenceRef? = null,
         ): WorkspaceClipboardResult =
             runCatching {
-                canonicalWorkspaceRepository.copyManyShallow(
+                require(
+                    destinationOccurrence?.target ==
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, targetId),
+                ) {
+                    "Неможливо скопіювати: відсутня точна occurrence цілі"
+                }
+                canonicalWorkspaceRepository.copyV2WorkspacesShallow(
                     ids = setOf(sourceId),
-                    targetParentWorkspaceId = targetId,
+                    targetWorkspaceId = targetId,
+                    targetPlacementId = destinationOccurrence.placementId,
                 )
             }.fold(
                 onSuccess = { copied ->
@@ -161,6 +196,7 @@ class WorkspaceClipboardCoordinator
                     )
                 },
                 onFailure = {
+                    if (it is CancellationException) throw it
                     WorkspaceClipboardResult(
                         it.message ?: "Не вдалося скопіювати проєкт",
                         false,
@@ -169,7 +205,10 @@ class WorkspaceClipboardCoordinator
                 },
             )
 
-        suspend fun pasteInto(targetId: String): WorkspaceClipboardResult {
+        suspend fun pasteInto(
+            targetId: String,
+            destinationOccurrence: HierarchyOccurrenceRef? = null,
+        ): WorkspaceClipboardResult {
             val current =
                 payload.value
                     ?: return WorkspaceClipboardResult(
@@ -186,12 +225,27 @@ class WorkspaceClipboardCoordinator
                 )
             }
 
+            if (destinationOccurrence?.target !=
+                HierarchyTargetRef(HierarchyTargetType.WORKSPACE, targetId)
+            ) {
+                return WorkspaceClipboardResult(
+                    "Неможливо вставити: відсутня точна occurrence цілі",
+                    false,
+                    true,
+                )
+            }
+            val destinationPlacementId = destinationOccurrence.placementId
+
             return when (current.operation) {
                 Operation.CUT ->
                     runCatching {
-                        canonicalWorkspaceRepository.moveMany(
-                            ids = current.workspaceIds,
-                            newParentWorkspaceId = targetId,
+                        require(current.cutOccurrences.keys == current.workspaceIds) {
+                            "V2 CUT вимагає точних occurrences усіх джерел"
+                        }
+                        canonicalWorkspaceRepository.moveV2Occurrences(
+                            sourcePlacementsByWorkspaceId = current.cutOccurrences,
+                            targetWorkspaceId = targetId,
+                            targetPlacementId = destinationPlacementId,
                         )
                     }.fold(
                         onSuccess = { moved ->
@@ -218,9 +272,10 @@ class WorkspaceClipboardCoordinator
 
                 Operation.COPY ->
                     runCatching {
-                        canonicalWorkspaceRepository.copyManyShallow(
+                        canonicalWorkspaceRepository.copyV2WorkspacesShallow(
                             ids = current.workspaceIds,
-                            targetParentWorkspaceId = targetId,
+                            targetWorkspaceId = targetId,
+                            targetPlacementId = destinationPlacementId,
                         )
                     }.fold(
                         onSuccess = { copied ->
@@ -249,6 +304,7 @@ class WorkspaceClipboardCoordinator
         private fun setSources(
             ids: Set<String>,
             operation: Operation,
+            cutOccurrences: Map<String, PlacementId> = emptyMap(),
         ): WorkspaceClipboardResult {
             val normalized =
                 ids.asSequence()
@@ -262,7 +318,7 @@ class WorkspaceClipboardCoordinator
                 )
             }
 
-            payload.value = Payload(normalized, operation)
+            payload.value = Payload(normalized, operation, cutOccurrences)
             syncUiState()
 
             return WorkspaceClipboardResult(

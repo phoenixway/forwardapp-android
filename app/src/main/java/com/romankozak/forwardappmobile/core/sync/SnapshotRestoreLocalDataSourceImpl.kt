@@ -194,7 +194,12 @@ internal class TransactionAwareRoomClearer(
                 FROM sqlite_master
                 WHERE type = 'table'
                   AND name NOT LIKE 'sqlite_%'
-                  AND name NOT IN ('android_metadata', 'room_master_table')
+                  AND name NOT IN (
+                      'android_metadata',
+                      'room_master_table',
+                      'hierarchy_authority_activation_state',
+                      'hierarchy_establishment_origin'
+                  )
                 ORDER BY name
                 """.trimIndent(),
             ).use { cursor ->

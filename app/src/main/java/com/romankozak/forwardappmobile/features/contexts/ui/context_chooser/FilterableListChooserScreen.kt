@@ -60,7 +60,7 @@ fun FilterableListChooserScreen(
     onConfirm: (ChooserSelection) -> Unit,
     currentParentId: String?,
     disabledIds: Set<String> = emptySet(),
-    onAddNewList: suspend (parentId: String?, name: String) -> String?,
+    onAddNewList: suspend (parentId: String?, parentPlacementId: String?, name: String) -> String?,
     showDescendants: Boolean,
     onToggleShowDescendants: () -> Unit,
 ) {
@@ -197,12 +197,13 @@ fun FilterableListChooserScreen(
                     },
                     onCreate = {
                         val parentId = parentForNewProject?.id
+                        val parentPlacementId = parentForNewProject?.occurrence?.placementId?.value
                         val name = newProjectName
                         isCreatingMode = false
                         keyboardController?.hide()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         coroutineScope.launch {
-                            highlightedProjectId = onAddNewList(parentId, name)
+                            highlightedProjectId = onAddNewList(parentId, parentPlacementId, name)
                         }
                     },
                     modifier = Modifier.padding(16.dp),
@@ -387,7 +388,7 @@ fun FilterableListChooserScreen(
                                 }
                             }
 
-                            items(chooserUiState.topLevelProjects, key = { it.id }) { project ->
+                            items(chooserUiState.topLevelProjects, key = { it.occurrence.placementId.value }) { project ->
                                 RecursiveSelectableListItem(
                                     project = project,
                                     childMap = chooserUiState.childMap,
@@ -570,8 +571,9 @@ private fun RecursiveSelectableListItem(
     onAddSubprojectRequest: (parentProject: ChooserHierarchyItem) -> Unit,
     filterText: String,
 ) {
-    val isExpanded = project.id in expandedIds
-    val children = childMap[project.id]?.sortedBy { it.order } ?: emptyList()
+    val placementId = project.occurrence.placementId.value
+    val isExpanded = placementId in expandedIds
+    val children = childMap[placementId]?.sortedBy { it.order } ?: emptyList()
     val isEnabled =
         project.id !in disabledIds &&
             project.occurrence.placementId.value !in disabledIds
@@ -624,7 +626,7 @@ private fun RecursiveSelectableListItem(
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onToggleExpanded(project.id)
+                            onToggleExpanded(placementId)
                         },
                         modifier = Modifier.size(24.dp),
                     ) {

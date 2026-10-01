@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import org.junit.Assert.assertEquals
@@ -90,6 +90,7 @@ class SnapshotBundleSelectiveImportRetirementClosureTest {
                         ),
                     ),
                 hierarchyPlacementGroupScopes = emptyList(),
+                hierarchyPlacementLinkedAppearances = emptyList(),
             )
 
         val filtered =
@@ -116,7 +117,7 @@ class SnapshotBundleSelectiveImportRetirementClosureTest {
     }
 
     private fun canonicalWorkspace(id: String) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = id,
             nameOverride = id,
             descriptionOverride = null,

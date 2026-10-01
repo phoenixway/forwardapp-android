@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
@@ -357,6 +359,207 @@ class CanonicalHierarchyPlacementRepositoryRoomTest {
         }
     }
 
+    @Test
+    fun `occurrence subtree removes PRIMARY descendants but preserves alternate appearances and targets`() =
+        runBlocking {
+            val db = database()
+            try {
+                listOf("root", "child", "other").forEach { subject(db, it) }
+                val repo = CanonicalHierarchyPlacementRepository(db)
+                val root = repo.createPrimaryAppearance(subjectTarget("root"), now = 10L)
+                val child =
+                    repo.createPrimaryAppearance(
+                        subjectTarget("child"),
+                        parentPlacementId = root,
+                        now = 11L,
+                    )
+                val grandchild =
+                    repo.createLinkAppearance(
+                        subjectTarget("root"),
+                        parentPlacementId = child,
+                        now = 12L,
+                    )
+                val alternate = repo.createLinkAppearance(subjectTarget("root"), now = 13L)
+                val independent = repo.createPrimaryAppearance(subjectTarget("other"), now = 14L)
+                val targetsBefore =
+                    listOf("root", "child", "other")
+                        .associateWith { db.orientationDao().getManagedSubject(it) }
+                val outsideBefore =
+                    listOf(alternate, independent)
+                        .associateWith { requireNotNull(repo.getPlacement(it)) }
+
+                val removed = repo.removeOccurrenceSubtree(root, now = 30L)
+
+                assertEquals(listOf(root, child, grandchild), removed)
+                removed.forEach { id ->
+                    assertNull(repo.getPlacement(id))
+                    assertTrue(db.hierarchyPlacementDao().getById(id.value)?.isDeleted == true)
+                }
+                outsideBefore.forEach { (id, before) ->
+                    assertEquals(before, repo.getPlacement(id))
+                }
+                targetsBefore.forEach { (id, before) ->
+                    assertEquals(before, db.orientationDao().getManagedSubject(id))
+                }
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `occurrence subtree removes LINK branch only and keeps PRIMARY and other LINK`() =
+        runBlocking {
+            val db = database()
+            try {
+                listOf("root", "child").forEach { subject(db, it) }
+                val repo = CanonicalHierarchyPlacementRepository(db)
+                val primary = repo.createPrimaryAppearance(subjectTarget("root"), now = 10L)
+                val selectedLink = repo.createLinkAppearance(subjectTarget("root"), now = 11L)
+                val otherLink = repo.createLinkAppearance(subjectTarget("root"), now = 12L)
+                val child =
+                    repo.createPrimaryAppearance(
+                        subjectTarget("child"),
+                        parentPlacementId = selectedLink,
+                        now = 13L,
+                    )
+                val primaryBefore = requireNotNull(repo.getPlacement(primary))
+                val otherBefore = requireNotNull(repo.getPlacement(otherLink))
+                val rootBefore = db.orientationDao().getManagedSubject("root")
+
+                assertEquals(
+                    listOf(selectedLink, child),
+                    repo.removeOccurrenceSubtree(selectedLink, now = 30L),
+                )
+
+                assertNull(repo.getPlacement(selectedLink))
+                assertNull(repo.getPlacement(child))
+                assertEquals(primaryBefore, repo.getPlacement(primary))
+                assertEquals(otherBefore, repo.getPlacement(otherLink))
+                assertEquals(rootBefore, db.orientationDao().getManagedSubject("root"))
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `removing final appearance does not delete its target`() = runBlocking {
+        val db = database()
+        try {
+            subject(db, "last")
+            val repo = CanonicalHierarchyPlacementRepository(db)
+            val only = repo.createPrimaryAppearance(subjectTarget("last"), now = 10L)
+            val subjectBefore = db.orientationDao().getManagedSubject("last")
+
+            assertEquals(listOf(only), repo.removeOccurrenceSubtree(only, now = 20L))
+            assertTrue(repo.getLiveAppearances(subjectTarget("last")).isEmpty())
+            assertEquals(subjectBefore, db.orientationDao().getManagedSubject("last"))
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `subtree deletion preserves Workspace ownership binding and subject metadata`() =
+        runBlocking {
+            val db = database()
+            try {
+                workspace(db, "workspace")
+                subject(db, "subject")
+                val binding =
+                    WorkspaceBindingEntity(
+                        id = "binding",
+                        workspaceId = "workspace",
+                        subjectId = "subject",
+                        bindingType = WorkspaceBindingType.EMBODIES.name,
+                        isPrimary = true,
+                        bindingOrder = 0L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    )
+                db.orientationDao().upsertWorkspaceBindings(listOf(binding))
+                val repo = CanonicalHierarchyPlacementRepository(db)
+                val root =
+                    repo.createPrimaryAppearance(
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "workspace"),
+                        now = 10L,
+                    )
+                val child =
+                    repo.createPrimaryAppearance(
+                        subjectTarget("subject"),
+                        parentPlacementId = root,
+                        now = 11L,
+                    )
+                val workspaceBefore = db.workspaceDao().getById("workspace")
+                val subjectBefore = db.orientationDao().getManagedSubject("subject")
+                val bindingBefore = db.orientationDao().getAllWorkspaceBindings()
+
+                assertEquals(listOf(root, child), repo.removeOccurrenceSubtree(root, now = 20L))
+
+                assertEquals(workspaceBefore, db.workspaceDao().getById("workspace"))
+                assertEquals(subjectBefore, db.orientationDao().getManagedSubject("subject"))
+                assertEquals(bindingBefore, db.orientationDao().getAllWorkspaceBindings())
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `subtree transaction rolls back sidecars and every placement on descendant write failure`() =
+        runBlocking {
+            val db = database()
+            try {
+                workspace(db, "root")
+                workspace(db, "child")
+                val repo = CanonicalHierarchyPlacementRepository(db)
+                val root =
+                    repo.createPrimaryAppearance(
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "root"),
+                        now = 10L,
+                    )
+                val child =
+                    repo.createLinkAppearance(
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "child"),
+                        parentPlacementId = root,
+                        now = 11L,
+                    )
+                HierarchyPlacementLinkedAppearanceMutationCoordinator(db)
+                    .setLinkedAppearance(child, now = 12L)
+                val placementsBefore = db.hierarchyPlacementDao().getAll()
+                val sidecarsBefore = db.hierarchyPlacementLinkedAppearanceDao().getAll()
+                val workspacesBefore = db.workspaceDao().getAll()
+
+                db.openHelper.writableDatabase.execSQL(
+                    """
+                    CREATE TRIGGER reject_subtree_child_update
+                    BEFORE UPDATE ON hierarchy_placements
+                    WHEN NEW.id = '${child.value}' AND NEW.isDeleted = 1
+                    BEGIN
+                        SELECT RAISE(ABORT, 'injected descendant write failure');
+                    END
+                    """.trimIndent(),
+                )
+                try {
+                    val failure =
+                        runCatching {
+                            repo.removeOccurrenceSubtree(root, now = 30L)
+                        }.exceptionOrNull()
+                    assertTrue(failure != null)
+                    assertEquals(placementsBefore, db.hierarchyPlacementDao().getAll())
+                    assertEquals(sidecarsBefore, db.hierarchyPlacementLinkedAppearanceDao().getAll())
+                    assertEquals(workspacesBefore, db.workspaceDao().getAll())
+                } finally {
+                    db.openHelper.writableDatabase.execSQL(
+                        "DROP TRIGGER IF EXISTS reject_subtree_child_update",
+                    )
+                }
+            } finally {
+                db.close()
+            }
+        }
+
     private fun database() =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
@@ -412,9 +615,7 @@ class CanonicalHierarchyPlacementRepositoryRoomTest {
                     id = id,
                     nameOverride = id,
                     descriptionOverride = null,
-                    parentWorkspaceId = null,
                     roleCode = null,
-                    workspaceOrder = 0L,
                     createdAt = 1L,
                     updatedAt = 1L,
                     syncedAt = null,

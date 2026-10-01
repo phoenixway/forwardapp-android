@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
@@ -10,6 +11,43 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+
+/**
+ * Topology-free Workspace metadata admitted into the canonical V2 hierarchy.
+ *
+ * GENERAL ancestry and sibling order must come exclusively from H1. Keeping
+ * parent/order out of this boundary makes that ownership structural rather
+ * than a convention enforced by individual consumers.
+ */
+data class CanonicalV2WorkspacePresentation(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val roleCode: String?,
+    val tags: List<String>,
+)
+
+fun ContextPresentation.toCanonicalV2WorkspacePresentation():
+    CanonicalV2WorkspacePresentation =
+    CanonicalV2WorkspacePresentation(
+        id = id,
+        name = name,
+        description = description,
+        roleCode = roleCode,
+        tags = tags.orEmpty(),
+    )
+
+fun CanonicalV2WorkspacePresentation.toHierarchyPresentationNode():
+    HierarchyContextPresentationNode =
+    HierarchyContextPresentationNode(
+        id = id,
+        name = name,
+        description = description,
+        parentId = null,
+        order = 0L,
+        roleCode = roleCode,
+        tags = tags,
+    )
 
 /**
  * H3 target-resolution boundary.
@@ -22,7 +60,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubj
 class CanonicalV2HierarchyTargetResolver {
     fun resolve(
         placements: Collection<HierarchyPlacement>,
-        admittedWorkspacePresentations: Collection<HierarchyContextPresentationNode>,
+        admittedWorkspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
         managedSubjects: Collection<ManagedSubjectEntity>,
         legacySubjectMappings: Collection<LegacySubjectMappingEntity> = emptyList(),
     ): Map<HierarchyTargetRef, CanonicalV2HierarchyTargetPresentation> {
@@ -370,10 +408,14 @@ class CanonicalV2HierarchySyntheticPresentationComposer {
             entries
                 .filterIsInstance<CanonicalV2PresentedHierarchyEntry.Occurrence>()
                 .map { it.placementId }
+        val persistedPlacementIds = hierarchy.occurrences.map { it.placementId }
 
-        if (emittedPlacementIds != hierarchy.occurrences.map { it.placementId }) {
+        if (
+            emittedPlacementIds.size != persistedPlacementIds.size ||
+            emittedPlacementIds.toSet() != persistedPlacementIds.toSet()
+        ) {
             throw CanonicalV2HierarchySyntheticPresentationException(
-                "Synthetic composition changed persisted occurrence order or membership",
+                "Synthetic composition changed persisted occurrence membership",
             )
         }
 

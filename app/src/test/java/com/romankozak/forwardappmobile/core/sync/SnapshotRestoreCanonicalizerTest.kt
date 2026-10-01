@@ -55,6 +55,35 @@ class SnapshotRestoreCanonicalizerTest {
     }
 
     @Test
+    fun `legacy topology is consumed without entering canonical Workspace state`() {
+        val result =
+            subject.canonicalize(
+                SnapshotBundle(
+                    contexts =
+                        listOf(
+                            context(id = OWNER_ID, order = 3),
+                            context(id = "child", parentId = OWNER_ID, order = 7),
+                        ),
+                    backlogItems =
+                        listOf(
+                            backlogItem(OWNER_ID, "child").copy(itemType = "SUBLIST"),
+                        ),
+                ),
+            )
+
+        assertTrue(
+            requireNotNull(result.workspaces).all {
+                it.parentWorkspaceId == null && it.workspaceOrder == 0L
+            },
+        )
+        val placements = requireNotNull(result.hierarchyPlacements)
+        val root = placements.single { it.targetId == OWNER_ID }
+        val child = placements.single { it.targetId == "child" }
+        assertEquals(root.id, child.parentPlacementId)
+        assertTrue(requireNotNull(result.workspaceBacklogEntries).isEmpty())
+    }
+
+    @Test
     fun `irrelevant deleted Context does not require a BACKLOG anchor`() {
         val result =
             subject.canonicalize(
@@ -223,11 +252,13 @@ class SnapshotRestoreCanonicalizerTest {
     private fun context(
         id: String,
         isDeleted: Boolean = false,
+        parentId: String? = null,
+        order: Int = 0,
     ) =
         ContextSnapshot(
             id = id,
             name = id,
-            parentId = null,
+            parentId = parentId,
             description = "description",
             createdAt = 10L,
             updatedAt = 20L,
@@ -236,7 +267,7 @@ class SnapshotRestoreCanonicalizerTest {
             version = 2L,
             tags = listOf("tag"),
             relatedLinks = emptyList(),
-            order = 0,
+            order = order,
             isAttachmentsExpanded = false,
             defaultViewModeName = "DIRECTION",
             isCompleted = false,

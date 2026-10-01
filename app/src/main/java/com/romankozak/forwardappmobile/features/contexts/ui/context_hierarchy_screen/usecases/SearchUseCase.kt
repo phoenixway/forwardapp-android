@@ -8,6 +8,9 @@ import androidx.lifecycle.SavedStateHandle
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2TargetNavigationPolicy
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
@@ -20,7 +23,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.navigation.RevealResult
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPresentationPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldUseHierarchyFocusModeForBreadcrumbNames
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
@@ -46,21 +48,18 @@ class SearchUseCase
         private lateinit var scope: CoroutineScope
         private lateinit var uiEventChannel: Channel<ProjectUiEvent>
         private lateinit var onProjectAccess: suspend (String) -> Unit
-        private lateinit var hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>
-        private lateinit var presentationHierarchy: StateFlow<HierarchyPresentationData>
+        private lateinit var canonicalV2Read: StateFlow<CanonicalV2ProductionHierarchyRead?>
 
         fun initialize(
             scope: CoroutineScope,
             uiEventChannel: Channel<ProjectUiEvent>,
             onProjectAccess: suspend (String) -> Unit,
-            hierarchyPresentationFlat: StateFlow<List<HierarchyContextPresentationNode>>,
-            presentationHierarchy: StateFlow<HierarchyPresentationData>,
+            canonicalV2Read: StateFlow<CanonicalV2ProductionHierarchyRead?>,
         ) {
             this.scope = scope
             this.uiEventChannel = uiEventChannel
             this.onProjectAccess = onProjectAccess
-            this.hierarchyPresentationFlat = hierarchyPresentationFlat
-            this.presentationHierarchy = presentationHierarchy
+            this.canonicalV2Read = canonicalV2Read
             initializeSearchState()
         }
 
@@ -181,30 +180,51 @@ class SearchUseCase
                         }
                     }
 
-                    if (hierarchyPresentationFlat.value.none { it.id == projectId }) {
-                        Log.w(TAG, "Reveal rejected: $projectId is absent from the presentation universe")
+                    val read =
+                        canonicalV2Read.value ?: run {
+                            Log.w(TAG, "Reveal rejected: canonical V2 hierarchy read is not ready")
+                            return@withContext RevealResult.Failure
+                        }
+                    val occurrence =
+                        read.navigationOccurrence(
+                            target =
+                                HierarchyTargetRef(
+                                    HierarchyTargetType.WORKSPACE,
+                                    projectId,
+                                ),
+                            policy = CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
+                        ) ?: run {
+                            Log.w(TAG, "Reveal rejected: $projectId has no visible canonical V2 occurrence")
+                            return@withContext RevealResult.Failure
+                        }
+                    val breadcrumbs =
+                        read.breadcrumbsToOccurrence(occurrence.placementId)
+                    if (breadcrumbs.isEmpty()) {
+                        Log.w(
+                            TAG,
+                            "Reveal rejected: canonical breadcrumbs are missing for ${occurrence.placementId.value}",
+                        )
                         return@withContext RevealResult.Failure
                     }
-                    val breadcrumbNames =
-                        buildPresentationPathToProject(
-                            targetId = projectId,
-                            hierarchy = presentationHierarchy.value,
-                        ).map { it.name }
                     val shouldFocus =
                         shouldUseHierarchyFocusModeForBreadcrumbNames(
-                            breadcrumbNames = breadcrumbNames,
+                            breadcrumbNames = breadcrumbs.map { it.title },
                             hasFocusedProject = false,
                         )
                     Log.d(
                         TAG,
-                        "Reveal heuristic: segments=${breadcrumbNames.size}, shouldFocus=$shouldFocus",
+                        "Reveal heuristic: segments=${breadcrumbs.size}, shouldFocus=$shouldFocus",
                     )
 
                     withContext(Dispatchers.Main.immediate) {
                         clearAllSearchState()
                     }
 
-                    RevealResult.Success(projectId, shouldFocus)
+                    RevealResult.Success(
+                        projectId = projectId,
+                        shouldFocus = shouldFocus,
+                        placementId = occurrence.placementId.value,
+                    )
                 } catch (e: Exception) {
                     Log.e(TAG, "Помилка в revealProjectInHierarchy", e)
                     RevealResult.Failure
@@ -212,65 +232,105 @@ class SearchUseCase
             }
         }
 
+        private fun canonicalBreadcrumbsForPlacement(
+            placementId: String?,
+        ): List<BreadcrumbItem> =
+            placementId
+                ?.let(::PlacementId)
+                ?.let { id ->
+                    canonicalV2Read.value
+                        ?.breadcrumbsToOccurrence(id)
+                }
+                ?.map { breadcrumb ->
+                    BreadcrumbItem(
+                        id = breadcrumb.id,
+                        name = breadcrumb.title,
+                        level = breadcrumb.level,
+                        target =
+                            when (breadcrumb.target) {
+                                CanonicalV2BreadcrumbTarget.CONTEXT ->
+                                    BreadcrumbTarget.Context
+                                CanonicalV2BreadcrumbTarget.ORIENTATION_NODE ->
+                                    BreadcrumbTarget.OrientationNode
+                            },
+                        placementId = breadcrumb.placementId?.value,
+                    )
+                }
+                ?: emptyList()
+
+        private fun canonicalBreadcrumbsForTarget(
+            projectId: String,
+            policy: CanonicalV2TargetNavigationPolicy,
+        ): List<BreadcrumbItem> {
+            val read = canonicalV2Read.value ?: return emptyList()
+            val occurrence =
+                read.navigationOccurrence(
+                    target =
+                        HierarchyTargetRef(
+                            HierarchyTargetType.WORKSPACE,
+                            projectId,
+                        ),
+                    policy = policy,
+                ) ?: return emptyList()
+            return canonicalBreadcrumbsForPlacement(occurrence.placementId.value)
+        }
+
         fun navigateToProject(
             projectId: String,
-            currentHierarchy: HierarchyPresentationData,
-            breadcrumbPrefix: List<BreadcrumbItem> = emptyList(),
         ) {
             scope.launch {
-                onProjectAccess(projectId)
-
                 val path =
-                    buildPresentationPathToProject(projectId, currentHierarchy)
-                        .mapIndexed { index, project ->
-                            BreadcrumbItem(
-                                id = project.id,
-                                name = project.name,
-                                level = index,
-                            )
-                        }
-                currentBreadcrumbs.value =
-                    if (breadcrumbPrefix.isEmpty()) {
-                        path
-                    } else {
-                        breadcrumbPrefix + path.map { it.copy(level = it.level + breadcrumbPrefix.size) }
-                    }
+                    canonicalBreadcrumbsForTarget(
+                        projectId = projectId,
+                        policy = CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
+                    )
+                if (path.isEmpty()) {
+                    Log.w(TAG, "Navigation rejected: $projectId has no visible canonical V2 occurrence")
+                    return@launch
+                }
+
+                onProjectAccess(projectId)
+                currentBreadcrumbs.value = path
                 focusedProjectId.value = projectId
             }
         }
 
-        fun reconcileFocusedProjectBreadcrumbs(
-            currentHierarchy: HierarchyPresentationData,
-        ) {
+        fun reconcileFocusedProjectBreadcrumbs() {
             val focusedProject =
                 _subStateStack.value.lastOrNull() as? ProjectHierarchyScreenSubState.ProjectFocused
                     ?: return
 
+            val read = canonicalV2Read.value ?: return
+            val placementId = focusedProject.placementId
             val canonicalPath =
-                buildPresentationPathToProject(
-                    targetId = focusedProject.projectId,
-                    hierarchy = currentHierarchy,
-                )
-            if (canonicalPath.isEmpty()) return
-
-            val orientationPrefix =
-                currentBreadcrumbs.value
-                    .takeWhile { breadcrumb ->
-                        breadcrumb.target == BreadcrumbTarget.OrientationNode
+                if (placementId != null) {
+                    val occurrence = read.occurrence(PlacementId(placementId))
+                    if (
+                        occurrence?.target !=
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, focusedProject.projectId)
+                    ) {
+                        Log.w(TAG, "Exact breadcrumb reconciliation rejected: $placementId is not the focused Workspace")
+                        clearNavigation()
+                        return
                     }
-
-            val projectBreadcrumbs =
-                canonicalPath.mapIndexed { index, project ->
-                    BreadcrumbItem(
-                        id = project.id,
-                        name = project.name,
-                        level = orientationPrefix.size + index,
+                    canonicalBreadcrumbsForPlacement(placementId)
+                } else {
+                    canonicalBreadcrumbsForTarget(
+                        projectId = focusedProject.projectId,
+                        policy = CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
                     )
                 }
+            if (canonicalPath.isEmpty()) {
+                Log.w(
+                    TAG,
+                    "Breadcrumb reconciliation rejected: ${focusedProject.projectId} has no canonical V2 occurrence",
+                )
+                clearNavigation()
+                return
+            }
 
-            val reconciled = orientationPrefix + projectBreadcrumbs
-            if (currentBreadcrumbs.value != reconciled) {
-                currentBreadcrumbs.value = reconciled
+            if (currentBreadcrumbs.value != canonicalPath) {
+                currentBreadcrumbs.value = canonicalPath
             }
         }
 
@@ -344,7 +404,6 @@ class SearchUseCase
         fun onSearchResultClick(
             projectId: String,
             placementId: String? = null,
-            currentHierarchy: HierarchyPresentationData,
             orientationHierarchy: List<OrientationHierarchyItem> = emptyList(),
             canonicalBreadcrumbs: List<BreadcrumbItem>? = null,
         ) {
@@ -371,13 +430,22 @@ class SearchUseCase
 
                 when (val result = revealProjectInHierarchy(projectId)) {
                     is RevealResult.Success -> {
-                        enterProjectFocus(
+                        val breadcrumbs =
+                            canonicalBreadcrumbsForPlacement(result.placementId)
+                        if (breadcrumbs.isEmpty()) {
+                            uiEventChannel.send(
+                                ProjectUiEvent.ShowToast("Не вдалося показати локацію"),
+                            )
+                            return@launch
+                        }
+                        navigateToProjectWithBreadcrumbs(
                             projectId = result.projectId,
-                            placementId = result.placementId,
+                            breadcrumbs = breadcrumbs,
                         )
-                        navigateToProject(
-                            result.projectId,
-                            currentHierarchy,
+                        enterProjectFocusPath(
+                            projectId = result.projectId,
+                            breadcrumbs = breadcrumbs,
+                            placementId = result.placementId,
                         )
                         onSearchQueryChanged(TextFieldValue(""))
                     }
@@ -519,9 +587,6 @@ class SearchUseCase
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
-            val beaconBreadcrumbPrefix =
-                currentBreadcrumbs.value
-                    .takeWhile { it.target == BreadcrumbTarget.OrientationNode }
             when {
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.ProjectFocused -> {
                     popSubState()
@@ -529,9 +594,17 @@ class SearchUseCase
                         is ProjectHierarchyScreenSubState.ProjectFocused -> {
                             val placementId = previousFocusedState.placementId
                             if (placementId != null) {
+                                val exactId = PlacementId(placementId)
                                 val exactBreadcrumbs =
                                     canonicalRead
-                                        ?.breadcrumbsToOccurrence(PlacementId(placementId))
+                                        ?.takeIf { read ->
+                                            read.occurrence(exactId)?.target ==
+                                                HierarchyTargetRef(
+                                                    HierarchyTargetType.WORKSPACE,
+                                                    previousFocusedState.projectId,
+                                                )
+                                        }
+                                        ?.breadcrumbsToOccurrence(exactId)
                                         ?.map { breadcrumb ->
                                             BreadcrumbItem(
                                                 id = breadcrumb.id,
@@ -561,8 +634,6 @@ class SearchUseCase
                             } else {
                                 navigateToProject(
                                     projectId = previousFocusedState.projectId,
-                                    currentHierarchy = currentHierarchy,
-                                    breadcrumbPrefix = beaconBreadcrumbPrefix,
                                 )
                             }
                         }
@@ -595,7 +666,6 @@ class SearchUseCase
         fun handleNavigationResult(
             key: String,
             value: String,
-            projectHierarchy: HierarchyPresentationData,
         ) {
             when (key) {
                 "project_to_reveal" -> {
@@ -604,10 +674,22 @@ class SearchUseCase
 
                         when (val result = revealProjectInHierarchy(value)) {
                             is RevealResult.Success -> {
-                                enterProjectFocus(result.projectId)
-                                navigateToProject(
-                                    result.projectId,
-                                    projectHierarchy,
+                                val breadcrumbs =
+                                    canonicalBreadcrumbsForPlacement(result.placementId)
+                                if (breadcrumbs.isEmpty()) {
+                                    uiEventChannel.send(
+                                        ProjectUiEvent.ShowToast("Не удалось показать локацию"),
+                                    )
+                                    return@launch
+                                }
+                                navigateToProjectWithBreadcrumbs(
+                                    projectId = result.projectId,
+                                    breadcrumbs = breadcrumbs,
+                                )
+                                enterProjectFocusPath(
+                                    projectId = result.projectId,
+                                    breadcrumbs = breadcrumbs,
+                                    placementId = result.placementId,
                                 )
                             }
                             is RevealResult.Failure -> {

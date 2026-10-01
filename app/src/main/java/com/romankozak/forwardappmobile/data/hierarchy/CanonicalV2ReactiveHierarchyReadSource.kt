@@ -9,7 +9,6 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
@@ -33,7 +32,7 @@ private data class CanonicalV2ReactiveOrientationState(
 )
 
 private data class CanonicalV2ReactivePresentationState(
-    val workspaces: List<HierarchyContextPresentationNode>,
+    val workspaces: List<CanonicalV2WorkspacePresentation>,
     val groups: List<MainBeaconGroup>,
 )
 
@@ -104,7 +103,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                 systemWorkspacePresentationContextProjector
                     .observePresentationUniverse(contextRepository.getAllContextsFlow())
                     .map { presentations ->
-                        presentations.map { it.toHierarchyPresentationNode() }
+                        presentations.map { it.toCanonicalV2WorkspacePresentation() }
                     }
 
             val presentation =
@@ -137,9 +136,20 @@ class CanonicalV2ReactiveHierarchyReadSource
             }
         }
 
-        fun observeWorkspacePresentations(): Flow<List<HierarchyContextPresentationNode>> =
+        fun observeCanonicalWorkspacePresentations(): Flow<List<CanonicalV2WorkspacePresentation>> =
             systemWorkspacePresentationContextProjector
                 .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .map { presentations ->
+                    presentations.map { it.toCanonicalV2WorkspacePresentation() }
+                }
+
+        /**
+         * Temporary non-structural UI compatibility surface. The returned
+         * node has no parent/order claims; occurrence topology is supplied by
+         * the canonical V2 read.
+         */
+        fun observeWorkspacePresentations(): Flow<List<HierarchyContextPresentationNode>> =
+            observeCanonicalWorkspacePresentations()
                 .map { presentations ->
                     presentations.map { it.toHierarchyPresentationNode() }
                 }

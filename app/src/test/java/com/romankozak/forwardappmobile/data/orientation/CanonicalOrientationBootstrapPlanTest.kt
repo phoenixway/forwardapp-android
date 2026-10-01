@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.shared.core.models.orientation.EffectiveOrientation
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectRef
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubject
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -59,6 +60,68 @@ class CanonicalOrientationBootstrapPlanTest {
 
         assertTrue(plan.rows.isEmpty())
         assertEquals("IDENTITY_COLLISION", plan.issues.single().code)
+    }
+
+    @Test
+    fun `live CUT_OVER mapping owns identity even when projection resolver would choose another subject`() {
+        val projection = projection("goal-cut-over")
+        val durableSubjectId = "caller-generated-subject"
+        val mapping =
+            LegacySubjectMappingEntity(
+                id = durableSubjectId,
+                sourceType = LegacyOrientationSourceType.GOAL.name,
+                sourceId = "goal-cut-over",
+                subjectId = durableSubjectId,
+                migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                state = LegacySubjectMappingState.CUT_OVER.name,
+                createdAt = 1L,
+                updatedAt = 2L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+        val plan =
+            planBootstrap(
+                projections = listOf(projection),
+                existingMappings = listOf(mapping),
+                existingSubjectIds = setOf(durableSubjectId),
+                gson = Gson(),
+            )
+
+        assertTrue(plan.rows.isEmpty())
+        assertTrue(plan.issues.isEmpty())
+    }
+
+    @Test
+    fun `deleted CUT_OVER mapping still owns established canonical identity`() {
+        val projection = projection("goal-deleted-cut-over")
+        val durableSubjectId = "caller-generated-deleted-subject"
+        val mapping =
+            LegacySubjectMappingEntity(
+                id = durableSubjectId,
+                sourceType = LegacyOrientationSourceType.GOAL.name,
+                sourceId = "goal-deleted-cut-over",
+                subjectId = durableSubjectId,
+                migrationVersion = CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                state = LegacySubjectMappingState.CUT_OVER.name,
+                createdAt = 1L,
+                updatedAt = 2L,
+                syncedAt = null,
+                isDeleted = true,
+                version = 2L,
+            )
+
+        val plan =
+            planBootstrap(
+                projections = listOf(projection),
+                existingMappings = listOf(mapping),
+                existingSubjectIds = setOf(durableSubjectId),
+                gson = Gson(),
+            )
+
+        assertTrue(plan.rows.isEmpty())
+        assertTrue(plan.issues.isEmpty())
     }
 
     private fun projection(sourceId: String): EffectiveOrientation {

@@ -24,11 +24,40 @@ data class ContextPresentation(
     val id: String,
     val name: String,
     val description: String?,
+    /** Historical DTO shape only; production projection never supplies topology. */
     val parentId: String?,
     val roleCode: String?,
+    /** Historical DTO shape only; production projection never supplies topology. */
     val order: Long,
     val tags: List<String>?,
 )
+
+/**
+ * Minimal Workspace state required by presentation projection.
+ *
+ * Hierarchy topology is intentionally absent. GENERAL hierarchy authority is H1;
+ * parentWorkspaceId/workspaceOrder are not presentation inputs.
+ */
+internal data class WorkspacePresentationState(
+    val id: String,
+    val nameOverride: String?,
+    val descriptionOverride: String?,
+    val roleCode: String?,
+    val isDeleted: Boolean,
+    val provenance: String,
+    val sourceContextId: String?,
+)
+
+private fun WorkspaceEntity.toPresentationState(): WorkspacePresentationState =
+    WorkspacePresentationState(
+        id = id,
+        nameOverride = nameOverride,
+        descriptionOverride = descriptionOverride,
+        roleCode = roleCode,
+        isDeleted = isDeleted,
+        provenance = provenance,
+        sourceContextId = sourceContextId,
+    )
 
 /**
  * Transitional read projection for UI surfaces that still consume [Context].
@@ -97,7 +126,7 @@ class SystemWorkspacePresentationContextProjector
 
             return projectPresentationUniverseFromState(
                 contexts = contexts,
-                workspaces = workspaces,
+                workspaces = workspaces.map { it.toPresentationState() },
                 canonicalTagsById = canonicalTagsById,
                 retiredOrdinaryContextIds = retiredOrdinaryContextIds,
             )
@@ -160,7 +189,7 @@ class SystemWorkspacePresentationContextProjector
                         }
 
                     ordinaryRetirementEvidence ||
-                        workspace?.isStandaloneOperationalWorkspace() == true ->
+                        workspace?.toPresentationState()?.isStandaloneOperationalWorkspace() == true ->
                         canonicalWorkspaceTagRepository.getTags(contextId)
 
                     else -> null
@@ -169,7 +198,7 @@ class SystemWorkspacePresentationContextProjector
             return resolvePresentationFromState(
                 contextId = contextId,
                 context = context,
-                workspace = workspace,
+                workspace = workspace?.toPresentationState(),
                 canonicalTags = canonicalTags,
                 ordinaryRetirementEvidence = ordinaryRetirementEvidence,
             )
@@ -216,7 +245,7 @@ class SystemWorkspacePresentationContextProjector
 
                 projectPresentationUniverseFromState(
                     contexts = contextRows,
-                    workspaces = workspaces,
+                    workspaces = workspaces.map { it.toPresentationState() },
                     canonicalTagsById = canonicalTagsById,
                     retiredOrdinaryContextIds = retiredOrdinaryContextIds,
                 )
@@ -260,7 +289,7 @@ class SystemWorkspacePresentationContextProjector
 
                 operationalOwnerLabelsFromState(
                     contexts = contextRows,
-                    workspaces = workspaces,
+                    workspaces = workspaces.map { it.toPresentationState() },
                     retiredOrdinaryContextIds = retiredOrdinaryContextIds,
                 )
             }
@@ -270,7 +299,7 @@ class SystemWorkspacePresentationContextProjector
 
 internal fun projectPresentationUniverseFromState(
     contexts: List<Context>,
-    workspaces: List<WorkspaceEntity>,
+    workspaces: List<WorkspacePresentationState>,
     canonicalTagsById: Map<String, List<String>>,
     retiredOrdinaryContextIds: Set<String> = emptySet(),
 ): List<ContextPresentation> {
@@ -299,11 +328,7 @@ internal fun projectPresentationUniverseFromState(
                             workspace.isStandaloneOperationalWorkspace()
                     )
             }
-            .sortedWith(
-                compareBy<WorkspaceEntity> { it.parentWorkspaceId ?: "" }
-                    .thenBy { it.workspaceOrder }
-                    .thenBy { it.id },
-            )
+            .sortedBy { it.id }
             .mapNotNull { workspace ->
                 resolvePresentationFromState(
                     contextId = workspace.id,
@@ -322,7 +347,7 @@ internal fun projectPresentationUniverseFromState(
 private fun resolvePresentationFromState(
     contextId: String,
     context: Context?,
-    workspace: WorkspaceEntity?,
+    workspace: WorkspacePresentationState?,
     canonicalTags: List<String>?,
     ordinaryRetirementEvidence: Boolean,
 ): ContextPresentation? {
@@ -357,9 +382,9 @@ private fun resolvePresentationFromState(
             id = workspace.id,
             name = name,
             description = workspace.descriptionOverride,
-            parentId = workspace.parentWorkspaceId,
+            parentId = null,
             roleCode = workspace.roleCode,
-            order = workspace.workspaceOrder,
+            order = 0L,
             tags = canonicalTags.orEmpty(),
         )
     }
@@ -385,15 +410,15 @@ private fun Context.toPresentation(): ContextPresentation =
         id = id,
         name = name,
         description = description,
-        parentId = parentId,
+        parentId = null,
         roleCode = roleCode,
-        order = order,
+        order = 0L,
         tags = tags,
     )
 
 internal fun operationalOwnerLabelsFromState(
     contexts: List<Context>,
-    workspaces: List<WorkspaceEntity>,
+    workspaces: List<WorkspacePresentationState>,
     retiredOrdinaryContextIds: Set<String> = emptySet(),
 ): Map<String, String> {
     val workspaceById = workspaces.associateBy { it.id }
@@ -455,7 +480,7 @@ internal fun operationalOwnerLabelsFromState(
     return labels
 }
 
-private fun WorkspaceEntity.isCanonicalWorkspaceOwner(): Boolean =
+private fun WorkspacePresentationState.isCanonicalWorkspaceOwner(): Boolean =
     sourceContextId == null &&
         (
             provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||
@@ -465,7 +490,7 @@ private fun WorkspaceEntity.isCanonicalWorkspaceOwner(): Boolean =
                 )
         )
 
-private fun WorkspaceEntity.isStandaloneOperationalWorkspace(): Boolean =
+private fun WorkspacePresentationState.isStandaloneOperationalWorkspace(): Boolean =
     !isDeleted &&
         !SystemContexts.isSystem(ContextId(id)) &&
         provenance == WorkspaceProvenance.STANDALONE.name &&

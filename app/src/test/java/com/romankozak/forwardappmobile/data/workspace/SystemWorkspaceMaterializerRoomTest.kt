@@ -9,6 +9,14 @@ import com.romankozak.forwardappmobile.core.context.SystemOperationalDefinitions
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.database.HierarchyAuthorityActivationStateEntity
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOriginEntity
+import com.romankozak.forwardappmobile.data.database.HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -33,9 +41,102 @@ class SystemWorkspaceMaterializerRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun `V2 materializer refuses missing System owners after hierarchy activation`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.hierarchyAuthorityActivationStateDao().upsert(
+                    HierarchyAuthorityActivationStateEntity(
+                        hierarchyId = HierarchyId.GENERAL.value,
+                        version = 2,
+                        activatedAt = 1L,
+                    ),
+                )
+                val materializer = materializer(database)
+                val beforeHierarchy = CanonicalHierarchyPlacementRepository(database).getLiveHierarchy()
+
+                val failure =
+                    runCatching {
+                        materializer.materializeAll(
+                            now = 20L,
+                            seedMissingFactoryCapabilities = false,
+                        )
+                    }.exceptionOrNull()
+
+                assertTrue(failure is IllegalArgumentException)
+                assertTrue(database.workspaceDao().getAll().isEmpty())
+                assertEquals(
+                    beforeHierarchy,
+                    CanonicalHierarchyPlacementRepository(database).getLiveHierarchy(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `V2 materializer may establish missing System owners before hierarchy activation`() =
+        runBlocking {
+            val database = database()
+            try {
+                val materializer = materializer(database)
+
+                val result =
+                    materializer.materializeAll(
+                        now = 20L,
+                        seedMissingFactoryCapabilities = false,
+                    )
+
+                assertEquals(20, result.created)
+                assertEquals(20, database.workspaceDao().getAll().size)
+                assertNull(
+                    database.hierarchyAuthorityActivationStateDao()
+                        .get(HierarchyId.GENERAL.value),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `V2 repeated materialization preserves canonical System owner and established H1`() =
+        runBlocking {
+            val database = database()
+            try {
+                val materializer = materializer(database)
+                materializer.materializeAll(now = 10L, seedMissingFactoryCapabilities = false)
+                val placements = CanonicalHierarchyPlacementRepository(database)
+                placements.createPrimaryAppearance(
+                    target =
+                        HierarchyTargetRef(
+                            HierarchyTargetType.WORKSPACE,
+                            SystemContexts.INBOX.raw,
+                        ),
+                    now = 11L,
+                )
+                val beforeWorkspaces = database.workspaceDao().getAll()
+                val beforeHierarchy = placements.getLiveHierarchy()
+
+                val report =
+                    materializer.materializeAll(
+                        now = 20L,
+                        seedMissingFactoryCapabilities = false,
+                    )
+
+                assertEquals(0, report.created)
+                assertEquals(0, report.promotedLegacy)
+                assertEquals(beforeWorkspaces, database.workspaceDao().getAll())
+                assertEquals(beforeHierarchy, placements.getLiveHierarchy())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `transient legacy evidence creates canonical owner without Context shell`() =
         runBlocking {
             val database = database()
+            classifyLegacyUpgrade(database)
             try {
                 val id = SystemContexts.INBOX.raw
                 val materializer = materializer(database)
@@ -66,7 +167,6 @@ class SystemWorkspaceMaterializerRoomTest {
                 assertTrue(workspace.nameOverride == "Imported Inbox")
                 assertTrue(workspace.descriptionOverride == "legacy evidence")
                 assertTrue(workspace.roleCode == "legacy-role")
-                assertTrue(workspace.workspaceOrder == 42L)
                 assertNull(workspace.sourceContextId)
                 assertTrue(workspace.version == 7L)
             } finally {
@@ -75,7 +175,7 @@ class SystemWorkspaceMaterializerRoomTest {
         }
 
     @Test
-    fun `context-free materialization creates exact canonical System factory defaults`() =
+    fun `fresh native context-free materialization creates topology-neutral canonical System owners`() =
         runBlocking {
             val database = database()
             try {
@@ -96,9 +196,7 @@ class SystemWorkspaceMaterializerRoomTest {
                     val workspace = requireNotNull(workspaces[definition.id])
                     assertEquals(definition.defaultName, workspace.nameOverride)
                     assertNull(workspace.descriptionOverride)
-                    assertEquals(definition.defaultParentId, workspace.parentWorkspaceId)
                     assertNull(workspace.roleCode)
-                    assertEquals(0L, workspace.workspaceOrder)
                     assertEquals(10L, workspace.createdAt)
                     assertEquals(10L, workspace.updatedAt)
                     assertNull(workspace.syncedAt)
@@ -184,9 +282,7 @@ class SystemWorkspaceMaterializerRoomTest {
                         inbox.copy(
                             nameOverride = "Customized Inbox",
                             descriptionOverride = "Canonical description",
-                            parentWorkspaceId = SystemContexts.STRATEGIC.raw,
                             roleCode = "canonical-role",
-                            workspaceOrder = 37L,
                             updatedAt = 20L,
                             syncedAt = 21L,
                             version = 9L,
@@ -211,6 +307,7 @@ class SystemWorkspaceMaterializerRoomTest {
     @Test
     fun `legacy Context-backed row is validated and promoted directly`() = runBlocking {
         val database = database()
+            classifyLegacyUpgrade(database)
         try {
             val target =
                 SystemOperationalDefinitions.all.first {
@@ -249,15 +346,7 @@ class SystemWorkspaceMaterializerRoomTest {
                 legacyWorkspace.descriptionOverride,
                 promoted.descriptionOverride,
             )
-            assertEquals(
-                legacyWorkspace.parentWorkspaceId,
-                promoted.parentWorkspaceId,
-            )
             assertEquals(legacyWorkspace.roleCode, promoted.roleCode)
-            assertEquals(
-                legacyWorkspace.workspaceOrder,
-                promoted.workspaceOrder,
-            )
             assertEquals(legacyWorkspace.createdAt, promoted.createdAt)
             assertEquals(10L, promoted.updatedAt)
             assertNull(promoted.syncedAt)
@@ -284,6 +373,7 @@ class SystemWorkspaceMaterializerRoomTest {
     @Test
     fun `stale Context-backed System projection fails closed`() = runBlocking {
         val database = database()
+            classifyLegacyUpgrade(database)
         try {
             val target =
                 SystemOperationalDefinitions.all.first {
@@ -333,6 +423,7 @@ class SystemWorkspaceMaterializerRoomTest {
     fun `Context-backed System Workspace without live Context fails closed`() =
         runBlocking {
             val database = database()
+            classifyLegacyUpgrade(database)
             try {
                 val target =
                     SystemOperationalDefinitions.all.first {
@@ -414,6 +505,7 @@ class SystemWorkspaceMaterializerRoomTest {
     fun `mixed ownership converges every reserved identity directly`() =
         runBlocking {
             val database = database()
+            classifyLegacyUpgrade(database)
             try {
                 val canonicalDefinition = SystemOperationalDefinitions.all[0]
                 val legacyDefinition = SystemOperationalDefinitions.all[1]
@@ -497,6 +589,7 @@ class SystemWorkspaceMaterializerRoomTest {
     fun `historical parent metadata is adopted without deferring canonical descendants`() =
         runBlocking {
             val database = database()
+            classifyLegacyUpgrade(database)
             try {
                 val levels =
                     SystemOperationalDefinitions.all.first {
@@ -540,20 +633,6 @@ class SystemWorkspaceMaterializerRoomTest {
                         .getById(SystemContexts.INBOX.raw) != null,
                 )
 
-                val liveIds =
-                    database.workspaceDao()
-                        .getAll()
-                        .mapTo(hashSetOf()) { it.id }
-
-                database.workspaceDao().getAll().forEach { workspace ->
-                    workspace.parentWorkspaceId?.let { parentId ->
-                        assertTrue(
-                            "Direct materialization left dangling parent " +
-                                "$parentId for ${workspace.id}",
-                            parentId in liveIds,
-                        )
-                    }
-                }
             } finally {
                 database.close()
             }
@@ -563,6 +642,7 @@ class SystemWorkspaceMaterializerRoomTest {
     fun `ownership-only materialization leaves factory capabilities absent until final convergence`() =
         runBlocking {
             val database = database()
+            classifyLegacyUpgrade(database)
             try {
                 val historical =
                     SystemOperationalDefinitions.all.first {
@@ -724,6 +804,15 @@ class SystemWorkspaceMaterializerRoomTest {
             }
         }
 
+    private suspend fun classifyLegacyUpgrade(database: AppDatabase) {
+        database.hierarchyEstablishmentOriginDao().upsert(
+            HierarchyEstablishmentOriginEntity(
+                hierarchyId = HierarchyId.GENERAL.value,
+                origin = HierarchyEstablishmentOrigin.LEGACY_UPGRADE_REQUIRES_CAPTURE.name,
+            ),
+        )
+    }
+
     private fun materializer(database: AppDatabase) =
         SystemWorkspaceMaterializer(
             database = database,
@@ -753,9 +842,7 @@ class SystemWorkspaceMaterializerRoomTest {
         id = id,
         nameOverride = name,
         descriptionOverride = null,
-        parentWorkspaceId = defaultParentId,
         roleCode = null,
-        workspaceOrder = 0L,
         createdAt = createdAt,
         updatedAt = createdAt,
         syncedAt = null,
@@ -767,6 +854,7 @@ class SystemWorkspaceMaterializerRoomTest {
 
     private fun database(): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .addCallback(HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK)
             .allowMainThreadQueries()
             .build()
 }

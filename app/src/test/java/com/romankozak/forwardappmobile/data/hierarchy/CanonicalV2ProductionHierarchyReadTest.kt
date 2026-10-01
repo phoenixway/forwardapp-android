@@ -29,8 +29,8 @@ class CanonicalV2ProductionHierarchyReadTest {
                     ),
                 admittedWorkspacePresentations =
                     listOf(
-                        workspacePresentation("root", parentId = "bogus", order = 999),
-                        workspacePresentation("child", parentId = null, order = -100),
+                        workspacePresentation("root"),
+                        workspacePresentation("child"),
                     ),
                 managedSubjects = emptyList(),
             )
@@ -136,6 +136,76 @@ class CanonicalV2ProductionHierarchyReadTest {
     }
 
     @Test
+    fun `Group presentation ordering may differ from structural root ordering`() {
+        val read =
+            adapter.read(
+                placements =
+                    listOf(
+                        placement("root-a", subjectTarget("subject-a"), order = 0),
+                        placement(
+                            "child-a",
+                            workspaceTarget("child-a"),
+                            parentId = "root-a",
+                            order = 0,
+                        ),
+                        placement("root-b", subjectTarget("subject-b"), order = 1),
+                        placement(
+                            "child-b",
+                            workspaceTarget("child-b"),
+                            parentId = "root-b",
+                            order = 0,
+                        ),
+                    ),
+                admittedWorkspacePresentations =
+                    listOf(
+                        workspacePresentation("child-a"),
+                        workspacePresentation("child-b"),
+                    ),
+                managedSubjects =
+                    listOf(
+                        subject("subject-a", "Subject A"),
+                        subject("subject-b", "Subject B"),
+                    ),
+                syntheticScopes =
+                    listOf(
+                        CanonicalV2SyntheticScopeInput(
+                            kind = CanonicalV2SyntheticScopeKind.GROUP,
+                            id = "group-a",
+                            title = "Group A",
+                            order = 1,
+                            rootPlacementIds = listOf(PlacementId("root-a")),
+                        ),
+                        CanonicalV2SyntheticScopeInput(
+                            kind = CanonicalV2SyntheticScopeKind.GROUP,
+                            id = "group-b",
+                            title = "Group B",
+                            order = 0,
+                            rootPlacementIds = listOf(PlacementId("root-b")),
+                        ),
+                    ),
+            )
+
+        assertEquals(
+            listOf("root-b", "child-b", "root-a", "child-a"),
+            read.presentation.entries
+                .filterIsInstance<CanonicalV2PresentedHierarchyEntry.Occurrence>()
+                .map { it.placementId.value },
+        )
+        assertEquals(
+            listOf("root-a", "root-b"),
+            read.childrenOf(null).map { it.placementId.value },
+        )
+        assertEquals(
+            listOf("root-a", "child-a"),
+            read.occurrencePath(PlacementId("child-a")).map { it.placementId.value },
+        )
+        assertEquals(
+            listOf("root-b", "child-b"),
+            read.occurrencePath(PlacementId("child-b")).map { it.placementId.value },
+        )
+    }
+
+    @Test
     fun `exact occurrence focus stays separate from target navigation policy`() {
         val shared = workspaceTarget("shared")
         val read =
@@ -229,7 +299,6 @@ class CanonicalV2ProductionHierarchyReadTest {
                         workspacePresentation("parent", name = "Parent"),
                         workspacePresentation(
                             systemId,
-                            parentId = "legacy-parent-must-be-ignored",
                             name = "Canonical Inbox",
                         ),
                     ),
@@ -326,21 +395,20 @@ class CanonicalV2ProductionHierarchyReadTest {
 
     private fun workspacePresentation(
         id: String,
-        parentId: String? = null,
-        order: Long = 0,
         name: String = id,
-    ) = HierarchyContextPresentationNode(
+    ) = CanonicalV2WorkspacePresentation(
         id = id,
         name = name,
         description = null,
-        parentId = parentId,
-        order = order,
         roleCode = null,
         tags = emptyList(),
     )
 
     private fun workspaceTarget(id: String) =
         HierarchyTargetRef(HierarchyTargetType.WORKSPACE, id)
+
+    private fun subjectTarget(id: String) =
+        HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, id)
 
     @Suppress("unused")
     private fun subject(

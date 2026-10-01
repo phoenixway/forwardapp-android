@@ -4,10 +4,8 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapIssueEntity
 import com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapStateEntity
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
@@ -276,16 +274,6 @@ class CanonicalWorkspaceBootstrapper
             }
             val capabilityProjectionSources = capabilityProjectionSourcesById.values.toList()
             val existingWorkspaces = workspaceDao.getAll()
-            val canonicalCutOverWorkspaceIds =
-                existingWorkspaces
-                    .asSequence()
-                    .filter {
-                        !it.isDeleted &&
-                            it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                            it.id in cutOverContextIds
-                    }
-                    .mapTo(hashSetOf()) { it.id }
-
             /*
              * A live reserved System Context may temporarily coexist with its
              * same-id canonical Workspace after ownership cutover.
@@ -306,56 +294,9 @@ class CanonicalWorkspaceBootstrapper
                     }
                     .mapTo(hashSetOf()) { it.id }
 
-            val metadataProjectionContexts =
-                compatibilityContexts.filterNot { context ->
-                    SystemContexts.isSystem(ContextId(context.id))
-                }
-
-            val desiredWorkspaces =
-                projectWorkspaces(
-                    contexts = metadataProjectionContexts,
-                    canonicalCutOverWorkspaceIds =
-                        canonicalCutOverWorkspaceIds + promotedSystemWorkspaceIds,
-                    issues = issues,
-                    now = now,
-                )
-            val desiredWorkspaceIds = desiredWorkspaces.mapTo(hashSetOf()) { it.id }
-            val blockedContextIds =
-                existingWorkspaces
-                    .filter {
-                        it.id in desiredWorkspaceIds &&
-                            it.provenance != WorkspaceProvenance.CONTEXT_BACKED.name
-                    }
-                    .mapTo(hashSetOf()) { it.id }
-            val safeDesiredWorkspaces =
-                desiredWorkspaces.map { projected ->
-                    val parentId = projected.parentWorkspaceId
-                    if (
-                        projected.id !in blockedContextIds &&
-                        !SystemContexts.isSystem(ContextId(projected.id)) &&
-                        parentId != null &&
-                        parentId in blockedContextIds
-                    ) {
-                        issues +=
-                            issue(
-                                projected.id,
-                                "WORKSPACE_PARENT_COLLISION",
-                                "Context parent $parentId collides with a canonical Workspace; shadow parent was cleared",
-                                now,
-                            )
-                        projected.copy(parentWorkspaceId = null)
-                    } else {
-                        projected
-                    }
-                }
-            val workspaceChanges =
-                mergeWorkspaceProjection(
-                    existing = existingWorkspaces,
-                    desired = safeDesiredWorkspaces,
-                    issues = issues,
-                    now = now,
-                    protectedContextBackedIds = cutOverContextIds,
-                )
+            // H1 is the established structural authority. Ordinary Context rows
+            // are inert compatibility evidence and may neither create nor rewrite
+            // Workspace metadata/topology during normal bootstrap.
             val legacyCapabilityProjectionWorkspaceIds =
                 existingWorkspaces
                     .filter {
@@ -364,7 +305,6 @@ class CanonicalWorkspaceBootstrapper
                             !SystemContexts.isSystem(ContextId(it.id))
                     }
                     .mapTo(hashSetOf()) { it.id } +
-                    desiredWorkspaceIds.filterNot { it in blockedContextIds } +
                     promotedSystemWorkspaceIds.intersect(
                         promotedSystemLegacyCapabilityIngressIds,
                     )
@@ -379,12 +319,10 @@ class CanonicalWorkspaceBootstrapper
                     promotedSystemLegacyCapabilityIngressIds =
                         promotedSystemLegacyCapabilityIngressIds,
                     deletedConfigurationContextIds = deletedConfigurationContextIds,
-                    blockedContextIds = blockedContextIds,
                     issues = issues,
                     now = now,
                 )
 
-            if (workspaceChanges.isNotEmpty()) workspaceDao.upsert(workspaceChanges)
             if (capabilityChanges.isNotEmpty()) orientationDao.upsertWorkspaceCapabilities(capabilityChanges)
             workspaceDao.resolveOpenBootstrapIssues(now)
             if (issues.isNotEmpty()) workspaceDao.upsertBootstrapIssues(issues)
@@ -397,107 +335,11 @@ class CanonicalWorkspaceBootstrapper
                 ),
             )
             return WorkspaceBootstrapReport(
-                projectedWorkspaces = workspaceChanges.size,
+                projectedWorkspaces = 0,
                 projectedCapabilities = capabilityChanges.size,
                 issues = issues,
-                performed = workspaceChanges.isNotEmpty() || capabilityChanges.isNotEmpty(),
+                performed = capabilityChanges.isNotEmpty(),
             )
-        }
-
-        private fun projectWorkspaces(
-            contexts: List<Context>,
-            canonicalCutOverWorkspaceIds: Set<String>,
-            issues: MutableList<WorkspaceBootstrapIssueEntity>,
-            now: Long,
-        ): List<WorkspaceEntity> {
-            val ids = contexts.mapTo(hashSetOf()) { it.id }
-            val parentById =
-                contexts.associate { context ->
-                    val parent =
-                        context.parentId?.takeIf { parentId ->
-                            parentId in ids ||
-                                (
-                                    SystemContexts.isSystem(ContextId(context.id)) &&
-                                        parentId in canonicalCutOverWorkspaceIds
-                                )
-                        }
-                    if (context.parentId != null && parent == null) {
-                        issues += issue(
-                            context.id,
-                            "UNKNOWN_PARENT",
-                            "Missing Context parent ${context.parentId}",
-                            now,
-                        )
-                    }
-                    context.id to parent
-                }
-            val cycleIds = cycleMembers(parentById)
-            cycleIds.forEach { id ->
-                issues += issue(id, "HIERARCHY_CYCLE", "Context hierarchy cycle was not projected", now)
-            }
-            return contexts.map { context ->
-                WorkspaceEntity(
-                    id = context.id,
-                    nameOverride = context.name,
-                    descriptionOverride = context.description,
-                    parentWorkspaceId = parentById[context.id]?.takeUnless { context.id in cycleIds },
-                    roleCode = context.roleCode,
-                    workspaceOrder = context.order,
-                    createdAt = context.createdAt,
-                    updatedAt = context.updatedAt ?: context.createdAt,
-                    syncedAt = null,
-                    isDeleted = context.isDeleted,
-                    version = context.version.coerceAtLeast(1L),
-                    provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
-                    sourceContextId = context.id,
-                )
-            }
-        }
-
-        private fun mergeWorkspaceProjection(
-            existing: List<WorkspaceEntity>,
-            desired: List<WorkspaceEntity>,
-            issues: MutableList<WorkspaceBootstrapIssueEntity>,
-            now: Long,
-            protectedContextBackedIds: Set<String> = emptySet(),
-        ): List<WorkspaceEntity> {
-            val existingById = existing.associateBy { it.id }
-            val desiredIds = desired.mapTo(hashSetOf()) { it.id }
-            val changes =
-                desired.mapNotNull { projected ->
-                    val current = existingById[projected.id] ?: return@mapNotNull projected.copy(updatedAt = now)
-                    if (current.provenance != WorkspaceProvenance.CONTEXT_BACKED.name) {
-                        issues +=
-                            issue(
-                                projected.id,
-                                "WORKSPACE_ID_COLLISION",
-                                "Context id collides with ${current.provenance} Workspace and was not projected",
-                                now,
-                            )
-                        return@mapNotNull null
-                    }
-                    if (current.sameProjection(projected)) null
-                    else projected.copy(
-                        createdAt = current.createdAt,
-                        updatedAt = now,
-                        version = current.version + 1L,
-                    )
-                }.toMutableList()
-
-            existing.filter {
-                !it.isDeleted &&
-                    it.provenance == WorkspaceProvenance.CONTEXT_BACKED.name &&
-                    it.id !in desiredIds &&
-                    it.id !in protectedContextBackedIds
-            }.forEach {
-                changes += it.copy(
-                    updatedAt = now,
-                    syncedAt = null,
-                    isDeleted = true,
-                    version = it.version + 1L,
-                )
-            }
-            return changes
         }
 
         private fun projectCapabilityChanges(
@@ -508,7 +350,6 @@ class CanonicalWorkspaceBootstrapper
             promotedSystemWorkspaceIds: Set<String>,
             promotedSystemLegacyCapabilityIngressIds: Set<String>,
             deletedConfigurationContextIds: Set<String>,
-            blockedContextIds: Set<String>,
             issues: MutableList<WorkspaceBootstrapIssueEntity>,
             now: Long,
         ): List<WorkspaceCapabilityInstanceEntity> {
@@ -547,7 +388,7 @@ class CanonicalWorkspaceBootstrapper
                         desiredKeys += Triple(it.workspaceId, it.capabilityType, it.instanceKey)
                     }
             }
-            sources.filterNot { it.isDeleted || it.id in blockedContextIds }.forEach { context ->
+            sources.filterNot { it.isDeleted }.forEach { context ->
                 if (context.id in deletedConfigurationContextIds) return@forEach
 
                 val isReservedSystem = SystemContexts.isSystem(ContextId(context.id))
@@ -665,7 +506,7 @@ class CanonicalWorkspaceBootstrapper
             }
             val liveContextBackedOwnerIds =
                 sources
-                    .filterNot { it.isDeleted || it.id in blockedContextIds }
+                    .filterNot { it.isDeleted }
                     .mapTo(hashSetOf()) { it.id }
 
             existing.filter {
@@ -1001,16 +842,6 @@ private class WorkspaceMutationContext :
     companion object Key : CoroutineContext.Key<WorkspaceMutationContext>
 }
 
-private fun WorkspaceEntity.sameProjection(other: WorkspaceEntity): Boolean =
-    nameOverride == other.nameOverride &&
-        descriptionOverride == other.descriptionOverride &&
-        parentWorkspaceId == other.parentWorkspaceId &&
-        roleCode == other.roleCode &&
-        workspaceOrder == other.workspaceOrder &&
-        provenance == other.provenance &&
-        sourceContextId == other.sourceContextId &&
-        isDeleted == other.isDeleted
-
 private fun WorkspaceCapabilityInstanceEntity.sameProjection(other: WorkspaceCapabilityInstanceEntity): Boolean =
     workspaceId == other.workspaceId &&
         capabilityType == other.capabilityType &&
@@ -1020,23 +851,3 @@ private fun WorkspaceCapabilityInstanceEntity.sameProjection(other: WorkspaceCap
         configurationVersion == other.configurationVersion &&
         configuration == other.configuration &&
         isDeleted == other.isDeleted
-
-private fun cycleMembers(parentById: Map<String, String?>): Set<String> {
-    val result = mutableSetOf<String>()
-    parentById.keys.forEach { start ->
-        val path = mutableListOf<String>()
-        val indexById = mutableMapOf<String, Int>()
-        var current: String? = start
-        while (current != null && current in parentById && current !in result) {
-            val repeatedAt = indexById[current]
-            if (repeatedAt != null) {
-                result += path.drop(repeatedAt)
-                break
-            }
-            indexById[current] = path.size
-            path += current
-            current = parentById[current]
-        }
-    }
-    return result
-}

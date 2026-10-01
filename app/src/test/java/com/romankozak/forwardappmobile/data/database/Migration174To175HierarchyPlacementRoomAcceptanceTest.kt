@@ -29,14 +29,15 @@ class Migration174To175HierarchyPlacementRoomAcceptanceTest {
         val dbName = "migration_174_175_hierarchy"
         createFromExported174(dbName)
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_174_175)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_174_175,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(175L, scalarLong(db, "PRAGMA user_version"))
             assertTrue(tableExists(db, "hierarchy_placements"))
@@ -62,7 +63,7 @@ class Migration174To175HierarchyPlacementRoomAcceptanceTest {
                 ),
             )
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

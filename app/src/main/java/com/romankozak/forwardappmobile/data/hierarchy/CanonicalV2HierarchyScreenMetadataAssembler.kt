@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import javax.inject.Inject
 
@@ -17,7 +16,7 @@ class CanonicalV2HierarchyScreenMetadataAssembler
     constructor() {
         fun assemble(
             read: CanonicalV2ProductionHierarchyRead,
-            workspacePresentations: Collection<HierarchyContextPresentationNode>,
+            workspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
             beacons: Collection<CanonicalV2HierarchyScreenOperationalBeaconMetadata>,
         ): CanonicalV2HierarchyScreenMetadata {
             val workspacePresentationsByTargetId =

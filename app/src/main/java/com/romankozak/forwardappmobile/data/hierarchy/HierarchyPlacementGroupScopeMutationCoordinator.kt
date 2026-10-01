@@ -21,7 +21,7 @@ data class HierarchyGroupRetirementResult(
  * Group remains synthetic. This coordinator never creates a Group hierarchy
  * parent and never derives occurrence identity from PART_OF or ordering.
  *
- * Methods do not open a transaction. Future P2 callers must fuse H1,
+ * Methods do not open a transaction. P2 callers must fuse H1,
  * GroupScope and canonical PART_OF changes in one outer Room transaction.
  */
 @Singleton
@@ -299,6 +299,109 @@ class HierarchyPlacementGroupScopeMutationCoordinator
                 convertedToNoGroup = rootsToNoGroup.sortedBy(PlacementId::value),
                 removedRootOccurrences = rootsToRemove.sortedBy(PlacementId::value),
                 removedOccurrences = removedOccurrences.sortedBy(PlacementId::value),
+            )
+        }
+
+        /**
+         * V2 policy B: retire a Group without deleting any live descendant.
+         * The outer caller owns the transaction and must retire semantic PART_OF
+         * and the canonical Group before authoritative validation.
+         *
+         * All affected roots are planned and preflighted before the first write.
+         */
+        suspend fun reconcileGroupRetirementLeafOnly(
+            groupSubjectId: String,
+            now: Long,
+        ): HierarchyGroupRetirementResult {
+            require(groupSubjectId.isNotBlank()) { "Deleted Group subject id must not be blank" }
+
+            val placements = placementDao.getAll()
+                .map { it.toHierarchyPlacementStrict() }
+                .associateBy { it.id }
+            val liveScopes = scopeDao.getLiveForHierarchy(HierarchyId.GENERAL.value)
+            val liveScopesByPlacement = liveScopes.associateBy { PlacementId(it.placementId) }
+            require(liveScopesByPlacement.size == liveScopes.size) {
+                "Duplicate live GroupScope placement ids"
+            }
+            val affected = liveScopes
+                .filter { it.groupSubjectId == groupSubjectId }
+                .sortedBy { it.placementId }
+            if (affected.isEmpty()) {
+                return HierarchyGroupRetirementResult(emptyList(), emptyList(), emptyList())
+            }
+
+            val rootsToRemove = linkedSetOf<PlacementId>()
+            val rootsToNoGroup = linkedSetOf<PlacementId>()
+            affected.groupBy { scope ->
+                val id = PlacementId(scope.placementId)
+                val placement = requireNotNull(placements[id]) {
+                    "GroupScope references missing H1 placement: ${id.value}"
+                }
+                require(
+                    !placement.isDeleted &&
+                        placement.hierarchyId == HierarchyId.GENERAL &&
+                        placement.parentPlacementId == null &&
+                        placement.target.type == HierarchyTargetType.MANAGED_SUBJECT
+                ) { "Deleted Group scope ${id.value} is not a live GENERAL root subject appearance" }
+                placement.target.id
+            }.toSortedMap().forEach { (targetId, affectedForTarget) ->
+                val affectedIds = affectedForTarget.mapTo(hashSetOf()) { PlacementId(it.placementId) }
+                val remaining = liveScopes.filter { scope ->
+                    val id = PlacementId(scope.placementId)
+                    id !in affectedIds && placements[id]?.target?.id == targetId
+                }
+                require(remaining.none { it.groupSubjectId == null }) {
+                    "Grouped ManagedSubject $targetId unexpectedly mixes NoGroup provenance"
+                }
+                val destination = if (remaining.any { it.groupSubjectId != null }) {
+                    rootsToRemove
+                } else {
+                    rootsToNoGroup
+                }
+                affectedForTarget.map { PlacementId(it.placementId) }
+                    .sortedBy(PlacementId::value)
+                    .forEach(destination::add)
+            }
+
+            // The policy rejects the *entire* Group deletion if even one
+            // removable occurrence has a live direct child. No subtree closure.
+            rootsToRemove.forEach { rootId ->
+                if (placements.values.any { child ->
+                    !child.isDeleted &&
+                        child.hierarchyId == HierarchyId.GENERAL &&
+                        child.parentPlacementId == rootId
+                }) {
+                    throw HierarchyChildPolicyRejectedException(rootId)
+                }
+            }
+            val prospective = placements.mapValues { (id, placement) ->
+                if (id in rootsToRemove) placement.copy(isDeleted = true) else placement
+            }
+            database.requireValidProspectiveHierarchy(prospective.values)
+
+            rootsToRemove.sortedBy(PlacementId::value).forEach { id ->
+                HierarchyPlacementLinkedAppearanceMutationCoordinator(database)
+                    .retireLinkedAppearance(id, now)
+                retireScope(id, now)
+                val current = requireNotNull(placements[id])
+                placementDao.upsertAll(
+                    listOf(
+                        current.copy(
+                            updatedAt = now,
+                            syncedAt = null,
+                            isDeleted = true,
+                            version = current.version + 1L,
+                        ).toHierarchyPlacementEntity(),
+                    ),
+                )
+            }
+            rootsToNoGroup.sortedBy(PlacementId::value).forEach { id ->
+                setRootScope(placementId = id, groupSubjectId = null, now = now)
+            }
+            return HierarchyGroupRetirementResult(
+                convertedToNoGroup = rootsToNoGroup.sortedBy(PlacementId::value),
+                removedRootOccurrences = rootsToRemove.sortedBy(PlacementId::value),
+                removedOccurrences = rootsToRemove.sortedBy(PlacementId::value),
             )
         }
 

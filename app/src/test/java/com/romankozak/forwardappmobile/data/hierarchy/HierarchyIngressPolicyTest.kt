@@ -18,26 +18,28 @@ import org.junit.Test
 
 class HierarchyIngressPolicyTest {
     @Test
-    fun `CURRENT mode preserves absent H1 normal ingress and never permits translation`() {
+    fun `normal merge always requires canonical H1 for legacy hierarchy bearing ingress`() {
         val decision =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
-        assertFalse(decision.canonicalH1RequiredAtIngress)
+        assertTrue(decision.canonicalH1RequiredAtIngress)
         assertFalse(decision.legacyHierarchyTranslationAllowed)
 
-        requireHierarchyPlacementIngress(
-            boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-            authorityMode = HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
-            canonicalH1Present = false,
-            legacyHierarchyBearing = true,
-        )
+        assertThrows(IllegalArgumentException::class.java) {
+            requireHierarchyPlacementIngress(
+                boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
+                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                canonicalH1Present = false,
+                legacyHierarchyBearing = true,
+            )
+        }
     }
 
     @Test
-    fun `future V2 mode accepts present H1 including authoritative empty`() {
+    fun `normal merge accepts present H1 including authoritative empty`() {
         listOf(
             listOf(h1()),
             emptyList(),
@@ -47,18 +49,6 @@ class HierarchyIngressPolicyTest {
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
                 authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 canonicalH1Present = bundle.hierarchyPlacements != null,
-                legacyHierarchyBearing = true,
-            )
-        }
-    }
-
-    @Test
-    fun `future V2 mode rejects hierarchy bearing legacy only normal ingress`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            requireHierarchyPlacementIngress(
-                boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
-                canonicalH1Present = false,
                 legacyHierarchyBearing = true,
             )
         }
@@ -95,7 +85,7 @@ class HierarchyIngressPolicyTest {
     }
 
     @Test
-    fun `restore is sole compatibility translation boundary and V2 output must contain H1`() {
+    fun `restore is sole compatibility translation boundary and canonical output must contain H1`() {
         val restore =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.RESTORE_COMPATIBILITY,
@@ -108,7 +98,9 @@ class HierarchyIngressPolicyTest {
             )
 
         assertTrue(restore.legacyHierarchyTranslationAllowed)
+        assertFalse(restore.canonicalH1RequiredAtIngress)
         assertFalse(merge.legacyHierarchyTranslationAllowed)
+        assertTrue(merge.canonicalH1RequiredAtIngress)
 
         assertThrows(IllegalArgumentException::class.java) {
             requireCanonicalHierarchyRestoreOutput(

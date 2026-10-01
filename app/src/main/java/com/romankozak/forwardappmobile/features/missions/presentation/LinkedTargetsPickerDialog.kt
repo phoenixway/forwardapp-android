@@ -59,6 +59,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.data.hierarchy.ChooserHierarchyItem
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,12 +111,6 @@ sealed interface NewDocumentDraft {
     ) : NewDocumentDraft
 }
 
-private data class PickerNode(
-    val id: String,
-    val title: String,
-    val parentId: String? = null,
-)
-
 private data class LinkedTargetsPickerDialogState(
     val query: String,
     val selectedTab: LinkPickerTab,
@@ -134,10 +131,10 @@ private data class LinkedTargetsPickerDerivedState(
     val hasContextsTab: Boolean,
     val hasAttachmentsTab: Boolean,
     val hasBothTabs: Boolean,
-    val contextNodes: List<PickerNode>,
-    val childMap: Map<String, List<PickerNode>>,
-    val topLevelContexts: List<PickerNode>,
-    val visibleContextIds: Set<String>,
+    val contextNodes: List<LinkedPickerNode>,
+    val childMap: Map<String, List<LinkedPickerNode>>,
+    val topLevelContexts: List<LinkedPickerNode>,
+    val visibleContextKeys: Set<String>,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -190,6 +187,8 @@ private fun LinkedTargetsPickerDialogRoute(
     onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
 ) {
     val scope = rememberCoroutineScope()
+    val hierarchyViewModel: LinkedTargetsPickerHierarchyViewModel = hiltViewModel()
+    val canonicalOccurrences by hierarchyViewModel.occurrences.collectAsStateWithLifecycle()
     val contextsEnabled = remember(allowedTabs) { LinkPickerTab.CONTEXTS in allowedTabs }
     val attachmentsEnabled = remember(allowedTabs) { LinkPickerTab.ATTACHMENTS in allowedTabs }
     var selectedTab by remember(initialTab, allowedTabs) {
@@ -214,6 +213,7 @@ private fun LinkedTargetsPickerDialogRoute(
     val derivedState =
         rememberLinkedTargetsPickerDerivedState(
             contextOptions = contextOptions,
+            canonicalOccurrences = canonicalOccurrences,
             attachmentOptions = attachmentOptions,
             allowedTabs = allowedTabs,
             query = query,
@@ -316,37 +316,25 @@ private fun LinkedTargetsPickerDialogRoute(
 @Composable
 private fun rememberLinkedTargetsPickerDerivedState(
     contextOptions: List<ProjectOption>,
+    canonicalOccurrences: List<ChooserHierarchyItem>?,
     attachmentOptions: List<AttachmentOption>,
     allowedTabs: Set<LinkPickerTab>,
     query: String,
     showDescendants: Boolean,
 ): LinkedTargetsPickerDerivedState {
     val contextNodes =
-        remember(contextOptions) {
-            contextOptions
-                .map { PickerNode(id = it.id, title = it.name, parentId = it.parentId) }
-                .distinctBy { it.id }
+        remember(contextOptions, canonicalOccurrences) {
+            // Before the first canonical read, options are flat target-only entries.
+            // No V1 parentId can establish picker topology.
+            buildLinkedPickerNodes(
+                options = contextOptions,
+                occurrences = canonicalOccurrences.orEmpty(),
+            )
         }
-    val childMap =
-        remember(contextNodes) {
-            contextNodes
-                .filter { !it.parentId.isNullOrBlank() }
-                .groupBy { it.parentId!! }
-                .mapValues { (_, value) -> value.sortedBy { it.title.lowercase() } }
-        }
-    val topLevelContexts =
-        remember(contextNodes) {
-            contextNodes
-                .filter { it.parentId.isNullOrBlank() }
-                .sortedBy { it.title.lowercase() }
-        }
-    val contextById = remember(contextNodes) { contextNodes.associateBy { it.id } }
-    val visibleContextIds =
-        remember(contextNodes, childMap, contextById, query, showDescendants) {
-            buildVisibleContextIds(
-                contextNodes = contextNodes,
-                childMap = childMap,
-                contextById = contextById,
+    val tree =
+        remember(contextNodes, query, showDescendants) {
+            buildLinkedPickerTree(
+                nodes = contextNodes,
                 query = query,
                 showDescendants = showDescendants,
             )
@@ -362,72 +350,20 @@ private fun rememberLinkedTargetsPickerDerivedState(
                 LinkPickerTab.ATTACHMENTS in allowedTabs &&
                 attachmentOptions.isNotEmpty(),
         contextNodes = contextNodes,
-        childMap = childMap,
-        topLevelContexts = topLevelContexts,
-        visibleContextIds = visibleContextIds,
+        childMap = tree.childrenByKey,
+        topLevelContexts = tree.roots,
+        visibleContextKeys = tree.visibleKeys,
     )
-}
-
-private fun buildVisibleContextIds(
-    contextNodes: List<PickerNode>,
-    childMap: Map<String, List<PickerNode>>,
-    contextById: Map<String, PickerNode>,
-    query: String,
-    showDescendants: Boolean,
-): Set<String> {
-    if (query.isBlank()) {
-        return contextNodes.map { it.id }.toSet()
-    }
-
-    val matchingIds = contextNodes.filter { it.title.contains(query, ignoreCase = true) }.map { it.id }.toSet()
-    val ancestorIds = mutableSetOf<String>()
-    matchingIds.forEach { id ->
-        var parentId = contextById[id]?.parentId
-        while (parentId != null) {
-            ancestorIds += parentId
-            parentId = contextById[parentId]?.parentId
-        }
-    }
-
-    val descendantIds = mutableSetOf<String>()
-    if (showDescendants) {
-        val queue = ArrayDeque(matchingIds.toList())
-        while (queue.isNotEmpty()) {
-            val current = queue.removeFirst()
-            childMap[current].orEmpty().forEach { child ->
-                if (descendantIds.add(child.id)) {
-                    queue.add(child.id)
-                }
-            }
-        }
-    }
-
-    return matchingIds + ancestorIds + descendantIds
 }
 
 @Composable
 private fun SyncExpandedIdsWithQuery(
     query: String,
-    contextNodes: List<PickerNode>,
+    contextNodes: List<LinkedPickerNode>,
     onExpandedIdsChange: (Set<String>) -> Unit,
 ) {
     LaunchedEffect(query, contextNodes) {
-        if (query.isBlank()) {
-            onExpandedIdsChange(emptySet())
-            return@LaunchedEffect
-        }
-        val byId = contextNodes.associateBy { it.id }
-        val nextExpanded = mutableSetOf<String>()
-        contextNodes
-            .filter { it.title.contains(query, ignoreCase = true) }
-            .forEach { node ->
-                var parentId = node.parentId
-                while (parentId != null) {
-                    nextExpanded += parentId
-                    parentId = byId[parentId]?.parentId
-                }
-            }
-        onExpandedIdsChange(nextExpanded)
+        onExpandedIdsChange(linkedPickerExpandedKeysForQuery(contextNodes, query))
     }
 }
 
@@ -571,7 +507,7 @@ private fun LinkedTargetsPickerDialogShell(
                         ContextPickerList(
                             topLevelContexts = derivedState.topLevelContexts,
                             childMap = derivedState.childMap,
-                            visibleIds = derivedState.visibleContextIds,
+                            visibleIds = derivedState.visibleContextKeys,
                             expandedIds = dialogState.expandedIds,
                             onToggleExpanded = { id ->
                                 onExpandedIdsChange(
@@ -853,8 +789,8 @@ private fun buildNewDocumentDraft(
 
 @Composable
 private fun ContextPickerList(
-    topLevelContexts: List<PickerNode>,
-    childMap: Map<String, List<PickerNode>>,
+    topLevelContexts: List<LinkedPickerNode>,
+    childMap: Map<String, List<LinkedPickerNode>>,
     visibleIds: Set<String>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
@@ -862,7 +798,7 @@ private fun ContextPickerList(
     onSelect: (String) -> Unit,
 ) {
     val visibleTopLevel =
-        topLevelContexts.filter { it.id in visibleIds }
+        topLevelContexts.filter { it.key in visibleIds }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -874,7 +810,7 @@ private fun ContextPickerList(
                 PickerEmptyState(text = stringResource(R.string.picker_no_contexts_found))
             }
         } else {
-            items(visibleTopLevel, key = { it.id }) { node ->
+            items(visibleTopLevel, key = { it.key }) { node ->
                 ContextRow(
                     node = node,
                     level = 0,
@@ -892,22 +828,22 @@ private fun ContextPickerList(
 
 @Composable
 private fun ContextRow(
-    node: PickerNode,
+    node: LinkedPickerNode,
     level: Int,
-    childMap: Map<String, List<PickerNode>>,
+    childMap: Map<String, List<LinkedPickerNode>>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
     visibleIds: Set<String>,
     preselectedIds: Set<String>,
     onSelect: (String) -> Unit,
 ) {
-    val isSelected = node.id in preselectedIds
-    val children = childMap[node.id].orEmpty()
-    val isExpanded = node.id in expandedIds
+    val isSelected = node.targetId in preselectedIds
+    val children = childMap[node.key].orEmpty()
+    val isExpanded = node.key in expandedIds
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 90f else 0f, label = "caret")
 
     val visibleChildren =
-        children.filter { it.id in visibleIds }
+        children.filter { it.key in visibleIds }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ElevatedCard(
@@ -927,7 +863,7 @@ private fun ContextRow(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clickable { onSelect(node.id) }
+                        .clickable { onSelect(node.targetId) }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -935,7 +871,7 @@ private fun ContextRow(
 
                 if (children.isNotEmpty()) {
                     IconButton(
-                        onClick = { onToggleExpanded(node.id) },
+                        onClick = { onToggleExpanded(node.key) },
                         modifier = Modifier.size(26.dp),
                     ) {
                         Icon(

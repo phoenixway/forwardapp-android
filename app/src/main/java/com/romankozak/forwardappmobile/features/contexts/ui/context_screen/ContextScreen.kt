@@ -514,6 +514,7 @@ private fun ProjectBottomBar(
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
     var showContextPicker by remember { mutableStateOf(false) }
     var showDocumentsDialog by remember { mutableStateOf(false) }
+    var showTargetDeleteConfirmation by remember { mutableStateOf(false) }
     val capabilityViewActions =
         remember(sessionState.currentView, sessionState.enabledCapabilities) {
             viewModel.getAvailableCapabilityViewActions(
@@ -521,14 +522,12 @@ private fun ProjectBottomBar(
                 enabledCapabilities = sessionState.enabledCapabilities,
             )
         }
-    val groupedContexts by viewModel.subprojectChildren.collectAsStateWithLifecycle()
+    val pickerContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
     val contextOptions =
-        remember(groupedContexts) {
-            groupedContexts
-                .values
-                .flatten()
+        remember(pickerContexts) {
+            pickerContexts
                 .distinctBy { it.id }
-                .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
+                .map { context -> ProjectOption(id = context.id, name = context.name) }
         }
 
     Column {
@@ -588,7 +587,7 @@ private fun ProjectBottomBar(
                     )
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdown() },
-                onDeleteList = { viewModel.deleteCurrentProject() },
+                onDeleteList = { showTargetDeleteConfirmation = true },
                 onSetReminder = { viewModel.onSetReminderForProject() },
                 onToggleFocusContext = viewModel::toggleCurrentContextFocus,
                 isCurrentContextFocused = isCurrentContextFocused,
@@ -628,6 +627,37 @@ private fun ProjectBottomBar(
                 onCapabilityViewActionClick = viewModel::onCapabilityViewActionClick,
             )
         }
+    }
+
+    if (showTargetDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showTargetDeleteConfirmation = false },
+            title = {
+                Text("Видалити Workspace?")
+            },
+            text = {
+                Text(
+                    "Буде видалено сам Workspace і всі його місця в ієрархії (PRIMARY та LINK). " +
+                        "Якщо хоча б в одному місці є дочірні елементи, видалення буде відхилено. " +
+                        "Дочірні Workspace не видаляються автоматично.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showTargetDeleteConfirmation = false
+                        viewModel.deleteCurrentProject()
+                    },
+                ) {
+                    Text("Видалити")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTargetDeleteConfirmation = false }) {
+                    Text("Скасувати")
+                }
+            },
+        )
     }
 
     if (showDocumentsDialog) {

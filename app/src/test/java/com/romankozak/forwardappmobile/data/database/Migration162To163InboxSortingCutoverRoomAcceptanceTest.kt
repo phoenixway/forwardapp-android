@@ -27,14 +27,15 @@ class Migration162To163InboxSortingCutoverRoomAcceptanceTest {
         val dbName = "migration_162_163_inbox_sorting_success"
         createFixture(dbName, "inbox:alpha\nattachments:type")
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_162_163)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_162_163,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
             assertEquals(163L, scalarLong(db, "PRAGMA user_version"))
             db.query(
                 """
@@ -58,7 +59,7 @@ class Migration162To163InboxSortingCutoverRoomAcceptanceTest {
             assertEquals(0L, scalarLong(db, "SELECT COUNT(*) FROM context_inbox_sorting"))
             assertTrue(tableExists(db, "context_inbox_sorting"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -67,17 +68,18 @@ class Migration162To163InboxSortingCutoverRoomAcceptanceTest {
     fun `162 to 163 malformed policy rolls back before mutation`() {
         val dbName = "migration_162_163_inbox_sorting_fail_closed"
         createFixture(dbName, "inbox:unsupported")
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_162_163)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_162_163,
+            )
 
         val failure =
             try {
-                runCatching { room.openHelper.writableDatabase }.exceptionOrNull()
+                runCatching { helper.writableDatabase }.exceptionOrNull()
             } finally {
-                room.close()
+                helper.close()
             }
 
         assertNotNull(failure)

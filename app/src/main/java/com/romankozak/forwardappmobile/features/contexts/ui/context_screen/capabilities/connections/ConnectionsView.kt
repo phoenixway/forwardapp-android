@@ -36,7 +36,7 @@ fun ConnectionsView(
 ) {
     var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
-    val groupedContexts by viewModel.subprojectChildren.collectAsState()
+    val pickerContexts by viewModel.allContextsForPicker.collectAsState()
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsState()
     val contextAttachments by viewModel.contextAttachments.collectAsState()
 
@@ -108,16 +108,13 @@ fun ConnectionsView(
             attachments.associateBy { it.connectionId() }
         }
     val contextOptions =
-        remember(groupedContexts) {
-            groupedContexts
-                .values
-                .flatten()
+        remember(pickerContexts) {
+            pickerContexts
                 .distinctBy { it.id }
                 .map { context ->
                     ProjectOption(
                         id = context.id,
                         name = context.name,
-                        parentId = context.parentId,
                     )
                 }
         }

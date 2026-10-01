@@ -7,6 +7,7 @@ import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
+import com.romankozak.forwardappmobile.data.database.HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
@@ -26,7 +27,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -65,7 +65,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).addMigrations(*ALL_MIGRATIONS).build()
+        ).addMigrations(*ALL_MIGRATIONS)
+            .addCallback(HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK)
+            .build()
     }
 
     @Provides
@@ -114,9 +116,6 @@ object DatabaseModule {
     @Singleton
     fun provideContextManagementDao(appDatabase: AppDatabase): ContextManagementDao = appDatabase.contextManagementDao()
 
-    @Provides
-    @Singleton
-    fun provideContextParentLinkDao(appDatabase: AppDatabase): ContextParentLinkDao = appDatabase.contextParentLinkDao()
     @Provides
     @Singleton
     fun provideContextInboxSortingDao(appDatabase: AppDatabase): ContextInboxSortingDao = appDatabase.contextInboxSortingDao()

@@ -41,7 +41,6 @@ enum class MainBeaconSyncStatus {
     tableName = "main_beacons",
     indices = [
         Index(value = ["readiness_status"]),
-        Index(value = ["parent_beacon_id"]),
     ],
 )
 @TypeConverters(Converters::class)
@@ -77,9 +76,6 @@ data class MainBeacon(
     @ColumnInfo(name = "next_action_text")
     @SerializedName("nextActionText")
     val nextActionText: String? = null,
-    @ColumnInfo(name = "parent_beacon_id")
-    @SerializedName("parentBeaconId")
-    val parentBeaconId: String? = null,
     @ColumnInfo(name = "beacon_order", defaultValue = "0")
     @SerializedName("order")
     val order: Long = 0L,

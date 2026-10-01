@@ -123,15 +123,21 @@ Every current ListItemDao write path must be classified as one of:
 
 ## Stage 4 — frozen migration planner and dry-run
 
-Implementation status: **CURRENT / VERIFIED on Android**.
+Implementation status: **HISTORICAL / SUPERSEDED**.
 
-The read-only `BacklogMigrationDryRunAdapter` snapshots Room rows and canonical
-bindings in one transaction and feeds them into the shared
+At the Stage-4 checkpoint, the read-only `BacklogMigrationDryRunAdapter`
+snapshotted Room rows and canonical
+bindings in one transaction and fed them into the shared
 `BacklogMigrationPlanner`. It performs no bootstrap, repair, insert, update,
 delete, or authority switch. Missing eligible default BACKLOG instances use the
 same deterministic future identity contract as the canonical Workspace
 bootstrap/cutover machinery; existing logical instances preserve their ids and
 identity collisions fail closed.
+
+After the old `FullBackupLocalDataSource.applySnapshotBundle` execution path
+was retired, this adapter and its self-only Room test had zero production
+callers and were removed in H6. Current Restore canonicalization invokes the
+shared planner directly; schema 161 -> 162 retains its frozen migration logic.
 
 The shared bindings explicitly separate owner Workspace lifecycle from
 Workspace target lifecycle so deleted owners block while tombstoned placements

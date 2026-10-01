@@ -6,6 +6,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_HIERARCHY_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
@@ -550,6 +553,19 @@ internal fun buildCanonicalSnapshotDelta(
 
     val result =
         baseDelta.copy(
+            hierarchyFormatVersion =
+                if (includeCanonicalHierarchyBundle) {
+                    CURRENT_HIERARCHY_FORMAT_VERSION
+                } else {
+                    null
+                },
+            // H1 presence is the modern hierarchy transport generation marker.
+            // Legacy structural links remain accepted only by Restore and must
+            // never hitch a ride on a canonical peer delta.
+            contextParentLinks = emptyList(),
+            mainBeaconParentLinks = emptyList(),
+            mainBeacons =
+                baseDelta.mainBeacons.map { it.withoutEmbeddedMainBeaconTopology() },
             backlogItems = emptyList(),
             backlogOrders = emptyList(),
             notes = selectedLegacyNotes,
@@ -627,7 +643,7 @@ internal fun buildCanonicalSnapshotDelta(
                     fullSnapshot.workspaces,
                     explicitCanonicalOrientations.workspaces,
                     "workspaces",
-                ),
+                )?.map { it.withoutEmbeddedWorkspaceTopology() },
             workspaceBindings =
                 canonicalOrientationDependency(
                     fullSnapshot.workspaceBindings,

@@ -1,17 +1,13 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCanonicalTargetResolver
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -22,24 +18,7 @@ import org.junit.Test
 
 class BacklogPlacementCommandsTest {
     @Test
-    fun `direct hierarchy child is not duplicated as explicit Backlog placement`() = runTest {
-        val contextDao = mockk<ContextDao>()
-        val canonical = mockk<CanonicalBacklogRepository>(relaxed = true)
-        val resolver = mockk<BacklogCanonicalTargetResolver>(relaxed = true)
-        val child = mockk<Context>()
-        every { child.parentId } returns "parent"
-        coEvery { contextDao.getContextById("child") } returns child
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
-
-        val result = commands.addContextLinkToContextBacked("child", "parent")
-
-        assertNull(result)
-        coVerify(exactly = 0) { canonical.addEntryAtStart(any(), any(), any()) }
-    }
-
-    @Test
-    fun `V2 direct hierarchy child suppression uses H1 predicate and not Context parent`() = runTest {
-        val contextDao = mockk<ContextDao>()
+    fun `direct H1 hierarchy child is not duplicated as explicit Backlog placement`() = runTest {
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>(relaxed = true)
 
@@ -50,23 +29,69 @@ class BacklogPlacementCommandsTest {
             )
         } returns true
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         val result =
-            commands.addContextLinkToContextBackedForAuthority(
+            commands.addContextLinkToContextBacked(
                 targetContextId = "child",
                 currentContextId = "parent",
-                hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertNull(result)
-        coVerify(exactly = 0) { contextDao.getContextById(any()) }
+        coVerify(exactly = 1) {
+            canonical.hasV2DirectWorkspaceChildOccurrence(
+                childWorkspaceId = "child",
+                parentWorkspaceId = "parent",
+            )
+        }
         coVerify(exactly = 0) { canonical.addEntryAtStart(any(), any(), any()) }
     }
 
     @Test
+    fun `non structural H1 target writes canonical Backlog placement`() = runTest {
+        val canonical = mockk<CanonicalBacklogRepository>()
+        val resolver = mockk<BacklogCanonicalTargetResolver>()
+        val target =
+            WorkspaceBacklogTargetRef(
+                kind = WorkspaceBacklogTargetKind.WORKSPACE,
+                id = "child",
+            )
+
+        coEvery {
+            canonical.hasV2DirectWorkspaceChildOccurrence(
+                childWorkspaceId = "child",
+                parentWorkspaceId = "parent",
+            )
+        } returns false
+        coEvery { resolver.resolveLegacy("SUBLIST", "child") } returns target
+        coEvery {
+            canonical.addEntryAtStart(
+                workspaceId = "parent",
+                target = target,
+                now = any(),
+            )
+        } returns "canonical-placement"
+
+        val commands = BacklogPlacementCommands(canonical, resolver)
+
+        val result =
+            commands.addContextLinkToContextBacked(
+                targetContextId = "child",
+                currentContextId = "parent",
+            )
+
+        assertEquals("canonical-placement", result)
+        coVerify(exactly = 1) {
+            canonical.hasV2DirectWorkspaceChildOccurrence(
+                childWorkspaceId = "child",
+                parentWorkspaceId = "parent",
+            )
+        }
+        coVerify(exactly = 1) { resolver.resolveLegacy("SUBLIST", "child") }
+    }
+
+    @Test
     fun `Context-backed add resolves identity and writes canonical placement only`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
         val target =
@@ -84,7 +109,7 @@ class BacklogPlacementCommandsTest {
             )
         } returns "canonical-placement"
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         val id =
             commands.addToContextBacked(
@@ -106,7 +131,6 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `canonical legacy-target add resolves identity and writes canonical placement only`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
         val target =
@@ -124,7 +148,7 @@ class BacklogPlacementCommandsTest {
             )
         } returns "canonical-placement"
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         val id =
             commands.addLegacyTargetToCanonicalWorkspace(
@@ -147,11 +171,10 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `Context-backed reorder excludes projections and writes canonical explicit order`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>(relaxed = true)
         val resolver = mockk<BacklogCanonicalTargetResolver>(relaxed = true)
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         commands.reorderContextBacked(
             listOf(
@@ -177,7 +200,6 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `canonical typed add bypasses compatibility resolver and legacy storage`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>(relaxed = true)
         val target =
@@ -194,7 +216,7 @@ class BacklogPlacementCommandsTest {
             )
         } returns "canonical-placement"
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         val id =
             commands.addCanonicalTarget(
@@ -216,7 +238,6 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `Context-backed LinkItem tombstone resolves domain target and bypasses legacy storage`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
         val target =
@@ -233,7 +254,7 @@ class BacklogPlacementCommandsTest {
             )
         } returns 2
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         val changed =
             commands.tombstoneContextBackedTarget(
@@ -254,13 +275,12 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `Goal association repair sees no canonical placements before CUT_OVER`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
 
         coEvery { resolver.resolveGoalIfCutOver("goal-1") } returns null
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         assertEquals(emptyList<String>(), commands.findLiveGoalWorkspaceIdsIfCutOver("goal-1"))
 
@@ -270,7 +290,6 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `Goal association repair reads canonical placements after CUT_OVER`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
         val target =
@@ -287,7 +306,7 @@ class BacklogPlacementCommandsTest {
                 entry(isDeleted = false).copy(id = "placement-3", workspaceId = "workspace-b"),
             )
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         assertEquals(
             listOf("workspace-a", "workspace-b"),
@@ -297,14 +316,13 @@ class BacklogPlacementCommandsTest {
 
     @Test
     fun `live duplicate lookup uses canonical logical placement state`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
         val canonical = mockk<CanonicalBacklogRepository>()
         val resolver = mockk<BacklogCanonicalTargetResolver>()
         val target = WorkspaceBacklogTargetRef(WorkspaceBacklogTargetKind.ORIENTATION, "orientation-1")
         coEvery { resolver.resolveLegacy("GOAL", "goal-1") } returns target
         coEvery { canonical.findPlacement("target", target) } returns entry(isDeleted = false)
 
-        val commands = BacklogPlacementCommands(contextDao, canonical, resolver)
+        val commands = BacklogPlacementCommands(canonical, resolver)
 
         assertTrue(commands.hasLiveContextBackedPlacement("target", "GOAL", "goal-1"))
 

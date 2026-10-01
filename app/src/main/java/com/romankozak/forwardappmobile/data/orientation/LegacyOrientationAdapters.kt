@@ -160,7 +160,24 @@ fun Context.toEffectiveOrientation(
     )
 }
 
-fun MainBeacon.toEffectiveOrientation(resolver: LegacySubjectIdResolver): EffectiveOrientation {
+fun MainBeacon.toEffectiveOrientation(resolver: LegacySubjectIdResolver): EffectiveOrientation =
+    mainBeaconEffectiveOrientation(
+        resolver = resolver,
+        id = id,
+        title = title,
+        description = description,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+
+internal fun mainBeaconEffectiveOrientation(
+    resolver: LegacySubjectIdResolver,
+    id: String,
+    title: String,
+    description: String?,
+    createdAt: Long,
+    updatedAt: Long,
+): EffectiveOrientation {
     val source = LegacySubjectRef(LegacyOrientationSourceType.MAIN_BEACON, id)
     return effectiveOrientation(
         resolver = resolver,

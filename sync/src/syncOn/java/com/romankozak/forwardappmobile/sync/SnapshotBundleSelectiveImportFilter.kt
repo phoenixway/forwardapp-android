@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.hasCompleteCanonicalHierarchyTransport
+import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 
 class SnapshotBundleSelectiveImportFilter {
@@ -8,6 +11,8 @@ class SnapshotBundleSelectiveImportFilter {
         source: SnapshotBundle,
         selection: WorkspaceSelectiveImportSelection,
     ): SnapshotBundle {
+        source.requireSupportedHierarchyFormat()
+
         val filteredContexts = source.contexts.filter { context -> context.id in selection.selectedContextIds }
         val validContextIds = filteredContexts.mapTo(linkedSetOf()) { context -> context.id }
         val filteredGoals = source.goals.filter { goal -> goal.id in selection.selectedGoalIds }
@@ -37,10 +42,12 @@ class SnapshotBundleSelectiveImportFilter {
         val validAttachmentIds = filteredAttachments.mapTo(linkedSetOf()) { attachment -> attachment.id }
         val filteredDayPlans = source.dayPlans
         val validDayPlanIds = filteredDayPlans.mapTo(linkedSetOf()) { plan -> plan.id }
-        val filteredMainBeacons = source.mainBeacons
+        val filteredMainBeacons =
+            source.mainBeacons.map { it.withoutEmbeddedMainBeaconTopology() }
         val validMainBeaconIds = filteredMainBeacons.mapTo(linkedSetOf()) { beacon -> beacon.id }
 
         val filtered = source.copy(
+            hierarchyFormatVersion = null,
             contexts = filteredContexts,
             // ContextParentLink has hard FKs on both endpoints. Selective import
             // therefore owns a closed subgraph: a link is importable only when
@@ -141,14 +148,22 @@ class SnapshotBundleSelectiveImportFilter {
             hierarchyPlacementGroupScopes = null,
             hierarchyPlacementLinkedAppearances = null,
         )
-        return filtered
-            .withCanonicalBacklogSelectiveClosure(
-                source = source,
-                selectedIds = selection.selectedWorkspaceBacklogEntryIds,
-            )
-            .withCanonicalHierarchySelectiveClosure(
-                source = source,
-                selectedContextIds = selection.selectedContextIds,
-            )
+        val closed =
+            filtered
+                .withCanonicalBacklogSelectiveClosure(
+                    source = source,
+                    selectedIds = selection.selectedWorkspaceBacklogEntryIds,
+                )
+                .withCanonicalHierarchySelectiveClosure(
+                    source = source,
+                    selectedContextIds = selection.selectedContextIds,
+                )
+
+        return closed.copy(
+            hierarchyFormatVersion =
+                source.hierarchyFormatVersion?.takeIf {
+                    closed.hasCompleteCanonicalHierarchyTransport()
+                },
+        )
     }
 }

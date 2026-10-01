@@ -151,6 +151,24 @@ class ContextStructureRepository
             )
         }
 
+        /** Read-only preset preflight; must not initialize structure or apply capabilities. */
+        suspend fun presetRequiresChildWorkspace(presetCode: String): Boolean {
+            val preset = structurePresetDao.getByCode(presetCode) ?: return false
+            return structurePresetItemDao.getItemsByPresetOnce(preset.id).any { item ->
+                !item.isDeleted && item.entityType.equals("SUBCONTEXT", ignoreCase = true)
+            }
+        }
+
+        /** Read-only current structure preflight; does not call ensureStructure(). */
+        suspend fun activeStructureRequiresChildWorkspace(contextId: String): Boolean {
+            val structure = contextStructureDao.getStructureByContext(contextId) ?: return false
+            return contextStructureDao.getItems(structure.id).any { item ->
+                !item.isDeleted &&
+                    (item.mandatory || item.isEnabled) &&
+                    item.entityType.equals("SUBCONTEXT", ignoreCase = true)
+            }
+        }
+
         suspend fun applyPresetToContext(
             contextId: String,
             presetCode: String,

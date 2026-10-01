@@ -9,10 +9,12 @@ Accepted: 2026-09-19
 This document defines the accepted target architecture for ForwardApp's general
 user-configurable structural and visual hierarchy.
 
-It does not make Canonical V2 CURRENT runtime authority.
+Canonical Hierarchy V2 is now CURRENT production authority for the
+GENERAL structural hierarchy.
 
-Canonical V1 remains CURRENT until each explicit V2 authority cutover
-completes.
+The coordinated P2 production cutover completed on 2026-09-25. Canonical V1
+hierarchy state remains only bounded compatibility/history/migration input until
+explicit H5/H6 retirement.
 
 Cross-epoch authority and migration discipline are governed by
 `docs/governance/PROJECT-CONSTITUTION.md`.
@@ -45,16 +47,17 @@ It does not silently redesign:
 
 Canonical V1 remains defined by `DOMAIN-CONTRACT.md`.
 
-In Canonical V1, Workspace currently owns its structural hierarchy through
-Workspace parent/order state, including `parentWorkspaceId`.
+Historically, Canonical V1 Workspace parent/order state, including
+`parentWorkspaceId`, participated in structural hierarchy authority.
 
-That remains CURRENT authority until an explicit V2 hierarchy cutover replaces
-it.
+P2 has superseded that GENERAL structural authority with persisted
+`HierarchyPlacement`. V1 fields may remain for bounded compatibility,
+presentation, migration or historical purposes, but they cannot independently
+author canonical GENERAL topology.
 
-The V2 decision supersedes no V1 authority merely by existing as a document.
-
-A V2 slice supersedes only the old authority named by that slice after its
-migration, validation, read cutover, and write cutover complete.
+The V2 decision itself did not supersede V1 merely by existing as a document;
+the supersession became effective only after coordinated migration, validation,
+read cutover, write cutover and HOST verification completed.
 
 ## 3. Three independent worlds
 
@@ -435,8 +438,11 @@ Implemented boundary:
 - materialization is whole-table pristine-or-exact-rerun: an empty V2 table is
   populated atomically, an exact deterministic rerun is a no-op, and any other
   existing V2 shape fails closed without mutation;
-- `CanonicalV1HierarchyMigration` captures V1 and writes V2 inside one Room
-  transaction, preventing mixed-time snapshots;
+- the then-current `CanonicalV1HierarchyMigration` wrapper captured V1 and
+  wrote V2 inside one Room transaction, preventing mixed-time snapshots; the
+  wrapper was later removed in H6 after production activation had moved to its
+  own marker-gated transaction boundary and the wrapper had no production
+  callers;
 - no startup wiring, production reader cutover, ordinary mutation cutover, or
   ongoing V1/V2 dual-write has been introduced.
 
@@ -716,7 +722,9 @@ it is not structural V1 -> V2 dual-write.
 
 Focused ingress/translator/Room restore tests, existing H1 merge/store
 regressions, and `:app:compileProdDebugKotlin` are HOST green.
-Canonical V1 remains sole CURRENT runtime hierarchy read/write authority.
+At this historical readiness checkpoint, Canonical V1 remained the sole
+CURRENT runtime hierarchy read/write authority. The later P2 activation section
+supersedes this authority status.
 P2 is **NOT STARTED**.
 
 The next preparatory unit is **H4.0d production V2 reader-adapter /
@@ -758,6 +766,13 @@ The V2 read path does not derive topology from `Workspace.parentWorkspaceId`,
 `MainBeaconParentLink`, Beacon operational ownership, `WorkspaceBinding`, or
 `OrientationRelation`.
 
+This is enforced at the production API boundary, not only by consumer
+convention. V2 target admission, screen metadata and occurrence-native chooser
+projection accept `CanonicalV2WorkspacePresentation`, which has no parent/order
+members. The temporary hierarchy-screen display node created from it carries
+`parentId = null` and `order = 0`; concrete placement and order always come from
+the associated H1 occurrence.
+
 Canonical `PART_OF` may shape synthetic Group/NoGroup presentation only. It
 never becomes a hierarchy parent. Group scope assignment is occurrence-native:
 the H4.0d planner emits exact root `PlacementId` values. The older H3.1
@@ -772,18 +787,18 @@ pre-cutover provenance when it matches. After arbitrary V2 mutation, an
 ambiguous duplicate same-target root fails closed instead of being assigned to
 a Group by list order. P2 must not introduce a new hidden target-order policy.
 
-The dormant reader authority seam is `HierarchyReadAuthorityRouter`, using the
-already-shared `HierarchyPlacementAuthorityMode`. `CURRENT_PRE_CUTOVER` invokes
-only the existing V1 reader. `V2_AUTHORITY` invokes only the V2 reader and
-propagates V2 failure; it never falls back to V1. Production still returns
-`CURRENT_PRE_CUTOVER`.
+Historical H4.0d state: the dormant reader authority seam was
+`HierarchyReadAuthorityRouter`, using the shared
+`HierarchyPlacementAuthorityMode`. That seam was later activated during P2 and
+retired by H5.1 after production became permanently V2. Production no longer
+contains this runtime reader fork.
 
 ##### H4.0d structural consumer census
 
 | Class | Current structural source | Current output contract | Occurrence identity | H4.0d/P2 replacement seam | P2 activation action | P3 owner |
 | --- | --- | --- | --- | --- | --- | --- |
 | A1 | `OrientationHierarchyBuilder`: Workspace parent/order, `ContextParentLink`, Main Beacon parent/order/link | hierarchy-screen tree and synthetic composition | no, target-oriented | shared `CanonicalV2ProductionHierarchyRead` | replace structural builder input with persisted occurrence projection; keep semantic/operational inputs separate | old V1 hierarchy builder topology |
-| A1 | `SearchRepository`: `presentation.parentId`, fallback `CanonicalWorkspaceRepository.getLiveCanonicalAncestryPresentation()` / `Workspace.parentWorkspaceId` | search ancestry/path | no | exact `PlacementId` ancestry from shared read | resolve explicit occurrence, then use occurrence ancestry; remove V1 fallback | legacy target-id ancestry |
+| A1 | Historical `SearchRepository` target-id ancestry and `CanonicalWorkspaceRepository.getLiveCanonicalAncestryPresentation()` fallback | search ancestry/path | no | exact `PlacementId` ancestry from shared read | COMPLETE: Search uses occurrence ancestry and the zero-caller V1 fallback API is removed in H6 | none |
 | A1 | CoreLevel `MainBeacon.parentBeaconId` nesting | Beacon nested cards | no | `CanonicalV2HierarchyConsumerReadiness.coreLevelOccurrences()` | feed CoreLevel structural nesting from placements; Group membership remains semantic | target-shaped Beacon nesting projection |
 | A1 | `WorkspaceBacklogEntryDao.getLiveDanglingAndStructuralEntries()` direct-child predicate | lifecycle cleanup of historical structural backlog duplicates | no | separately bounded V2-aware cleanup rule | replace/retire the V1 direct-child predicate before V1 topology ceases authority | backlog compatibility cleanup |
 | A2 | `SystemWorkspacePresentationContextProjector.parentId/order` and hierarchy presentation builders | target-shaped presentation tree | no | target metadata only plus shared V2 read | stop using projected parent/order as topology | target-tree compatibility projection if retained |
@@ -867,7 +882,8 @@ H4.0d static authority audit currently establishes:
 - no runtime V1 -> V2 rematerialization exists;
 - no V2 -> V1 read fallback or dual-read was found;
 - no transport authority activation occurred;
-- P2 remains NOT STARTED.
+- at this historical checkpoint, P2 remained NOT STARTED; the later P2
+  activation section supersedes this status.
 
 Focused HOST verification is green for the H4.0d production-read,
 scope-planner, consumer-readiness and authority-router tests, the H3.1
@@ -876,7 +892,8 @@ presentation/parity regressions, and `:app:compileProdDebugKotlin`.
 #### H4.0e - final P2 authority-activation readiness closure
 
 Status: **COMPLETE / HOST VERIFIED / P2 READY**. Zero production authority
-transfer. P2 remains **NOT STARTED**.
+transfer. At that historical checkpoint P2 remained **NOT STARTED**; the
+later P2 activation section supersedes this status.
 
 The occurrence-scoped Group provenance blocker is closed by schema-v176
 `PlacementId` keyed GroupScope. Group remains synthetic presentation state and
@@ -955,9 +972,9 @@ translation was introduced.
 Therefore H4.0e is **COMPLETE / HOST VERIFIED** and the project is
 **P2 READY / NOT STARTED**.
 
-The next hierarchy unit is **P2 combined production hierarchy authority
-activation**. It must perform the authority transfer coherently and re-run the
-13-point production gate as activation evidence. H4.0e does not activate P2.
+At the H4.0e historical checkpoint, the next hierarchy unit was the P2
+combined production hierarchy authority activation. H4.0e itself did not
+activate P2. The later P2 activation section records completion of that unit.
 
 
 #### Pre-P2 Command/UI Boundary - occurrence-native command preparation
@@ -1057,6 +1074,68 @@ production cutover. It must wire exact occurrence command execution and the
 remaining target-only interaction boundaries together with the reader,
 writer, ingress and anti-fallback authority transfer in one coherent boundary.
 
+#### Final pre-P2 production recheck - 2026-09-24
+
+Status: **COMPLETE / HOST VERIFIED / P2 READY / NOT STARTED**.
+
+Production authority remains
+`HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER`. This recheck performs no
+authority transfer.
+
+The former Group presentation-order blocker is closed. Under future V2
+authority, `MainBeaconGroup.order` is presentation metadata for synthetic Group
+scopes only. `reorderGroups()` validates the exact complete active canonical
+Group identity set before writing that metadata. Empty requests with active
+Groups, partial sets, duplicates, unknown Groups, duplicate active mappings,
+invalid canonical Group mappings, and disagreement between canonical mappings
+and persisted Group presentation rows fail closed before mutation.
+
+Changing Group presentation order does not mutate:
+
+- H1 placement identity, parentage, `PlacementKind`, or sibling order;
+- `HierarchyPlacementGroupScope` provenance;
+- canonical Group `PART_OF`;
+- legacy Group membership;
+- Beacon parent/order metadata or parent links;
+- target identity or target lifecycle.
+
+The production read invariant is occurrence-membership equality, not equality
+between flattened synthetic presentation order and H1 structural order.
+Synthetic Group scopes may therefore reorder complete root subtrees for
+presentation while `childrenOf()`, `occurrencePath()`, ancestry and structural
+root/sibling ordering remain H1-owned.
+
+The future activation startup boundary is finite and fail-closed. When
+`V2_AUTHORITY` is selected, startup establishes required canonical System
+Workspace, Orientation and Workspace prerequisites before invoking
+`CanonicalHierarchyAuthorityActivator.ensureEstablished()`. The activator
+checks the local marker first; if absent, CURRENT V1 capture, deterministic H2
+materialization and marker creation occur in one Room transaction. If the
+marker already exists, CURRENT V1 is not read. This is not runtime
+rematerialization or reconciliation.
+
+`hierarchy_authority_activation_state` is local activation state, not hierarchy
+topology and not sync payload. Restore table clearing explicitly excludes it,
+so restoring an older backup after activation cannot erase the marker and cause
+later CURRENT V1 recapture.
+
+Normal future-V2 merge/selective ingress requires coherent presence of H1,
+GroupScope and linked-appearance streams and never invokes the legacy Restore
+translator. Supported old-backup legacy hierarchy conversion remains confined
+to Restore canonicalization. The CURRENT/V2 reader router has no V2 -> CURRENT
+fallback.
+
+The 13-point production activation gate below has been rechecked against the
+current implementation. Every item has an explicit activation-ready production
+path and no remaining semantic/product blocker. Items that require V2 to be
+the live authority are deliberately not claimed as active before the switch;
+they become gate assertions during the coordinated P2 activation itself.
+
+HOST verification after this final recheck is green for the focused
+hierarchy/Group regression suite, `:app:compileProdDebugKotlin`,
+`:app:compileExpDebugKotlin`, and the full `:app:testProdDebugUnitTest` suite.
+`git diff --check` is clean.
+
 **P2 - production authority activation**
 
 P2 is the first authority-bearing slice.
@@ -1094,6 +1173,13 @@ forbidden.
 
 #### P2 production activation gate
 
+Status: **COMPLETE / HOST VERIFIED as of 2026-09-25.**
+
+Production mode is `V2_AUTHORITY`. All thirteen conditions below are satisfied.
+The full `:app:testProdDebugUnitTest` suite plus prod/exp Kotlin compile gates
+are green. There is no production hierarchy dual-write, V2 -> V1 fallback or
+ongoing V1 -> V2 rematerialization.
+
 Production V2 read authority may activate only when all of the following are
 true:
 
@@ -1125,7 +1211,13 @@ true:
 
 ### H5 - compatibility and composition retirement
 
-Status: DECIDED / NOT STARTED.
+Status: COMPLETE / HOST VERIFIED.
+
+Production hierarchy read composition uses Canonical V2 directly.
+`HierarchyReadAuthorityRouter` and the production
+`OrientationHierarchyBuilder` have been retired; the latter remains only as a
+test-source historical characterization helper. H2 startup establishment and
+Restore-only legacy translation remain bounded non-runtime-authority inputs.
 
 Goals:
 
@@ -1136,7 +1228,50 @@ Goals:
 
 ### H6 - obsolete V1 hierarchy storage retirement
 
-Status: DECIDED / NOT STARTED.
+Status: CURRENT / IN PROGRESS.
+
+The initial dependency census is complete and canonical in
+`H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`. It proves that no production V1
+GENERAL reader/writer, dual-write, runtime synchronization or fallback
+survives. It also proves that no whole legacy structural table or column is yet
+dead: finite startup establishment, Restore translation, transport/merge,
+selective import, bootstrap/presentation, or Epic A dependencies remain.
+
+The first bounded H6 implementation slice removed only APIs with zero
+production callers: dead Context/MainBeacon link DAO methods, legacy Workspace
+topology methods, and the unused `CanonicalV1HierarchyMigration` wrapper. It
+does not alter Room schema, transport, Restore, startup establishment, or live
+V2 occurrence commands.
+
+The first Restore ownership follow-up keeps legacy Context/MainBeacon parent
+links as bounded translator input only. After H1 derivation under production
+`V2_AUTHORITY`, canonicalization clears both link collections before the atomic
+canonical writer runs; Restore therefore does not recreate their legacy table
+rows.
+
+The consumer-first sub-slice is COMPLETE / HOST VERIFIED. Normal and
+selective merge under production `V2_AUTHORITY` require coherent H1 and never
+persist redundant Context/MainBeacon parent-link rows. The subsequent H6
+closure removed those writers from explicit `CURRENT_PRE_CUTOVER` fixtures as
+well; that mode remains only for separately classified bootstrap and exact
+System compatibility coverage. The resulting zero-production-caller DAO writer
+methods are removed; historical activation tests seed physical V1 rows through
+a test-source-only SQL fixture.
+
+The matching modern Android producer slice is COMPLETE / HOST VERIFIED.
+The coherent H1 triplet is the hierarchy-generation marker inside
+SnapshotBundle V2. Full backup and delta therefore leave
+`contextParentLinks` and `mainBeaconParentLinks` empty. Those members remain
+accepted only as old-backup Restore evidence; no schema or payload-field
+removal is implied. Pre-H1 Context-based Desktop is outside the supported
+modern hierarchy peer boundary under the accepted Context Big Cut.
+
+The corresponding embedded Main Beacon projection is also COMPLETE / HOST
+VERIFIED for modern Android boundaries. Full backup, local/Wi-Fi delta and
+selective import emit neutral `parentBeaconId`/`order`; production V2 merge
+normalizes incoming rows, and Restore canonical output is neutral after raw
+legacy evidence has been consumed into H1. Marker-gated first activation and
+the physical fields remain finite H6 dependencies.
 
 Goals:
 

@@ -87,7 +87,7 @@ class CanonicalV1HierarchyMaterializer
             snapshot: CanonicalV1HierarchySnapshot,
             now: Long,
         ): CanonicalV1HierarchyMaterializationReport {
-            validateSnapshotShape(snapshot)
+            validateCanonicalV1HierarchySnapshotShape(snapshot)
 
             val desired = snapshot.toDeterministicHierarchyPlacements(now)
             val desiredGroupScopes =
@@ -116,7 +116,7 @@ class CanonicalV1HierarchyMaterializer
                         CanonicalV1HierarchyMaterializationOutcome.CREATED
                     }
 
-                    exactStructuralMatch(existing, desired) ->
+                    exactCanonicalV1HierarchyStructuralMatch(existing, desired) ->
                         CanonicalV1HierarchyMaterializationOutcome.EXACT_RERUN
 
                     else ->
@@ -197,42 +197,6 @@ class CanonicalV1HierarchyMaterializer
             )
         }
 
-        private fun validateSnapshotShape(
-            snapshot: CanonicalV1HierarchySnapshot,
-        ) {
-            val byKey = snapshot.occurrences.associateBy { it.occurrenceKey }
-            require(byKey.size == snapshot.occurrences.size) {
-                "CanonicalV1HierarchySnapshot contains duplicate occurrenceKey values"
-            }
-
-            snapshot.occurrences.forEach { occurrence ->
-                require(occurrence.occurrenceKey.isNotBlank()) {
-                    "CanonicalV1HierarchySnapshot occurrenceKey must not be blank"
-                }
-                occurrence.parentOccurrenceKey?.let { parentKey ->
-                    require(parentKey in byKey) {
-                        "Snapshot occurrence ${occurrence.occurrenceKey} references missing parent $parentKey"
-                    }
-                    require(parentKey != occurrence.occurrenceKey) {
-                        "Snapshot occurrence ${occurrence.occurrenceKey} cannot parent itself"
-                    }
-                }
-            }
-
-            snapshot.occurrences
-                .groupBy { it.parentOccurrenceKey }
-                .forEach { (parentKey, siblings) ->
-                    val orders = siblings.map { it.siblingOrder }
-                    require(orders.distinct().size == orders.size) {
-                        "Snapshot siblings under $parentKey contain duplicate siblingOrder values"
-                    }
-                    require(orders.sorted() == orders.indices.map(Int::toLong)) {
-                        "Snapshot siblings under $parentKey must use dense deterministic siblingOrder values"
-                    }
-                }
-
-        }
-
         private suspend fun validateCanonicalGroupScopeSubjects(
             scopes: List<com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementGroupScopeEntity>,
         ) {
@@ -282,24 +246,6 @@ class CanonicalV1HierarchyMaterializer
                 requireNotNull(groupMappingsBySubjectId[subjectId]) {
                     "Group scope subject $subjectId has no live CUT_OVER MAIN_BEACON_GROUP mapping"
                 }
-            }
-        }
-
-        private fun exactStructuralMatch(
-            existing: List<HierarchyPlacement>,
-            desired: List<HierarchyPlacement>,
-        ): Boolean {
-            if (existing.size != desired.size) return false
-            val existingById = existing.associateBy { it.id }
-
-            return desired.all { wanted ->
-                val current = existingById[wanted.id] ?: return@all false
-                !current.isDeleted &&
-                    current.hierarchyId == wanted.hierarchyId &&
-                    current.target == wanted.target &&
-                    current.parentPlacementId == wanted.parentPlacementId &&
-                    current.placementKind == wanted.placementKind &&
-                    current.siblingOrder == wanted.siblingOrder
             }
         }
 

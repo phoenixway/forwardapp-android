@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import android.app.Application
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
@@ -26,6 +25,7 @@ import com.romankozak.forwardappmobile.core.navigation.routes.COMMAND_DECK_ROUTE
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -68,7 +68,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.UtilityDialogRequest
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPresentationPathToProject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -78,7 +77,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.net.URLEncoder
 import javax.inject.Inject
@@ -186,7 +184,11 @@ class ContextHierarchyScreenViewModel
             rawContextsFlow.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         private val hierarchyPresentationFlow =
-            projectHierarchyScreenStateUseCase.observeHierarchyPresentationUniverse(rawContextsFlow)
+            projectHierarchyScreenStateUseCase
+                .observeHierarchyPresentationUniverse(rawContextsFlow)
+                .map { presentations ->
+                    presentations.map { it.toHierarchyPresentationNode() }
+                }
 
         private val _hierarchyPresentationFlat =
             hierarchyPresentationFlow.stateIn(
@@ -214,8 +216,7 @@ class ContextHierarchyScreenViewModel
                             )
                         }
                 },
-                hierarchyPresentationFlat = _hierarchyPresentationFlat,
-                presentationHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy,
+                canonicalV2Read = projectHierarchyScreenStateUseCase.canonicalV2Read,
             )
             planningUseCase.initialize(
                 scope = viewModelScope,
@@ -239,9 +240,9 @@ class ContextHierarchyScreenViewModel
                 isSiblingReorderMode = _isSiblingReorderMode,
             )
             viewModelScope.launch {
-                projectHierarchyScreenStateUseCase.presentationHierarchy.collect { hierarchy ->
-                    if (hierarchy.allProjects.isNotEmpty()) {
-                        searchUseCase.reconcileFocusedProjectBreadcrumbs(hierarchy)
+                projectHierarchyScreenStateUseCase.canonicalV2Read.collect { read ->
+                    if (read != null) {
+                        searchUseCase.reconcileFocusedProjectBreadcrumbs()
                     }
                 }
             }
@@ -331,13 +332,11 @@ class ContextHierarchyScreenViewModel
                         "ProjectRevealDebug",
                         "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}",
                     )
-                    val hierarchyForReveal =
-                        awaitHierarchyForProjectPath(result.projectId)
                     Log.d("ProjectRevealDebug", "Calling revealProject for ${result.projectId}")
                     hierarchyFocusCoordinator.revealProject(
                         projectId = result.projectId,
                         placementId = result.placementId,
-                        currentHierarchy = hierarchyForReveal,
+                        currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                         currentSubState = uiState.value.currentSubState,
                         currentBreadcrumbs = uiState.value.currentBreadcrumbs,
                         orientationHierarchy = uiState.value.orientationHierarchy,
@@ -390,7 +389,6 @@ class ContextHierarchyScreenViewModel
                         searchUseCase.handleNavigationResult(
                             result.key,
                             result.value,
-                            projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                         )
                     }
                 }
@@ -457,7 +455,6 @@ class ContextHierarchyScreenViewModel
                     searchUseCase.onSearchResultClick(
                         projectId = event.projectId,
                         placementId = event.placementId,
-                        currentHierarchy = projectHierarchyScreenStateUseCase.presentationHierarchy.value,
                         orientationHierarchy = uiState.value.orientationHierarchy,
                         canonicalBreadcrumbs = canonicalBreadcrumbsForPlacement(event.placementId),
                     )
@@ -545,11 +542,12 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
-                is ContextHierarchyScreenEvent.ReorderOrientationBeaconSiblings -> {
+                is ContextHierarchyScreenEvent.ReorderBeaconOccurrences -> {
                     viewModelScope.launch {
-                        contextActionsUseCase.reorderOrientationBeaconSiblings(
-                            parentNodeId = event.parentNodeId,
-                            orderedBeaconIds = event.orderedBeaconIds,
+                        contextActionsUseCase.reorderBeaconOccurrences(
+                            parentBeaconId = event.parentBeaconId,
+                            parentOccurrence = event.parentOccurrence,
+                            orderedChildren = event.orderedChildren,
                         )
                     }
                 }
@@ -595,6 +593,9 @@ class ContextHierarchyScreenViewModel
                         parentOccurrence = event.parentOccurrence,
                     )
                 is ContextHierarchyScreenEvent.DeleteRequest -> {
+                    val occurrence = event.occurrence
+                        ?.takeIf { it.target.id == event.projectId }
+                        ?: return
                     val projectName =
                         _hierarchyPresentationFlat.value
                             .firstOrNull { it.id == event.projectId }
@@ -604,6 +605,7 @@ class ContextHierarchyScreenViewModel
                     contextDialogActionCoordinator.requestDelete(
                         projectId = event.projectId,
                         projectName = projectName,
+                        occurrence = occurrence,
                     )
                 }
                 is ContextHierarchyScreenEvent.MoveRequest -> {
@@ -619,6 +621,7 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         contextDialogActionCoordinator.confirmDelete(
                             projectId = event.projectId,
+                            occurrence = event.occurrence,
                         )
                     }
                 }
@@ -769,7 +772,7 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.CopyWorkspace -> {
                     val result =
-                        workspaceClipboardCoordinator.copyWorkspace(event.projectId)
+                        workspaceClipboardCoordinator.copyWorkspace(event.projectId, event.occurrence)
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         emitWorkspaceClipboardResult(result)
@@ -777,7 +780,7 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.CutWorkspace -> {
                     val result =
-                        workspaceClipboardCoordinator.cutWorkspace(event.projectId)
+                        workspaceClipboardCoordinator.cutWorkspace(event.projectId, event.occurrence)
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         emitWorkspaceClipboardResult(result)
@@ -786,7 +789,7 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.PasteWorkspace -> {
                     viewModelScope.launch {
                         emitWorkspaceClipboardResult(
-                            workspaceClipboardCoordinator.pasteInto(event.projectId),
+                            workspaceClipboardCoordinator.pasteInto(event.projectId, event.destinationOccurrence),
                         )
                     }
                 }
@@ -848,19 +851,19 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyBeacon -> {
-                    val toast = contextClipboardCoordinator.copyBeacon(event.beaconNodeId)
+                    val toast = contextClipboardCoordinator.copyBeacon(event.beaconNodeId, event.occurrence)
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyBeaconAsLink -> {
-                    val toast = contextClipboardCoordinator.copyBeaconAsLink(event.beaconNodeId)
+                    val toast = contextClipboardCoordinator.copyBeaconAsLink(event.beaconNodeId, event.occurrence)
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
                     }
                 }
                 is ContextHierarchyScreenEvent.CutBeacon -> {
-                    val toast = contextClipboardCoordinator.cutBeacon(event.beaconNodeId)
+                    val toast = contextClipboardCoordinator.cutBeacon(event.beaconNodeId, event.occurrence)
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
                     }
@@ -875,7 +878,7 @@ class ContextHierarchyScreenViewModel
                             )
                         } else {
                             emitClipboardResult(
-                                contextClipboardCoordinator.pasteBeaconIntoBeacon(event.beaconNodeId),
+                                contextClipboardCoordinator.pasteBeaconIntoBeacon(event.beaconNodeId, event.destinationOccurrence),
                             )
                         }
                     }
@@ -1385,16 +1388,6 @@ class ContextHierarchyScreenViewModel
                 dialogUseCase.dismissDialog()
             }
             _uiEventChannel.send(ProjectUiEvent.ShowToast(result.toast))
-        }
-
-        private suspend fun awaitHierarchyForProjectPath(
-            projectId: String,
-        ): com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData {
-            return withTimeoutOrNull(1_500) {
-                projectHierarchyScreenStateUseCase.presentationHierarchy.first { hierarchy ->
-                    buildPresentationPathToProject(projectId, hierarchy).isNotEmpty()
-                }
-            } ?: projectHierarchyScreenStateUseCase.presentationHierarchy.value
         }
 
         suspend fun getInboxProjectPresentation(): HierarchyContextPresentationNode? =

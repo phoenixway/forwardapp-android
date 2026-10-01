@@ -6,6 +6,9 @@ import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommand
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceCommandService
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.data.hierarchy.LegacyBeaconHierarchyTargetResolver
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -33,6 +36,7 @@ class ContextActionsUseCase
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
         private val mainBeaconRepository: MainBeaconRepository,
+        private val beaconTargetResolver: LegacyBeaconHierarchyTargetResolver,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         suspend fun addNewProject(
@@ -82,8 +86,24 @@ class ContextActionsUseCase
 
         suspend fun onDeleteProjectConfirmed(
             projectId: String,
+            occurrence: com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef,
         ) = withContext(ioDispatcher) {
-            canonicalWorkspaceRepository.tombstoneSubtree(projectId)
+            require(
+                occurrence.target ==
+                    com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef(
+                        com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType.WORKSPACE,
+                        projectId,
+                    ),
+            ) { "Delete occurrence does not match selected Workspace" }
+            val persisted =
+                hierarchyOccurrenceCommandService.occurrence(occurrence.placementId)
+                    ?: error("Selected occurrence is no longer available")
+            require(persisted.target == occurrence.target) {
+                "Selected occurrence target changed before deletion"
+            }
+            hierarchyOccurrenceCommandService.removeOccurrenceSubtree(
+                HierarchyOccurrenceCommand.RemoveOccurrenceSubtree(occurrence.placementId),
+            )
         }
 
         fun getMoveProjectRoute(
@@ -145,22 +165,41 @@ class ContextActionsUseCase
             )
         }
 
-        suspend fun reorderOrientationBeaconSiblings(
-            parentNodeId: String,
-            orderedBeaconIds: List<String>,
+        /** Rejects stale/misidentified Beacon appearances before the atomic H1 command. */
+        suspend fun reorderBeaconOccurrences(
+            parentBeaconId: String,
+            parentOccurrence: HierarchyOccurrenceRef,
+            orderedChildren: List<Pair<String, HierarchyOccurrenceRef>>,
         ) = withContext(ioDispatcher) {
-            if (orderedBeaconIds.isEmpty()) return@withContext
-            when (parentNodeId) {
-                NO_GROUP_NODE_ID -> mainBeaconRepository.reorderBeacons(orderedBeaconIds)
-                else -> {
-                    val groups = mainBeaconRepository.observeGroups().first()
-                    if (groups.any { it.id == parentNodeId }) {
-                        mainBeaconRepository.reorderBeaconGroupMembers(parentNodeId, orderedBeaconIds)
-                    } else {
-                        mainBeaconRepository.reorderBeaconParentChildren(parentNodeId, orderedBeaconIds)
-                    }
+            require(orderedChildren.isNotEmpty()) { "Beacon reorder requires complete siblings" }
+            require(parentOccurrence.target.type == HierarchyTargetType.MANAGED_SUBJECT) {
+                "Beacon reorder parent must be a ManagedSubject"
+            }
+            require(beaconTargetResolver.resolve(parentBeaconId) == parentOccurrence.target) {
+                "Beacon reorder parent identity does not match the selected occurrence"
+            }
+            val currentParent = hierarchyOccurrenceCommandService.occurrence(parentOccurrence.placementId)
+            require(currentParent == parentOccurrence) { "Beacon reorder parent occurrence is stale" }
+            orderedChildren.forEach { (beaconId, occurrence) ->
+                require(occurrence.target.type == HierarchyTargetType.MANAGED_SUBJECT) {
+                    "Beacon reorder child must be a ManagedSubject"
+                }
+                require(beaconTargetResolver.resolve(beaconId) == occurrence.target) {
+                    "Beacon reorder child identity does not match the selected occurrence"
+                }
+                require(occurrence.parentPlacementId == parentOccurrence.placementId) {
+                    "Beacon reorder contains a child of a different parent occurrence"
+                }
+                require(hierarchyOccurrenceCommandService.occurrence(occurrence.placementId) == occurrence) {
+                    "Beacon reorder child occurrence is stale"
                 }
             }
+            hierarchyOccurrenceCommandService.reorderSiblings(
+                HierarchyOccurrenceCommand.ReorderSiblings(
+                    parentPlacementId = parentOccurrence.placementId,
+                    orderedPlacementIds = orderedChildren.map { it.second.placementId },
+                ),
+            )
         }
 
         suspend fun reorderOrientationGroups(orderedGroupIds: List<String>) =

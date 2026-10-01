@@ -51,13 +51,14 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
             insertLink(db, "later", "tagged", "owner")
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations157To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations157To166,
+            )
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "inbox_records"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_inbox_records"))
@@ -80,7 +81,7 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -107,14 +108,15 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
             insertLink(db, "hidden", "tagged", "owner")
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations157To166)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations157To166,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(168L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "inbox_records"))
@@ -142,7 +144,7 @@ class Migration157To158InboxCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

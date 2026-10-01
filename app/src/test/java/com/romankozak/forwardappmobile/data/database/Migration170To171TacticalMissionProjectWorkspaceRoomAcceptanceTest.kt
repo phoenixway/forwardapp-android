@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.content.ContentValues
 import android.content.Context
-import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -34,14 +33,15 @@ class Migration170To171TacticalMissionProjectWorkspaceRoomAcceptanceTest {
             insertMission(db, 3L, HISTORICAL_SYS_PREFIX_ID)
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_170_171)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_170_171,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
 
@@ -93,7 +93,7 @@ class Migration170To171TacticalMissionProjectWorkspaceRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

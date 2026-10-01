@@ -1,17 +1,131 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_HIERARCHY_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconParentLinkSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HierarchyPlacementCanonicalDeltaTest {
+    @Test
+    fun `canonical delta neutralizes embedded Beacon topology`() {
+        val staleBeacon = beacon(parentId = "legacy-parent", order = 12L)
+
+        val result =
+            buildCanonicalSnapshotDelta(
+                baseDelta = SnapshotBundle(version = 2, mainBeacons = listOf(staleBeacon)),
+                fullSnapshot = SnapshotBundle(version = 2),
+            )
+
+        assertEquals(null, result.hierarchyFormatVersion)
+
+        val projected = result.mainBeacons.single()
+        assertEquals(null, projected.parentBeaconId)
+        assertEquals(0L, projected.order)
+    }
+
+    @Test
+    fun `canonical hierarchy delta never emits legacy structural links`() {
+        val child = child()
+        val full =
+            SnapshotBundle(
+                version = 2,
+                contextParentLinks =
+                    listOf(
+                        ContextParentLinkSnapshot(
+                            parentContextId = "legacy-parent",
+                            childContextId = "legacy-child",
+                            order = 0L,
+                            createdAt = 1L,
+                            updatedAt = 2L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        ),
+                    ),
+                mainBeaconParentLinks =
+                    listOf(
+                        MainBeaconParentLinkSnapshot(
+                            parentBeaconId = "legacy-beacon-parent",
+                            childBeaconId = "legacy-beacon-child",
+                            order = 0L,
+                            createdAt = 1L,
+                            updatedAt = 2L,
+                        ),
+                    ),
+                managedSubjects = emptyList(),
+                orientations = emptyList(),
+                aspects = emptyList(),
+                orientationAssessments = emptyList(),
+                orientationAssessmentRevisions = emptyList(),
+                legacySubjectMappings = emptyList(),
+                orientationRelations = emptyList(),
+                aspectOrientationRefs = emptyList(),
+                workspaces = listOf(workspace("workspace-child")),
+                workspaceBindings = emptyList(),
+                workspaceCapabilityInstances = emptyList(),
+                savedOrientationViews = emptyList(),
+                hierarchyPlacements = listOf(child),
+                hierarchyPlacementGroupScopes = emptyList(),
+                hierarchyPlacementLinkedAppearances = emptyList(),
+            )
+
+        val plan =
+            buildCanonicalWifiPushPlan(
+                selection = LocalSyncSelection(),
+                fullSnapshot = full,
+                dirtyCanonicalSeries = emptyList(),
+                dirtyCanonicalHierarchyPlacements = listOf(child),
+            )
+
+        assertEquals(
+            CURRENT_HIERARCHY_FORMAT_VERSION,
+            plan.snapshotDelta.hierarchyFormatVersion,
+        )
+        assertTrue(plan.snapshotDelta.contextParentLinks.isEmpty())
+        assertTrue(plan.snapshotDelta.mainBeaconParentLinks.isEmpty())
+        assertEquals(listOf(child), plan.snapshotDelta.hierarchyPlacements)
+        assertEquals(
+            emptyList<HierarchyPlacementGroupScopeSnapshot>(),
+            plan.snapshotDelta.hierarchyPlacementGroupScopes,
+        )
+        assertEquals(
+            emptyList<HierarchyPlacementLinkedAppearanceSnapshot>(),
+            plan.snapshotDelta.hierarchyPlacementLinkedAppearances,
+        )
+    }
+
+    private fun beacon(
+        parentId: String?,
+        order: Long,
+    ) =
+        MainBeaconSnapshot(
+            id = "beacon",
+            title = "Beacon",
+            description = null,
+            whyItMatters = null,
+            successShape = null,
+            failureShape = null,
+            antiGoal = null,
+            decisionImpact = null,
+            readinessStatus = "READY",
+            blockerText = null,
+            nextActionText = null,
+            parentBeaconId = parentId,
+            order = order,
+            updatedAt = 2L,
+            createdAt = 1L,
+        )
+
     @Test
     fun `dirty H1 row triggers wifi push`() {
         assertTrue(
@@ -336,7 +450,7 @@ class HierarchyPlacementCanonicalDeltaTest {
         )
 
     private fun workspace(id: String) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = id,
             nameOverride = id,
             descriptionOverride = null,

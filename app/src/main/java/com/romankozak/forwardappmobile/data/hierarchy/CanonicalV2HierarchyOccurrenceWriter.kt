@@ -21,7 +21,7 @@ data class CanonicalV2HierarchyOccurrenceWriteResult(
 /**
  * Dormant H4.0e fused writer for the Beacon occurrence-authority slice.
  *
- * No production caller exists. This does not activate P2 authority.
+ * The writer remains a bounded V2 occurrence mutation component; production authority is selected by the shared P2 authority seam.
  */
 @Singleton
 class CanonicalV2HierarchyOccurrenceWriter

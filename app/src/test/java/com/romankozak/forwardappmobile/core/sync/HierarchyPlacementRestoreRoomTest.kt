@@ -5,11 +5,14 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementLinkedAppearanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -80,6 +83,91 @@ class HierarchyPlacementRestoreRoomTest {
                 assertEquals(88L, restored.getValue("child").syncedAt)
                 assertEquals(99L, restored.getValue("deleted").syncedAt)
                 assertTrue(restored.getValue("deleted").isDeleted)
+
+                val fkViolations =
+                    db.openHelper.writableDatabase
+                        .query("PRAGMA foreign_key_check")
+                        .use { it.count }
+                assertEquals(0, fkViolations)
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `restore resurrects backup live target and H1 over newer local tombstone`() =
+        runBlocking {
+            val db = database()
+            try {
+                val targetId = "historical-live-workspace"
+                val placementId = "historical-live-placement"
+
+                db.workspaceDao().upsert(
+                    listOf(
+                        workspace(targetId)
+                            .copy(
+                                updatedAt = 200L,
+                                syncedAt = null,
+                                isDeleted = true,
+                                version = 9L,
+                            )
+                            .withoutEmbeddedWorkspaceTopology()
+                            .toWorkspaceEntity(),
+                    ),
+                )
+                db.hierarchyPlacementDao().upsert(
+                    HierarchyPlacementEntity(
+                        id = placementId,
+                        hierarchyId = "GENERAL",
+                        targetType = "WORKSPACE",
+                        targetId = targetId,
+                        parentPlacementId = null,
+                        placementKind = "PRIMARY",
+                        siblingOrder = 0L,
+                        createdAt = 100L,
+                        updatedAt = 200L,
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = 9L,
+                    ),
+                )
+
+                val backupTarget =
+                    workspace(targetId).copy(
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                        syncedAt = 30L,
+                        isDeleted = false,
+                        version = 2L,
+                    )
+                val backupPlacement =
+                    snapshot(
+                        id = placementId,
+                        targetId = targetId,
+                        syncedAt = 40L,
+                        version = 3L,
+                    )
+
+                restoreDataSource(db)
+                    .replaceWith(
+                        canonicalBundle(
+                            workspaces = listOf(backupTarget),
+                            hierarchyPlacements = listOf(backupPlacement),
+                        ),
+                    )
+
+                val restoredTarget = requireNotNull(db.workspaceDao().getById(targetId))
+                assertFalse(restoredTarget.isDeleted)
+                assertEquals(20L, restoredTarget.updatedAt)
+                assertEquals(30L, restoredTarget.syncedAt)
+                assertEquals(2L, restoredTarget.version)
+
+                val restoredPlacement =
+                    requireNotNull(db.hierarchyPlacementDao().getById(placementId))
+                assertFalse(restoredPlacement.isDeleted)
+                assertEquals(targetId, restoredPlacement.targetId)
+                assertEquals(40L, restoredPlacement.syncedAt)
+                assertEquals(3L, restoredPlacement.version)
 
                 val fkViolations =
                     db.openHelper.writableDatabase
@@ -302,29 +390,52 @@ class HierarchyPlacementRestoreRoomTest {
                                 workspace("root"),
                                 workspace("child", parentWorkspaceId = "root"),
                             ),
+                        contextParentLinks =
+                            listOf(
+                                ContextParentLinkSnapshot(
+                                    parentContextId = "root",
+                                    childContextId = "child",
+                                    order = 0L,
+                                    createdAt = 1L,
+                                    updatedAt = 1L,
+                                    syncedAt = null,
+                                    isDeleted = true,
+                                    version = 1L,
+                                ),
+                            ),
                         hierarchyPlacements = null,
                     )
 
-                // Production remains CURRENT during H4.0c.
+                // CURRENT remains available only as an explicit compatibility mode.
                 assertNull(
-                    SnapshotRestoreCanonicalizerImpl()
-                        .canonicalize(legacy)
-                        .hierarchyPlacements,
-                )
-
-                val canonical =
                     SnapshotRestoreCanonicalizerImpl()
                         .canonicalize(
                             bundle = legacy,
                             hierarchyAuthorityMode =
-                                HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                                HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
                         )
+                        .hierarchyPlacements,
+                )
+
+                // Production default is V2 after P2 activation and performs the
+                // finite Restore-only legacy -> H1 canonicalization.
+                val canonical =
+                    SnapshotRestoreCanonicalizerImpl()
+                        .canonicalize(legacy)
                 val translated = requireNotNull(canonical.hierarchyPlacements)
                 assertEquals(2, translated.size)
+                assertTrue(canonical.contextParentLinks.isEmpty())
+                requireNotNull(canonical.workspaces).forEach { workspace ->
+                    assertNull(workspace.parentWorkspaceId)
+                    assertEquals(0L, workspace.workspaceOrder)
+                }
 
                 restoreDataSource(db).replaceWith(canonical)
 
                 assertNull(db.workspaceDao().getById(SENTINEL_ID))
+                val restoredWorkspaces = db.workspaceDao().getAll().associateBy { it.id }
+                assertTrue(restoredWorkspaces.containsKey("root"))
+                assertTrue(restoredWorkspaces.containsKey("child"))
 
                 val restored =
                     db.hierarchyPlacementDao()
@@ -347,6 +458,17 @@ class HierarchyPlacementRestoreRoomTest {
                 val translatedChild = translated.single { it.targetId == "child" }
                 assertNull(translatedRoot.parentPlacementId)
                 assertEquals(translatedRoot.id, translatedChild.parentPlacementId)
+                val retiredContextParentLinksPresent =
+                    db.openHelper.readableDatabase
+                        .query(
+                            """
+                            SELECT 1
+                            FROM sqlite_master
+                            WHERE type = 'table' AND name = 'context_parent_links'
+                            LIMIT 1
+                            """.trimIndent(),
+                        ).use { it.moveToFirst() }
+                assertFalse(retiredContextParentLinksPresent)
 
                 val fkViolations =
                     db.openHelper.writableDatabase
@@ -520,11 +642,21 @@ class HierarchyPlacementRestoreRoomTest {
         db: AppDatabase,
         bundle: SnapshotBundle,
     ) {
-        db.workspaceDao().upsert(requireNotNull(bundle.workspaces))
+        db.workspaceDao().upsert(
+            requireNotNull(bundle.workspaces).map {
+                it.withoutEmbeddedWorkspaceTopology().toWorkspaceEntity()
+            },
+        )
     }
 
     private suspend fun seedSentinel(db: AppDatabase) {
-        db.workspaceDao().upsert(listOf(workspace(SENTINEL_ID)))
+        db.workspaceDao().upsert(
+            listOf(
+                workspace(SENTINEL_ID)
+                    .withoutEmbeddedWorkspaceTopology()
+                    .toWorkspaceEntity(),
+            ),
+        )
     }
 
     private suspend fun seedLinkedAppearance(
@@ -550,7 +682,13 @@ class HierarchyPlacementRestoreRoomTest {
         targetId: String,
         syncedAt: Long? = null,
     ) {
-        db.workspaceDao().upsert(listOf(workspace(targetId)))
+        db.workspaceDao().upsert(
+            listOf(
+                workspace(targetId)
+                    .withoutEmbeddedWorkspaceTopology()
+                    .toWorkspaceEntity(),
+            ),
+        )
         db.hierarchyPlacementDao().upsert(
             HierarchyPlacementEntity(
                 id = "local-p",
@@ -570,11 +708,13 @@ class HierarchyPlacementRestoreRoomTest {
     }
 
     private fun canonicalBundle(
-        workspaces: List<WorkspaceEntity>,
+        workspaces: List<WorkspaceSnapshot>,
         hierarchyPlacements: List<HierarchyPlacementSnapshot>?,
         linkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot>? = null,
+        contextParentLinks: List<ContextParentLinkSnapshot> = emptyList(),
     ) = SnapshotBundle(
         contexts = emptyList(),
+        contextParentLinks = contextParentLinks,
         managedSubjects = emptyList(),
         orientations = emptyList(),
         aspects = emptyList(),
@@ -596,7 +736,7 @@ class HierarchyPlacementRestoreRoomTest {
     private fun workspace(
         id: String,
         parentWorkspaceId: String? = null,
-    ) = WorkspaceEntity(
+    ) = WorkspaceSnapshot(
         id = id,
         nameOverride = id,
         descriptionOverride = null,

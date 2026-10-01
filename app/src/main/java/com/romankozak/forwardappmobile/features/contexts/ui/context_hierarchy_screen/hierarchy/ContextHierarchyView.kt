@@ -33,7 +33,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyPresentationItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildDirectChildrenByOrientationNodeId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.findOrientationHierarchyItem
@@ -42,7 +41,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 @Composable
 fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
-    presentationHierarchy: HierarchyPresentationData,
     orientationHierarchy: List<OrientationHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
@@ -59,7 +57,7 @@ fun ProjectHierarchyView(
     isSelectionMode: Boolean,
     isSiblingReorderMode: Boolean,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    onEditBeacon: (String) -> Unit = {},
+    onEditBeacon: (String, String?) -> Unit = { _, _ -> },
     onDeleteBeacon: (String) -> Unit = {},
     onProjectClicked: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
@@ -67,7 +65,6 @@ fun ProjectHierarchyView(
     onMenuRequested: (FlatHierarchyPresentationItem) -> Unit,
     onFocusProject: (String) -> Unit,
     onAddSubproject: (String, com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef?) -> Unit,
-    onDeleteProject: (String) -> Unit,
     onEditProject: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -86,7 +83,6 @@ fun ProjectHierarchyView(
             FocusedProjectView(
                 focusedProjectId = focusedProjectId,
                 focusedPlacementId = focusedProjectPlacementId,
-                presentationHierarchy = presentationHierarchy,
                 orientationHierarchy = orientationHierarchy,
                 directChildrenByNodeId = directChildrenByNodeId,
                 breadcrumbs = breadcrumbs,
@@ -127,22 +123,18 @@ fun ProjectHierarchyView(
                 searchQuery = searchQuery,
                 isSelectionMode = isSelectionMode,
                 selectedContextIds = selectedContextIds,
+                isSiblingReorderMode = isSiblingReorderMode,
                 onEvent = onEvent,
                 onEditBeacon = onEditBeacon,
                 onDeleteBeacon = onDeleteBeacon,
             )
         } else {
-            val presentationChildCounts =
-                remember(presentationHierarchy.childMap) {
-                    presentationHierarchy.childMap.mapValues { (_, children) -> children.size }
-                }
-
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (orientationHierarchy.isNotEmpty() && !isSearchActive) {
+                if (orientationHierarchy.isNotEmpty()) {
                     val rootItems = orientationHierarchy.filter { it.level == 0 }
                     val rootGroups =
                         rootItems
@@ -177,7 +169,9 @@ fun ProjectHierarchyView(
                                             ),
                                         )
                                     },
-                                    onEditBeacon = { onEditBeacon(node.id) },
+                                    onEditBeacon = {
+                                        onEditBeacon(node.id, node.placementId?.value)
+                                    },
                                     onDeleteBeacon = { onDeleteBeacon(node.id) },
                                     onCopyBeacon = {
                                         onEvent(
@@ -259,31 +253,7 @@ fun ProjectHierarchyView(
                             }
                         }
                     }
-                } else {
-                    items(
-                        presentationHierarchy.topLevelProjects.sortedBy { it.order },
-                        key = { it.id },
-                    ) { project ->
-                        val presentationItem =
-                            FlatHierarchyPresentationItem(
-                                project = project,
-                                level = 0,
-                            )
-                        PresentationHierarchyRow(
-                            item = presentationItem,
-                            childCount = presentationChildCounts[presentationItem.project.id] ?: 0,
-                            isSearchActive = isSearchActive,
-                            searchQuery = searchQuery,
-                            isFocused = presentationItem.project.id == focusedProjectId,
-                            isHighlighted = presentationItem.project.id == highlightedProjectId,
-                            onProjectClick = onProjectClicked,
-                            onMenuRequested = { row -> onMenuRequested(row) },
-                            isSelectionMode = isSelectionMode,
-                            isSelected = presentationItem.project.id in selectedContextIds,
-                            onToggleSelection = onToggleSelection,
-                            onStartSelection = onStartSelection,
-                        )
-                    }
+
                 }
             }
         }

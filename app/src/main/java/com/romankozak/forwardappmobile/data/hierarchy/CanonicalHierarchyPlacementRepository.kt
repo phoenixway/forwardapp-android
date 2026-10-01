@@ -344,6 +344,50 @@ class CanonicalHierarchyPlacementRepository
             }
         }
 
+        /**
+         * Remove exactly one occurrence-owned subtree, never its semantic targets.
+         * Descendants are resolved only by the persisted parentPlacementId edges.
+         * H1 and occurrence-scoped provenance retire in the same Room transaction.
+         */
+        suspend fun removeOccurrenceSubtree(
+            rootPlacementId: PlacementId,
+            now: Long = System.currentTimeMillis(),
+        ): List<PlacementId> = database.withTransaction {
+            val before = loadCompleteState()
+            val root = requireLivePlacement(before, rootPlacementId)
+            requireSupportedHierarchy(root.hierarchyId)
+
+            val childrenByParent =
+                before.values
+                    .filter { !it.isDeleted && it.hierarchyId == root.hierarchyId }
+                    .groupBy { it.parentPlacementId }
+            val selected = linkedSetOf<PlacementId>()
+
+            fun collect(id: PlacementId) {
+                check(selected.add(id)) {
+                    "Occurrence subtree has a repeated placement: ${id.value}"
+                }
+                childrenByParent[id].orEmpty()
+                    .sortedWith(hierarchyPlacementSiblingComparator)
+                    .forEach { collect(it.id) }
+            }
+            collect(rootPlacementId)
+
+            val prospective = before.toMutableMap()
+            selected.forEach { id ->
+                prospective[id] = requireLivePlacement(before, id).copy(isDeleted = true)
+            }
+            database.requireValidProspectiveHierarchy(prospective.values)
+
+            val orderedIds = selected.toList()
+            HierarchyPlacementLinkedAppearanceMutationCoordinator(database)
+                .retireLinkedAppearancesForPlacements(orderedIds, now)
+            HierarchyPlacementGroupScopeMutationCoordinator(database)
+                .retireScopesForPlacements(orderedIds, now)
+            persistChangedState(before, prospective, now)
+            orderedIds
+        }
+
         suspend fun removePlacement(
             placementId: PlacementId,
             childPolicy: HierarchyPlacementChildPolicy =

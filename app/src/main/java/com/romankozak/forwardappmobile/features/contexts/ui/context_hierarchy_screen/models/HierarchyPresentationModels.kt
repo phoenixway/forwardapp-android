@@ -54,8 +54,8 @@ fun ContextPresentation.toHierarchyPresentationNode(): HierarchyContextPresentat
         id = id,
         name = name,
         description = description,
-        parentId = parentId,
-        order = order,
+        parentId = null,
+        order = 0L,
         roleCode = roleCode,
         tags = tags.orEmpty(),
     )

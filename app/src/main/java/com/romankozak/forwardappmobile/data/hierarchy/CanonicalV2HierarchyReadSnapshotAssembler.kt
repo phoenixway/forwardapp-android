@@ -5,7 +5,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.Hiera
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -31,7 +30,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
 
         fun assemble(
             placements: Collection<HierarchyPlacement>,
-            admittedWorkspacePresentations: Collection<HierarchyContextPresentationNode>,
+            admittedWorkspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
             managedSubjects: Collection<ManagedSubjectEntity>,
             legacySubjectMappings: Collection<LegacySubjectMappingEntity>,
             relations: Collection<OrientationRelationEntity>,

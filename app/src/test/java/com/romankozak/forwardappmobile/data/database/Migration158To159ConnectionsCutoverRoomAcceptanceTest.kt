@@ -36,7 +36,6 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             MIGRATION_168_169,
             MIGRATION_169_170,
             MIGRATION_170_171,
-            MIGRATION_171_172,
         )
 
     @Test
@@ -52,13 +51,14 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             insertLink(db, "owner", "newer", order = 1L, version = 3L, syncedAt = 100L)
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158ToCurrent)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations158ToCurrent,
+            )
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
             assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_connections"))
@@ -78,7 +78,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -93,14 +93,15 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             insertLink(db, "owner", "deleted", order = 0L)
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158ToCurrent)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations158ToCurrent,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
@@ -129,7 +130,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -151,14 +152,15 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158ToCurrent)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations158ToCurrent,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
@@ -211,7 +213,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -248,14 +250,15 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             )
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(*migrations158ToCurrent)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                *migrations158ToCurrent,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(171L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_attachment_cross_ref"))
@@ -329,7 +332,7 @@ class Migration158To159ConnectionsCutoverRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }

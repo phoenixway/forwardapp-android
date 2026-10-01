@@ -129,6 +129,15 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                         orientationReport.issues.size,
                     )
                 }
+                orientationReport.issues.forEach { issue ->
+                    Timber.e(
+                        "Canonical Orientation bootstrap issue: source=%s:%s code=%s detail=%s",
+                        issue.sourceType,
+                        issue.sourceId,
+                        issue.code,
+                        issue.detail,
+                    )
+                }
                 check(orientationReport.issues.isEmpty()) {
                     "P2 hierarchy authority activation requires COMPLETE canonical Orientation bootstrap; " +
                         "issues=${orientationReport.issues.size}"
@@ -180,71 +189,6 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
         }
 
         appScope.launch(Dispatchers.IO) {
-            if (!isV2HierarchyAuthority) {
-                // Same-id canonical Workspaces own reserved System runtime
-                // metadata/hierarchy. Historical Context rows, when present, are
-                // bounded upgrade evidence rather than startup materialization.
-                runCatching {
-                    StartupTrace.measure("Application.systemWorkspaceOwnership") {
-                        databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
-                    }
-                }.onFailure {
-                    Timber.e(it, "Failed to ensure canonical System Workspace ownership")
-                }
-
-                runCatching {
-                    StartupTrace.measure("Application.dayThemeBootstrap") {
-                        canonicalDayThemeBootstrapper.ensureBootstrapped()
-                    }
-                }.onSuccess { report ->
-                    if (report.performed) {
-                        Timber.i(
-                            "Canonical DayTheme bootstrap completed: definitions=%d dayThemes=%d assignments=%d diagnostics=%d",
-                            report.insertedThemeDefinitions,
-                            report.insertedDayThemes,
-                            report.insertedAssignmentDocuments,
-                            report.diagnostics.size,
-                        )
-                    }
-                }.onFailure {
-                    Timber.e(it, "Failed to bootstrap canonical Day Themes")
-                }
-
-                runCatching {
-                    StartupTrace.measure("Application.orientationBootstrap") {
-                        canonicalOrientationBootstrapper.ensureBootstrapped()
-                    }
-                }.onSuccess { report ->
-                    if (report.performed) {
-                        Timber.i(
-                            "Canonical Orientation bootstrap: materialized=%d compared=%d issues=%d",
-                            report.materialized,
-                            report.compared,
-                            report.issues.size,
-                        )
-                    }
-                }.onFailure {
-                    Timber.e(it, "Failed to bootstrap canonical Orientations")
-                }
-
-                runCatching {
-                    StartupTrace.measure("Application.workspaceBootstrap") {
-                        canonicalWorkspaceBootstrapper.ensureBootstrapped()
-                    }
-                }.onSuccess { report ->
-                    if (report.performed || report.issues.isNotEmpty()) {
-                        Timber.i(
-                            "Canonical Workspace bootstrap: workspaces=%d capabilities=%d issues=%d",
-                            report.projectedWorkspaces,
-                            report.projectedCapabilities,
-                            report.issues.size,
-                        )
-                    }
-                }.onFailure {
-                    Timber.e(it, "Failed to bootstrap canonical Workspaces")
-                }
-            }
-
             runCatching {
                 StartupTrace.measure("Application.executionLogRepair") {
                     executionLogWorkspaceOwnershipBridge.repairUnresolved()

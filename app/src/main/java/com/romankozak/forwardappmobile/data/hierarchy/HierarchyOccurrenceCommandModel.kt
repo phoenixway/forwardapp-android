@@ -76,6 +76,11 @@ sealed interface HierarchyOccurrenceCommand {
         val placementId: PlacementId,
     ) : HierarchyOccurrenceCommand
 
+    /** Remove this exact occurrence and all descendants by parentPlacementId. */
+    data class RemoveOccurrenceSubtree(
+        val rootPlacementId: PlacementId,
+    ) : HierarchyOccurrenceCommand
+
     data class RestoreOccurrence(
         val placementId: PlacementId,
     ) : HierarchyOccurrenceCommand

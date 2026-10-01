@@ -5,7 +5,9 @@ package com.romankozak.forwardappmobile.sync
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.*
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.*
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.validateBacklogContract
 import com.romankozak.forwardappmobile.shared.core.models.orientation.*
@@ -62,11 +64,14 @@ internal fun SnapshotBundle.withCanonicalBacklogSelectiveClosure(
 
     val targetDependencies = selectedEntries.canonicalBacklogTargetDependencies()
     val requiredWorkspaceIds =
-        collectWorkspaceClosure(
+        requireWorkspaceDependencies(
             roots = selectedEntries.mapTo(linkedSetOf()) { it.workspaceId } + targetDependencies.workspaceIds,
             workspaceById = workspaceById,
         )
-    val selectedWorkspaces = sourceWorkspaces.filter { it.id in requiredWorkspaceIds }
+    val selectedWorkspaces =
+        sourceWorkspaces
+            .filter { it.id in requiredWorkspaceIds }
+            .map { it.withoutEmbeddedWorkspaceTopology() }
     val selectedCapabilities =
         sourceCapabilities.filter { capability ->
             selectedEntries.any { it.capabilityInstanceId == capability.id }
@@ -126,21 +131,16 @@ internal fun SnapshotBundle.withCanonicalBacklogSelectiveClosure(
     return result
 }
 
-private fun collectWorkspaceClosure(
+private fun requireWorkspaceDependencies(
     roots: Set<String>,
-    workspaceById: Map<String, WorkspaceEntity>,
+    workspaceById: Map<String, WorkspaceSnapshot>,
 ): Set<String> {
-    val required = linkedSetOf<String>()
-    roots.forEach { root ->
-        var current: String? = root
-        while (current != null && required.add(current)) {
-            val workspace = requireNotNull(workspaceById[current]) {
-                "Canonical BACKLOG dependency references missing Workspace $current."
-            }
-            current = workspace.parentWorkspaceId
+    roots.forEach { workspaceId ->
+        requireNotNull(workspaceById[workspaceId]) {
+            "Canonical BACKLOG dependency references missing Workspace $workspaceId."
         }
     }
-    return required
+    return roots
 }
 
 private fun requireLiveTargets(
@@ -230,7 +230,9 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOri
         },
         relations = requireNotNull(orientationRelations).map { it.toModel() },
         aspectRefs = requireNotNull(aspectOrientationRefs).map { it.toModel() },
-        workspaces = requireNotNull(workspaces).map { CanonicalWorkspaceReference(it.id, it.parentWorkspaceId) },
+        // Selective BACKLOG validates exact Workspace identity/capability
+        // references. GENERAL parentage belongs exclusively to transported H1.
+        workspaces = requireNotNull(workspaces).map { CanonicalWorkspaceReference(it.id, null) },
         bindings = requireNotNull(workspaceBindings).map { it.toModel() },
         capabilities = requireNotNull(workspaceCapabilityInstances).map { it.toModel() },
         savedViews = requireNotNull(savedOrientationViews).map {

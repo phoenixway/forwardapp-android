@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyPresentationData
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2BreadcrumbTarget
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
@@ -62,15 +64,13 @@ class HierarchyFocusCoordinator
             enterFocus: Boolean,
             replaceFocusPath: Boolean = false,
         ) {
-            // Stable-id reveal is a read-side operation, but the id must still
-            // belong to the admitted presentation universe. Do not let an
-            // arbitrary id manufacture focused/navigation state.
-            if (currentHierarchy.allProjects.none { it.id == projectId }) return
-
             val orientationBreadcrumbs =
                 when {
                     placementId == null -> emptyList()
                     canonicalRead == null -> emptyList()
+                    canonicalRead.occurrence(PlacementId(placementId))?.target !=
+                        HierarchyTargetRef(HierarchyTargetType.WORKSPACE, projectId) ->
+                        emptyList()
                     else ->
                         canonicalRead
                             .breadcrumbsToOccurrence(PlacementId(placementId))
@@ -96,22 +96,22 @@ class HierarchyFocusCoordinator
             // navigation through the legacy presentation tree.
             if (placementId != null && orientationBreadcrumbs.isEmpty()) return
 
+            // Target-only callers remain on the pre-cutover compatibility path.
+            // Exact occurrence callers are admitted solely by the canonical V2 read.
+            if (
+                placementId == null &&
+                currentHierarchy.allProjects.none { it.id == projectId }
+            ) {
+                return
+            }
+
             if (orientationBreadcrumbs.isNotEmpty()) {
                 searchUseCase.navigateToProjectWithBreadcrumbs(
                     projectId = projectId,
                     breadcrumbs = orientationBreadcrumbs,
                 )
             } else {
-                searchUseCase.navigateToProject(
-                    projectId = projectId,
-                    currentHierarchy = currentHierarchy,
-                    breadcrumbPrefix =
-                        currentOrientationBreadcrumbPrefix(
-                            currentSubState = currentSubState,
-                            currentBreadcrumbs = currentBreadcrumbs,
-                            orientationHierarchy = orientationHierarchy,
-                        ),
-                )
+                searchUseCase.navigateToProject(projectId = projectId)
             }
             if (enterFocus) {
                 if (replaceFocusPath && orientationBreadcrumbs.isNotEmpty()) {
@@ -132,43 +132,16 @@ class HierarchyFocusCoordinator
         fun handleBackNavigation(
             currentHierarchy: HierarchyPresentationData,
             orientationHierarchy: List<OrientationHierarchyItem>,
+            canonicalRead: CanonicalV2ProductionHierarchyRead? = null,
             goBack: () -> Unit,
         ) {
             searchUseCase.handleBackNavigation(
                 currentHierarchy = currentHierarchy,
                 orientationHierarchy = orientationHierarchy,
+                canonicalRead = canonicalRead,
                 goBack = goBack,
             )
         }
 
-        private fun currentOrientationBreadcrumbPrefix(
-            currentSubState: MainSubState,
-            currentBreadcrumbs: List<BreadcrumbItem>,
-            orientationHierarchy: List<OrientationHierarchyItem>,
-        ): List<BreadcrumbItem> {
-            val existingOrientationPrefix =
-                currentBreadcrumbs.takeWhile { it.target == BreadcrumbTarget.OrientationNode }
-            if (existingOrientationPrefix.isNotEmpty()) {
-                return existingOrientationPrefix
-            }
 
-            val orientationState = currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused
-                ?: return emptyList()
-            val rootNode =
-                findOrientationHierarchyItem(
-                    items = orientationHierarchy,
-                    nodeId = orientationState.nodeId,
-                    placementId = orientationState.placementId,
-                )?.node
-                    ?: return emptyList()
-            return listOf(
-                BreadcrumbItem(
-                    id = rootNode.id,
-                    name = rootNode.title,
-                    level = 0,
-                    target = BreadcrumbTarget.OrientationNode,
-                    placementId = rootNode.placementId?.value,
-                ),
-            )
-        }
     }

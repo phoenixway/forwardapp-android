@@ -1,6 +1,14 @@
 package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementGroupScopeMutationCoordinator
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
@@ -10,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.data.orientation.MainBeaconOrientationBridge
@@ -28,6 +35,8 @@ class MainBeaconRepository
         private val appDatabase: AppDatabase,
         private val mainBeaconDao: MainBeaconDao,
         private val orientationBridge: MainBeaconOrientationBridge,
+        private val hierarchyPlacementRepository: CanonicalHierarchyPlacementRepository,
+        private val groupScopeCoordinator: HierarchyPlacementGroupScopeMutationCoordinator,
     ) {
         companion object {
             val DefaultLevels: List<MainBeaconLevelType> =
@@ -112,8 +121,6 @@ class MainBeaconRepository
                 }
             }
 
-        fun observeParentLinks(): Flow<List<MainBeaconParentLink>> = mainBeaconDao.observeParentLinks()
-
         suspend fun getBeaconById(beaconId: String): MainBeacon? =
             mainBeaconDao.getBeaconById(beaconId)?.let { orientationBridge.project(it) }
 
@@ -126,6 +133,8 @@ class MainBeaconRepository
             relatedAttachmentIds: Set<String>,
             groupIds: Set<String>,
             levelStatuses: List<MainBeaconLevelStatus>,
+            parentPlacementId: PlacementId? = null,
+            parentBeaconId: String? = null,
         ) {
             val nextOrder = mainBeaconDao.getMaxOrder() + 1L
             upsertBeacon(
@@ -135,6 +144,8 @@ class MainBeaconRepository
                 groupIds = groupIds,
                 levelStatuses = levelStatuses,
                 exists = false,
+                parentPlacementId = parentPlacementId,
+                parentBeaconId = parentBeaconId,
             )
         }
 
@@ -152,6 +163,32 @@ class MainBeaconRepository
             orientationBridge.ensureCutOver()
             val now = System.currentTimeMillis()
             appDatabase.withTransaction {
+                run {
+                    val mapping = requireNotNull(
+                        appDatabase.orientationDao().getLegacyMapping(
+                            LegacyOrientationSourceType.MAIN_BEACON.name,
+                            beaconId,
+                        ),
+                    ) { "V2 Beacon deletion requires a canonical mapping: $beaconId" }
+                    require(!mapping.isDeleted && mapping.state == LegacySubjectMappingState.CUT_OVER.name) {
+                        "V2 Beacon deletion requires an active CUT_OVER mapping: $beaconId"
+                    }
+                    val subject = requireNotNull(
+                        appDatabase.orientationDao().getManagedSubject(mapping.subjectId),
+                    ) { "V2 Beacon deletion requires its canonical subject: $beaconId" }
+                    require(!subject.isDeleted) { "V2 Beacon target is already deleted: $beaconId" }
+                    require(
+                        appDatabase.orientationDao().getAllOrientations().any {
+                            it.subjectId == subject.id && it.kind == OrientationKind.MAIN_BEACON.name
+                        },
+                    ) { "V2 Beacon mapping does not resolve to a Main Beacon: $beaconId" }
+                    requireNotNull(mainBeaconDao.getBeaconById(beaconId)) {
+                        "V2 Beacon deletion requires its legacy representation: $beaconId"
+                    }
+                }
+                // Target lifecycle rejects live children under ANY PRIMARY or LINK
+                // appearance. Its H1 and sidecar tombstones share this transaction
+                // with canonical orientation and legacy representation retirement.
                 orientationBridge.tombstone(LegacyOrientationSourceType.MAIN_BEACON, beaconId, now)
                 mainBeaconDao.deleteBeacon(beaconId)
                 orientationBridge.syncMembershipProjection(now)
@@ -203,6 +240,19 @@ class MainBeaconRepository
                 )
             orientationBridge.ensureCutOver()
             appDatabase.withTransaction {
+                run {
+                    val mapping = requireNotNull(
+                        appDatabase.orientationDao().getLegacyMapping(
+                            LegacyOrientationSourceType.MAIN_BEACON_GROUP.name,
+                            updated.id,
+                        ),
+                    ) { "V2 Group edit requires its canonical mapping: ${updated.id}" }
+                    require(
+                        !mapping.isDeleted &&
+                            mapping.state == LegacySubjectMappingState.CUT_OVER.name &&
+                            appDatabase.orientationDao().getManagedSubject(mapping.subjectId)?.isDeleted == false
+                    ) { "V2 Group edit cannot revive a retired canonical Group: ${updated.id}" }
+                }
                 orientationBridge.writeCommon(updated)
                 mainBeaconDao.updateGroup(updated)
             }
@@ -212,9 +262,34 @@ class MainBeaconRepository
             orientationBridge.ensureCutOver()
             val now = System.currentTimeMillis()
             appDatabase.withTransaction {
+                run {
+                    val orientationDao = appDatabase.orientationDao()
+                    val mapping = requireNotNull(
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.MAIN_BEACON_GROUP.name,
+                            groupId,
+                        ),
+                    ) { "V2 Group deletion requires a canonical mapping: $groupId" }
+                    require(!mapping.isDeleted && mapping.state == LegacySubjectMappingState.CUT_OVER.name) {
+                        "V2 Group deletion requires an active CUT_OVER mapping: $groupId"
+                    }
+                    require(orientationDao.getManagedSubject(mapping.subjectId)?.isDeleted == false) {
+                        "V2 Group deletion requires a live canonical Group: $groupId"
+                    }
+                    require(orientationDao.getAllOrientations().any {
+                        it.subjectId == mapping.subjectId && it.kind == OrientationKind.MAIN_BEACON_GROUP.name
+                    }) { "V2 Group mapping does not resolve to a canonical Group: $groupId" }
+                    require(mainBeaconDao.getAllGroupsSync().any { it.id == groupId }) {
+                        "V2 Group deletion requires its legacy representation: $groupId"
+                    }
+                    groupScopeCoordinator.reconcileGroupRetirementLeafOnly(mapping.subjectId, now)
+                }
                 orientationBridge.tombstone(LegacyOrientationSourceType.MAIN_BEACON_GROUP, groupId, now)
                 mainBeaconDao.deleteGroup(groupId)
                 orientationBridge.syncMembershipProjection(now)
+                run {
+                    groupScopeCoordinator.validateAuthoritativeState()
+                }
             }
         }
 
@@ -269,66 +344,83 @@ class MainBeaconRepository
             mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
         }
 
-        suspend fun reorderBeacons(beaconIdsInOrder: List<String>) {
-            if (beaconIdsInOrder.isEmpty()) return
-            appDatabase.withTransaction {
-                beaconIdsInOrder.forEachIndexed { index, beaconId ->
-                    mainBeaconDao.updateBeaconOrder(beaconId, index.toLong())
-                }
-            }
-        }
-
+        /**
+         * Reorders synthetic Group presentation scopes.
+         *
+         * MainBeaconGroup.order is presentation metadata under V2 authority. It
+         * does not own H1 topology, GroupScope provenance, PART_OF membership,
+         * Beacon parentage, or parent-link topology.
+         */
         suspend fun reorderGroups(groupIdsInOrder: List<String>) {
-            if (groupIdsInOrder.isEmpty()) return
+
             appDatabase.withTransaction {
+                run {
+                    require(groupIdsInOrder.distinct().size == groupIdsInOrder.size) {
+                        "V2 Group reorder contains duplicate Group ids"
+                    }
+
+                    val orientationDao = appDatabase.orientationDao()
+                    val activeGroupMappings =
+                        orientationDao.getAllLegacyMappings()
+                            .filterNot { it.isDeleted }
+                            .filter { it.state == LegacySubjectMappingState.CUT_OVER.name }
+                            .filter {
+                                it.sourceType ==
+                                    LegacyOrientationSourceType.MAIN_BEACON_GROUP.name
+                            }
+
+                    require(
+                        activeGroupMappings.map { it.sourceId }.distinct().size ==
+                            activeGroupMappings.size,
+                    ) {
+                        "V2 Group reorder found duplicate active legacy Group mappings"
+                    }
+                    require(
+                        activeGroupMappings.map { it.subjectId }.distinct().size ==
+                            activeGroupMappings.size,
+                    ) {
+                        "V2 Group reorder found multiple legacy Groups for one canonical Group"
+                    }
+
+                    val orientationsBySubject =
+                        orientationDao.getAllOrientations()
+                            .groupBy { it.subjectId }
+
+                    activeGroupMappings.forEach { mapping ->
+                        val subject = requireNotNull(
+                            orientationDao.getManagedSubject(mapping.subjectId),
+                        ) {
+                            "V2 Group reorder mapping ${mapping.sourceId} has no canonical subject"
+                        }
+                        require(!subject.isDeleted) {
+                            "V2 Group reorder mapping ${mapping.sourceId} targets a deleted canonical Group"
+                        }
+                        require(
+                            orientationsBySubject[mapping.subjectId]
+                                .orEmpty()
+                                .any { it.kind == OrientationKind.MAIN_BEACON_GROUP.name },
+                        ) {
+                            "V2 Group reorder mapping ${mapping.sourceId} is not a canonical Group"
+                        }
+                    }
+
+                    val liveCanonicalGroupIds =
+                        activeGroupMappings.mapTo(linkedSetOf()) { it.sourceId }
+
+                    val persistedGroupIds =
+                        mainBeaconDao.getAllGroupsSync()
+                            .mapTo(linkedSetOf()) { it.id }
+
+                    require(persistedGroupIds == liveCanonicalGroupIds) {
+                        "V2 Group presentation rows disagree with active canonical Group mappings"
+                    }
+                    require(groupIdsInOrder.toSet() == liveCanonicalGroupIds) {
+                        "V2 Group reorder requires the complete active Group sibling set"
+                    }
+                }
+
                 groupIdsInOrder.forEachIndexed { index, groupId ->
                     mainBeaconDao.updateGroupOrder(groupId, index.toLong())
-                }
-            }
-        }
-
-        suspend fun reorderBeaconGroupMembers(
-            groupId: String,
-            beaconIdsInOrder: List<String>,
-        ) {
-            if (beaconIdsInOrder.isEmpty()) return
-            orientationBridge.ensureCutOver()
-            appDatabase.withTransaction {
-                beaconIdsInOrder.forEachIndexed { index, beaconId ->
-                    mainBeaconDao.updateGroupMemberOrder(
-                        groupId = groupId,
-                        beaconId = beaconId,
-                        order = index.toLong(),
-                    )
-                }
-                orientationBridge.syncMembershipProjection()
-            }
-        }
-
-        suspend fun reorderBeaconParentChildren(
-            parentBeaconId: String,
-            beaconIdsInOrder: List<String>,
-        ) {
-            if (beaconIdsInOrder.isEmpty()) return
-            val beaconsById = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
-            val linkedChildIds =
-                mainBeaconDao
-                    .getAllParentLinksSync()
-                    .filter { it.parentBeaconId == parentBeaconId }
-                    .mapTo(hashSetOf()) { it.childBeaconId }
-            val now = System.currentTimeMillis()
-            appDatabase.withTransaction {
-                beaconIdsInOrder.forEachIndexed { index, beaconId ->
-                    if (beaconsById[beaconId]?.parentBeaconId == parentBeaconId) {
-                        mainBeaconDao.updateBeaconOrder(beaconId, index.toLong())
-                    } else if (beaconId in linkedChildIds) {
-                        mainBeaconDao.updateParentLinkOrder(
-                            parentBeaconId = parentBeaconId,
-                            childBeaconId = beaconId,
-                            order = index.toLong(),
-                            updatedAt = now,
-                        )
-                    }
                 }
             }
         }
@@ -356,190 +448,6 @@ class MainBeaconRepository
             }
         }
 
-        suspend fun moveBeaconToParent(
-            beaconId: String,
-            parentBeaconId: String?,
-        ): Boolean {
-            val canMove =
-                beaconId != parentBeaconId &&
-                    (parentBeaconId == null || !wouldCreateBeaconParentCycle(beaconId, parentBeaconId))
-            if (canMove) {
-                mainBeaconDao.updateBeaconParent(
-                    beaconId = beaconId,
-                    parentBeaconId = parentBeaconId,
-                    updatedAt = System.currentTimeMillis(),
-                )
-            }
-            return canMove
-        }
-
-        suspend fun moveBeaconToGroup(
-            beaconId: String,
-            groupId: String?,
-        ) {
-            orientationBridge.ensureCutOver()
-            appDatabase.withTransaction {
-                mainBeaconDao.updateBeaconParent(
-                    beaconId = beaconId,
-                    parentBeaconId = null,
-                    updatedAt = System.currentTimeMillis(),
-                )
-                mainBeaconDao.deleteGroupMembersForBeacon(beaconId)
-                groupId?.let {
-                    mainBeaconDao.insertGroupMembers(
-                        listOf(
-                            MainBeaconGroupMember(
-                                groupId = it,
-                                beaconId = beaconId,
-                                order = mainBeaconDao.getMaxOrder() + 1L,
-                            ),
-                        ),
-                    )
-                }
-                orientationBridge.syncMembershipProjection()
-            }
-        }
-
-        suspend fun addBeaconToGroup(
-            beaconId: String,
-            groupId: String?,
-        ): Boolean {
-            if (groupId == null || mainBeaconDao.getBeaconById(beaconId) == null) return false
-            val alreadyInGroup =
-                mainBeaconDao
-                    .getAllGroupMembersSync()
-                    .any { it.groupId == groupId && it.beaconId == beaconId }
-            if (alreadyInGroup) return false
-            orientationBridge.ensureCutOver()
-            appDatabase.withTransaction {
-                mainBeaconDao.insertGroupMembers(
-                    listOf(
-                        MainBeaconGroupMember(
-                            groupId = groupId,
-                            beaconId = beaconId,
-                            order = mainBeaconDao.getMaxOrder() + 1L,
-                        ),
-                    ),
-                )
-                orientationBridge.syncMembershipProjection()
-            }
-            return true
-        }
-
-        suspend fun addBeaconParentLink(
-            childBeaconId: String,
-            parentBeaconId: String,
-        ): Boolean {
-            if (childBeaconId == parentBeaconId) return false
-            val beaconsById = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
-            if (childBeaconId !in beaconsById || parentBeaconId !in beaconsById) return false
-            val existingLinks = mainBeaconDao.getAllParentLinksSync()
-            if (beaconsById[childBeaconId]?.parentBeaconId == parentBeaconId) return false
-            if (existingLinks.any { it.parentBeaconId == parentBeaconId && it.childBeaconId == childBeaconId }) return false
-            if (wouldCreateBeaconParentCycle(childBeaconId, parentBeaconId, beaconsById.values.toList(), existingLinks)) {
-                return false
-            }
-
-            val now = System.currentTimeMillis()
-            return mainBeaconDao.insertParentLink(
-                MainBeaconParentLink(
-                    parentBeaconId = parentBeaconId,
-                    childBeaconId = childBeaconId,
-                    order = mainBeaconDao.getMaxParentLinkOrder(parentBeaconId) + 1L,
-                    updatedAt = now,
-                    createdAt = now,
-                ),
-            ) != -1L
-        }
-
-        suspend fun duplicateBeacon(
-            sourceBeaconId: String,
-            parentBeaconId: String?,
-            groupId: String?,
-        ): Boolean {
-            val source = mainBeaconDao.getBeaconById(sourceBeaconId) ?: return false
-            val now = System.currentTimeMillis()
-            val targetId = java.util.UUID.randomUUID().toString()
-            val sourceContexts =
-                mainBeaconDao
-                    .getAllContextCrossRefsSync()
-                    .asSequence()
-                    .filter { it.beaconId == sourceBeaconId }
-                    .mapTo(linkedSetOf()) { it.contextId }
-            val sourceAttachments =
-                mainBeaconDao.getAttachmentsForBeacon(sourceBeaconId).mapTo(linkedSetOf()) { it.id }
-            val sourceStatuses =
-                mainBeaconDao.getLevelStatusesForBeacon(sourceBeaconId).map { status ->
-                    status.copy(
-                        id = java.util.UUID.randomUUID().toString(),
-                        mainBeaconId = targetId,
-                        updatedAt = now,
-                    )
-                }
-            val target =
-                source.copy(
-                    id = targetId,
-                    title = "${source.title} copy".trim(),
-                    parentBeaconId = parentBeaconId,
-                    order = mainBeaconDao.getMaxOrder() + 1L,
-                    updatedAt = now,
-                    createdAt = now,
-                )
-            upsertBeacon(
-                beacon = target,
-                relatedContextIds = sourceContexts,
-                relatedAttachmentIds = sourceAttachments,
-                groupIds = groupId?.let { setOf(it) }.orEmpty(),
-                levelStatuses = sourceStatuses,
-                exists = false,
-            )
-            return true
-        }
-
-        private suspend fun wouldCreateBeaconParentCycle(
-            beaconId: String,
-            requestedParentId: String,
-        ): Boolean {
-            val beacons = mainBeaconDao.getAllBeaconsSync()
-            return wouldCreateBeaconParentCycle(
-                beaconId = beaconId,
-                requestedParentId = requestedParentId,
-                beacons = beacons,
-                parentLinks = mainBeaconDao.getAllParentLinksSync(),
-            )
-        }
-
-        private fun wouldCreateBeaconParentCycle(
-            beaconId: String,
-            requestedParentId: String,
-            beacons: List<MainBeacon>,
-            parentLinks: List<MainBeaconParentLink>,
-        ): Boolean {
-            val byId = beacons.associateBy { it.id }
-            if (requestedParentId !in byId) return true
-
-            val childrenByParentId = linkedMapOf<String, MutableList<String>>()
-            beacons.forEach { beacon ->
-                beacon.parentBeaconId?.let { parentId ->
-                    childrenByParentId.getOrPut(parentId) { mutableListOf() } += beacon.id
-                }
-            }
-            parentLinks.forEach { link ->
-                childrenByParentId.getOrPut(link.parentBeaconId) { mutableListOf() } += link.childBeaconId
-            }
-
-            val pending = ArrayDeque<String>()
-            pending += beaconId
-            val visited = mutableSetOf<String>()
-            while (pending.isNotEmpty()) {
-                val cursor = pending.removeFirst()
-                if (!visited.add(cursor)) continue
-                if (cursor == requestedParentId) return true
-                childrenByParentId[cursor].orEmpty().forEach(pending::add)
-            }
-            return false
-        }
-
         private suspend fun upsertBeacon(
             beacon: MainBeacon,
             relatedContextIds: Set<String>,
@@ -547,9 +455,78 @@ class MainBeaconRepository
             groupIds: Set<String>,
             levelStatuses: List<MainBeaconLevelStatus>,
             exists: Boolean,
+            parentPlacementId: PlacementId? = null,
+            parentBeaconId: String? = null,
         ) {
             orientationBridge.ensureCutOver()
             appDatabase.withTransaction {
+                val stored = if (exists) {
+                    requireNotNull(mainBeaconDao.getBeaconById(beacon.id)) {
+                        "V2 metadata update requires an existing Beacon"
+                    }
+                } else {
+                    null
+                }
+                if (exists) {
+                    require(beacon.order == requireNotNull(stored).order) {
+                        "V2 Beacon order changes require an exact occurrence command"
+                    }
+                    val currentGroups = mainBeaconDao.getAllGroupMembersSync()
+                        .filter { it.beaconId == beacon.id }
+                        .mapTo(linkedSetOf()) { it.groupId }
+                    require(groupIds == currentGroups) {
+                        "V2 Beacon Group changes require a fused occurrence command"
+                    }
+                }
+                if (!exists) {
+                    val existingGroupIds =
+                        mainBeaconDao.getAllGroupsSync().mapTo(hashSetOf()) { it.id }
+                    require(groupIds.all { it in existingGroupIds }) {
+                        "V2 Beacon creation references a missing legacy Group"
+                    }
+                    require((parentBeaconId == null) == (parentPlacementId == null)) {
+                        "V2 Beacon creation requires matching parent Beacon id and exact occurrence"
+                    }
+                    if (parentPlacementId != null) {
+                        require(groupIds.isEmpty()) {
+                            "Nested V2 Beacon creation cannot introduce root Group membership"
+                        }
+                        val parent = requireNotNull(
+                            hierarchyPlacementRepository.getPlacement(parentPlacementId),
+                        ) { "V2 Beacon parent occurrence is missing" }
+                        require(
+                            parent.hierarchyId == HierarchyId.GENERAL &&
+                                parent.target.type == HierarchyTargetType.MANAGED_SUBJECT,
+                        ) { "V2 Beacon parent must be a GENERAL ManagedSubject occurrence" }
+                        val parentMapping = requireNotNull(
+                            appDatabase.orientationDao().getLegacyMapping(
+                                LegacyOrientationSourceType.MAIN_BEACON.name,
+                                requireNotNull(parentBeaconId),
+                            ),
+                        ) { "V2 Beacon parent has no canonical mapping" }
+                        require(
+                            !parentMapping.isDeleted &&
+                                parentMapping.state == LegacySubjectMappingState.CUT_OVER.name &&
+                                parent.target.id == parentMapping.subjectId &&
+                                mainBeaconDao.getBeaconById(requireNotNull(parentBeaconId)) != null &&
+                                appDatabase.orientationDao()
+                                    .getManagedSubject(parentMapping.subjectId)?.isDeleted == false,
+                        ) { "V2 Beacon parent target and occurrence disagree" }
+                    }
+                }
+                run {
+                    val priorMapping = appDatabase.orientationDao().getLegacyMapping(
+                        LegacyOrientationSourceType.MAIN_BEACON.name,
+                        beacon.id,
+                    )
+                    if (priorMapping != null) {
+                        require(
+                            !priorMapping.isDeleted &&
+                                appDatabase.orientationDao()
+                                    .getManagedSubject(priorMapping.subjectId)?.isDeleted == false,
+                        ) { "V2 Beacon create/edit cannot revive a retired canonical target: ${beacon.id}" }
+                    }
+                }
                 val existingContextOrders =
                     mainBeaconDao
                         .getAllContextCrossRefsSync()
@@ -567,7 +544,9 @@ class MainBeaconRepository
 
                 mainBeaconDao.deleteContextCrossRefsForBeacon(beacon.id)
                 mainBeaconDao.deleteAttachmentCrossRefsForBeacon(beacon.id)
-                mainBeaconDao.deleteGroupMembersForBeacon(beacon.id)
+                if (!exists) {
+                    mainBeaconDao.deleteGroupMembersForBeacon(beacon.id)
+                }
 
                 if (relatedContextIds.isNotEmpty()) {
                     mainBeaconDao.insertContextCrossRefs(
@@ -589,18 +568,86 @@ class MainBeaconRepository
                     )
                 }
 
-                if (groupIds.isNotEmpty()) {
-                    mainBeaconDao.insertGroupMembers(
-                        groupIds.mapIndexed { index, groupId ->
-                            MainBeaconGroupMember(
-                                groupId = groupId,
-                                beaconId = beacon.id,
-                                order = index.toLong(),
-                            )
-                        },
-                    )
+                if (!exists) {
+                    if (groupIds.isNotEmpty()) {
+                        mainBeaconDao.insertGroupMembers(
+                            groupIds.mapIndexed { index, groupId ->
+                                MainBeaconGroupMember(
+                                    groupId = groupId,
+                                    beaconId = beacon.id,
+                                    order = index.toLong(),
+                                )
+                            },
+                        )
+                    }
+                    orientationBridge.syncMembershipProjection(beacon.updatedAt)
                 }
-                orientationBridge.syncMembershipProjection(beacon.updatedAt)
+
+                if (!exists) {
+                    val orientationDao = appDatabase.orientationDao()
+                    val mapping = requireNotNull(
+                        orientationDao.getLegacyMapping(
+                            LegacyOrientationSourceType.MAIN_BEACON.name,
+                            beacon.id,
+                        ),
+                    ) { "New Beacon has no canonical mapping" }
+                    require(!mapping.isDeleted && mapping.state == LegacySubjectMappingState.CUT_OVER.name) {
+                        "New Beacon canonical mapping is not active"
+                    }
+                    val subject = requireNotNull(orientationDao.getManagedSubject(mapping.subjectId))
+                    require(!subject.isDeleted) { "New Beacon canonical subject is deleted" }
+                    val target = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, subject.id)
+
+                    val canonicalGroupIds = groupIds.sorted().map { groupId ->
+                        val groupMapping = requireNotNull(
+                            orientationDao.getLegacyMapping(
+                                LegacyOrientationSourceType.MAIN_BEACON_GROUP.name,
+                                groupId,
+                            ),
+                        ) { "Beacon Group has no canonical mapping: $groupId" }
+                        require(
+                            !groupMapping.isDeleted &&
+                                groupMapping.state == LegacySubjectMappingState.CUT_OVER.name &&
+                                orientationDao.getManagedSubject(groupMapping.subjectId)?.isDeleted == false &&
+                                orientationDao.getAllOrientations().any {
+                                    it.subjectId == groupMapping.subjectId &&
+                                        it.kind == OrientationKind.MAIN_BEACON_GROUP.name
+                                },
+                        ) { "Beacon Group mapping is not a live canonical Group: $groupId" }
+                        groupMapping.subjectId
+                    }
+                    require(canonicalGroupIds.distinct().size == canonicalGroupIds.size) {
+                        "Multiple legacy Groups map to the same canonical Group"
+                    }
+
+                    val primaryId =
+                        hierarchyPlacementRepository.createPrimaryAppearanceInCurrentTransaction(
+                            target = target,
+                            parentPlacementId = parentPlacementId,
+                            now = beacon.updatedAt,
+                        )
+                    if (parentPlacementId == null) {
+                        groupScopeCoordinator.setRootScope(
+                            placementId = primaryId,
+                            groupSubjectId = canonicalGroupIds.firstOrNull(),
+                            now = beacon.updatedAt,
+                        )
+                        canonicalGroupIds.drop(1).forEach { groupSubjectId ->
+                            val linkId =
+                                hierarchyPlacementRepository.createLinkAppearanceInCurrentTransaction(
+                                    target = target,
+                                    parentPlacementId = null,
+                                    now = beacon.updatedAt,
+                                )
+                            groupScopeCoordinator.setRootScope(
+                                placementId = linkId,
+                                groupSubjectId = groupSubjectId,
+                                now = beacon.updatedAt,
+                            )
+                        }
+                    }
+                    groupScopeCoordinator.validateAuthoritativeState()
+                }
 
                 mainBeaconDao.insertLevelStatuses(
                     ensureAllLevelStatuses(

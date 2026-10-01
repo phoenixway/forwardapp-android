@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +19,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
@@ -90,7 +94,8 @@ class SystemCapabilityTransportRoomAcceptanceTest {
     fun `H1 full export carries live and tombstoned placements including syncedAt`() = runBlocking {
         val database = database()
         try {
-            val workspace = canonicalWorkspace("h1-export-workspace")
+            val workspace =
+                canonicalWorkspace("h1-export-workspace")
             database.workspaceDao().upsert(listOf(workspace))
             database.hierarchyPlacementDao().upsertAll(
                 listOf(
@@ -125,8 +130,9 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 ),
             )
 
+            val bundle = fullBackup(database).loadFullSnapshotBundle()
             val exported =
-                requireNotNull(fullBackup(database).loadFullSnapshotBundle().hierarchyPlacements)
+                requireNotNull(bundle.hierarchyPlacements)
                     .associateBy { it.id }
 
             assertEquals(setOf("h1-live", "h1-deleted"), exported.keys)
@@ -134,6 +140,11 @@ class SystemCapabilityTransportRoomAcceptanceTest {
             assertTrue(exported.getValue("h1-deleted").isDeleted)
             assertEquals(15L, exported.getValue("h1-live").syncedAt)
             assertEquals(25L, exported.getValue("h1-deleted").syncedAt)
+            val exportedWorkspace =
+                requireNotNull(bundle.workspaces)
+                    .single { it.id == workspace.id }
+            assertNull(exportedWorkspace.parentWorkspaceId)
+            assertEquals(0L, exportedWorkspace.workspaceOrder)
         } finally {
             database.close()
         }
@@ -870,6 +881,9 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     version = 1,
                     contexts = listOf(context.toSnapshot()),
                     contextConfigurations = listOf(configuration.toSnapshot()),
+                    hierarchyPlacements = emptyList(),
+                    hierarchyPlacementGroupScopes = emptyList(),
+                    hierarchyPlacementLinkedAppearances = emptyList(),
                 ),
             )
 
@@ -1063,10 +1077,16 @@ class SystemCapabilityTransportRoomAcceptanceTest {
             legacySubjectMappings = emptyList(),
             orientationRelations = emptyList(),
             aspectOrientationRefs = emptyList(),
-            workspaces = database.workspaceDao().getAll(),
+            workspaces =
+                database.workspaceDao().getAll().map {
+                    it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology()
+                },
             workspaceBindings = emptyList(),
             workspaceCapabilityInstances = capabilities,
             savedOrientationViews = emptyList(),
+            hierarchyPlacements = emptyList(),
+            hierarchyPlacementGroupScopes = emptyList(),
+            hierarchyPlacementLinkedAppearances = emptyList(),
         )
 
     private suspend fun legacyBundle(
@@ -1076,6 +1096,9 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         version = 1,
         contexts = listOf(historicalSystemContext().toSnapshot()),
         contextConfigurations = listOf(legacyConfiguration.toSnapshot()),
+        hierarchyPlacements = emptyList(),
+        hierarchyPlacementGroupScopes = emptyList(),
+        hierarchyPlacementLinkedAppearances = emptyList(),
     )
 
     private suspend fun inbox(database: AppDatabase): WorkspaceCapabilityInstanceEntity =
@@ -1260,10 +1283,19 @@ class SystemCapabilityTransportRoomAcceptanceTest {
     private fun relaxedMock(type: Class<*>): Any =
         mockkClass(type.kotlin as KClass<Any>, relaxed = true)
 
-    private fun database(): AppDatabase =
-        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+    private fun database(): AppDatabase {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        database.openHelper.writableDatabase.execSQL(
+            """
+            INSERT OR REPLACE INTO hierarchy_establishment_origin(hierarchyId, origin)
+            VALUES('${HierarchyId.GENERAL.value}', '${HierarchyEstablishmentOrigin.FRESH_NATIVE.name}')
+            """.trimIndent(),
+        )
+        return database
+    }
 
     private fun standaloneWorkspace(id: String) =
         canonicalWorkspace(id).copy(
@@ -1275,9 +1307,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
             id = id,
             nameOverride = id,
             descriptionOverride = null,
-            parentWorkspaceId = null,
             roleCode = null,
-            workspaceOrder = 0L,
             createdAt = 1L,
             updatedAt = 1L,
             syncedAt = null,

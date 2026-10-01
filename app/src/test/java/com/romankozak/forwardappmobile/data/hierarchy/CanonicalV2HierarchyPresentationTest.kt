@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
@@ -12,6 +13,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKin
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,6 +21,32 @@ import org.junit.Test
 class CanonicalV2HierarchyPresentationTest {
     private val projector = CanonicalV2HierarchyProjector()
     private val composer = CanonicalV2HierarchySyntheticPresentationComposer()
+
+    @Test
+    fun `V2 Workspace admission cannot carry legacy topology`() {
+        val source =
+            ContextPresentation(
+                id = "workspace",
+                name = "Workspace",
+                description = "Description",
+                parentId = "legacy-parent",
+                roleCode = "role",
+                order = 91L,
+                tags = listOf("tag"),
+            )
+
+        val presentation = source.toCanonicalV2WorkspacePresentation()
+        val compatibilityNode = presentation.toHierarchyPresentationNode()
+
+        assertEquals("workspace", presentation.id)
+        assertEquals("Workspace", presentation.name)
+        assertFalse(
+            CanonicalV2WorkspacePresentation::class.java.declaredFields
+                .any { it.name == "parentId" || it.name == "order" },
+        )
+        assertNull(compatibilityNode.parentId)
+        assertEquals(0L, compatibilityNode.order)
+    }
 
     @Test
     fun `resolver uses admitted Workspace presentation and live ManagedSubject`() {
@@ -39,8 +67,6 @@ class CanonicalV2HierarchyPresentationTest {
                         presentation(
                             id = "workspace",
                             name = "Workspace display",
-                            parentId = "ignored-parent",
-                            order = 999,
                         ),
                     ),
                 managedSubjects =
@@ -162,6 +188,81 @@ class CanonicalV2HierarchyPresentationTest {
         )
         assertEquals(
             listOf("group-root", "free-root", "workspace-root", "workspace-child"),
+            presented.entries
+                .filterIsInstance<CanonicalV2PresentedHierarchyEntry.Occurrence>()
+                .map { it.placementId.value },
+        )
+    }
+
+    @Test
+    fun `Group presentation order may reorder root scopes without changing persisted topology`() {
+        val first = subjectTarget("first")
+        val second = subjectTarget("second")
+        val firstChild = workspaceTarget("first-child")
+        val secondChild = workspaceTarget("second-child")
+
+        val hierarchy =
+            project(
+                placement("first-root", first, order = 0),
+                placement(
+                    "first-child",
+                    firstChild,
+                    parentId = "first-root",
+                    order = 0,
+                ),
+                placement("second-root", second, order = 1),
+                placement(
+                    "second-child",
+                    secondChild,
+                    parentId = "second-root",
+                    order = 0,
+                ),
+            )
+
+        val presented =
+            composer.compose(
+                hierarchy = hierarchy,
+                scopes =
+                    listOf(
+                        CanonicalV2SyntheticScopeInput(
+                            kind = CanonicalV2SyntheticScopeKind.GROUP,
+                            id = "group-first",
+                            title = "First",
+                            order = 1,
+                            rootPlacementIds = listOf(PlacementId("first-root")),
+                        ),
+                        CanonicalV2SyntheticScopeInput(
+                            kind = CanonicalV2SyntheticScopeKind.GROUP,
+                            id = "group-second",
+                            title = "Second",
+                            order = 0,
+                            rootPlacementIds = listOf(PlacementId("second-root")),
+                        ),
+                    ),
+            )
+
+        assertEquals(
+            listOf(
+                "group-second",
+                "second",
+                "second-child",
+                "group-first",
+                "first",
+                "first-child",
+            ),
+            presented.entries.map { it.id },
+        )
+
+        assertEquals(
+            setOf("first-root", "first-child", "second-root", "second-child"),
+            presented.entries
+                .filterIsInstance<CanonicalV2PresentedHierarchyEntry.Occurrence>()
+                .map { it.placementId.value }
+                .toSet(),
+        )
+
+        assertEquals(
+            listOf("second-root", "second-child", "first-root", "first-child"),
             presented.entries
                 .filterIsInstance<CanonicalV2PresentedHierarchyEntry.Occurrence>()
                 .map { it.placementId.value },
@@ -449,14 +550,10 @@ class CanonicalV2HierarchyPresentationTest {
     private fun presentation(
         id: String,
         name: String,
-        parentId: String?,
-        order: Long,
-    ) = HierarchyContextPresentationNode(
+    ) = CanonicalV2WorkspacePresentation(
         id = id,
         name = name,
         description = null,
-        parentId = parentId,
-        order = order,
         roleCode = null,
         tags = emptyList(),
     )

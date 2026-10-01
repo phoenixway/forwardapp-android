@@ -1,12 +1,8 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
-import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCanonicalTargetResolver
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
-import com.romankozak.forwardappmobile.core.context.isDirectHierarchyChildContext
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +18,6 @@ import javax.inject.Singleton
 class BacklogPlacementCommands
     @Inject
     constructor(
-        private val contextDao: ContextDao,
         private val canonicalRepository: CanonicalBacklogRepository,
         private val canonicalTargetResolver: BacklogCanonicalTargetResolver,
     ) {
@@ -55,35 +50,12 @@ class BacklogPlacementCommands
         suspend fun addContextLinkToContextBacked(
             targetContextId: String,
             currentContextId: String,
-        ): String? =
-            addContextLinkToContextBackedForAuthority(
-                targetContextId = targetContextId,
-                currentContextId = currentContextId,
-                hierarchyAuthorityMode = currentHierarchyPlacementAuthorityMode(),
-            )
-
-        /**
-         * H4.0e readiness seam. CURRENT preserves the Context.parentId rule.
-         * V2_AUTHORITY uses only persisted H1 occurrence adjacency.
-         */
-        internal suspend fun addContextLinkToContextBackedForAuthority(
-            targetContextId: String,
-            currentContextId: String,
-            hierarchyAuthorityMode: HierarchyPlacementAuthorityMode,
         ): String? {
             val isStructural =
-                when (hierarchyAuthorityMode) {
-                    HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER ->
-                        contextDao.getContextById(targetContextId)?.let { target ->
-                            isDirectHierarchyChildContext(currentContextId, target.parentId)
-                        } == true
-
-                    HierarchyPlacementAuthorityMode.V2_AUTHORITY ->
-                        canonicalRepository.hasV2DirectWorkspaceChildOccurrence(
-                            childWorkspaceId = targetContextId,
-                            parentWorkspaceId = currentContextId,
-                        )
-                }
+                canonicalRepository.hasV2DirectWorkspaceChildOccurrence(
+                    childWorkspaceId = targetContextId,
+                    parentWorkspaceId = currentContextId,
+                )
 
             if (isStructural) return null
 

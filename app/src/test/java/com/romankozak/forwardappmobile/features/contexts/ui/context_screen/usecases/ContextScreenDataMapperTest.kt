@@ -62,7 +62,7 @@ class ContextScreenDataMapperTest {
     }
 
     @Test
-    fun `shell-free linked project is materialized from canonical presentation`() {
+    fun `shell-free linked project keeps target metadata but not presentation topology`() {
         val linkedId = "shell-free-linked-project"
         val placement =
             BacklogItem(
@@ -98,9 +98,7 @@ class ContextScreenDataMapperTest {
         assertEquals(linkedId, item.project.id)
         assertEquals("Canonical linked title", item.project.name)
         assertEquals("Canonical linked description", item.project.description)
-        assertEquals("canonical-parent", item.project.parentId)
         assertEquals("canonical-role", item.project.roleCode)
-        assertEquals(42L, item.project.order)
         assertEquals(listOf("canonical-tag"), item.project.tags)
         assertEquals(null, item.legacyProject)
         assertEquals("linked-placement", item.backlogItem.id)

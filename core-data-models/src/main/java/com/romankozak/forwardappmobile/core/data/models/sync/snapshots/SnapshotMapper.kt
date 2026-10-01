@@ -25,7 +25,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
@@ -96,7 +95,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Main
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
@@ -596,7 +594,7 @@ fun MainBeacon.toSnapshot(): MainBeaconSnapshot =
         readinessStatus = readinessStatus.name,
         blockerText = blockerText,
         nextActionText = nextActionText,
-        parentBeaconId = parentBeaconId,
+        parentBeaconId = null,
         order = order,
         isExpanded = isExpanded,
         updatedAt = updatedAt,
@@ -616,7 +614,6 @@ fun MainBeaconSnapshot.toEntity(): MainBeacon =
         readinessStatus = enumValueOf(readinessStatus),
         blockerText = blockerText,
         nextActionText = nextActionText,
-        parentBeaconId = parentBeaconId,
         order = order,
         isExpanded = isExpanded,
         updatedAt = updatedAt,
@@ -648,24 +645,6 @@ fun MainBeaconGroupMember.toSnapshot(): MainBeaconGroupMemberSnapshot =
 
 fun MainBeaconGroupMemberSnapshot.toEntity(): MainBeaconGroupMember =
     MainBeaconGroupMember(groupId = groupId, beaconId = beaconId, order = order)
-
-fun MainBeaconParentLink.toSnapshot(): MainBeaconParentLinkSnapshot =
-    MainBeaconParentLinkSnapshot(
-        parentBeaconId = parentBeaconId,
-        childBeaconId = childBeaconId,
-        order = order,
-        updatedAt = updatedAt,
-        createdAt = createdAt,
-    )
-
-fun MainBeaconParentLinkSnapshot.toEntity(): MainBeaconParentLink =
-    MainBeaconParentLink(
-        parentBeaconId = parentBeaconId,
-        childBeaconId = childBeaconId,
-        order = order,
-        updatedAt = updatedAt,
-        createdAt = createdAt,
-    )
 
 fun MainBeaconContextCrossRef.toSnapshot(): MainBeaconContextCrossRefSnapshot =
     MainBeaconContextCrossRefSnapshot(beaconId = beaconId, contextId = contextId, order = order)

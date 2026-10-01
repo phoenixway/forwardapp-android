@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Man
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -360,9 +359,7 @@ class CanonicalBacklogRepositoryRoomTest {
                         id = "target-b",
                         nameOverride = "target-b",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = null,
-                        workspaceOrder = 0L,
                         createdAt = 1L,
                         updatedAt = 1L,
                         syncedAt = null,
@@ -446,65 +443,6 @@ class CanonicalBacklogRepositoryRoomTest {
     }
 
     @Test
-    fun `canonical cleanup tombstones dangling and hierarchy projection entries only`() = runBlocking {
-        val database = database()
-        try {
-            seedWorkspace(database, "owner", withCapability = true)
-            seedWorkspace(database, "child", parentWorkspaceId = "owner")
-            seedWorkspace(database, "reference")
-            val repository = repository(database)
-
-            val childPlacement = repository.addEntry("owner", workspaceTarget("child"), now = 10L)
-            val referencePlacement = repository.addEntry("owner", workspaceTarget("reference"), now = 11L)
-            seedOrientation(database, "orientation")
-            val orientationPlacement =
-                repository.addEntry(
-                    "owner",
-                    WorkspaceBacklogTargetRef(WorkspaceBacklogTargetKind.ORIENTATION, "orientation"),
-                    now = 12L,
-                )
-            database.workspaceBacklogEntryDao().upsert(
-                listOf(
-                    WorkspaceBacklogEntryEntity(
-                        id = "dangling",
-                        workspaceId = "owner",
-                        capabilityInstanceId = "backlog-owner",
-                        targetKind = WorkspaceBacklogTargetKind.WORKSPACE.name,
-                        targetId = "missing",
-                        entryOrder = 3L,
-                        createdAt = 13L,
-                        updatedAt = 13L,
-                        syncedAt = null,
-                        isDeleted = false,
-                        version = 1L,
-                    ),
-                ),
-            )
-
-            assertEquals(2, repository.tombstoneDanglingAndStructuralEntries(now = 20L))
-            assertTrue(requireNotNull(repository.getEntry(childPlacement)).isDeleted)
-            assertTrue(requireNotNull(repository.getEntry("dangling")).isDeleted)
-            assertFalse(requireNotNull(repository.getEntry(referencePlacement)).isDeleted)
-            assertEquals(0L, requireNotNull(repository.getEntry(referencePlacement)).entryOrder)
-            assertFalse(requireNotNull(repository.getEntry(orientationPlacement)).isDeleted)
-            assertEquals(1L, requireNotNull(repository.getEntry(orientationPlacement)).entryOrder)
-
-            val childAfterFirstCleanup = requireNotNull(repository.getEntry(childPlacement))
-            val danglingAfterFirstCleanup = requireNotNull(repository.getEntry("dangling"))
-            val referenceAfterFirstCleanup = requireNotNull(repository.getEntry(referencePlacement))
-            val orientationAfterFirstCleanup = requireNotNull(repository.getEntry(orientationPlacement))
-
-            assertEquals(0, repository.tombstoneDanglingAndStructuralEntries(now = 30L))
-            assertEquals(childAfterFirstCleanup, repository.getEntry(childPlacement))
-            assertEquals(danglingAfterFirstCleanup, repository.getEntry("dangling"))
-            assertEquals(referenceAfterFirstCleanup, repository.getEntry(referencePlacement))
-            assertEquals(orientationAfterFirstCleanup, repository.getEntry(orientationPlacement))
-        } finally {
-            database.close()
-        }
-    }
-
-    @Test
     fun `V2 cleanup derives structural Workspace rows from H1 and ignores V1 parent field`() = runBlocking {
         val database = database()
         try {
@@ -567,9 +505,8 @@ class CanonicalBacklogRepositoryRoomTest {
 
             assertEquals(
                 1,
-                repository.tombstoneDanglingAndStructuralEntriesForAuthority(
+                repository.tombstoneDanglingAndStructuralEntries(
                     now = 20L,
-                    hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 ),
             )
             assertTrue(requireNotNull(repository.getEntry(h1Structural)).isDeleted)
@@ -606,9 +543,7 @@ class CanonicalBacklogRepositoryRoomTest {
                     id = id,
                     nameOverride = id,
                     descriptionOverride = null,
-                    parentWorkspaceId = parentWorkspaceId,
                     roleCode = null,
-                    workspaceOrder = 0L,
                     createdAt = 1L,
                     updatedAt = 1L,
                     syncedAt = null,

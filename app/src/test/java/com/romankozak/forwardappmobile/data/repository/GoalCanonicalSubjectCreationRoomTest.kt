@@ -323,9 +323,7 @@ class GoalCanonicalSubjectCreationRoomTest {
                             id = sourceId,
                             nameOverride = "Canonical Inbox",
                             descriptionOverride = null,
-                            parentWorkspaceId = null,
                             roleCode = null,
-                            workspaceOrder = 0L,
                             createdAt = 1L,
                             updatedAt = 1L,
                             syncedAt = null,
@@ -387,7 +385,6 @@ class GoalCanonicalSubjectCreationRoomTest {
         contextDao: ContextDao = mockk(relaxed = true),
     ): GoalRepository {
         val placements = BacklogPlacementCommands(
-            contextDao = contextDao,
             canonicalRepository = canonicalBacklog(database),
             canonicalTargetResolver = BacklogCanonicalTargetResolver(database.orientationDao(), database.workspaceDao()),
         )
@@ -460,9 +457,7 @@ class GoalCanonicalSubjectCreationRoomTest {
                     id = OWNER_ID,
                     nameOverride = OWNER_ID,
                     descriptionOverride = null,
-                    parentWorkspaceId = null,
                     roleCode = null,
-                    workspaceOrder = 0L,
                     createdAt = 1L,
                     updatedAt = 1L,
                     syncedAt = null,

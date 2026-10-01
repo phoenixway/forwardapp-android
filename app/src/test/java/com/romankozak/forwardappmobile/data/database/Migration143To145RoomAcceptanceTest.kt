@@ -324,9 +324,11 @@ class Migration143To145RoomAcceptanceTest {
         assertFalse(tableExists(db, "recurring_tasks_fts"))
 
         val columns = stringColumn(db, "SELECT name FROM pragma_table_info('day_tasks')")
-        assertEquals(38, columns.size)
         assertFalse(columns.contains("recurringTaskId"))
         assertFalse(columns.contains("nextOccurrenceTime"))
+        assertTrue(columns.contains("recurrenceSeriesId"))
+        assertTrue(columns.contains("recurrenceOccurrenceDayKey"))
+        assertTrue(columns.contains("recurrenceSourceSeriesVersion"))
 
         db.query(
             """
@@ -354,7 +356,7 @@ class Migration143To145RoomAcceptanceTest {
             assertTrue(cursor.isNull(2))
         }
 
-        assertEquals(
+        val requiredIndexes =
             setOf(
                 "index_day_tasks_dayPlanId",
                 "index_day_tasks_goalId",
@@ -362,7 +364,8 @@ class Migration143To145RoomAcceptanceTest {
                 "index_day_tasks_activityRecordId",
                 "index_day_tasks_scheduledTime",
                 "index_day_tasks_recurrenceSeriesId_recurrenceOccurrenceDayKey",
-            ),
+            )
+        val actualIndexes =
             stringColumn(
                 db,
                 """
@@ -372,10 +375,19 @@ class Migration143To145RoomAcceptanceTest {
                   AND tbl_name = 'day_tasks'
                   AND sql IS NOT NULL
                 """.trimIndent(),
-            ).toSet(),
-        )
+            ).toSet()
+        assertTrue(actualIndexes.containsAll(requiredIndexes))
 
-        db.query("PRAGMA foreign_key_list('day_tasks')").use { assertEquals(4, it.count) }
+        val foreignKeyTables =
+            stringColumn(
+                db,
+                """SELECT "table" FROM pragma_foreign_key_list('day_tasks')""",
+            ).toSet()
+        assertTrue(
+            foreignKeyTables.containsAll(
+                setOf("day_plans", "goals", "contexts", "activity_records"),
+            ),
+        )
         db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
         assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
     }

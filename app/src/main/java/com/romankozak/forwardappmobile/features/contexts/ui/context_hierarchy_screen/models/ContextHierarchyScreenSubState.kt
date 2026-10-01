@@ -100,6 +100,7 @@ sealed class DialogState {
     data class ConfirmDelete(
         val projectId: String,
         val projectName: String,
+        val occurrence: HierarchyOccurrenceRef,
     ) : DialogState()
 
     data class ConfirmRestore(val uri: Uri) : DialogState()

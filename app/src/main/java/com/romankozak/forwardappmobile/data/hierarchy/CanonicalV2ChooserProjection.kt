@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import javax.inject.Inject
 
@@ -9,7 +8,7 @@ class CanonicalV2ChooserProjection
     constructor() {
         fun project(
             read: CanonicalV2ProductionHierarchyRead,
-            workspacePresentations: Collection<HierarchyContextPresentationNode>,
+            workspacePresentations: Collection<CanonicalV2WorkspacePresentation>,
         ): List<ChooserHierarchyItem> {
             val presentationsById = workspacePresentations.associateBy { it.id }
 
@@ -24,10 +23,6 @@ class CanonicalV2ChooserProjection
                         id = occurrence.target.id,
                         name = occurrence.title,
                         description = presentation?.description,
-                        parentId =
-                            read.parentOccurrence(occurrence.placementId)
-                                ?.target
-                                ?.id,
                         order = occurrence.siblingOrder,
                         occurrence = occurrence.toHierarchyOccurrenceRef(),
                     )

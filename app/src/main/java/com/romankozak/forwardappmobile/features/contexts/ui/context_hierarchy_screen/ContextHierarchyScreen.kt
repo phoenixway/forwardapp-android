@@ -207,19 +207,21 @@ fun ProjectHierarchyScreen(
                     launchSingleTop = true
                 }
             },
-            onEditBeacon = { beaconId ->
-                editingBeacon = coreLevelViewModel.buildEditorState(beaconId)
+            onEditBeacon = { beaconId, placementId ->
+                editingBeacon = coreLevelViewModel.buildEditorState(beaconId, placementId)
             },
             onDeleteBeacon = { beaconId ->
                 beaconPendingDeleteId = beaconId
             },
             onAddMainBeacon = {
                 val parentBeaconId = parentBeaconIdForNewBeacon(uiState)
+                val parentPlacementId = parentBeaconPlacementIdForNewBeacon(uiState)
                 val groupIds = groupIdsForNewBeacon(uiState)
                 editingBeacon =
                     coreLevelViewModel.buildEditorState(null)
                         .copy(
                             parentBeaconId = parentBeaconId,
+                            parentPlacementId = parentPlacementId,
                             groupIds = groupIds,
                         )
             },
@@ -381,6 +383,38 @@ private fun parentBeaconIdForNewBeacon(uiState: ProjectHierarchyScreenUiState): 
                 placementId = activePlacementId,
             )
     }
+}
+
+private fun parentBeaconPlacementIdForNewBeacon(
+    uiState: ProjectHierarchyScreenUiState,
+): String? {
+    val activeIdentity =
+        when (val subState = uiState.currentSubState) {
+            is ProjectHierarchyScreenSubState.ProjectFocused ->
+                subState.projectId to subState.placementId
+            is ProjectHierarchyScreenSubState.OrientationFocused ->
+                subState.nodeId to subState.placementId
+            else -> null
+        } ?: return null
+    val nodeIndex =
+        findOrientationHierarchyItemIndex(
+            items = uiState.orientationHierarchy,
+            nodeId = activeIdentity.first,
+            placementId = activeIdentity.second,
+        )
+    if (nodeIndex < 0) return null
+    val selected = uiState.orientationHierarchy[nodeIndex]
+    if (selected.node is OrientationHierarchyNode.Beacon) {
+        return selected.node.placementId?.value
+    }
+    val level = selected.level
+    for (index in nodeIndex - 1 downTo 0) {
+        val ancestor = uiState.orientationHierarchy[index]
+        if (ancestor.level < level && ancestor.node is OrientationHierarchyNode.Beacon) {
+            return ancestor.node.placementId?.value
+        }
+    }
+    return null
 }
 
 private fun groupIdsForNewBeacon(uiState: ProjectHierarchyScreenUiState): Set<String> {

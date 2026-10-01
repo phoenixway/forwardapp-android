@@ -5,8 +5,17 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceAncestryPresentation
-import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyReadSnapshotAssembler
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyReadAdapter
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
+import com.romankozak.forwardappmobile.data.hierarchy.toCanonicalV2WorkspacePresentation
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
@@ -73,6 +82,15 @@ class SearchRepositoryTest {
                                 id = inboxId,
                                 name = "Canonical Inbox",
                                 parentId = todayId,
+                            ),
+                        ),
+                    placements =
+                        listOf(
+                            v2Placement("today-placement", todayId),
+                            v2Placement(
+                                "inbox-placement",
+                                inboxId,
+                                parentId = "today-placement",
                             ),
                         ),
                 )
@@ -261,7 +279,11 @@ class SearchRepositoryTest {
             val canonicalParentId = "canonical-parent"
             val repository =
                 repository(
-                    contexts = emptyList(),
+                    contexts =
+                        listOf(
+                            context(canonicalRootId, "Canonical root"),
+                            context(canonicalParentId, "Canonical parent"),
+                        ),
                     workspaces =
                         listOf(
                             workspace(
@@ -276,6 +298,21 @@ class SearchRepositoryTest {
                                 parentId = canonicalRootId,
                             ),
                             workspace(id = canonicalRootId, name = "Canonical root"),
+                        ),
+                    placements =
+                        listOf(
+                            v2Placement("root-placement", canonicalRootId),
+                            v2Placement(
+                                "parent-placement",
+                                canonicalParentId,
+                                parentId = "root-placement",
+                            ),
+                            v2Placement(
+                                "inbox-placement",
+                                inboxId,
+                                parentId = "parent-placement",
+                            ),
+                            v2Placement("today-placement", todayId, order = 1L),
                         ),
                 )
 
@@ -300,6 +337,15 @@ class SearchRepositoryTest {
                         listOf(
                             workspace(id = inboxId, name = "Canonical Inbox", parentId = todayId),
                             workspace(id = todayId, name = "Canonical Today"),
+                        ),
+                    placements =
+                        listOf(
+                            v2Placement("today-placement", todayId),
+                            v2Placement(
+                                "inbox-placement",
+                                inboxId,
+                                parentId = "today-placement",
+                            ),
                         ),
                 )
             assertThat(systemChildRepository.contextResult("%Canonical Inbox%", inboxId).searchResult.pathSegments)
@@ -360,65 +406,31 @@ class SearchRepositoryTest {
         }
 
     @Test
-    fun `shell-free System search supports ordinary parent and fails closed on invalid ancestry`() =
+    fun `shell-free System search uses canonical H1 ordinary parent`() =
         runTest {
             val inboxId = SystemContexts.INBOX.raw
             val ordinaryParent = context(id = "ordinary-parent", name = "Ordinary parent")
-            val mixedRepository =
+            val repository =
                 repository(
                     contexts = listOf(ordinaryParent),
                     workspaces =
                         listOf(
                             workspace(id = inboxId, name = "Canonical Inbox", parentId = ordinaryParent.id),
                         ),
-                )
-            assertThat(mixedRepository.contextResult("%Canonical Inbox%", inboxId).searchResult.pathSegments)
-                .containsExactly("Ordinary parent", "Canonical Inbox")
-                .inOrder()
-
-            val missingAncestor =
-                repository(
-                    contexts = emptyList(),
-                    workspaces = listOf(workspace(id = inboxId, name = "Canonical Inbox", parentId = "missing")),
-                )
-            assertThat(missingAncestor.contextResultIds("%Canonical Inbox%")).doesNotContain(inboxId)
-
-            val deletedAncestor =
-                repository(
-                    contexts = emptyList(),
-                    workspaces =
+                    placements =
                         listOf(
-                            workspace(id = inboxId, name = "Canonical Inbox", parentId = "deleted"),
-                            workspace(id = "deleted", name = "Deleted").copy(isDeleted = true),
-                        ),
-                )
-            assertThat(deletedAncestor.contextResultIds("%Canonical Inbox%")).doesNotContain(inboxId)
-
-            val malformedAncestor =
-                repository(
-                    contexts = emptyList(),
-                    workspaces =
-                        listOf(
-                            workspace(id = inboxId, name = "Canonical Inbox", parentId = "malformed"),
-                            workspace(id = "malformed", name = "Malformed").copy(sourceContextId = "legacy"),
-                        ),
-                )
-            assertThat(malformedAncestor.contextResultIds("%Canonical Inbox%")).doesNotContain(inboxId)
-
-            val cycle =
-                repository(
-                    contexts = emptyList(),
-                    workspaces =
-                        listOf(
-                            workspace(id = inboxId, name = "Canonical Inbox", parentId = "canonical-parent"),
-                            workspace(
-                                id = "canonical-parent",
-                                name = "Canonical parent",
-                                parentId = inboxId,
+                            v2Placement("ordinary-parent-placement", ordinaryParent.id),
+                            v2Placement(
+                                "inbox-placement",
+                                inboxId,
+                                parentId = "ordinary-parent-placement",
                             ),
                         ),
                 )
-            assertThat(cycle.contextResultIds("%Canonical Inbox%")).doesNotContain(inboxId)
+
+            assertThat(repository.contextResult("%Canonical Inbox%", inboxId).searchResult.pathSegments)
+                .containsExactly("Ordinary parent", "Canonical Inbox")
+                .inOrder()
         }
 
     @Test
@@ -481,12 +493,118 @@ class SearchRepositoryTest {
             assertThat(result.searchResult.presentation.name).isEqualTo(ordinary.name)
         }
 
+    @Test
+    fun `V2 global search resolves duplicate appearances through FIRST_VISIBLE not legacy parent`() =
+        runTest {
+            val rootA = context("v2-root-a", "Canonical A")
+            val rootB = context("v2-root-b", "Canonical B")
+            val target = context(
+                id = "v2-shared",
+                name = "Shared Workspace",
+                parentId = rootB.id,
+            )
+            val repository = repository(
+                contexts = listOf(rootA, rootB, target),
+                workspaces = emptyList(),
+            )
+            repository.canonicalV2SearchReadProvider = { presentations ->
+                CanonicalV2ProductionHierarchyReadAdapter().read(
+                    placements = listOf(
+                        v2Placement("v2-root-a-placement", rootA.id, order = 0L),
+                        v2Placement(
+                            "v2-shared-first-visible",
+                            target.id,
+                            parentId = "v2-root-a-placement",
+                            kind = PlacementKind.LINK,
+                            order = 0L,
+                        ),
+                        v2Placement("v2-root-b-placement", rootB.id, order = 1L),
+                        v2Placement(
+                            "v2-shared-primary",
+                            target.id,
+                            parentId = "v2-root-b-placement",
+                            kind = PlacementKind.PRIMARY,
+                            order = 0L,
+                        ),
+                    ),
+                    admittedWorkspacePresentations =
+                        presentations.map { it.toCanonicalV2WorkspacePresentation() },
+                    managedSubjects = emptyList(),
+                )
+            }
+
+            val result = repository.contextResult("%Shared Workspace%", target.id)
+            assertThat(result.searchResult.pathSegments.takeLast(2))
+                .containsExactly("Canonical A", "Shared Workspace").inOrder()
+            assertThat(result.searchResult.presentation.parentId).isEqualTo(rootA.id)
+            val subcontext = repository.searchGlobal("%Shared Workspace%")
+                .filterIsInstance<GlobalSearchResultItem.SubcontextItem>()
+                .single { it.searchResult.presentation.id == target.id }
+            assertThat(subcontext.searchResult.parentContextId).isEqualTo(rootA.id)
+            assertThat(subcontext.searchResult.parentContextName).isEqualTo("Canonical A")
+            assertThat(subcontext.searchResult.pathSegments.takeLast(2))
+                .containsExactly("Canonical A", "Shared Workspace").inOrder()
+        }
+
+    @Test
+    fun `V2 global search never falls back to legacy ancestry when occurrence disappears`() =
+        runTest {
+            val parent = context("legacy-parent", "Legacy Parent")
+            val orphan = context(
+                id = "missing-v2-appearance",
+                name = "Missing Canonical Appearance",
+                parentId = parent.id,
+            )
+            val repository = repository(
+                contexts = listOf(parent, orphan),
+                workspaces = emptyList(),
+            )
+            repository.canonicalV2SearchReadProvider = { presentations ->
+                CanonicalV2ProductionHierarchyReadAdapter().read(
+                    placements = listOf(v2Placement("only-parent", parent.id)),
+                    admittedWorkspacePresentations =
+                        presentations.map { it.toCanonicalV2WorkspacePresentation() },
+                    managedSubjects = emptyList(),
+                )
+            }
+
+            assertThat(repository.contextResultIds("%Missing Canonical Appearance%"))
+                .doesNotContain(orphan.id)
+            assertThat(
+                repository.searchGlobal("%Missing Canonical Appearance%")
+                    .filterIsInstance<GlobalSearchResultItem.SubcontextItem>()
+                    .map { it.searchResult.presentation.id },
+            ).doesNotContain(orphan.id)
+            assertThat(repository.contextResultIds("%Legacy Parent%")).contains(parent.id)
+        }
+
+    private fun v2Placement(
+        placementId: String,
+        workspaceId: String,
+        parentId: String? = null,
+        kind: PlacementKind = PlacementKind.PRIMARY,
+        order: Long = 0L,
+    ) = HierarchyPlacement(
+        id = PlacementId(placementId),
+        hierarchyId = HierarchyId.GENERAL,
+        target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, workspaceId),
+        parentPlacementId = parentId?.let(::PlacementId),
+        placementKind = kind,
+        siblingOrder = order,
+        createdAt = 1L,
+        updatedAt = 1L,
+        syncedAt = null,
+        isDeleted = false,
+        version = 1L,
+    )
+
     private fun repository(
         contexts: List<Context>,
         workspaces: List<WorkspaceEntity>,
         canonicalSystemTags: Map<String, List<String>> = emptyMap(),
         unavailableSystemTagIds: Set<String> = emptySet(),
         attachments: List<AttachmentLibraryQueryResult> = emptyList(),
+        placements: List<HierarchyPlacement>? = null,
     ): SearchRepository {
         val contextDao = mockk<ContextDao>()
         coEvery { contextDao.getAllRaw() } returns contexts
@@ -508,24 +626,6 @@ class SearchRepositoryTest {
                 )
             }
         }
-        val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>()
-        coEvery { canonicalWorkspaceRepository.getLiveCanonicalAncestryPresentation(any()) } coAnswers {
-            workspaces
-                .firstOrNull { workspace -> workspace.id == firstArg<String>() }
-                ?.takeIf { workspace ->
-                    !workspace.isDeleted &&
-                        workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                        workspace.sourceContextId == null &&
-                        !workspace.nameOverride.isNullOrBlank()
-                }?.let { workspace ->
-                    CanonicalWorkspaceAncestryPresentation(
-                        id = workspace.id,
-                        name = requireNotNull(workspace.nameOverride),
-                        parentWorkspaceId = workspace.parentWorkspaceId,
-                    )
-                }
-        }
-
         return SearchRepository(
             goalDao = mockk(relaxed = true),
             contextDao = contextDao,
@@ -546,8 +646,25 @@ class SearchRepositoryTest {
                     contextDao = contextDao,
                 ),
             workspaceDao = workspaceDao,
-            canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-        )
+            database = mockk<AppDatabase>(relaxed = true),
+            canonicalV2ReadAssembler = CanonicalV2HierarchyReadSnapshotAssembler(),
+        ).also { repository ->
+            repository.canonicalV2SearchReadProvider = { presentations ->
+                CanonicalV2ProductionHierarchyReadAdapter().read(
+                    placements =
+                        placements ?: presentations.mapIndexed { index, presentation ->
+                            v2Placement(
+                                placementId = "test-root-${presentation.id}",
+                                workspaceId = presentation.id,
+                                order = index.toLong(),
+                            )
+                        },
+                    admittedWorkspacePresentations =
+                        presentations.map { it.toCanonicalV2WorkspacePresentation() },
+                    managedSubjects = emptyList(),
+                )
+            }
+        }
     }
 
     private suspend fun SearchRepository.contextResult(
@@ -590,9 +707,7 @@ class SearchRepositoryTest {
         id = id,
         nameOverride = name,
         descriptionOverride = description,
-        parentWorkspaceId = parentId,
         roleCode = null,
-        workspaceOrder = 0L,
         createdAt = 1L,
         updatedAt = updatedAt,
         syncedAt = null,

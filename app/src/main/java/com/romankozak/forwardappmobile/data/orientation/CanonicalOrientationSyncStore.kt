@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.data.orientation
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
@@ -64,7 +66,10 @@ class CanonicalOrientationSyncStore
                 legacyMappings = dao.getAllLegacyMappings(),
                 relations = dao.getAllOrientationRelations(),
                 aspectRefs = dao.getAllAspectOrientationRefs(),
-                workspaces = workspaceDao.getAll(),
+                workspaces =
+                    workspaceDao.getAll().map {
+                        it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology()
+                    },
                 workspaceBindings = dao.getAllWorkspaceBindings(),
                 workspaceCapabilities = dao.getAllWorkspaceCapabilities(),
                 workspaceTagRefs = workspaceTagRefDao.getAll(),

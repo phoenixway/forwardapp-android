@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
@@ -12,7 +13,18 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchRes
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyPresentationProvenance
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyReadSnapshotAssembler
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2TargetNavigationPolicy
+import com.romankozak.forwardappmobile.data.hierarchy.toCanonicalV2WorkspacePresentation
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyPlacementStrict
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.hierarchyPlacementSiblingComparator
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
@@ -42,8 +54,8 @@ private data class SearchContextPresentationNode(
 internal class SearchContextPresentationSnapshot(
     presentations: List<ContextPresentation>,
     rawContexts: List<Context>,
-    private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
     canonicalWorkspaceUpdatedAtById: Map<String, Long>,
+    private val canonicalV2Read: CanonicalV2ProductionHierarchyRead,
 ) {
     private val rawContextsById = rawContexts.associateBy(Context::id)
     private val nodesById =
@@ -55,8 +67,17 @@ internal class SearchContextPresentationSnapshot(
                 )
             }.associateBy { it.presentation.id }
 
-    fun presentation(contextId: String): GlobalSearchContextPresentation? =
-        nodesById[contextId]?.presentation
+    fun presentation(contextId: String): GlobalSearchContextPresentation? {
+        val presentation = nodesById[contextId]?.presentation ?: return null
+        val occurrence = canonicalV2Read.navigationOccurrence(
+            HierarchyTargetRef(HierarchyTargetType.WORKSPACE, contextId),
+            CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
+        )
+        val parent = occurrence?.let { canonicalV2Read.parentOccurrence(it.placementId) }
+        return presentation.copy(
+            parentId = parent?.takeIf { it.target.type == HierarchyTargetType.WORKSPACE }?.target?.id,
+        )
+    }
 
     fun legacyContextUpdatedAt(contextId: String): Long? =
         nodesById[contextId]?.legacyContextUpdatedAt
@@ -64,13 +85,23 @@ internal class SearchContextPresentationSnapshot(
     fun hasPersistedContext(contextId: String): Boolean =
         nodesById[contextId]?.hasPersistedContext == true
 
-    suspend fun pathSegments(contextId: String): List<String>? = buildPath(contextId)
+    suspend fun pathSegments(contextId: String): List<String>? {
+        val occurrence = canonicalV2Read.navigationOccurrence(
+            HierarchyTargetRef(HierarchyTargetType.WORKSPACE, contextId),
+            CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
+        ) ?: return null
+        val breadcrumbs =
+            canonicalV2Read
+                .breadcrumbsToOccurrence(occurrence.placementId)
+                .filter { it.placementId != null }
+        return breadcrumbs.takeIf { it.isNotEmpty() }?.map { it.title }
+    }
 
     suspend fun searchContexts(query: String): List<GlobalContextSearchResult> {
         val normalizedQuery = normalizeSearchQuery(query)
         val results = mutableListOf<GlobalContextSearchResult>()
         for (node in nodesById.values) {
-            val presentation = node.presentation
+            val presentation = presentation(node.presentation.id) ?: continue
             val matches =
                 normalizedQuery.isBlank() ||
                     presentation.name.contains(normalizedQuery, ignoreCase = true) ||
@@ -99,10 +130,22 @@ internal class SearchContextPresentationSnapshot(
         val normalizedQuery = normalizeSearchQuery(query)
         val results = mutableListOf<GlobalSubcontextSearchResult>()
         for (node in nodesById.values) {
-            val presentation = node.presentation
-            val parentId = presentation.parentId ?: continue
-            val parent = resolvePathNode(parentId) ?: continue
-            if (node.isDeleted || nodesById[parentId]?.isDeleted == true) continue
+            val presentation = presentation(node.presentation.id) ?: continue
+            val occurrence =
+                canonicalV2Read.navigationOccurrence(
+                    HierarchyTargetRef(HierarchyTargetType.WORKSPACE, presentation.id),
+                    CanonicalV2TargetNavigationPolicy.FIRST_VISIBLE,
+                ) ?: continue
+            val parentOccurrence =
+                canonicalV2Read.parentOccurrence(occurrence.placementId)
+                    ?.takeIf { it.target.type == HierarchyTargetType.WORKSPACE }
+                    ?: continue
+            val parent =
+                SearchPathNode(
+                    id = parentOccurrence.target.id,
+                    name = parentOccurrence.title,
+                )
+            if (node.isDeleted || nodesById[parent.id]?.isDeleted == true) continue
             if (
                 normalizedQuery.isNotBlank() &&
                 !presentation.name.contains(normalizedQuery, ignoreCase = true)
@@ -121,44 +164,11 @@ internal class SearchContextPresentationSnapshot(
         return results
     }
 
-    private suspend fun buildPath(contextId: String): List<String>? {
-        val reversedPath = mutableListOf<String>()
-        val visited = mutableSetOf<String>()
-        var currentId: String? = contextId
-        while (currentId != null) {
-            if (!visited.add(currentId)) return null
-            val current = resolvePathNode(currentId) ?: return null
-            reversedPath += current.name
-            currentId = current.parentWorkspaceId
-        }
-        return reversedPath.asReversed()
-    }
-
-    private suspend fun resolvePathNode(contextId: String): SearchPathNode? {
-        nodesById[contextId]?.presentation?.let { presentation ->
-            return SearchPathNode(
-                id = presentation.id,
-                name = presentation.name,
-                parentWorkspaceId = presentation.parentId,
-            )
-        }
-        if (SystemContexts.isSystem(ContextId(contextId))) return null
-        return canonicalWorkspaceRepository
-            .getLiveCanonicalAncestryPresentation(contextId)
-            ?.let { presentation ->
-                SearchPathNode(
-                    id = presentation.id,
-                    name = presentation.name,
-                    parentWorkspaceId = presentation.parentWorkspaceId,
-                )
-            }
-    }
 }
 
 private data class SearchPathNode(
     val id: String,
     val name: String,
-    val parentWorkspaceId: String?,
 )
 
 private fun ContextPresentation.toSearchNode(
@@ -176,7 +186,9 @@ private fun ContextPresentation.toSearchNode(
                 id = id,
                 name = name,
                 description = description,
-                parentId = parentId,
+                // Search ancestry is resolved from the selected H1 occurrence
+                // in SearchContextPresentationSnapshot.presentation().
+                parentId = null,
                 tags = tags.orEmpty(),
                 rankingTimestamp = rankingTimestamp,
             ),
@@ -227,8 +239,13 @@ class SearchRepository
         private val attachmentsRepository: AttachmentsRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val workspaceDao: WorkspaceDao,
-        private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val database: AppDatabase,
+        private val canonicalV2ReadAssembler: CanonicalV2HierarchyReadSnapshotAssembler,
     ) {
+        /** Test seam: production always assembles from persisted canonical V2 state. */
+        internal var canonicalV2SearchReadProvider: (suspend (List<ContextPresentation>) ->
+            CanonicalV2ProductionHierarchyRead)? = null
+
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
             val structuredQuery = StructuredSearchQuery.parse(query)
             val contextPresentation = loadContextPresentation()
@@ -384,18 +401,49 @@ class SearchRepository
                     buildAttachmentSearchResult(presentedResult, sanitizedQuery)
                 }
 
-        private suspend fun loadContextPresentation(): SearchContextPresentationSnapshot =
-            contextDao.getAllRaw().let { rawContexts ->
-                val workspaces = workspaceDao.getAll()
-                SearchContextPresentationSnapshot(
-                    presentations =
-                        systemWorkspacePresentationContextProjector.projectPresentationUniverse(rawContexts),
-                    rawContexts = rawContexts,
-                    canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-                    canonicalWorkspaceUpdatedAtById =
-                        workspaces.associate { workspace -> workspace.id to workspace.updatedAt },
-                )
-            }
+        private suspend fun loadContextPresentation(): SearchContextPresentationSnapshot {
+            val rawContexts = contextDao.getAllRaw()
+            val workspaces = workspaceDao.getAll()
+            val presentations =
+                systemWorkspacePresentationContextProjector.projectPresentationUniverse(rawContexts)
+            val canonicalV2Read =
+                canonicalV2SearchReadProvider?.invoke(presentations)
+                    ?: loadCanonicalV2SearchRead(presentations)
+            return SearchContextPresentationSnapshot(
+                presentations = presentations,
+                rawContexts = rawContexts,
+                canonicalWorkspaceUpdatedAtById =
+                    workspaces.associate { workspace -> workspace.id to workspace.updatedAt },
+                canonicalV2Read = canonicalV2Read,
+            )
+        }
+
+        private suspend fun loadCanonicalV2SearchRead(
+            presentations: List<ContextPresentation>,
+        ): CanonicalV2ProductionHierarchyRead = database.withTransaction {
+            val placements =
+                database.hierarchyPlacementDao().getLiveHierarchy(HierarchyId.GENERAL.value)
+                    .map { it.toHierarchyPlacementStrict() }
+                    .sortedWith(hierarchyPlacementSiblingComparator)
+            canonicalV2ReadAssembler.assemble(
+                placements = placements,
+                admittedWorkspacePresentations =
+                    presentations.map { it.toCanonicalV2WorkspacePresentation() },
+                managedSubjects = database.orientationDao().getAllManagedSubjects(),
+                legacySubjectMappings = database.orientationDao().getAllLegacyMappings(),
+                relations = database.orientationDao().getAllOrientationRelations(),
+                groupScopes =
+                    database.hierarchyPlacementGroupScopeDao()
+                        .getLiveForHierarchy(HierarchyId.GENERAL.value),
+                legacyGroups = database.mainBeaconDao().getAllGroupsSync(),
+                presentationProvenance = CanonicalV2HierarchyPresentationProvenance(
+                    linkedAppearancePlacementIds =
+                        database.hierarchyPlacementLinkedAppearanceDao()
+                            .getLiveForHierarchy(HierarchyId.GENERAL.value)
+                            .mapTo(linkedSetOf()) { PlacementId(it.placementId) },
+                ),
+            )
+        }
 
         private fun buildAttachmentSearchResult(
             result: AttachmentLibraryQueryResult,

@@ -56,7 +56,7 @@ fun ProjectHierarchyScreenContent(
     listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onEditBeacon: (String) -> Unit = {},
+    onEditBeacon: (String, String?) -> Unit = { _, _ -> },
     onDeleteBeacon: (String) -> Unit = {},
 ) {
     val currentSubState =
@@ -158,9 +158,8 @@ fun ProjectHierarchyScreenContent(
             }
 
             val isListEmpty =
-                remember(uiState.presentationHierarchy) {
-                    uiState.presentationHierarchy.topLevelProjects.isEmpty() &&
-                        uiState.presentationHierarchy.childMap.isEmpty()
+                remember(uiState.orientationHierarchy) {
+                    uiState.orientationHierarchy.isEmpty()
                 }
 
             if (!uiState.isReadyForFiltering && isListEmpty) {
@@ -191,7 +190,6 @@ fun ProjectHierarchyScreenContent(
             } else {
                 ProjectHierarchyView(
                     modifier = Modifier.weight(1f),
-                    presentationHierarchy = uiState.presentationHierarchy,
                     orientationHierarchy = uiState.orientationHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
@@ -265,9 +263,6 @@ fun ProjectHierarchyScreenContent(
                                 parentOccurrence = occurrence,
                             ),
                         )
-                    },
-                    onDeleteProject = { projectId ->
-                        onEvent(ContextHierarchyScreenEvent.DeleteRequest(projectId))
                     },
                     onEditProject = { projectId ->
                         onEvent(ContextHierarchyScreenEvent.EditRequest(projectId))

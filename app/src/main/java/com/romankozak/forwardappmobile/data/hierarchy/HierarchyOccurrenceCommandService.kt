@@ -92,6 +92,15 @@ class HierarchyOccurrenceCommandService
             )
         }
 
+        suspend fun removeOccurrenceSubtree(
+            command: HierarchyOccurrenceCommand.RemoveOccurrenceSubtree,
+            now: Long = System.currentTimeMillis(),
+        ): List<PlacementId> =
+            repository.removeOccurrenceSubtree(
+                rootPlacementId = command.rootPlacementId,
+                now = now,
+            )
+
         suspend fun restoreOccurrence(
             command: HierarchyOccurrenceCommand.RestoreOccurrence,
             now: Long = System.currentTimeMillis(),

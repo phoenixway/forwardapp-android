@@ -3,8 +3,9 @@ package com.romankozak.forwardappmobile.core.data.models.sync
 /**
  * Hierarchy V2 authority state.
  *
- * Production remains CURRENT_PRE_CUTOVER until P2 explicitly switches the
- * coherent hierarchy slice. V2_AUTHORITY is readiness-only for now.
+ * P2 production activation uses V2_AUTHORITY as the coherent GENERAL hierarchy
+ * reader, writer, lifecycle, clipboard, and ingress authority mode.
+ * CURRENT_PRE_CUTOVER remains only as an explicit compatibility/test mode.
  */
 enum class HierarchyPlacementAuthorityMode {
     CURRENT_PRE_CUTOVER,
@@ -12,14 +13,14 @@ enum class HierarchyPlacementAuthorityMode {
 }
 
 /**
- * Single dormant production authority seam for H4 readiness.
+ * Single production authority seam for the GENERAL hierarchy.
  *
- * H4.0c must not activate P2. A future change here is not sufficient by
- * itself: P2 still requires the coordinated reader, writer, and transport
- * authority cutover.
+ * P2 activates all existing authority-aware production branches together
+ * through this one default. There is no production dual-write or silent
+ * V2-to-CURRENT structural fallback.
  */
 fun currentHierarchyPlacementAuthorityMode(): HierarchyPlacementAuthorityMode =
-    HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER
+    HierarchyPlacementAuthorityMode.V2_AUTHORITY
 
 enum class HierarchyPlacementIngressBoundary {
     NORMAL_MERGE,
@@ -88,7 +89,7 @@ fun hierarchyPlacementIngressDecision(
     }
 
 /**
- * In dormant V2_AUTHORITY mode, hierarchy-bearing normal ingress must carry H1.
+ * Under V2_AUTHORITY, hierarchy-bearing normal ingress must carry H1.
  * Presence is authoritative: [] is present/empty; null is absent.
  */
 fun requireHierarchyPlacementIngress(

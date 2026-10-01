@@ -2,13 +2,11 @@ package com.romankozak.forwardappmobile.data.database
 
 import android.content.ContentValues
 import android.content.Context
-import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.JsonParser
-import com.romankozak.forwardappmobile.database.AppDatabase
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -35,14 +33,15 @@ class Migration171To172DayTaskProjectWorkspaceRoomAcceptanceTest {
             insertTask(db, "unowned-task", null)
         }
 
-        val room =
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_171_172)
-                .allowMainThreadQueries()
-                .build()
+        val helper =
+            openHistoricalMigrationDatabase(
+                context = context,
+                dbName = dbName,
+                MIGRATION_171_172,
+            )
 
         try {
-            val db = room.openHelper.writableDatabase
+            val db = helper.writableDatabase
 
             assertEquals(172L, scalarLong(db, "PRAGMA user_version"))
 
@@ -103,7 +102,7 @@ class Migration171To172DayTaskProjectWorkspaceRoomAcceptanceTest {
             db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
             assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
         } finally {
-            room.close()
+            helper.close()
             context.deleteDatabase(dbName)
         }
     }
@@ -125,14 +124,15 @@ class Migration171To172DayTaskProjectWorkspaceRoomAcceptanceTest {
                 insertTask(db, "system-task", RESERVED_ID)
             }
 
-            val room =
-                Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                    .addMigrations(MIGRATION_171_172)
-                    .allowMainThreadQueries()
-                    .build()
+            val helper =
+                openHistoricalMigrationDatabase(
+                    context = context,
+                    dbName = dbName,
+                    MIGRATION_171_172,
+                )
 
             try {
-                val db = room.openHelper.writableDatabase
+                val db = helper.writableDatabase
 
                 assertEquals(
                     1L,
@@ -152,7 +152,7 @@ class Migration171To172DayTaskProjectWorkspaceRoomAcceptanceTest {
                 db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
                 assertEquals("ok", scalarString(db, "PRAGMA integrity_check"))
             } finally {
-                room.close()
+                helper.close()
                 context.deleteDatabase(dbName)
             }
         }

@@ -97,28 +97,39 @@ data class CanonicalV1HierarchyDiagnostic(
     val message: String,
 )
 
-data class CanonicalV1WorkspaceSnapshotInput(
+/**
+ * Source-neutral semantic evidence consumed by the single deterministic H2
+ * occurrence builder.
+ *
+ * Persisted V1 storage names and entities must be translated into this model
+ * at an ingress boundary. A future fresh-native source may construct the same
+ * evidence without reading legacy hierarchy storage.
+ *
+ * `sourceId` values are stable source identities used by the frozen H2
+ * occurrence-key algorithm. They are not required to be database primary keys.
+ */
+data class CanonicalHierarchyEstablishmentWorkspaceInput(
     val id: String,
     val name: String,
-    val parentWorkspaceId: String?,
+    val canonicalParentId: String?,
     val order: Long,
     val sourceOrdinal: Int = 0,
 )
 
-data class CanonicalV1BeaconSnapshotInput(
-    val legacyBeaconId: String,
+data class CanonicalHierarchyEstablishmentBeaconInput(
+    val sourceId: String,
     val target: HierarchyTargetRef,
     val title: String,
     val order: Long,
-    val parentBeaconId: String?,
-    val relatedOwnerIds: List<String>,
+    val canonicalParentSourceId: String?,
+    val operationalOwnerWorkspaceIds: List<String>,
     val groupIds: List<String>,
     val groupOrders: Map<String, Long> = emptyMap(),
     val sourceOrdinal: Int = 0,
 )
 
-data class CanonicalV1BeaconGroupSnapshotInput(
-    val id: String,
+data class CanonicalHierarchyEstablishmentGroupInput(
+    val sourceId: String,
     val title: String,
     val order: Long,
     val canonicalSubjectId: String,
@@ -126,29 +137,43 @@ data class CanonicalV1BeaconGroupSnapshotInput(
 ) {
     init {
         require(canonicalSubjectId.isNotBlank()) {
-            "Beacon Group snapshot input requires canonicalSubjectId"
+            "Hierarchy establishment Group input requires canonicalSubjectId"
         }
     }
 }
 
-data class CanonicalV1ContextParentLinkSnapshotInput(
+/**
+ * One non-canonical additional visible Workspace route.
+ *
+ * This is semantic occurrence evidence, not a ContextParentLink persistence
+ * contract.
+ */
+data class CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
     val parentWorkspaceId: String,
     val childWorkspaceId: String,
     val order: Long,
     val sourceOrdinal: Int = 0,
 )
 
-data class CanonicalV1BeaconParentLinkSnapshotInput(
-    val parentBeaconId: String,
-    val childBeaconId: String,
+/**
+ * One non-canonical additional visible Beacon route.
+ *
+ * Parent/child identities refer to stable Beacon source identities. This is
+ * semantic route evidence, not a MainBeaconParentLink persistence contract.
+ */
+data class CanonicalHierarchyEstablishmentAdditionalBeaconRoute(
+    val parentSourceId: String,
+    val childSourceId: String,
     val order: Long,
     val sourceOrdinal: Int = 0,
 )
 
-data class CanonicalV1HierarchySnapshotInput(
-    val workspaces: List<CanonicalV1WorkspaceSnapshotInput>,
-    val beacons: List<CanonicalV1BeaconSnapshotInput>,
-    val groups: List<CanonicalV1BeaconGroupSnapshotInput> = emptyList(),
-    val contextParentLinks: List<CanonicalV1ContextParentLinkSnapshotInput> = emptyList(),
-    val beaconParentLinks: List<CanonicalV1BeaconParentLinkSnapshotInput> = emptyList(),
+data class CanonicalHierarchyEstablishmentInput(
+    val workspaces: List<CanonicalHierarchyEstablishmentWorkspaceInput>,
+    val beacons: List<CanonicalHierarchyEstablishmentBeaconInput>,
+    val groups: List<CanonicalHierarchyEstablishmentGroupInput> = emptyList(),
+    val additionalWorkspaceRoutes:
+        List<CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute> = emptyList(),
+    val additionalBeaconRoutes:
+        List<CanonicalHierarchyEstablishmentAdditionalBeaconRoute> = emptyList(),
 )

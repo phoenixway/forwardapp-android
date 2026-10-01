@@ -2,11 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationState
 import com.romankozak.forwardappmobile.data.workspace.projectPresentationUniverseFromState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import org.junit.Assert.assertEquals
@@ -16,7 +13,7 @@ import org.junit.Test
 
 class SystemWorkspaceHierarchyPresentationProjectionTest {
     @Test
-    fun promotedSystemUsesCanonicalPresentationAndHierarchyOrder() {
+    fun promotedSystemUsesCanonicalPresentationWithoutEmbeddedHierarchyTopology() {
         val systemId = SystemContexts.INBOX.raw
         val canonicalParentId = SystemContexts.STRATEGIC.raw
         val staleShell =
@@ -46,15 +43,11 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
                             id = systemId,
                             name = "canonical-inbox",
                             description = "canonical-description",
-                            parentId = canonicalParentId,
                             roleCode = "canonical-role",
-                            order = 3L,
                         ),
                         workspace(
                             id = canonicalParentId,
                             name = "canonical-parent",
-                            parentId = null,
-                            order = 1L,
                         ),
                     ),
                 canonicalTagsById =
@@ -68,30 +61,20 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
 
         assertEquals("canonical-inbox", result.name)
         assertEquals("canonical-description", result.description)
-        assertEquals(canonicalParentId, result.parentId)
+        assertNull(result.parentId)
         assertEquals("canonical-role", result.roleCode)
-        assertEquals(3L, result.order)
+        assertEquals(0L, result.order)
 
         val hierarchy =
-            HierarchyUseCase().createProjectHierarchy(
-                FilterState(
-                    flatList = projected.map { it.toHierarchyPresentationNode() },
-                    query = "",
-                    searchActive = false,
-                    mode = PlanningMode.All,
-                    settings = PlanningSettingsState(),
-                    isReady = true,
-                ),
+            HierarchyPresentationTreeBuilder().build(
+                projected.map { it.toHierarchyPresentationNode() },
             )
 
         assertEquals(
-            listOf(canonicalParentId),
-            hierarchy.topLevelProjects.map { it.id },
+            setOf(systemId, canonicalParentId, ordinarySibling.id),
+            hierarchy.topLevelProjects.map { it.id }.toSet(),
         )
-        assertEquals(
-            listOf(ordinarySibling.id, systemId),
-            hierarchy.childMap[canonicalParentId]?.map { it.id },
-        )
+        assertTrue(hierarchy.childMap.values.flatten().isEmpty())
     }
 
     @Test
@@ -112,8 +95,6 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
                         workspace(
                             id = ordinary.id,
                             name = "canonical-looking",
-                            parentId = null,
-                            order = 1L,
                         ),
                     ),
                 canonicalTagsById = emptyMap(),
@@ -121,8 +102,8 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
 
         assertEquals(ordinary.id, result.id)
         assertEquals("legacy", result.name)
-        assertEquals("legacy-parent", result.parentId)
-        assertEquals(7L, result.order)
+        assertNull(result.parentId)
+        assertEquals(0L, result.order)
         assertEquals(ordinary.tags, result.tags)
     }
 
@@ -145,8 +126,6 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
                         workspace(
                             id = systemId,
                             name = "workspace-shadow",
-                            parentId = null,
-                            order = 0L,
                             provenance = WorkspaceProvenance.CONTEXT_BACKED,
                             sourceContextId = systemId,
                         ),
@@ -156,8 +135,8 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
 
         assertEquals(shell.id, result.id)
         assertEquals("legacy-inbox", result.name)
-        assertEquals("legacy-parent", result.parentId)
-        assertEquals(8L, result.order)
+        assertNull(result.parentId)
+        assertEquals(0L, result.order)
         assertEquals(shell.tags, result.tags)
     }
 
@@ -229,24 +208,16 @@ class SystemWorkspaceHierarchyPresentationProjectionTest {
         id: String,
         name: String?,
         description: String? = null,
-        parentId: String? = null,
         roleCode: String? = null,
-        order: Long = 0L,
         provenance: WorkspaceProvenance = WorkspaceProvenance.CANONICAL_ONLY,
         sourceContextId: String? = null,
         isDeleted: Boolean = false,
-    ) = WorkspaceEntity(
+    ) = WorkspacePresentationState(
         id = id,
         nameOverride = name,
         descriptionOverride = description,
-        parentWorkspaceId = parentId,
         roleCode = roleCode,
-        workspaceOrder = order,
-        createdAt = 1L,
-        updatedAt = 2L,
-        syncedAt = null,
         isDeleted = isDeleted,
-        version = 1L,
         provenance = provenance.name,
         sourceContextId = sourceContextId,
     )

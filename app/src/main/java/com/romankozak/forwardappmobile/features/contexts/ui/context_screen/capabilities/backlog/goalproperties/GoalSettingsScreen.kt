@@ -2,6 +2,8 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties
 
+import android.widget.Toast
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -23,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -118,9 +121,12 @@ private fun GoalSettingsNavigationEffect(
     navigationManager: EnhancedNavigationManager?,
     viewModel: GoalSettingsViewModel,
 ) {
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         viewModel.events.collect {
             when (it) {
+                is ContextSettingsEvent.ShowMessage ->
+                    Toast.makeText(context, it.message, Toast.LENGTH_LONG).show()
                 is ContextSettingsEvent.NavigateBack -> navController.popBackStack()
                 is ContextSettingsEvent.Navigate ->
                     navigationManager.navigateOrFallback(

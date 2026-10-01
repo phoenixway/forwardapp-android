@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.*
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyChildPolicyRejectedException
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
@@ -105,6 +106,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
@@ -425,10 +427,6 @@ class ContextScreenViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         val allContextsForPicker: StateFlow<List<ContextPresentation>> =
             _pickerPresentations
-        val subprojectChildren: StateFlow<Map<String?, List<ContextPresentation>>> =
-            _pickerPresentations
-                .map { presentations -> presentations.groupBy { it.parentId } }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
         val contextTimeMetrics: StateFlow<ContextTimeMetrics?> =
             contextIdFlow
                 .flatMapLatest { contextId ->
@@ -746,8 +744,22 @@ class ContextScreenViewModel
 
         override fun deleteCurrentProject(id: String) {
             viewModelScope.launch {
-                contextSettingsActions.deleteCurrentProject(id)
-                uiEventActions.emit(UiEvent.NavigateBack)
+                try {
+                    contextSettingsActions.deleteCurrentProject(id)
+                    uiEventActions.emit(UiEvent.NavigateBack)
+                } catch (error: HierarchyChildPolicyRejectedException) {
+                    uiEventActions.emit(
+                        UiEvent.ShowSnackbar(
+                            "Workspace не видалено. Спочатку приберіть або перемістіть дітей у всіх його місцях ієрархії.",
+                        ),
+                    )
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    uiEventActions.emit(
+                        UiEvent.ShowSnackbar("Не вдалося видалити Workspace. Дані не змінено."),
+                    )
+                }
             }
         }
 

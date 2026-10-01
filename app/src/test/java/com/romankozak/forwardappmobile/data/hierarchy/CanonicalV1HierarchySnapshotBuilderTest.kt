@@ -15,7 +15,7 @@ class CanonicalV1HierarchySnapshotBuilderTest {
     fun `canonical workspace plus additional parent preserves primary and link appearances`() {
         val snapshot =
             builder.build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces =
                         listOf(
                             workspace("root-a", null, 0),
@@ -23,9 +23,9 @@ class CanonicalV1HierarchySnapshotBuilderTest {
                             workspace("shared", "root-a", 0),
                         ),
                     beacons = emptyList(),
-                    contextParentLinks =
+                    additionalWorkspaceRoutes =
                         listOf(
-                            CanonicalV1ContextParentLinkSnapshotInput(
+                            CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
                                 parentWorkspaceId = "root-b",
                                 childWorkspaceId = "shared",
                                 order = 0,
@@ -49,12 +49,12 @@ class CanonicalV1HierarchySnapshotBuilderTest {
 
         val snapshot =
             builder.build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces = emptyList(),
                     groups =
                         listOf(
-                            CanonicalV1BeaconGroupSnapshotInput("g1", "A", 0, "group-subject-g1"),
-                            CanonicalV1BeaconGroupSnapshotInput("g2", "B", 1, "group-subject-g2"),
+                            CanonicalHierarchyEstablishmentGroupInput("g1", "A", 0, "group-subject-g1"),
+                            CanonicalHierarchyEstablishmentGroupInput("g2", "B", 1, "group-subject-g2"),
                         ),
                     beacons =
                         listOf(
@@ -108,7 +108,7 @@ class CanonicalV1HierarchySnapshotBuilderTest {
     fun `operational owner projection and its descendants do not invent primary evidence`() {
         val snapshot =
             builder.build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces =
                         listOf(
                             workspace("owner", null, 0),
@@ -140,12 +140,12 @@ class CanonicalV1HierarchySnapshotBuilderTest {
     fun `synthetic group and no-beacon scopes never become targets`() {
         val snapshot =
             builder.build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces = listOf(workspace("workspace", null, 0)),
                     groups =
                         listOf(
-                            CanonicalV1BeaconGroupSnapshotInput(
-                                id = "group",
+                            CanonicalHierarchyEstablishmentGroupInput(
+                                sourceId = "group",
                                 title = "Group",
                                 order = 0,
                                 canonicalSubjectId = "group-subject",
@@ -186,20 +186,20 @@ class CanonicalV1HierarchySnapshotBuilderTest {
     fun `equal current workspace sort keys preserve captured source ordinal before id`() {
         val snapshot =
             builder.build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces =
                         listOf(
-                            CanonicalV1WorkspaceSnapshotInput(
+                            CanonicalHierarchyEstablishmentWorkspaceInput(
                                 id = "a",
                                 name = "same",
-                                parentWorkspaceId = null,
+                                canonicalParentId = null,
                                 order = 0,
                                 sourceOrdinal = 1,
                             ),
-                            CanonicalV1WorkspaceSnapshotInput(
+                            CanonicalHierarchyEstablishmentWorkspaceInput(
                                 id = "z",
                                 name = "same",
-                                parentWorkspaceId = null,
+                                canonicalParentId = null,
                                 order = 0,
                                 sourceOrdinal = 0,
                             ),
@@ -223,9 +223,171 @@ class CanonicalV1HierarchySnapshotBuilderTest {
     }
 
     @Test
+    fun `source neutral establishment evidence preserves frozen deterministic identity and provenance`() {
+        val input =
+            CanonicalHierarchyEstablishmentInput(
+                workspaces =
+                    listOf(
+                        workspace("owner", null, 0),
+                        workspace("owner-child", "owner", 0),
+                        workspace("extra-root", null, 1),
+                        workspace("shared", "extra-root", 0),
+                    ),
+                groups =
+                    listOf(
+                        CanonicalHierarchyEstablishmentGroupInput(
+                            sourceId = "group",
+                            title = "Core",
+                            order = 0,
+                            canonicalSubjectId = "group-subject",
+                        ),
+                    ),
+                beacons =
+                    listOf(
+                        beacon(
+                            id = "b1",
+                            target = subject("subject-b1"),
+                            parentId = null,
+                            owners = listOf("owner"),
+                            groups = listOf("group"),
+                        ),
+                        beacon(
+                            id = "b2",
+                            target = subject("subject-b2"),
+                            parentId = null,
+                        ),
+                        beacon(
+                            id = "b-child",
+                            target = subject("subject-child"),
+                            parentId = "b1",
+                        ),
+                    ),
+                additionalWorkspaceRoutes =
+                    listOf(
+                        CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
+                            parentWorkspaceId = "owner",
+                            childWorkspaceId = "shared",
+                            order = 0,
+                        ),
+                    ),
+                additionalBeaconRoutes =
+                    listOf(
+                        CanonicalHierarchyEstablishmentAdditionalBeaconRoute(
+                            parentSourceId = "b2",
+                            childSourceId = "b-child",
+                            order = 0,
+                        ),
+                    ),
+            )
+
+        val snapshot = builder.build(input)
+        val placements = snapshot.toDeterministicHierarchyPlacements(now = 100L)
+        val groupScopes = snapshot.toDeterministicHierarchyPlacementGroupScopes(now = 100L)
+        val linkedAppearances =
+            snapshot.toDeterministicHierarchyPlacementLinkedAppearances(now = 100L)
+
+        val byOccurrenceKey = snapshot.occurrences.associateBy { it.occurrenceKey }
+        val placementsById = placements.associateBy { it.id.value }
+
+        val groupedBeaconKey = "group:5:group/beacon:2:b1"
+        val canonicalChildKey = "$groupedBeaconKey/beacon-parent:7:b-child"
+        val linkedChildKey = "scope:no-group/beacon:2:b2/beacon-parent-link:7:b-child"
+        val ownerKey = "$groupedBeaconKey/beacon-owner:5:owner"
+        val ownerChildKey = "$ownerKey/workspace-parent:11:owner-child"
+
+        assertEquals(
+            setOf(
+                groupedBeaconKey,
+                canonicalChildKey,
+                linkedChildKey,
+                ownerKey,
+                ownerChildKey,
+            ),
+            setOf(
+                groupedBeaconKey,
+                canonicalChildKey,
+                linkedChildKey,
+                ownerKey,
+                ownerChildKey,
+            ).filterTo(linkedSetOf()) { it in byOccurrenceKey },
+        )
+
+        assertEquals(
+            PlacementKind.PRIMARY,
+            byOccurrenceKey.getValue(canonicalChildKey).placementKind,
+        )
+        assertEquals(
+            PlacementKind.LINK,
+            byOccurrenceKey.getValue(linkedChildKey).placementKind,
+        )
+        assertEquals(
+            CanonicalV1HierarchySourceAuthority.MAIN_BEACON_PARENT_LINK,
+            byOccurrenceKey.getValue(linkedChildKey).sourceAuthority,
+        )
+        assertEquals(
+            CanonicalV1HierarchySourceAuthority.BEACON_OPERATIONAL_OWNER_PROJECTION,
+            byOccurrenceKey.getValue(ownerKey).sourceAuthority,
+        )
+        assertEquals(
+            CanonicalV1RootGroupScope.group("group-subject"),
+            byOccurrenceKey.getValue(groupedBeaconKey).rootGroupScope,
+        )
+
+        snapshot.occurrences.forEach { occurrence ->
+            val expectedId =
+                CanonicalV1HierarchyMaterializer.deterministicPlacementId(
+                    hierarchyId = snapshot.hierarchyId.value,
+                    occurrenceKey = occurrence.occurrenceKey,
+                ).value
+            val placement = placementsById.getValue(expectedId)
+
+            assertEquals(occurrence.target, placement.target)
+            assertEquals(occurrence.placementKind, placement.placementKind)
+            assertEquals(occurrence.siblingOrder, placement.siblingOrder)
+
+            val expectedParentId =
+                occurrence.parentOccurrenceKey?.let { parentKey ->
+                    CanonicalV1HierarchyMaterializer.deterministicPlacementId(
+                        hierarchyId = snapshot.hierarchyId.value,
+                        occurrenceKey = parentKey,
+                    )
+                }
+            assertEquals(expectedParentId, placement.parentPlacementId)
+        }
+
+        val groupedBeaconPlacementId =
+            CanonicalV1HierarchyMaterializer.deterministicPlacementId(
+                hierarchyId = snapshot.hierarchyId.value,
+                occurrenceKey = groupedBeaconKey,
+            ).value
+        assertEquals(
+            "2207eda1-f439-59b4-bbe3-082ac84dafda",
+            groupedBeaconPlacementId,
+        )
+        assertEquals(
+            "group-subject",
+            groupScopes.single { it.placementId == groupedBeaconPlacementId }.groupSubjectId,
+        )
+
+        val ownerPlacementId =
+            CanonicalV1HierarchyMaterializer.deterministicPlacementId(
+                hierarchyId = snapshot.hierarchyId.value,
+                occurrenceKey = ownerKey,
+            ).value
+        assertTrue(linkedAppearances.any { it.placementId == ownerPlacementId })
+
+        val ownerChildPlacementId =
+            CanonicalV1HierarchyMaterializer.deterministicPlacementId(
+                hierarchyId = snapshot.hierarchyId.value,
+                occurrenceKey = ownerChildKey,
+            ).value
+        assertFalse(linkedAppearances.any { it.placementId == ownerChildPlacementId })
+    }
+
+    @Test
     fun `input list order does not change deterministic snapshot`() {
         val base =
-            CanonicalV1HierarchySnapshotInput(
+            CanonicalHierarchyEstablishmentInput(
                 workspaces =
                     listOf(
                         workspace("b", null, 1),
@@ -233,9 +395,9 @@ class CanonicalV1HierarchySnapshotBuilderTest {
                         workspace("c", "a", 0),
                     ),
                 beacons = emptyList(),
-                contextParentLinks =
+                additionalWorkspaceRoutes =
                     listOf(
-                        CanonicalV1ContextParentLinkSnapshotInput("b", "c", 0),
+                        CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute("b", "c", 0),
                     ),
             )
 
@@ -244,7 +406,7 @@ class CanonicalV1HierarchySnapshotBuilderTest {
             builder.build(
                 base.copy(
                     workspaces = base.workspaces.reversed(),
-                    contextParentLinks = base.contextParentLinks.reversed(),
+                    additionalWorkspaceRoutes = base.additionalWorkspaceRoutes.reversed(),
                 ),
             )
 
@@ -261,10 +423,10 @@ class CanonicalV1HierarchySnapshotBuilderTest {
         id: String,
         parentId: String?,
         order: Long,
-    ) = CanonicalV1WorkspaceSnapshotInput(
+    ) = CanonicalHierarchyEstablishmentWorkspaceInput(
         id = id,
         name = id,
-        parentWorkspaceId = parentId,
+        canonicalParentId = parentId,
         order = order,
     )
 
@@ -274,13 +436,13 @@ class CanonicalV1HierarchySnapshotBuilderTest {
         parentId: String?,
         owners: List<String> = emptyList(),
         groups: List<String> = emptyList(),
-    ) = CanonicalV1BeaconSnapshotInput(
-        legacyBeaconId = id,
+    ) = CanonicalHierarchyEstablishmentBeaconInput(
+        sourceId = id,
         target = target,
         title = id,
         order = 0,
-        parentBeaconId = parentId,
-        relatedOwnerIds = owners,
+        canonicalParentSourceId = parentId,
+        operationalOwnerWorkspaceIds = owners,
         groupIds = groups,
         groupOrders = groups.associateWith { 0L },
     )

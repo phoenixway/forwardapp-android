@@ -147,7 +147,7 @@ class GlobalSearchViewModelSystemInboxWriteTest {
             advanceUntilIdle()
 
             assertEquals(
-                NavTarget.ContextDetail(contextId = projectId),
+                NavTarget.ContextHierarchy(projectIdToReveal = projectId),
                 (command.await() as NavigationCommand.NavigateTarget).target,
             )
         }

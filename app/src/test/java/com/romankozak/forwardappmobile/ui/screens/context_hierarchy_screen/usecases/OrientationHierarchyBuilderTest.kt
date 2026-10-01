@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationHierarchyBuilder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyPresentationTreeBuilder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbsToContext
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertNull
@@ -230,9 +230,7 @@ class OrientationHierarchyBuilderTest {
                 id = "child",
                 nameOverride = null,
                 descriptionOverride = null,
-                parentWorkspaceId = "workspace-parent",
                 roleCode = null,
-                workspaceOrder = 7L,
                 createdAt = 0L,
                 updatedAt = 0L,
                 syncedAt = null,
@@ -336,9 +334,7 @@ class OrientationHierarchyBuilderTest {
                 id = SystemContexts.INBOX.raw,
                 nameOverride = "Migrated child",
                 descriptionOverride = "Preserved description",
-                parentWorkspaceId = "parent",
                 roleCode = null,
-                workspaceOrder = 3L,
                 createdAt = 10L,
                 updatedAt = 20L,
                 syncedAt = null,
@@ -395,9 +391,9 @@ class OrientationHierarchyBuilderTest {
         // Explicit reveal/navigation must therefore resolve the operational
         // parent path even though the legacy Context row no longer exists.
         val breadcrumbs =
-            buildOrientationBreadcrumbsToContext(
+            buildOrientationBreadcrumbs(
                 items = items,
-                contextId = SystemContexts.INBOX.raw,
+                nodeId = SystemContexts.INBOX.raw,
             )
         assertEquals(
             listOf("parent", SystemContexts.INBOX.raw),
@@ -688,9 +684,7 @@ class OrientationHierarchyBuilderTest {
                 id = "canonical-non-system",
                 nameOverride = "Must not appear",
                 descriptionOverride = null,
-                parentWorkspaceId = null,
                 roleCode = null,
-                workspaceOrder = 0L,
                 createdAt = 0L,
                 updatedAt = 0L,
                 syncedAt = null,
@@ -775,9 +769,7 @@ class OrientationHierarchyBuilderTest {
             id = id,
             nameOverride = id,
             descriptionOverride = null,
-            parentWorkspaceId = parentId,
             roleCode = null,
-            workspaceOrder = order,
             createdAt = 0L,
             updatedAt = 0L,
             syncedAt = null,

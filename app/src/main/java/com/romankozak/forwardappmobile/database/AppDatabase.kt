@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -39,7 +38,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -107,7 +105,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
@@ -143,7 +140,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         MainBeacon::class,
         MainBeaconGroup::class,
         MainBeaconGroupMember::class,
-        MainBeaconParentLink::class,
         MainBeaconContextCrossRef::class,
         com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef::class,
         MainBeaconAttachmentCrossRef::class,
@@ -156,7 +152,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         BacklogGoalAssociationLink::class,
         ChatMessageEntity::class,
         ContextLog::class,
-        ContextParentLink::class,
         ContextInboxSortingEntity::class,
         FocusContextIntervalEntity::class,
         DayPlan::class,
@@ -197,6 +192,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         HierarchyPlacementGroupScopeEntity::class,
         HierarchyPlacementLinkedAppearanceEntity::class,
         com.romankozak.forwardappmobile.data.database.HierarchyAuthorityActivationStateEntity::class,
+        com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOriginEntity::class,
         OrientationEntity::class,
         AspectEntity::class,
         OrientationAssessmentEntity::class,
@@ -225,7 +221,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 178,
+    version = 180,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -255,7 +251,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun contextManagementDao(): ContextManagementDao
 
-    abstract fun contextParentLinkDao(): ContextParentLinkDao
     abstract fun contextInboxSortingDao(): ContextInboxSortingDao
 
     abstract fun focusContextIntervalDao(): FocusContextIntervalDao
@@ -333,6 +328,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun hierarchyAuthorityActivationStateDao():
         com.romankozak.forwardappmobile.data.hierarchy.HierarchyAuthorityActivationStateDao
+
+    abstract fun hierarchyEstablishmentOriginDao():
+        com.romankozak.forwardappmobile.data.hierarchy.HierarchyEstablishmentOriginDao
 
     abstract fun workspaceDao(): WorkspaceDao
 

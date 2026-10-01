@@ -99,6 +99,14 @@ fun ProjectStructureScreen(
                 basePresetCode = uiState.basePresetCode,
             )
 
+            uiState.message?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             FeatureFlagsSection(

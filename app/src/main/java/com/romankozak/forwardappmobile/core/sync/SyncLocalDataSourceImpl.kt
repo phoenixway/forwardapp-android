@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.*
 import com.romankozak.forwardappmobile.data.dao.*
@@ -43,7 +44,6 @@ class SyncLocalDataSourceImpl
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
         private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
-        private val contextParentLinkDao: ContextParentLinkDao,
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
         private val activityRecordDao: ActivityRecordDao,
@@ -156,7 +156,6 @@ class SyncLocalDataSourceImpl
                         SystemContexts.isSystem(ContextId(context.id)) ||
                             (!context.isDeleted && context.id in retiredContextIds)
                     }
-            val contextParentLinks = contextParentLinkDao.getAllRaw()
             val goals = goalDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
             val musicNotes = musicNoteDao.getAll()
@@ -184,7 +183,6 @@ class SyncLocalDataSourceImpl
             val mainBeacons = mainBeaconDao.getAllBeaconsSync()
             val mainBeaconGroups = mainBeaconDao.getAllGroupsSync()
             val mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync()
-            val mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync()
             val mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync()
             val mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync()
             val mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync()
@@ -206,14 +204,9 @@ class SyncLocalDataSourceImpl
                 version = 2,
                 exportedAt = System.currentTimeMillis(),
                 contexts = projects.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
-                contextParentLinks =
-                    contextParentLinks
-                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
-                        .filterNot { link ->
-                            link.parentContextId in retiredContextIds ||
-                                link.childContextId in retiredContextIds
-                        }
-                        .map { it.toSnapshot() },
+                // Canonical H1 is injected atomically by the Wi-Fi delta
+                // builder. Legacy structural links are Restore-only input.
+                contextParentLinks = emptyList(),
                 goals = goals.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 backlogItems = emptyList(),
                 backlogOrders = emptyList(),
@@ -309,15 +302,14 @@ class SyncLocalDataSourceImpl
                 aiInsights =
                     aiInsights.filter { it.timestamp > timestamp }.map { it.toSnapshot() },
                 mainBeacons =
-                    mainBeacons.filter { it.updatedAt > timestamp }.map { it.toSnapshot() },
+                    mainBeacons
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot().withoutEmbeddedMainBeaconTopology() },
                 mainBeaconGroups =
                     mainBeaconGroups.filter { it.updatedAt > timestamp }.map { it.toSnapshot() },
                 mainBeaconGroupMembers =
                     mainBeaconGroupMembers.map { it.toSnapshot() },
-                mainBeaconParentLinks =
-                    mainBeaconParentLinks
-                        .filter { it.updatedAt > timestamp }
-                        .map { it.toSnapshot() },
+                mainBeaconParentLinks = emptyList(),
                 mainBeaconContextCrossRefs =
                     mainBeaconContextCrossRefs.map { it.toSnapshot() },
                 mainBeaconAttachmentCrossRefs =

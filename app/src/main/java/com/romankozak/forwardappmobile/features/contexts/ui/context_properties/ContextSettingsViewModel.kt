@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRema
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemBacklogLifecycleOverrides
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemRemainingCapabilityOverrides
+import com.romankozak.forwardappmobile.domain.structure.PresetParentOccurrenceRequiredException
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -147,7 +148,6 @@ class ContextSettingsViewModel
                             ProjectOption(
                                 id = context.id,
                                 name = context.name,
-                                parentId = context.parentId,
                             )
                         }
                     val attachmentOptions =
@@ -519,8 +519,12 @@ class ContextSettingsViewModel
         fun onApplyPreset(code: String) {
             val pid = projectId ?: return
             viewModelScope.launch {
-                structurePresetService.applyPresetToContext(pid, code)
-                loadExistingProject(pid)
+                try {
+                    structurePresetService.applyPresetToContext(pid, code)
+                    loadExistingProject(pid)
+                } catch (error: PresetParentOccurrenceRequiredException) {
+                    _events.send(ContextSettingsEvent.ShowMessage(error.message.orEmpty()))
+                }
             }
         }
 

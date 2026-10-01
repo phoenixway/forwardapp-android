@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.hierarchy.toCanonicalV2WorkspacePresentation
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -27,7 +28,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextActionsUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextClipboardCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ContextDialogActionCoordinator
@@ -145,8 +145,9 @@ class ContextHierarchyScreenViewModelSystemInboxWriteTest {
         every { planningUseCase.filterStateFlow } returns MutableStateFlow(emptyFilterState())
         val hierarchyStateUseCase = mockk<ProjectHierarchyScreenStateUseCase>(relaxed = true)
         every { hierarchyStateUseCase.uiState } returns MutableStateFlow(ProjectHierarchyScreenUiState())
+        every { hierarchyStateUseCase.canonicalV2Read } returns MutableStateFlow(null)
         every { hierarchyStateUseCase.observeHierarchyPresentationUniverse(any()) } returns
-            flowOf(listOf(inboxPresentation.toHierarchyPresentationNode()))
+            flowOf(listOf(inboxPresentation.toCanonicalV2WorkspacePresentation()))
         val navigationUseCase = mockk<NavigationUseCase>(relaxed = true)
         every { navigationUseCase.isProcessingReveal } returns MutableStateFlow(false)
         val clipboardCoordinator = mockk<ContextClipboardCoordinator>(relaxed = true)

@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.data.workspace
 
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOrigin
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -202,8 +204,17 @@ class SystemContextShellRetirerRoomTest {
             }
         }
 
-    private fun database(): AppDatabase =
-        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+    private fun database(): AppDatabase {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        database.openHelper.writableDatabase.execSQL(
+            """
+            INSERT OR REPLACE INTO hierarchy_establishment_origin(hierarchyId, origin)
+            VALUES('${HierarchyId.GENERAL.value}', '${HierarchyEstablishmentOrigin.LEGACY_UPGRADE_REQUIRES_CAPTURE.name}')
+            """.trimIndent(),
+        )
+        return database
+    }
 }

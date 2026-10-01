@@ -140,15 +140,19 @@ fun HandleProjectHierarchyDialogs(
         is DialogState.ConfirmDelete -> {
             AlertDialog(
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
-                title = { Text("Delete project?") },
+                title = { Text("Прибрати гілку з ієрархії?") },
                 text = {
                     Text(
-                        "Are you sure you want to delete '${state.projectName}' and all its contents? This action cannot be undone.",
+                        "Буде прибрано це розміщення «${state.projectName}» разом із вкладеними розміщеннями. Самі проєкти та їхній вміст залишаться.",
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DeleteConfirm(state.projectId)) }) {
-                        Text("Delete")
+                    TextButton(
+                        onClick = {
+                            onEvent(ContextHierarchyScreenEvent.DeleteConfirm(state.projectId, state.occurrence))
+                        },
+                    ) {
+                        Text("Прибрати гілку")
                     }
                 },
                 dismissButton = { TextButton(onClick = { onEvent(ContextHierarchyScreenEvent.DismissDialog) }) { Text("Cancel") } },

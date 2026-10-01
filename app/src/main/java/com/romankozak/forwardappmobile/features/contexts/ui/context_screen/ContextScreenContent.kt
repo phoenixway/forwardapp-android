@@ -104,23 +104,12 @@ fun GoalDetailContent(
     when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-            val currentContextId = projectPresentation?.id
             val filteredBacklogItems =
-                remember(listContent, localSearchQuery, currentContextId) {
-                    val backlogItemsWithoutAutoChildContexts =
-                        if (currentContextId.isNullOrBlank()) {
-                            listContent
-                        } else {
-                            listContent.filterNot { item ->
-                                item is BacklogItemContent.ContextLinkItem &&
-                                    item.project.parentId == currentContextId
-                            }
-                        }
-
+                remember(listContent, localSearchQuery) {
                     if (localSearchQuery.isBlank()) {
-                        backlogItemsWithoutAutoChildContexts
+                        listContent
                     } else {
-                        backlogItemsWithoutAutoChildContexts.filter { it.matchesLocalSearch(localSearchQuery) }
+                        listContent.filter { it.matchesLocalSearch(localSearchQuery) }
                     }
                 }
             BacklogListScreen(
@@ -287,7 +276,6 @@ fun GoalDetailContent(
                         ProjectOption(
                             id = context.id,
                             name = context.name,
-                            parentId = context.parentId,
                         )
                     }
             KeyProblemsView(

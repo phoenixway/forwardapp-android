@@ -384,8 +384,6 @@ private fun BacklogItem.toContextLinkItemContent(
                 id = presentation.id,
                 name = presentation.name,
                 description = presentation.description,
-                parentId = presentation.parentId,
-                order = presentation.order,
                 roleCode = presentation.roleCode,
                 tags = presentation.tags,
                 isCompleted = legacyProject?.isCompleted ?: false,

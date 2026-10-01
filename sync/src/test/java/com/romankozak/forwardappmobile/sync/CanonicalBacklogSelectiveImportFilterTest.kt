@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistSnapshot
@@ -45,7 +45,10 @@ class CanonicalBacklogSelectiveImportFilterTest {
 
         assertEquals(listOf("placement-a"), filtered.workspaceBacklogEntries?.map { it.id })
         assertTrue(filtered.workspaceBacklogEntries.orEmpty().isNotEmpty())
-        assertEquals(listOf("workspace-root", "workspace-owner"), filtered.workspaces?.map { it.id })
+        assertEquals(listOf("workspace-owner"), filtered.workspaces?.map { it.id })
+        val owner = requireNotNull(filtered.workspaces).single()
+        assertNull(owner.parentWorkspaceId)
+        assertEquals(0L, owner.workspaceOrder)
         assertEquals(listOf("backlog-owner"), filtered.workspaceCapabilityInstances?.map { it.id })
         assertEquals(listOf("checklist-1"), filtered.checklists.map { it.id })
         assertEquals(listOf("checklist-item"), filtered.checklistItems.map { it.id })
@@ -216,7 +219,7 @@ class CanonicalBacklogSelectiveImportFilterTest {
         )
 
     private fun workspace(id: String, parentId: String? = null) =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id, id, null, parentId, null, 0L, 1L, 2L, null, false, 1L,
             "CANONICAL_ONLY", null,
         )

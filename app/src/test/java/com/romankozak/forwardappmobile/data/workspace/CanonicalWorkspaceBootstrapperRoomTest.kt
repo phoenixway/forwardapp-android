@@ -9,6 +9,9 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
@@ -167,6 +170,74 @@ class CanonicalWorkspaceBootstrapperRoomTest {
     }
 
     @Test
+    fun `V2 bootstrap ignores Context reparent and order drift without changing Workspace or H1`() =
+        runBlocking {
+            val database = database()
+            try {
+                val parent = contextEntity("parent", "Parent", null, "management")
+                val child = contextEntity("child", "Child", parent.id, "development")
+                database.contextDao().insertContexts(listOf(parent, child))
+                val bootstrapper = bootstrapper(database)
+                bootstrapper.ensureBootstrapped(now = 10L)
+
+                val placements = CanonicalHierarchyPlacementRepository(database)
+                val parentPlacement =
+                    placements.createPrimaryAppearance(
+                        target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, parent.id),
+                        now = 11L,
+                    )
+                placements.createPrimaryAppearance(
+                    target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, child.id),
+                    parentPlacementId = parentPlacement,
+                    now = 12L,
+                )
+                val beforeWorkspaces = database.workspaceDao().getAll()
+                val beforeHierarchy = placements.getLiveHierarchy()
+
+                database.contextDao().update(
+                    child.copy(
+                        parentId = null,
+                        order = child.order + 9L,
+                        updatedAt = 20L,
+                        version = child.version + 1L,
+                    ),
+                )
+
+                val report = bootstrapper.ensureBootstrapped(now = 21L)
+
+                assertEquals(0, report.projectedWorkspaces)
+                assertEquals(beforeWorkspaces, database.workspaceDao().getAll())
+                assertEquals(beforeHierarchy, placements.getLiveHierarchy())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `V2 bootstrap ignores a new Context without creating Workspace or H1 placement`() =
+        runBlocking {
+            val database = database()
+            try {
+                val bootstrapper = bootstrapper(database)
+                database.contextDao().insertContexts(
+                    listOf(contextEntity("new-context", "New", null, "management")),
+                )
+                val beforeHierarchy = CanonicalHierarchyPlacementRepository(database).getLiveHierarchy()
+
+                val report = bootstrapper.ensureBootstrapped(now = 30L)
+
+                assertEquals(0, report.projectedWorkspaces)
+                assertNull(database.workspaceDao().getById("new-context"))
+                assertEquals(
+                    beforeHierarchy,
+                    CanonicalHierarchyPlacementRepository(database).getLiveHierarchy(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `projects Context hierarchy and effective capabilities without changing Context`() = runBlocking {
         val database = database()
         try {
@@ -188,7 +259,6 @@ class CanonicalWorkspaceBootstrapperRoomTest {
             assertTrue(first.performed)
             assertFalse(second.performed)
             assertEquals(parent.name, database.contextDao().getContextById(parent.id)?.name)
-            assertEquals(parent.id, database.workspaceDao().getById(child.id)?.parentWorkspaceId)
             assertEquals(child.name, database.workspaceDao().getById(child.id)?.nameOverride)
             val capabilities =
                 database.orientationDao().getAllWorkspaceCapabilities()
@@ -281,8 +351,6 @@ class CanonicalWorkspaceBootstrapperRoomTest {
             val initial = bootstrapper.ensureBootstrapped(now = 100L)
 
             assertEquals(2, initial.issues.count { it.code == "HIERARCHY_CYCLE" })
-            assertNull(database.workspaceDao().getById(first.id)?.parentWorkspaceId)
-            assertNull(database.workspaceDao().getById(second.id)?.parentWorkspaceId)
             assertEquals("second", database.contextDao().getContextById(first.id)?.parentId)
 
             database.contextDao().update(first.copy(name = "First updated", updatedAt = 200L, version = 2L))
@@ -491,9 +559,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                         id = "canonical-only",
                         nameOverride = "Canonical",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = null,
-                        workspaceOrder = 0L,
                         createdAt = 10L,
                         updatedAt = 10L,
                         syncedAt = null,
@@ -528,9 +594,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                         id = id,
                         nameOverride = "Canonical owner",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = null,
-                        workspaceOrder = 0L,
                         createdAt = 10L,
                         updatedAt = 10L,
                         syncedAt = null,
@@ -582,9 +646,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                         id = parentId,
                         nameOverride = "Canonical parent",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = null,
-                        workspaceOrder = 0L,
                         createdAt = 10L,
                         updatedAt = 10L,
                         syncedAt = null,
@@ -604,7 +666,6 @@ class CanonicalWorkspaceBootstrapperRoomTest {
 
             val report = bootstrapper(database).ensureBootstrapped(now = 200L)
 
-            assertNull(database.workspaceDao().getById(childId)?.parentWorkspaceId)
             assertTrue(
                 report.issues.any {
                     it.contextId == childId && it.code == "WORKSPACE_PARENT_COLLISION"
@@ -724,9 +785,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                             id = id,
                             nameOverride = "Canonical Inbox",
                             descriptionOverride = "Canonical metadata",
-                            parentWorkspaceId = null,
                             roleCode = "canonical-role",
-                            workspaceOrder = 42L,
                             createdAt = 5L,
                             updatedAt = 5L,
                             syncedAt = null,
@@ -748,7 +807,6 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                 assertEquals("Canonical Inbox", firstWorkspace.nameOverride)
                 assertEquals("Canonical metadata", firstWorkspace.descriptionOverride)
                 assertEquals("canonical-role", firstWorkspace.roleCode)
-                assertEquals(42L, firstWorkspace.workspaceOrder)
                 assertEquals(7L, firstWorkspace.version)
                 assertFalse(
                     first.issues.any {
@@ -814,7 +872,6 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                 assertEquals("Canonical Inbox", secondWorkspace.nameOverride)
                 assertEquals("Canonical metadata", secondWorkspace.descriptionOverride)
                 assertEquals("canonical-role", secondWorkspace.roleCode)
-                assertEquals(42L, secondWorkspace.workspaceOrder)
                 assertEquals(7L, secondWorkspace.version)
                 assertFalse(
                     second.issues.any {
@@ -856,9 +913,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                             id = id,
                             nameOverride = "Inbox",
                             descriptionOverride = null,
-                            parentWorkspaceId = null,
                             roleCode = null,
-                            workspaceOrder = 0L,
                             createdAt = 1L,
                             updatedAt = 2L,
                             syncedAt = null,
@@ -919,9 +974,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                         id = id,
                         nameOverride = "Inbox",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = null,
-                        workspaceOrder = 0L,
                         createdAt = 1L,
                         updatedAt = 2L,
                         syncedAt = null,
@@ -1111,9 +1164,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                         id = parentId,
                         nameOverride = "Canonical promoted parent",
                         descriptionOverride = null,
-                        parentWorkspaceId = null,
                         roleCode = "management",
-                        workspaceOrder = 0L,
                         createdAt = 5L,
                         updatedAt = 5L,
                         syncedAt = null,
@@ -1169,9 +1220,7 @@ class CanonicalWorkspaceBootstrapperRoomTest {
             id = id,
             nameOverride = id,
             descriptionOverride = null,
-            parentWorkspaceId = null,
             roleCode = null,
-            workspaceOrder = 0L,
             createdAt = 1L,
             updatedAt = 2L,
             syncedAt = null,

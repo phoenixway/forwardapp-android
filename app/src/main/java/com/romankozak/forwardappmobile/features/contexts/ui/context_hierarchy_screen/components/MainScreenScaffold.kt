@@ -79,7 +79,7 @@ fun ProjectHierarchyScreenScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onCloseScreen: () -> Unit,
-    onEditBeacon: (String) -> Unit = {},
+    onEditBeacon: (String, String?) -> Unit = { _, _ -> },
     onDeleteBeacon: (String) -> Unit = {},
     onAddMainBeacon: () -> Unit = {},
     onAddMainBeaconGroup: () -> Unit = {},

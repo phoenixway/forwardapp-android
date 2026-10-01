@@ -14,7 +14,7 @@ import javax.inject.Inject
  * identity or synthetic-scope assignment.
  */
 data class CanonicalV2HierarchyScreenMetadata(
-    val workspacePresentationsByTargetId: Map<String, HierarchyContextPresentationNode>,
+    val workspacePresentationsByTargetId: Map<String, CanonicalV2WorkspacePresentation>,
     val linkedBeaconIdsByWorkspaceTargetId: Map<String, Set<String>> = emptyMap(),
     val beaconsByPresentationId: Map<String, CanonicalV2HierarchyScreenBeaconMetadata> = emptyMap(),
     val groupsBySyntheticScopeId: Map<String, CanonicalV2HierarchyScreenGroupMetadata> = emptyMap(),
@@ -101,7 +101,7 @@ class CanonicalV2HierarchyScreenPresentationAdapter
                         "${presentation.id} != ${entry.presentationId}"
                 }
                 OrientationHierarchyNode.WorkspaceNode(
-                    presentation = presentation,
+                    presentation = presentation.toHierarchyPresentationNode(),
                     linkedBeaconIds =
                         metadata.linkedBeaconIdsByWorkspaceTargetId[entry.target.id].orEmpty(),
                     isLinkedAppearance = read.isLinkedAppearance(entry.placementId),

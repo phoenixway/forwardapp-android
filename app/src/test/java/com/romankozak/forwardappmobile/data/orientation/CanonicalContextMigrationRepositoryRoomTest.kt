@@ -17,6 +17,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
@@ -820,7 +823,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 WorkspaceProvenance.CONTEXT_BACKED.name,
                 initialChildWorkspace.provenance,
             )
-            assertEquals("parent", initialChildWorkspace.parentWorkspaceId)
 
             val childResult =
                 repository.migrateContext(
@@ -843,7 +845,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 canonicalChildWorkspace.provenance,
             )
             assertNull(canonicalChildWorkspace.sourceContextId)
-            assertEquals("parent", canonicalChildWorkspace.parentWorkspaceId)
 
             assertEquals(
                 WorkspaceProvenance.CONTEXT_BACKED.name,
@@ -862,10 +863,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
 
             val mixedReport = bootstrapper.ensureBootstrapped(now = 30L)
 
-            assertEquals(
-                "parent",
-                requireNotNull(database.workspaceDao().getById("child")).parentWorkspaceId,
-            )
             assertTrue(
                 mixedReport.issues.none {
                     it.contextId == "child" &&
@@ -900,7 +897,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 WorkspaceProvenance.CANONICAL_ONLY.name,
                 childAfterParentCutover.provenance,
             )
-            assertEquals("parent", childAfterParentCutover.parentWorkspaceId)
 
             assertNull(
                 requireNotNull(
@@ -910,10 +906,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
 
             val finalReport = bootstrapper.ensureBootstrapped(now = 50L)
 
-            assertEquals(
-                "parent",
-                requireNotNull(database.workspaceDao().getById("child")).parentWorkspaceId,
-            )
             assertTrue(
                 finalReport.issues.none {
                     (it.contextId == "child" || it.contextId == "parent") &&
@@ -1290,7 +1282,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
             assertEquals(capabilitiesBefore, database.orientationDao().getAllWorkspaceCapabilities().filter { it.workspaceId == "leaf" })
             val workspace = requireNotNull(database.workspaceDao().getById("leaf"))
             assertEquals(workspaceBefore.id, workspace.id)
-            assertEquals(workspaceBefore.parentWorkspaceId, workspace.parentWorkspaceId)
             assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, workspace.provenance)
             assertNull(workspace.sourceContextId)
             assertTrue(requireNotNull(database.contextDao().getContextById("leaf")).isDeleted)
@@ -1502,7 +1493,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
             assertTrue(requireNotNull(database.contextDao().getContextById("leaf")).isDeleted)
             val workspace = requireNotNull(database.workspaceDao().getById("leaf"))
             assertEquals(workspaceBefore.id, workspace.id)
-            assertEquals(workspaceBefore.parentWorkspaceId, workspace.parentWorkspaceId)
             assertFalse(workspace.isDeleted)
             assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, workspace.provenance)
             assertNull(workspace.sourceContextId)
@@ -1529,6 +1519,95 @@ class CanonicalContextMigrationRepositoryRoomTest {
             database.close()
         }
     }
+
+    @Test
+    fun `V2 new Aspect cutover preserves exact H1 occurrences over legacy topology`() =
+        runBlocking {
+            assertV2SemanticCutoverPreservesH1 {
+                ContextMigrationTarget.NewAspectWithExistingWorkspace(
+                    titleOverride = "Canonical aspect",
+                )
+            }
+        }
+
+    @Test
+    fun `V2 existing Aspect adoption preserves exact H1 occurrences over legacy topology`() =
+        runBlocking {
+            assertV2SemanticCutoverPreservesH1 { database ->
+                val aspectId =
+                    CanonicalAspectRepository(
+                        database,
+                        database.orientationDao(),
+                        HierarchyPlacementLifecycleCoordinator(database),
+                    ).create(
+                        title = "Independent Aspect",
+                        description = "Keep existing semantics",
+                        now = 15L,
+                    )
+                ContextMigrationTarget.ExistingAspectWithExistingWorkspace(aspectId)
+            }
+        }
+
+    @Test
+    fun `V2 new Orientation cutover preserves exact H1 occurrences over legacy topology`() =
+        runBlocking {
+            assertV2SemanticCutoverPreservesH1 {
+                ContextMigrationTarget.NewOrientationWithExistingWorkspace(
+                    kind = OrientationKind.ONGOING_STANDARD,
+                    titleOverride = "Canonical standard",
+                )
+            }
+        }
+
+    @Test
+    fun `V2 existing Orientation adoption preserves exact H1 occurrences over legacy topology`() =
+        runBlocking {
+            assertV2SemanticCutoverPreservesH1 { database ->
+                val orientationId =
+                    createExistingOrientation(
+                        database = database,
+                        id = "independent-orientation",
+                        kind = OrientationKind.GOAL,
+                        now = 15L,
+                    )
+                ContextMigrationTarget.ExistingOrientationWithExistingWorkspace(orientationId)
+            }
+        }
+
+    @Test
+    fun `V2 Workspace-only cutover preserves established H1 over differing legacy parent and order`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.contextDao().insert(context("leaf"))
+                val bootstrapper = bootstrapper(database)
+                bootstrapper.ensureBootstrapped(now = 10L)
+
+                val workspaceBefore = requireNotNull(database.workspaceDao().getById("leaf"))
+                val placements = CanonicalHierarchyPlacementRepository(database)
+                placements.createPrimaryAppearance(
+                    target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "leaf"),
+                    now = 12L,
+                )
+                val hierarchyBefore = placements.getLiveHierarchy()
+
+                val result =
+                    repository(database, bootstrapper).migrateContext(
+                        contextId = "leaf",
+                        target = ContextMigrationTarget.WorkspaceOnly,
+                        now = 20L,
+                    )
+
+                assertTrue(result.changed)
+                assertTrue(requireNotNull(database.contextDao().getContextById("leaf")).isDeleted)
+                val workspaceAfter = requireNotNull(database.workspaceDao().getById("leaf"))
+                assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, workspaceAfter.provenance)
+                assertNull(workspaceAfter.sourceContextId)
+                assertEquals(hierarchyBefore, placements.getLiveHierarchy())
+            } finally {
+                database.close()
+            }
+        }
 
     @Test
     fun `Workspace-only cutover materializes Context presentation without replacing Workspace overrides`() = runBlocking {
@@ -1870,6 +1949,102 @@ class CanonicalContextMigrationRepositoryRoomTest {
         }
     }
 
+    private suspend fun assertV2SemanticCutoverPreservesH1(
+        targetFactory: suspend (AppDatabase) -> ContextMigrationTarget,
+    ) {
+        val database = database()
+        try {
+            val legacyParentId = "legacy-parent"
+            val canonicalParentId = "canonical-parent"
+            val leafId = "leaf"
+            database.contextDao().insert(context(legacyParentId))
+            database.contextDao().insert(
+                context(leafId, parentId = legacyParentId).copy(order = 77L),
+            )
+            val bootstrapper = bootstrapper(database)
+            bootstrapper.ensureBootstrapped(now = 10L)
+
+            val workspaceBefore = requireNotNull(database.workspaceDao().getById(leafId))
+            database.workspaceDao().upsert(
+                listOf(
+                    workspaceBefore.copy(
+                        id = canonicalParentId,
+                        provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                        sourceContextId = null,
+                    ),
+                ),
+            )
+
+            val placements = CanonicalHierarchyPlacementRepository(database)
+            val canonicalParentPlacement =
+                placements.createPrimaryAppearance(
+                    target = HierarchyTargetRef(
+                        HierarchyTargetType.WORKSPACE,
+                        canonicalParentId,
+                    ),
+                    now = 11L,
+                )
+            val leafPlacement =
+                placements.createPrimaryAppearance(
+                    target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, leafId),
+                    parentPlacementId = canonicalParentPlacement,
+                    now = 12L,
+                )
+            val target = targetFactory(database)
+            val hierarchyBefore = database.hierarchyPlacementDao().getAll()
+            assertEquals(2, hierarchyBefore.size)
+            assertEquals(
+                canonicalParentPlacement.value,
+                requireNotNull(
+                    database.hierarchyPlacementDao().getById(leafPlacement.value),
+                ).parentPlacementId,
+            )
+
+            val result =
+                repository(database, bootstrapper).migrateContext(
+                    contextId = leafId,
+                    target = target,
+                    now = 20L,
+                )
+
+            assertTrue(result.changed)
+            assertEquals(leafId, result.workspaceId)
+            assertTrue(requireNotNull(database.contextDao().getContextById(leafId)).isDeleted)
+            val workspaceAfter = requireNotNull(database.workspaceDao().getById(leafId))
+            assertEquals(WorkspaceProvenance.CANONICAL_ONLY.name, workspaceAfter.provenance)
+            assertNull(workspaceAfter.sourceContextId)
+            assertEquals(leafId, workspaceAfter.nameOverride)
+            assertEquals(
+                LegacySubjectMappingState.CUT_OVER.name,
+                requireNotNull(
+                    database.orientationDao().getLegacyMapping(
+                        LegacyOrientationSourceType.CONTEXT.name,
+                        leafId,
+                    ),
+                ).state,
+            )
+            assertEquals(
+                1,
+                database.orientationDao().getAllWorkspaceBindings().count {
+                    !it.isDeleted &&
+                        it.workspaceId == leafId &&
+                        it.subjectId == result.subjectId &&
+                        it.bindingType == WorkspaceBindingType.EMBODIES.name &&
+                        it.isPrimary
+                },
+            )
+            assertEquals(hierarchyBefore, database.hierarchyPlacementDao().getAll())
+            assertEquals(
+                canonicalParentPlacement.value,
+                requireNotNull(
+                    database.hierarchyPlacementDao().getById(leafPlacement.value),
+                ).parentPlacementId,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
     private fun repository(
         database: AppDatabase,
         bootstrapper: CanonicalWorkspaceBootstrapper,
@@ -1986,10 +2161,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                     childBefore.provenance,
                 )
                 assertNull(childBefore.sourceContextId)
-                assertEquals(
-                    canonicalSystemParentId,
-                    childBefore.parentWorkspaceId,
-                )
 
                 val result =
                     repository.migrateContext(
@@ -2032,10 +2203,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                     requireNotNull(database.workspaceDao().getById(systemChildId))
 
                 assertEquals(childBefore, childAfterBootstrap)
-                assertEquals(
-                    canonicalSystemParentId,
-                    childAfterBootstrap.parentWorkspaceId,
-                )
                 assertTrue(
                     report.issues.none {
                         it.contextId == systemChildId &&
@@ -2077,7 +2244,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 val childWorkspace =
                     requireNotNull(database.workspaceDao().getById("child"))
 
-                assertNull(childWorkspace.parentWorkspaceId)
                 assertTrue(
                     report.issues.any {
                         it.contextId == "child" &&
@@ -2154,10 +2320,6 @@ class CanonicalContextMigrationRepositoryRoomTest {
                 val childAfterCutover =
                     requireNotNull(database.workspaceDao().getById(systemChildId))
                 assertEquals(childBefore, childAfterCutover)
-                assertEquals(
-                    canonicalSystemParentId,
-                    childAfterCutover.parentWorkspaceId,
-                )
 
                 val report = bootstrapper.ensureBootstrapped(now = 30L)
                 val childAfterBootstrap =
@@ -2187,9 +2349,7 @@ class CanonicalContextMigrationRepositoryRoomTest {
                     id = id,
                     nameOverride = name,
                     descriptionOverride = null,
-                    parentWorkspaceId = parentId,
                     roleCode = null,
-                    workspaceOrder = 0L,
                     createdAt = 1L,
                     updatedAt = 1L,
                     syncedAt = null,

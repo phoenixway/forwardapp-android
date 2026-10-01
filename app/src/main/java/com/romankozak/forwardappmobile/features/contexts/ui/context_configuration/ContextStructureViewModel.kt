@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInbo
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.domain.structure.PresetParentOccurrenceRequiredException
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -156,12 +157,13 @@ class ProjectStructureViewModel
         fun applyPreset(code: String) {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
-                structurePresetService.applyPresetToContext(projectId, code)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        basePresetCode = code,
-                    )
+                try {
+                    structurePresetService.applyPresetToContext(projectId, code)
+                    _uiState.update { it.copy(basePresetCode = code) }
+                } catch (error: PresetParentOccurrenceRequiredException) {
+                    _uiState.update { it.copy(message = error.message) }
+                } finally {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }
@@ -169,8 +171,13 @@ class ProjectStructureViewModel
         fun applyStructure() {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
-                structurePresetService.applyContextStructure(projectId)
-                _uiState.update { it.copy(isLoading = false) }
+                try {
+                    structurePresetService.applyContextStructure(projectId)
+                } catch (error: PresetParentOccurrenceRequiredException) {
+                    _uiState.update { it.copy(message = error.message) }
+                } finally {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
             }
         }
 
@@ -179,9 +186,20 @@ class ProjectStructureViewModel
             enabled: Boolean,
         ) {
             viewModelScope.launch {
-                contextStructureRepository.setItemEnabled(item, enabled)
-                if (enabled) {
-                    structurePresetService.applyContextStructure(projectId)
+                try {
+                    if (enabled) {
+                        structurePresetService.requireTargetOnlyStructureSupported(
+                            contextId = projectId,
+                            prospectiveSubcontext = item.entityType.equals("SUBCONTEXT", ignoreCase = true),
+                        )
+                    }
+                    contextStructureRepository.setItemEnabled(item, enabled)
+                    if (enabled) {
+                        structurePresetService.applyContextStructure(projectId)
+                    }
+                    _uiState.update { it.copy(message = null) }
+                } catch (error: PresetParentOccurrenceRequiredException) {
+                    _uiState.update { it.copy(message = error.message) }
                 }
             }
         }
@@ -194,20 +212,29 @@ class ProjectStructureViewModel
             mandatory: Boolean,
         ) {
             viewModelScope.launch {
-                val structure = contextStructureRepository.ensureStructure(projectId)
-                val newItem =
-                    ContextStructureItem(
-                        id = UUID.randomUUID().toString(),
-                        contextStructureId = structure.id,
-                        entityType = entityType,
-                        roleCode = roleCode,
-                        containerType = containerType,
-                        title = title,
-                        mandatory = mandatory,
-                        isEnabled = true,
+                try {
+                    structurePresetService.requireTargetOnlyStructureSupported(
+                        contextId = projectId,
+                        prospectiveSubcontext = entityType.equals("SUBCONTEXT", ignoreCase = true),
                     )
-                contextStructureRepository.addOrUpdateItem(structure.id, newItem)
-                structurePresetService.applyContextStructure(projectId)
+                    val structure = contextStructureRepository.ensureStructure(projectId)
+                    val newItem =
+                        ContextStructureItem(
+                            id = UUID.randomUUID().toString(),
+                            contextStructureId = structure.id,
+                            entityType = entityType,
+                            roleCode = roleCode,
+                            containerType = containerType,
+                            title = title,
+                            mandatory = mandatory,
+                            isEnabled = true,
+                        )
+                    contextStructureRepository.addOrUpdateItem(structure.id, newItem)
+                    structurePresetService.applyContextStructure(projectId)
+                    _uiState.update { it.copy(message = null) }
+                } catch (error: PresetParentOccurrenceRequiredException) {
+                    _uiState.update { it.copy(message = error.message) }
+                }
             }
         }
 

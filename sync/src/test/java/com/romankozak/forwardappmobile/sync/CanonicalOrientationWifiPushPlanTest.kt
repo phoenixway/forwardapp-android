@@ -2,12 +2,12 @@ package com.romankozak.forwardappmobile.sync
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -62,13 +62,13 @@ class CanonicalOrientationWifiPushPlanTest {
     @Test
     fun `dirty Workspace participates in atomic delta and exact acknowledgement`() {
         val workspace =
-            WorkspaceEntity(
+            WorkspaceSnapshot(
                 id = "workspace",
                 nameOverride = "Engineering",
                 descriptionOverride = null,
-                parentWorkspaceId = null,
+                parentWorkspaceId = "legacy-parent",
                 roleCode = "aspect",
-                workspaceOrder = 0L,
+                workspaceOrder = 17L,
                 createdAt = 10L,
                 updatedAt = 20L,
                 syncedAt = null,
@@ -85,7 +85,10 @@ class CanonicalOrientationWifiPushPlanTest {
                 dirtyCanonicalOrientations = dirty,
             )
 
-        assertEquals(listOf(workspace), plan.snapshotDelta.workspaces)
+        val transported = requireNotNull(plan.snapshotDelta.workspaces).single()
+        assertEquals(workspace.id, transported.id)
+        assertEquals(null, transported.parentWorkspaceId)
+        assertEquals(0L, transported.workspaceOrder)
         assertEquals("workspace", plan.orientationsAck.workspaces.single().id)
         assertEquals(4L, plan.orientationsAck.workspaces.single().version)
     }
@@ -156,7 +159,7 @@ class CanonicalOrientationWifiPushPlanTest {
     @Test
     fun `canonical execution log carries full orientation dependency without acknowledging it`() {
         val workspace =
-            WorkspaceEntity(
+            WorkspaceSnapshot(
                 id = "workspace",
                 nameOverride = "Canonical workspace",
                 descriptionOverride = null,
@@ -219,7 +222,7 @@ class CanonicalOrientationWifiPushPlanTest {
     @Test
     fun `canonical Direction entry carries full orientation dependency and exact acknowledgement`() {
         val workspace =
-            WorkspaceEntity(
+            WorkspaceSnapshot(
                 id = "workspace",
                 nameOverride = "Canonical workspace",
                 descriptionOverride = null,
@@ -283,7 +286,7 @@ class CanonicalOrientationWifiPushPlanTest {
         )
 
     private fun workspace() =
-        WorkspaceEntity(
+        WorkspaceSnapshot(
             id = "workspace",
             nameOverride = "Canonical workspace",
             descriptionOverride = null,
@@ -299,7 +302,7 @@ class CanonicalOrientationWifiPushPlanTest {
             sourceContextId = null,
         )
 
-    private fun canonicalWorkspaceSnapshot(workspace: WorkspaceEntity) =
+    private fun canonicalWorkspaceSnapshot(workspace: WorkspaceSnapshot) =
         SnapshotBundle(
             managedSubjects = emptyList(),
             orientations = emptyList(),

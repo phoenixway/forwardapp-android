@@ -10,6 +10,7 @@ import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,14 +29,16 @@ class ProductionCopy167To168WorkspaceTagsTest {
 
     @Test
     fun `production schema 167 migrates to 169 without changing System ownership`() {
-        val sourcePath =
-            requireNotNull(System.getenv("FORWARDAPP_PRODUCTION_DB_FILE")) {
-                "FORWARDAPP_PRODUCTION_DB_FILE is required"
-            }
-        val source = File(sourcePath)
-        require(source.isFile) {
-            "Production-copy database does not exist: ${source.absolutePath}"
-        }
+        val sourcePath = System.getenv("FORWARDAPP_PRODUCTION_DB_FILE")
+        assumeTrue(
+            "FORWARDAPP_PRODUCTION_DB_FILE is required for production-copy acceptance",
+            !sourcePath.isNullOrBlank(),
+        )
+        val source = File(requireNotNull(sourcePath))
+        assumeTrue(
+            "Production-copy database does not exist: ${source.absolutePath}",
+            source.isFile,
+        )
 
         val dbName = "production_copy_167_168_workspace_tags"
         context.deleteDatabase(dbName)

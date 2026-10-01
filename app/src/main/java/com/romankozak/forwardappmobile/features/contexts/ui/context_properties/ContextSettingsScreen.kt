@@ -104,6 +104,9 @@ fun ProjectSettingsScreen(
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
             when (event) {
+                is ContextSettingsEvent.ShowMessage -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
                 is ContextSettingsEvent.NavigateBack -> {
                     event.message?.let {
                         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()

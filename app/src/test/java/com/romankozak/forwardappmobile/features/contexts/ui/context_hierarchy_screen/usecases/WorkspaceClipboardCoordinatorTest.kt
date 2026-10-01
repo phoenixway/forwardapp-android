@@ -2,9 +2,15 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -35,27 +41,28 @@ class WorkspaceClipboardCoordinatorTest {
     }
 
     @Test
-    fun `cut stores canonical Workspace ids and CUT intent`() {
+    fun `target-only bulk CUT fails closed without mutating clipboard`() {
         val result = coordinator.cutWorkspaces(linkedSetOf("alpha", "beta"))
 
-        assertTrue(result.success)
-        assertEquals(linkedSetOf("alpha", "beta"), coordinator.uiState.value.first)
-        assertEquals(ContextClipboardOperationUi.CUT, coordinator.uiState.value.second)
+        assertFalse(result.success)
+        assertTrue(coordinator.uiState.value.first.isEmpty())
+        assertNull(coordinator.uiState.value.second)
     }
 
     @Test
     fun `successful CUT paste clears payload`() =
         runTest {
-            coordinator.cutWorkspace("source")
+            coordinator.cutWorkspace("source", occurrence("source", "source-placement"))
             coEvery {
-                repository.moveMany(
-                    ids = any(),
-                    newParentWorkspaceId = "target",
+                repository.moveV2Occurrences(
+                    sourcePlacementsByWorkspaceId = any(),
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
                     now = any(),
                 )
             } returns listOf("source")
 
-            val result = coordinator.pasteInto("target")
+            val result = coordinator.pasteInto("target", occurrence("target", "target-placement"))
 
             assertTrue(result.success)
             assertTrue(coordinator.uiState.value.first.isEmpty())
@@ -65,16 +72,17 @@ class WorkspaceClipboardCoordinatorTest {
     @Test
     fun `failed CUT paste retains payload`() =
         runTest {
-            coordinator.cutWorkspace("source")
+            coordinator.cutWorkspace("source", occurrence("source", "source-placement"))
             coEvery {
-                repository.moveMany(
-                    ids = any(),
-                    newParentWorkspaceId = "target",
+                repository.moveV2Occurrences(
+                    sourcePlacementsByWorkspaceId = any(),
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
                     now = any(),
                 )
             } throws IllegalArgumentException("cycle")
 
-            val result = coordinator.pasteInto("target")
+            val result = coordinator.pasteInto("target", occurrence("target", "target-placement"))
 
             assertFalse(result.success)
             assertEquals(setOf("source"), coordinator.uiState.value.first)
@@ -86,14 +94,15 @@ class WorkspaceClipboardCoordinatorTest {
         runTest {
             coordinator.copyWorkspace("source")
             coEvery {
-                repository.copyManyShallow(
+                repository.copyV2WorkspacesShallow(
                     ids = any(),
-                    targetParentWorkspaceId = "target",
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
                     now = any(),
                 )
             } returns listOf("copy-id")
 
-            val result = coordinator.pasteInto("target")
+            val result = coordinator.pasteInto("target", occurrence("target", "target-placement"))
 
             assertTrue(result.success)
             assertEquals(setOf("source"), coordinator.uiState.value.first)
@@ -121,7 +130,7 @@ class WorkspaceClipboardCoordinatorTest {
     @Test
     fun `CUT paste into Main Beacon moves appearance and consumes payload`() =
         runTest {
-            coordinator.cutWorkspace("source")
+            coordinator.cutWorkspace("source", occurrence("source", "source-placement"))
             coEvery {
                 mainBeaconRepository.moveRelatedContextsToBeacon(
                     beaconId = "beacon",
@@ -141,16 +150,17 @@ class WorkspaceClipboardCoordinatorTest {
         runTest {
             coordinator.copyWorkspace("source")
             coEvery {
-                repository.copyManyShallow(
+                repository.copyV2WorkspacesShallow(
                     ids = any(),
-                    targetParentWorkspaceId = "target",
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
                     now = any(),
                 )
             } throws CancellationException("cancelled")
 
             var cancellation: CancellationException? = null
             try {
-                coordinator.pasteInto("target")
+                coordinator.pasteInto("target", occurrence("target", "target-placement"))
             } catch (error: CancellationException) {
                 cancellation = error
             }
@@ -166,11 +176,12 @@ class WorkspaceClipboardCoordinatorTest {
             val repositoryEntered = CompletableDeferred<Unit>()
             val releaseRepository = CompletableDeferred<Unit>()
 
-            coordinator.cutWorkspace("old-source")
+            coordinator.cutWorkspace("old-source", occurrence("old-source", "old-placement"))
             coEvery {
-                repository.moveMany(
-                    ids = any(),
-                    newParentWorkspaceId = "target",
+                repository.moveV2Occurrences(
+                    sourcePlacementsByWorkspaceId = any(),
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
                     now = any(),
                 )
             } coAnswers {
@@ -179,7 +190,7 @@ class WorkspaceClipboardCoordinatorTest {
                 listOf("old-source")
             }
 
-            val paste = async { coordinator.pasteInto("target") }
+            val paste = async { coordinator.pasteInto("target", occurrence("target", "target-placement")) }
 
             repositoryEntered.await()
             coordinator.copyWorkspace("new-source")
@@ -190,6 +201,64 @@ class WorkspaceClipboardCoordinatorTest {
             assertTrue(result.success)
             assertEquals(setOf("new-source"), coordinator.uiState.value.first)
             assertEquals(ContextClipboardOperationUi.COPY, coordinator.uiState.value.second)
+        }
+
+    @Test
+    fun `copyWorkspaceInto uses exact destination occurrence`() =
+        runTest {
+            coEvery {
+                repository.copyV2WorkspacesShallow(
+                    ids = setOf("source"),
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
+                    now = any(),
+                )
+            } returns listOf("copy-id")
+
+            val result =
+                coordinator.copyWorkspaceInto(
+                    sourceId = "source",
+                    targetId = "target",
+                    destinationOccurrence = occurrence("target", "target-placement"),
+                )
+
+            assertTrue(result.success)
+            coVerify(exactly = 1) {
+                repository.copyV2WorkspacesShallow(
+                    ids = setOf("source"),
+                    targetWorkspaceId = "target",
+                    targetPlacementId = PlacementId("target-placement"),
+                    now = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `copyWorkspaceInto rejects missing or mismatched destination before repository write`() =
+        runTest {
+            val missing =
+                coordinator.copyWorkspaceInto(
+                    sourceId = "source",
+                    targetId = "target",
+                    destinationOccurrence = null,
+                )
+            val mismatched =
+                coordinator.copyWorkspaceInto(
+                    sourceId = "source",
+                    targetId = "target",
+                    destinationOccurrence = occurrence("other", "other-placement"),
+                )
+
+            assertFalse(missing.success)
+            assertFalse(mismatched.success)
+            coVerify(exactly = 0) {
+                repository.copyV2WorkspacesShallow(
+                    ids = any(),
+                    targetWorkspaceId = any(),
+                    targetPlacementId = any(),
+                    now = any(),
+                )
+            }
         }
 
     @Test
@@ -213,5 +282,15 @@ class WorkspaceClipboardCoordinatorTest {
 
         assertTrue(coordinator.canPasteInto(SystemContexts.INBOX.raw))
     }
+
+    private fun occurrence(
+        workspaceId: String,
+        placementId: String,
+    ): HierarchyOccurrenceRef =
+        mockk<HierarchyOccurrenceRef> {
+            every { target } returns
+                HierarchyTargetRef(HierarchyTargetType.WORKSPACE, workspaceId)
+            every { this@mockk.placementId } returns PlacementId(placementId)
+        }
 
 }

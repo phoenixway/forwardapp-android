@@ -92,21 +92,21 @@ class CanonicalV1HierarchySnapshotParityTest {
 
         val h2 =
             CanonicalV1HierarchySnapshotBuilder().build(
-                CanonicalV1HierarchySnapshotInput(
+                CanonicalHierarchyEstablishmentInput(
                     workspaces =
                         presentations.mapIndexed { index, it ->
-                            CanonicalV1WorkspaceSnapshotInput(
+                            CanonicalHierarchyEstablishmentWorkspaceInput(
                                 id = it.id,
                                 name = it.name,
-                                parentWorkspaceId = it.parentId,
+                                canonicalParentId = it.parentId,
                                 order = it.order,
                                 sourceOrdinal = index,
                             )
                         },
                     beacons =
                         currentBeacons.mapIndexed { index, it ->
-                            CanonicalV1BeaconSnapshotInput(
-                                legacyBeaconId = it.id,
+                            CanonicalHierarchyEstablishmentBeaconInput(
+                                sourceId = it.id,
                                 target =
                                     HierarchyTargetRef(
                                         HierarchyTargetType.MANAGED_SUBJECT,
@@ -114,8 +114,8 @@ class CanonicalV1HierarchySnapshotParityTest {
                                     ),
                                 title = it.title,
                                 order = it.order,
-                                parentBeaconId = it.parentBeaconId,
-                                relatedOwnerIds = it.relatedOwnerIds,
+                                canonicalParentSourceId = it.parentBeaconId,
+                                operationalOwnerWorkspaceIds = it.relatedOwnerIds,
                                 groupIds = it.groupIds,
                                 groupOrders = it.groupOrders,
                                 sourceOrdinal = index,
@@ -123,28 +123,28 @@ class CanonicalV1HierarchySnapshotParityTest {
                         },
                     groups =
                         groups.mapIndexed { index, it ->
-                            CanonicalV1BeaconGroupSnapshotInput(
-                                id = it.id,
+                            CanonicalHierarchyEstablishmentGroupInput(
+                                sourceId = it.id,
                                 title = it.title,
                                 order = it.order,
                                 canonicalSubjectId = "test-group-subject:${it.id}",
                                 sourceOrdinal = index,
                             )
                         },
-                    contextParentLinks =
+                    additionalWorkspaceRoutes =
                         contextLinks.mapIndexed { index, it ->
-                            CanonicalV1ContextParentLinkSnapshotInput(
+                            CanonicalHierarchyEstablishmentAdditionalWorkspaceRoute(
                                 parentWorkspaceId = it.parentContextId,
                                 childWorkspaceId = it.childContextId,
                                 order = it.order,
                                 sourceOrdinal = index,
                             )
                         },
-                    beaconParentLinks =
+                    additionalBeaconRoutes =
                         beaconLinks.mapIndexed { index, it ->
-                            CanonicalV1BeaconParentLinkSnapshotInput(
-                                parentBeaconId = it.parentBeaconId,
-                                childBeaconId = it.childBeaconId,
+                            CanonicalHierarchyEstablishmentAdditionalBeaconRoute(
+                                parentSourceId = it.parentBeaconId,
+                                childSourceId = it.childBeaconId,
                                 order = it.order,
                                 sourceOrdinal = index,
                             )
@@ -180,9 +180,7 @@ class CanonicalV1HierarchySnapshotParityTest {
         id = id,
         nameOverride = id,
         descriptionOverride = null,
-        parentWorkspaceId = parentId,
         roleCode = null,
-        workspaceOrder = order,
         createdAt = 1L,
         updatedAt = 1L,
         syncedAt = null,

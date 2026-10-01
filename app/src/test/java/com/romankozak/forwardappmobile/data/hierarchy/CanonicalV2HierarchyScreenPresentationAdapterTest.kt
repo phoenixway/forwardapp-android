@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
@@ -26,12 +25,10 @@ class CanonicalV2HierarchyScreenPresentationAdapterTest {
                 id = "shared",
             )
         val presentation =
-            HierarchyContextPresentationNode(
+            CanonicalV2WorkspacePresentation(
                 id = "shared",
                 name = "Shared",
                 description = null,
-                parentId = "legacy-parent-must-not-shape-v2",
-                order = 999L,
                 roleCode = null,
                 tags = emptyList(),
             )

@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
@@ -53,9 +54,27 @@ import kotlinx.coroutines.launch
 private val CORE_TAGS = setOf("core", "main-beacons")
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 
+internal fun resolveCanonicalV2BeaconOccurrence(
+    occurrences: List<CanonicalV2CoreLevelOccurrence>,
+    beaconId: String,
+    placementId: String?,
+): CanonicalV2CoreLevelOccurrence? =
+    occurrences.singleOrNull {
+        it.beaconPresentationId == beaconId &&
+            (placementId == null || it.placementId.value == placementId)
+    }
+
+internal fun MainBeaconEditorState.matchesCanonicalV2Occurrence(
+    occurrence: CanonicalV2CoreLevelOccurrence,
+): Boolean =
+    placementId == occurrence.placementId.value &&
+        parentPlacementId == occurrence.parentPlacementId?.value &&
+        parentBeaconId == occurrence.parentBeaconPresentationId
+
 private fun MainBeaconWithRelations.toCoreLevelCard(
     placementId: String? = null,
     parentPlacementId: String? = null,
+    parentBeaconPresentationId: String? = null,
     structuralGroupId: String? = null,
 ): MainBeaconCardUi {
     val compactSummary = deriveMainBeaconCompactCardSummary(levelStatuses)
@@ -69,10 +88,10 @@ private fun MainBeaconWithRelations.toCoreLevelCard(
         nextRequiredAction = compactSummary.nextRequiredAction,
         relatedContextIds = relatedOwnerIds,
         relatedAttachmentIds = relatedAttachments.map { it.id },
-        // Legacy Group/parent metadata remains available to editor/operational
-        // surfaces. Structural CoreLevel rendering uses the occurrence fields below.
+        // Group membership remains semantic. Under V2, parent presentation and
+        // structure both come from the exact H1 occurrence, never MainBeacon fields.
         groupIds = groupIds,
-        parentBeaconId = beacon.parentBeaconId,
+        parentPresentationId = parentBeaconPresentationId,
         isExpanded = beacon.isExpanded,
         placementId = placementId,
         parentPlacementId = parentPlacementId,
@@ -199,6 +218,7 @@ class CoreLevelViewModel
                                 details.toCoreLevelCard(
                                     placementId = occurrence.placementId.value,
                                     parentPlacementId = occurrence.parentPlacementId?.value,
+                                    parentBeaconPresentationId = occurrence.parentBeaconPresentationId,
                                     structuralGroupId = occurrence.groupPresentationId,
                                 )
                             }
@@ -244,10 +264,23 @@ class CoreLevelViewModel
                 .launchIn(viewModelScope)
         }
 
-        fun buildEditorState(beaconId: String?): MainBeaconEditorState {
+        fun buildEditorState(
+            beaconId: String?,
+            placementId: String? = null,
+        ): MainBeaconEditorState {
             val details = beaconId?.let { id ->
                 mainBeaconDetails.value.firstOrNull { it.beacon.id == id }
             }
+            val occurrence =
+                if (beaconId == null) {
+                    null
+                } else {
+                    resolveCanonicalV2BeaconOccurrence(
+                        occurrences = coreLevelOccurrences.value,
+                        beaconId = beaconId,
+                        placementId = placementId,
+                    )
+                }
             return when {
                 beaconId == null ->
                     MainBeaconEditorState(
@@ -261,9 +294,11 @@ class CoreLevelViewModel
                         },
                     )
                 details == null -> MainBeaconEditorState()
+                occurrence == null -> MainBeaconEditorState()
                 else ->
                     MainBeaconEditorState(
                         id = details.beacon.id,
+                        placementId = occurrence.placementId.value,
                         title = details.beacon.title,
                         description = details.beacon.description.orEmpty(),
                         whyItMatters = details.beacon.whyItMatters.orEmpty(),
@@ -279,7 +314,8 @@ class CoreLevelViewModel
                         relatedAttachmentIds =
                             details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
                         groupIds = details.groupIds.toSet(),
-                        parentBeaconId = details.beacon.parentBeaconId,
+                        parentBeaconId = occurrence.parentBeaconPresentationId,
+                        parentPlacementId = occurrence.parentPlacementId?.value,
                         levelStatuses = details.levelStatuses.map { it.toEditorState() },
                         createdAt = details.beacon.createdAt,
                         updatedAt = details.beacon.updatedAt,
@@ -298,7 +334,23 @@ class CoreLevelViewModel
                         mainBeaconDetails.value.firstOrNull { it.beacon.id == id }?.beacon
                     }
                 val beaconId = existing?.id ?: editor.id ?: UUID.randomUUID().toString()
-                val parentBeaconId = normalizedParentBeaconId(beaconId, editor.parentBeaconId)
+                if (existing == null &&
+                    ((editor.parentBeaconId == null) != (editor.parentPlacementId == null))
+                ) {
+                    return@launch
+                }
+                val existingOccurrence =
+                    if (existing != null) {
+                        coreLevelOccurrences.value.singleOrNull {
+                            it.placementId.value == editor.placementId &&
+                                it.beaconPresentationId == existing.id
+                        } ?: return@launch
+                    } else {
+                        null
+                    }
+                if (existingOccurrence != null &&
+                    !editor.matchesCanonicalV2Occurrence(existingOccurrence)
+                ) return@launch
                 val beacon =
                     MainBeacon(
                         id = beaconId,
@@ -312,7 +364,8 @@ class CoreLevelViewModel
                         readinessStatus = editor.readinessStatus,
                         blockerText = editor.blockerText.trim().ifBlank { null },
                         nextActionText = editor.nextActionText.trim().ifBlank { null },
-                        parentBeaconId = parentBeaconId,
+                        // Exact parent presentation lives only on the
+                        // selected H1 occurrence; MainBeacon stores metadata.
                         order = existing?.order ?: 0L,
                         updatedAt = now,
                         createdAt = existing?.createdAt ?: now,
@@ -337,6 +390,8 @@ class CoreLevelViewModel
                         relatedAttachmentIds = editor.relatedAttachmentIds,
                         groupIds = editor.groupIds,
                         levelStatuses = levelStatuses,
+                        parentPlacementId = editor.parentPlacementId?.let(::PlacementId),
+                        parentBeaconId = editor.parentBeaconId,
                     )
                 } else {
                     mainBeaconRepository.updateBeacon(
@@ -348,24 +403,6 @@ class CoreLevelViewModel
                     )
                 }
             }
-        }
-
-        private fun normalizedParentBeaconId(
-            beaconId: String,
-            requestedParentId: String?,
-        ): String? {
-            val parentId = requestedParentId?.takeIf { it != beaconId }
-            val byId = mainBeaconDetails.value.associateBy { it.beacon.id }
-            var cursor = parentId
-            val visited = mutableSetOf<String>()
-            var createsCycle = parentId == null || parentId !in byId
-            while (cursor != null && visited.add(cursor)) {
-                if (cursor == beaconId) {
-                    createsCycle = true
-                }
-                cursor = byId[cursor]?.beacon?.parentBeaconId
-            }
-            return parentId.takeUnless { createsCycle }
         }
 
         fun createBeaconGroup(
@@ -402,12 +439,6 @@ class CoreLevelViewModel
         fun deleteBeacon(beaconId: String) {
             viewModelScope.launch {
                 mainBeaconRepository.deleteBeacon(beaconId)
-            }
-        }
-
-        fun reorderBeacons(beaconIdsInOrder: List<String>) {
-            viewModelScope.launch {
-                mainBeaconRepository.reorderBeacons(beaconIdsInOrder)
             }
         }
 

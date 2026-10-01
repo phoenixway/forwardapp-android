@@ -73,7 +73,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
@@ -82,6 +81,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 
 
 /**
@@ -91,6 +91,18 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 data class SnapshotBundle(
     @SerializedName(value = "snapshotVersion", alternate = ["version"])
     val version: Int = 1,
+
+    /**
+     * Explicit hierarchy wire-generation marker.
+     *
+     * null = historical shape-based payload; compatibility routing remains
+     * determined by presence/absence of the canonical hierarchy streams.
+     *
+     * CURRENT_HIERARCHY_FORMAT_VERSION = this payload carries the complete
+     * canonical hierarchy triplet: H1 + GroupScope + LinkedAppearance.
+     */
+    @SerializedName("hierarchyFormatVersion")
+    val hierarchyFormatVersion: Int? = null,
 
     @SerializedName("exportedAt")
     val exportedAt: Long = System.currentTimeMillis(),
@@ -177,7 +189,7 @@ data class SnapshotBundle(
     val orientationRelations: List<OrientationRelationEntity>? = null,
     @SerializedName("aspectOrientationRefs")
     val aspectOrientationRefs: List<AspectOrientationRefEntity>? = null,
-    @SerializedName("workspaces") val workspaces: List<WorkspaceEntity>? = null,
+    @SerializedName("workspaces") val workspaces: List<WorkspaceSnapshot>? = null,
     @SerializedName("workspaceBindings") val workspaceBindings: List<WorkspaceBindingEntity>? = null,
     @SerializedName("workspaceCapabilityInstances")
     val workspaceCapabilityInstances: List<WorkspaceCapabilityInstanceEntity>? = null,
@@ -221,3 +233,103 @@ data class SnapshotBundle(
     @SerializedName("focusContextIntervals") val focusContextIntervals: List<FocusContextIntervalSnapshot> = emptyList(),
     @SerializedName("userStateIntervals") val userStateIntervals: List<UserStateIntervalSnapshot> = emptyList(),
 )
+
+/**
+ * First explicitly versioned canonical hierarchy transport generation.
+ *
+ * Historical payloads have no hierarchyFormatVersion and continue through
+ * shape-based Restore compatibility.
+ */
+const val CURRENT_HIERARCHY_FORMAT_VERSION: Int = 1
+
+/**
+ * Product-level hierarchy backup generation classification.
+ *
+ * CURRENT_CANONICAL is the explicit post-B1 generation.
+ * HISTORICAL_CANONICAL is the marker-less but complete canonical generation
+ * retained as a long-term supported historical format.
+ *
+ * LEGACY_* generations remain supported during the bounded B2 transition
+ * window, but are deprecated compatibility inputs. Their exact Restore
+ * reconstruction semantics remain owned by the finite Restore translator.
+ */
+enum class HierarchyBackupGeneration {
+    CURRENT_CANONICAL,
+    HISTORICAL_CANONICAL,
+    LEGACY_PRE_V177,
+    LEGACY_EARLY_H1,
+    LEGACY_PRE_H1,
+    INVALID_CURRENT_FORMAT,
+    UNSUPPORTED_EXPLICIT_VERSION,
+}
+
+val HierarchyBackupGeneration.isDeprecatedLegacyCompatibility: Boolean
+    get() =
+        this == HierarchyBackupGeneration.LEGACY_PRE_V177 ||
+            this == HierarchyBackupGeneration.LEGACY_EARLY_H1 ||
+            this == HierarchyBackupGeneration.LEGACY_PRE_H1
+
+fun SnapshotBundle.classifyHierarchyBackupGeneration(): HierarchyBackupGeneration {
+    val explicitVersion = hierarchyFormatVersion
+    if (explicitVersion != null) {
+        if (explicitVersion != CURRENT_HIERARCHY_FORMAT_VERSION) {
+            return HierarchyBackupGeneration.UNSUPPORTED_EXPLICIT_VERSION
+        }
+        return if (hasCompleteCanonicalHierarchyTransport()) {
+            HierarchyBackupGeneration.CURRENT_CANONICAL
+        } else {
+            HierarchyBackupGeneration.INVALID_CURRENT_FORMAT
+        }
+    }
+
+    if (hasCompleteCanonicalHierarchyTransport()) {
+        return HierarchyBackupGeneration.HISTORICAL_CANONICAL
+    }
+
+    if (hierarchyPlacements == null) {
+        return HierarchyBackupGeneration.LEGACY_PRE_H1
+    }
+
+    if (hierarchyPlacementGroupScopes == null) {
+        return HierarchyBackupGeneration.LEGACY_EARLY_H1
+    }
+
+    return HierarchyBackupGeneration.LEGACY_PRE_V177
+}
+
+/**
+ * Enforces the explicit B1 hierarchy-generation contract.
+ *
+ * Marker-less historical canonical and deprecated legacy generations remain
+ * admitted by B2 policy. Explicit malformed-current and unknown explicit
+ * generations fail closed before Restore compatibility interpretation.
+ */
+fun SnapshotBundle.requireSupportedHierarchyFormat(): SnapshotBundle {
+    when (classifyHierarchyBackupGeneration()) {
+        HierarchyBackupGeneration.INVALID_CURRENT_FORMAT ->
+            throw IllegalArgumentException(
+                "Hierarchy format version $hierarchyFormatVersion requires complete H1, " +
+                    "GroupScope, and linked-appearance streams",
+            )
+
+        HierarchyBackupGeneration.UNSUPPORTED_EXPLICIT_VERSION ->
+            throw IllegalArgumentException(
+                "Unsupported hierarchy format version $hierarchyFormatVersion; " +
+                    "supported version is $CURRENT_HIERARCHY_FORMAT_VERSION",
+            )
+
+        HierarchyBackupGeneration.CURRENT_CANONICAL,
+        HierarchyBackupGeneration.HISTORICAL_CANONICAL,
+        HierarchyBackupGeneration.LEGACY_PRE_V177,
+        HierarchyBackupGeneration.LEGACY_EARLY_H1,
+        HierarchyBackupGeneration.LEGACY_PRE_H1,
+        -> Unit
+    }
+
+    return this
+}
+
+fun SnapshotBundle.hasCompleteCanonicalHierarchyTransport(): Boolean =
+    hierarchyPlacements != null &&
+        hierarchyPlacementGroupScopes != null &&
+        hierarchyPlacementLinkedAppearances != null

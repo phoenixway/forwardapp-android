@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.core.sync
 
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 
@@ -34,12 +35,17 @@ internal fun canonicalRetiredContextIds(
     }
 
 internal suspend fun AppDatabase.canonicalRetiredContextIds(
-    incomingWorkspaces: Iterable<WorkspaceEntity> = emptyList(),
+    incomingWorkspaces: Iterable<WorkspaceSnapshot> = emptyList(),
 ): Set<String> =
     canonicalRetiredContextIds(
         localWorkspaces = workspaceDao().getAll(),
-        incomingWorkspaces = incomingWorkspaces,
-    )
+    ) +
+        incomingWorkspaces
+            .filter {
+                it.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
+                    it.sourceContextId == null
+            }
+            .mapTo(linkedSetOf()) { it.id }
 
 internal suspend fun AppDatabase.isCanonicalRetiredContextId(id: String): Boolean =
     workspaceDao()

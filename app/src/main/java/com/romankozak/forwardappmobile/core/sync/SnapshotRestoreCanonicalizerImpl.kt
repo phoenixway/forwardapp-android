@@ -11,7 +11,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
+import com.romankozak.forwardappmobile.core.data.models.sync.classifyHierarchyBackupGeneration
+import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
+import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
@@ -65,14 +68,16 @@ class SnapshotRestoreCanonicalizerImpl
         override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle =
             canonicalize(
                 bundle = bundle,
-                hierarchyAuthorityMode =
-                    currentHierarchyPlacementAuthorityMode(),
+                hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         internal fun canonicalize(
             bundle: SnapshotBundle,
             hierarchyAuthorityMode: HierarchyPlacementAuthorityMode,
         ): SnapshotBundle {
+            val hierarchyBackupGeneration = bundle.classifyHierarchyBackupGeneration()
+            bundle.requireSupportedHierarchyFormat()
+
             val hasLegacyBacklog = bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty()
             val hasLegacyInbox = bundle.inbox.isNotEmpty()
             val hasLegacyInboxSorting = bundle.contextInboxSortingRules.isNotEmpty()
@@ -99,6 +104,7 @@ class SnapshotRestoreCanonicalizerImpl
                     source = bundle,
                     canonical = bundle,
                     authorityMode = hierarchyAuthorityMode,
+                    hierarchyBackupGeneration = hierarchyBackupGeneration,
                 )
             }
             require(bundle.workspaces == null) {
@@ -126,9 +132,7 @@ class SnapshotRestoreCanonicalizerImpl
                         id = context.id,
                         nameOverride = context.name,
                         descriptionOverride = context.description,
-                        parentWorkspaceId = parentById[context.id],
                         roleCode = context.roleCode,
-                        workspaceOrder = context.order.toLong(),
                         createdAt = context.createdAt,
                         updatedAt = context.updatedAt,
                         syncedAt = null,
@@ -222,6 +226,7 @@ class SnapshotRestoreCanonicalizerImpl
                         capabilityByOwnerAndType = capabilityByOwnerAndType,
                         goalRows = goalRows,
                         goalMappings = goalMappings,
+                        legacyParentWorkspaceIdByWorkspaceId = parentById,
                         now = now,
                     )
                 }
@@ -300,7 +305,10 @@ class SnapshotRestoreCanonicalizerImpl
                     legacySubjectMappings = goalMappings,
                     orientationRelations = emptyList(),
                     aspectOrientationRefs = emptyList(),
-                    workspaces = workspaces,
+                    workspaces =
+                        workspaces.map {
+                            it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology()
+                        },
                     workspaceBindings = emptyList(),
                     workspaceCapabilityInstances = capabilities,
                     workspaceTagRefs = workspaceTags,
@@ -325,6 +333,7 @@ class SnapshotRestoreCanonicalizerImpl
                 source = bundle,
                 canonical = result,
                 authorityMode = hierarchyAuthorityMode,
+                hierarchyBackupGeneration = hierarchyBackupGeneration,
             )
         }
 
@@ -334,6 +343,7 @@ class SnapshotRestoreCanonicalizerImpl
             capabilityByOwnerAndType: Map<Pair<String, String>, WorkspaceCapabilityInstanceEntity>,
             goalRows: List<com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRows>,
             goalMappings: List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity>,
+            legacyParentWorkspaceIdByWorkspaceId: Map<String, String?>,
             now: Long,
         ): List<WorkspaceBacklogEntrySnapshot> {
             val contextsById = bundle.contexts.associateBy { it.id }
@@ -485,7 +495,7 @@ class SnapshotRestoreCanonicalizerImpl
                             historicalDeletedGoalIds =
                                 bundle.goals.filter { it.isDeleted }.mapTo(hashSetOf()) { it.id },
                             parentWorkspaceIdByWorkspaceId =
-                                workspaces.associate { it.id to it.parentWorkspaceId },
+                                legacyParentWorkspaceIdByWorkspaceId,
                         ),
                 )
             require(plan.canApply && plan.isFullyAccounted) {
