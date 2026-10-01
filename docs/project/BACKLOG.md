@@ -42,21 +42,15 @@ still relevant to the current implementation.
 
 ## DEFERRED
 
-- **H6 implementation frontier — H6.E6k-L3d registered physical migration.**
-  H6.E6k-L3c is COMPLETE / HOST VERIFIED: one dormant production
-  migration-time establishment kernel now owns prerequisite convergence,
-  schema-179 evidence adaptation and raw-SQL persistence around the shared H2
-  builder. The duplicate prototype is removed, exact parity/rollback is green,
-  schema remains 179 and there are no production or registered-migration
-  callers yet.
-
-  L3d must register the real future migration, run the production kernel before
-  physical cleanup, require the v3/`ESTABLISHED` invariant, rebuild Workspace
-  and MainBeacon tables without the proven obsolete hierarchy columns, drop the
-  two local parent-link tables, preserve `beacon_order`, retain Context
-  parent/order under Epic A, and satisfy the full L3c acceptance matrix.
-  Historical backup DTO fields remain independently governed by B2.
-  Scope: `large`.
+- **H6.E6k-L3d registered physical migration — COMPLETE / HOST VERIFIED / REAL
+  HISTORICAL DB VERIFIED / LIVE UI SMOKE VERIFIED.** Schema 180 and registered
+  `MIGRATION_179_180` run migration-time establishment before cleanup, remove
+  Workspace parent/order, `context_parent_links`, MainBeacon embedded parent
+  and `main_beacon_parent_links`, preserve `beacon_order`, and leave Context
+  parent/order under Epic A. Historical backup DTO fields remain governed by
+  B2. The immutable real schema-178 database was restored byte-identically and
+  successfully migrated through bootstrap/integrity/UI closure.
+  Cost: `done`.
 
 - **H6 follow-up — retire remaining non-hierarchy Workspace parent/order
   presentation dependencies.** The production V2 hierarchy boundary is now
@@ -85,15 +79,15 @@ still relevant to the current implementation.
   Main Beacon output/merge projection is also complete. H6.E6c/E6d prove
   the current production Workspace runtime has no embedded-topology dependency,
   and H6.E6e decouples historical Workspace wire compatibility from Room
-  `WorkspaceEntity` through `WorkspaceSnapshot`. Remaining work is the finite
-  legacy-upgrade evidence window, raw historical Restore compatibility,
-  cross-client/Epic A dependencies and eventual physical schema retirement.
+  `WorkspaceEntity` through `WorkspaceSnapshot`. Physical Workspace/MainBeacon
+  hierarchy storage retirement is now complete in schema 180. Remaining work is
+  raw historical Restore/DTO lifetime plus cross-client/Epic A dependencies.
   The
   retained `SharedContextSummary.parentId` is separate Desktop snapshot/import
   compatibility and needs its own future Desktop protocol decision. Cost:
   `medium`.
 
-- **H6 blocker — decide when the currently shape-supported historical Restore
+- **B2 follow-up — decide when the currently shape-supported historical Restore
   generations may be retired.** H6.E6g makes the existing support and malformed
   topology contract explicit: no numeric cutoff exists; pre-H1 input remains
   reconstructible, pre-v177 H1 recovery is exact-parity gated, complete H1 is
@@ -103,7 +97,15 @@ still relevant to the current implementation.
   characterization cases are HOST green. `WorkspaceSnapshot.parentWorkspaceId`
   and `workspaceOrder` therefore remain required while these historical shapes
   are supported. Future removal needs an explicit product support-window
-  decision, not inference from existing version numbers. Cost: `small`.
+  decision, not inference from existing version numbers. A/B/C may intentionally
+  outlive H6 under the accepted closure policy. Cost: `small`.
+
+- **H6.E7a COMPLETE / HOST VERIFIED — post-schema180 dead compatibility
+  scaffolding retired.** Removed-table Room link entities/mappers, stale
+  selective-import local-link output, and the unselectable
+  `CURRENT_PRE_CUTOVER` production selector are gone. B2 Restore snapshots,
+  migration compatibility, Desktop/shared, Epic A and current semantics are
+  preserved. Remaining H6 work: final closure checkpoint only.
 
 - **H6.E6j COMPLETE — established-runtime MainBeacon raw-parent seams are
   retired.** Core Level/editor parent identity is exact-H1 occurrence state only;

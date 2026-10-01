@@ -8,7 +8,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachme
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -73,7 +72,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.B
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
@@ -116,32 +114,6 @@ fun BacklogOrder.toSnapshot(): BacklogOrderSnapshot = BacklogOrderSnapshot(
 )
 fun BacklogOrderSnapshot.toEntity(): BacklogOrder =
     BacklogOrder(id, listId, itemId, order, orderVersion, updatedAt, isDeleted = isDeleted)
-
-fun ContextParentLink.toSnapshot(): ContextParentLinkSnapshot =
-    ContextParentLinkSnapshot(
-        parentContextId = parentContextId,
-        childContextId = childContextId,
-        order = order,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        syncedAt = syncedAt,
-        isDeleted = isDeleted,
-        version = version,
-    )
-
-fun ContextParentLinkSnapshot.toEntity(): ContextParentLink =
-    ContextParentLink(
-        parentContextId = parentContextId,
-        childContextId = childContextId,
-        order = order,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        syncedAt = syncedAt,
-        isDeleted = isDeleted,
-        version = version,
-    )
-
-
 
 fun LegacyNoteEntity.toSnapshot(): LegacyNoteSnapshot = LegacyNoteSnapshot(
     id = id,

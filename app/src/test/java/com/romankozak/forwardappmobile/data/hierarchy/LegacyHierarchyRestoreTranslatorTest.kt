@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.data.hierarchy
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
@@ -28,31 +27,6 @@ class LegacyHierarchyRestoreTranslatorTest {
     private val subject = LegacyHierarchyRestoreTranslator()
 
     @Test
-    fun `CURRENT restore leaves absent H1 absent`() {
-        val source =
-            SnapshotBundle(
-                exportedAt = 100L,
-                workspaces =
-                    listOf(
-                        workspace("root"),
-                        workspace("child", parentId = "root", order = 7L),
-                    ),
-            )
-
-        val result =
-            subject.translate(
-                source = source,
-                canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
-            )
-
-        assertNull(result.hierarchyPlacements)
-        val child = requireNotNull(result.workspaces).single { it.id == "child" }
-        assertEquals("root", child.parentWorkspaceId)
-        assertEquals(7L, child.workspaceOrder)
-    }
-
-    @Test
     fun `V2 translation reads topology only from source evidence`() {
         val source =
             SnapshotBundle(
@@ -75,7 +49,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = neutralCanonical,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placements = requireNotNull(result.hierarchyPlacements)
@@ -134,18 +107,15 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = native,
                 canonical = native,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         assertEquals(native.hierarchyPlacements, nativeResult.hierarchyPlacements)
         assertTrue(requireNotNull(nativeResult.hierarchyPlacementGroupScopes).isEmpty())
         assertTrue(requireNotNull(nativeResult.hierarchyPlacementLinkedAppearances).isEmpty())
         assertTrue(nativeResult.contextParentLinks.isEmpty())
         assertTrue(nativeResult.mainBeaconParentLinks.isEmpty())
-        assertTrue(
-            nativeResult.mainBeacons.all {
-                it.parentBeaconId == null && it.order == 0L
-            },
-        )
+        val restoredBeacon = nativeResult.mainBeacons.single()
+        assertNull(restoredBeacon.parentBeaconId)
+        assertEquals(17L, restoredBeacon.order)
         val restoredWorkspace = requireNotNull(nativeResult.workspaces).single()
         assertNull(restoredWorkspace.parentWorkspaceId)
         assertEquals(0L, restoredWorkspace.workspaceOrder)
@@ -159,7 +129,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = explicitEmpty,
                 canonical = explicitEmpty,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         assertNotNull(emptyResult.hierarchyPlacements)
         assertTrue(requireNotNull(emptyResult.hierarchyPlacements).isEmpty())
@@ -199,7 +168,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = legacy,
                 canonical = legacy,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val expectedH1 = requireNotNull(translated.hierarchyPlacements)
         val expectedLinked =
@@ -221,7 +189,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = preV177,
                 canonical = preV177,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertEquals(expectedH1, recovered.hierarchyPlacements)
@@ -249,7 +216,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = legacy,
                 canonical = legacy,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val native =
             requireNotNull(translated.hierarchyPlacements)
@@ -273,7 +239,6 @@ class LegacyHierarchyRestoreTranslatorTest {
                 subject.translate(
                     source = preV177,
                     canonical = preV177,
-                    authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 )
             }
 
@@ -300,7 +265,6 @@ class LegacyHierarchyRestoreTranslatorTest {
                 subject.translate(
                     source = native,
                     canonical = native,
-                    authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 )
             }
 
@@ -317,7 +281,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertNotNull(result.hierarchyPlacements)
@@ -387,7 +350,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = decoded,
                 canonical = canonical,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placements = requireNotNull(translated.hierarchyPlacements)
@@ -422,13 +384,11 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = firstSource,
                 canonical = firstSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val second =
             subject.translate(
                 source = secondSource,
                 canonical = secondSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertEquals(first.hierarchyPlacements, second.hierarchyPlacements)
@@ -471,7 +431,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placement = requireNotNull(result.hierarchyPlacements).single()
@@ -501,7 +460,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertTrue(requireNotNull(result.hierarchyPlacements).isEmpty())
@@ -536,13 +494,11 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = firstSource,
                 canonical = firstSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val second =
             subject.translate(
                 source = secondSource,
                 canonical = secondSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertEquals(first.hierarchyPlacements, second.hierarchyPlacements)
@@ -589,7 +545,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertNotNull(result.hierarchyPlacements)
@@ -608,7 +563,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         }
     }
@@ -627,7 +581,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placement = requireNotNull(result.hierarchyPlacements).single()
@@ -661,14 +614,17 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placements = requireNotNull(result.hierarchyPlacements)
         val parentPlacement = placements.single { it.targetId == "parent-subject" }
         val childPlacement = placements.single { it.targetId == "child-subject" }
         assertEquals(parentPlacement.id, childPlacement.parentPlacementId)
-        assertTrue(result.mainBeacons.all { it.parentBeaconId == null && it.order == 0L })
+        assertTrue(result.mainBeacons.all { it.parentBeaconId == null })
+        assertEquals(
+            mapOf("parent" to 0L, "child" to 13L),
+            result.mainBeacons.associate { it.id to it.order },
+        )
     }
 
     @Test
@@ -685,7 +641,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placement = requireNotNull(result.hierarchyPlacements).single()
@@ -693,7 +648,9 @@ class LegacyHierarchyRestoreTranslatorTest {
         assertNull(placement.parentPlacementId)
         assertEquals("LINK", placement.placementKind)
         assertEquals(0L, placement.siblingOrder)
-        assertTrue(result.mainBeacons.all { it.parentBeaconId == null && it.order == 0L })
+        val restoredBeacon = result.mainBeacons.single()
+        assertNull(restoredBeacon.parentBeaconId)
+        assertEquals(17L, restoredBeacon.order)
     }
 
     @Test
@@ -722,7 +679,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertTrue(requireNotNull(result.hierarchyPlacements).isEmpty())
@@ -761,13 +717,11 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = firstSource,
                 canonical = firstSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val second =
             subject.translate(
                 source = secondSource,
                 canonical = secondSource,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val firstOrder = requireNotNull(first.hierarchyPlacements).map { it.targetId to it.siblingOrder }
@@ -810,7 +764,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placements = requireNotNull(result.hierarchyPlacements)
@@ -867,7 +820,6 @@ class LegacyHierarchyRestoreTranslatorTest {
             subject.translate(
                 source = source,
                 canonical = source,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         val placements = requireNotNull(result.hierarchyPlacements)
@@ -924,7 +876,6 @@ class LegacyHierarchyRestoreTranslatorTest {
                 subject.translate(
                     source = source,
                     canonical = source,
-                    authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 )
             }
 
@@ -954,7 +905,6 @@ class LegacyHierarchyRestoreTranslatorTest {
                 subject.translate(
                     source = source,
                     canonical = source,
-                    authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 )
             }
 

@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementIngressBoundary
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.hasLegacyGeneralHierarchyEvidence
@@ -22,7 +21,6 @@ class HierarchyIngressPolicyTest {
         val decision =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertTrue(decision.canonicalH1RequiredAtIngress)
@@ -31,7 +29,6 @@ class HierarchyIngressPolicyTest {
         assertThrows(IllegalArgumentException::class.java) {
             requireHierarchyPlacementIngress(
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 canonicalH1Present = false,
                 legacyHierarchyBearing = true,
             )
@@ -47,7 +44,6 @@ class HierarchyIngressPolicyTest {
             val bundle = SnapshotBundle(hierarchyPlacements = h1)
             requireHierarchyPlacementIngress(
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 canonicalH1Present = bundle.hierarchyPlacements != null,
                 legacyHierarchyBearing = true,
             )
@@ -78,7 +74,6 @@ class HierarchyIngressPolicyTest {
         assertFalse(bundle.hasLegacyGeneralHierarchyEvidence())
         requireHierarchyPlacementIngress(
             boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-            authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             canonicalH1Present = false,
             legacyHierarchyBearing = bundle.hasLegacyGeneralHierarchyEvidence(),
         )
@@ -89,12 +84,10 @@ class HierarchyIngressPolicyTest {
         val restore =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.RESTORE_COMPATIBILITY,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
         val merge =
             hierarchyPlacementIngressDecision(
                 boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             )
 
         assertTrue(restore.legacyHierarchyTranslationAllowed)
@@ -104,12 +97,10 @@ class HierarchyIngressPolicyTest {
 
         assertThrows(IllegalArgumentException::class.java) {
             requireCanonicalHierarchyRestoreOutput(
-                authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
                 canonicalH1Present = false,
             )
         }
         requireCanonicalHierarchyRestoreOutput(
-            authorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
             canonicalH1Present = true,
         )
     }

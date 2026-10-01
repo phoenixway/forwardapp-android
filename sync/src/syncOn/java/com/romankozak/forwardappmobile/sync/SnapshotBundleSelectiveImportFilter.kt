@@ -49,14 +49,9 @@ class SnapshotBundleSelectiveImportFilter {
         val filtered = source.copy(
             hierarchyFormatVersion = null,
             contexts = filteredContexts,
-            // ContextParentLink has hard FKs on both endpoints. Selective import
-            // therefore owns a closed subgraph: a link is importable only when
-            // both Context endpoints are actually part of the filtered payload.
-            contextParentLinks =
-                source.contextParentLinks.filter { link ->
-                    link.parentContextId in validContextIds &&
-                        link.childContextId in validContextIds
-                },
+            // Historical links are Restore-only evidence and have no
+            // schema-180 selective-import persistence owner.
+            contextParentLinks = emptyList(),
             goals = filteredGoals,
             // Legacy BACKLOG is neither selectable nor importable after the
             // canonical Workspace placement cutover. Canonical placement

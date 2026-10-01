@@ -1,27 +1,5 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
-/**
- * Hierarchy V2 authority state.
- *
- * P2 production activation uses V2_AUTHORITY as the coherent GENERAL hierarchy
- * reader, writer, lifecycle, clipboard, and ingress authority mode.
- * CURRENT_PRE_CUTOVER remains only as an explicit compatibility/test mode.
- */
-enum class HierarchyPlacementAuthorityMode {
-    CURRENT_PRE_CUTOVER,
-    V2_AUTHORITY,
-}
-
-/**
- * Single production authority seam for the GENERAL hierarchy.
- *
- * P2 activates all existing authority-aware production branches together
- * through this one default. There is no production dual-write or silent
- * V2-to-CURRENT structural fallback.
- */
-fun currentHierarchyPlacementAuthorityMode(): HierarchyPlacementAuthorityMode =
-    HierarchyPlacementAuthorityMode.V2_AUTHORITY
-
 enum class HierarchyPlacementIngressBoundary {
     NORMAL_MERGE,
     RESTORE_COMPATIBILITY,
@@ -70,21 +48,18 @@ data class HierarchyPlacementIngressDecision(
 
 fun hierarchyPlacementIngressDecision(
     boundary: HierarchyPlacementIngressBoundary,
-    authorityMode: HierarchyPlacementAuthorityMode,
 ): HierarchyPlacementIngressDecision =
     when (boundary) {
         HierarchyPlacementIngressBoundary.NORMAL_MERGE ->
             HierarchyPlacementIngressDecision(
-                canonicalH1RequiredAtIngress =
-                    authorityMode == HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                canonicalH1RequiredAtIngress = true,
                 legacyHierarchyTranslationAllowed = false,
             )
 
         HierarchyPlacementIngressBoundary.RESTORE_COMPATIBILITY ->
             HierarchyPlacementIngressDecision(
                 canonicalH1RequiredAtIngress = false,
-                legacyHierarchyTranslationAllowed =
-                    authorityMode == HierarchyPlacementAuthorityMode.V2_AUTHORITY,
+                legacyHierarchyTranslationAllowed = true,
             )
     }
 
@@ -94,11 +69,10 @@ fun hierarchyPlacementIngressDecision(
  */
 fun requireHierarchyPlacementIngress(
     boundary: HierarchyPlacementIngressBoundary,
-    authorityMode: HierarchyPlacementAuthorityMode,
     canonicalH1Present: Boolean,
     legacyHierarchyBearing: Boolean,
 ) {
-    val policy = hierarchyPlacementIngressDecision(boundary, authorityMode)
+    val policy = hierarchyPlacementIngressDecision(boundary)
     require(
         !policy.canonicalH1RequiredAtIngress ||
             !legacyHierarchyBearing ||
@@ -109,14 +83,8 @@ fun requireHierarchyPlacementIngress(
     }
 }
 
-fun requireCanonicalHierarchyRestoreOutput(
-    authorityMode: HierarchyPlacementAuthorityMode,
-    canonicalH1Present: Boolean,
-) {
-    require(
-        authorityMode != HierarchyPlacementAuthorityMode.V2_AUTHORITY ||
-            canonicalH1Present,
-    ) {
+fun requireCanonicalHierarchyRestoreOutput(canonicalH1Present: Boolean) {
+    require(canonicalH1Present) {
         "Canonicalized Restore must contain Canonical Hierarchy H1 after V2 authority activation"
     }
 }

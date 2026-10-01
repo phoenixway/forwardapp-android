@@ -2,10 +2,8 @@ package com.romankozak.forwardappmobile.core.sync
 
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementIngressBoundary
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.hasLegacyGeneralHierarchyEvidence
 import com.romankozak.forwardappmobile.core.data.models.sync.requireHierarchyPlacementIngress
 import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
@@ -19,29 +17,24 @@ import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHie
  */
 internal fun requireCanonicalMergeIngress(
     bundle: SnapshotBundle,
-    hierarchyAuthorityMode: HierarchyPlacementAuthorityMode =
-        currentHierarchyPlacementAuthorityMode(),
 ) {
     bundle.requireSupportedHierarchyFormat()
 
     requireHierarchyPlacementIngress(
         boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
-        authorityMode = hierarchyAuthorityMode,
         canonicalH1Present = bundle.hierarchyPlacements != null,
         legacyHierarchyBearing = bundle.hasLegacyGeneralHierarchyEvidence(),
     )
 
-    if (hierarchyAuthorityMode == HierarchyPlacementAuthorityMode.V2_AUTHORITY) {
-        val hierarchyStreamsPresent =
-            listOf(
-                bundle.hierarchyPlacements,
-                bundle.hierarchyPlacementGroupScopes,
-                bundle.hierarchyPlacementLinkedAppearances,
-            ).map { it != null }
+    val hierarchyStreamsPresent =
+        listOf(
+            bundle.hierarchyPlacements,
+            bundle.hierarchyPlacementGroupScopes,
+            bundle.hierarchyPlacementLinkedAppearances,
+        ).map { it != null }
 
-        require(hierarchyStreamsPresent.distinct().size == 1) {
-            "Canonical V2 hierarchy ingress must carry H1, GroupScope, and linked-appearance streams together"
-        }
+    require(hierarchyStreamsPresent.distinct().size == 1) {
+        "Canonical V2 hierarchy ingress must carry H1, GroupScope, and linked-appearance streams together"
     }
 
     require(

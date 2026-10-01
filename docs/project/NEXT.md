@@ -558,35 +558,51 @@ invoke the same H2 builder. Exact-rerun, divergence, marker-v2 convergence,
 marker-v3 idempotence and migration-callback rollback are covered.
 
 **H6.E6k-L3c production migration kernel and retirement plan is COMPLETE /
-HOST VERIFIED.** The prototype has been promoted into one dormant production
-kernel using the same frozen H2 builder and shared validation. The duplicate
-test-only implementation is gone.
+HOST VERIFIED.** Its production kernel and acceptance matrix were consumed by
+the now-complete L3d registered migration.
 
-Production parity is proven for schema-150 skipped upgrade, rich schema-178,
-marker-less fresh-native, marker v1/v2 convergence, marker v3 rerun,
-exact-rerun/divergence, migration-reader equality with runtime legacy evidence,
-and transactional rollback.
+**H6.E6k-L3d registered physical hierarchy-storage retirement is COMPLETE /
+HOST VERIFIED / REAL HISTORICAL DB VERIFIED / LIVE UI SMOKE VERIFIED.**
 
-The kernel remains intentionally dormant:
-- runtime callers: 0;
-- registered migration callers: 0;
-- Room schema: 179;
-- `MIGRATION_179_180`: absent.
+Current Room schema is 180 and `MIGRATION_179_180` is registered.
+Migration-time establishment still reuses the frozen H2 builder; schema cleanup
+does not introduce a second hierarchy semantics engine.
 
-The L3c physical-retirement classification is now explicit:
-- Workspace parent/order: future drop candidate after kernel execution;
-- `context_parent_links`: future drop candidate after capture;
-- MainBeacon embedded parent: future drop candidate;
-- `main_beacon_parent_links`: future drop candidate after capture;
-- Context parent/order: Epic A blocker, keep;
-- `beacon_order`: current semantic ordering, keep;
-- historical backup DTO members: retain under B2 compatibility policy.
+Schema 180 physically removes Workspace parent/order, `context_parent_links`,
+MainBeacon `parent_beacon_id`, and `main_beacon_parent_links`.
 
-**NEXT H6 slice: H6.E6k-L3d.** Implement the real future Room migration using
-the production kernel first, then the bounded physical rebuild/drop sequence.
-The L3d acceptance matrix must cover schema 150, 178, every 179 marker/origin
-state, malformed/divergent states and rollback. Do not infer a reduced support
-floor from cleanup.
+It deliberately retains Context parent/order under Epic A,
+MainBeacon `beacon_order` as current semantic ordering, and historical
+backup/Snapshot DTO members under B2 compatibility policy.
+
+Real historical-device closure is green:
+schema178 byte-identical restore -> 178 -> 180 -> Canonical Orientation
+bootstrap materialized=0 compared=4348 issues=0 -> live process ->
+quick_check=ok -> zero FK violations -> retired storage absent ->
+manual live UI smoke green.
+
+**H6.E7 post-L3d residual compatibility census is COMPLETE.** Current
+schema-180 runtime has no semantic reader/writer for the physically retired
+Workspace/MainBeacon/link storage. Local historical capture is migration-only;
+the former runtime LegacySource/Reader facades are absent. Surviving historical
+wire fields are owned by B2 Restore, Desktop/shared parent contracts are a
+separate cross-client boundary, and Context parent/order belongs to Epic A.
+
+**H6.E7a post-schema180 dead-scaffolding cleanup is COMPLETE / HOST VERIFIED.**
+Dead Room-link entities and entity/snapshot mappers are removed; historical
+snapshot wire members and test-local fixtures remain. Selective import no
+longer emits local historical link rows. Production no longer contains the
+unselectable `CURRENT_PRE_CUTOVER` authority enum/provider or injection
+branches; ingress and Restore use the canonical contract directly.
+
+**Accepted H6 closure policy:** B2 A/B/C remain supported deprecated historical
+Restore generations and may intentionally outlive H6. Their future retirement
+is a separate compatibility-window decision, not an H6 completion gate. D and
+CURRENT remain canonical as already recorded.
+
+**Immediate H6 continuation:** CHECKPOINT H6 CLOSURE. Reconfirm the durable
+boundary map and close H6 if no new H6-owned work appears. Do not reopen schema
+180, L3d, migration-time establishment, or the B2 support window.
 
 The complete current H6 matrix and dependency order are in
 `docs/architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`.

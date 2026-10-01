@@ -5,7 +5,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementLinkedAppearanceEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
@@ -406,19 +405,7 @@ class HierarchyPlacementRestoreRoomTest {
                         hierarchyPlacements = null,
                     )
 
-                // CURRENT remains available only as an explicit compatibility mode.
-                assertNull(
-                    SnapshotRestoreCanonicalizerImpl()
-                        .canonicalize(
-                            bundle = legacy,
-                            hierarchyAuthorityMode =
-                                HierarchyPlacementAuthorityMode.CURRENT_PRE_CUTOVER,
-                        )
-                        .hierarchyPlacements,
-                )
-
-                // Production default is V2 after P2 activation and performs the
-                // finite Restore-only legacy -> H1 canonicalization.
+                // Production Restore performs the finite legacy -> H1 canonicalization.
                 val canonical =
                     SnapshotRestoreCanonicalizerImpl()
                         .canonicalize(legacy)

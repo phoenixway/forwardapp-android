@@ -4,7 +4,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,7 +11,7 @@ class SnapshotBundleSelectiveImportContextClosureTest {
     private val filter = SnapshotBundleSelectiveImportFilter()
 
     @Test
-    fun `context parent links are closed over selected contexts`() {
+    fun `historical context parent links are not selective import output`() {
         val source =
             SnapshotBundle(
                 version = 2,
@@ -39,42 +38,6 @@ class SnapshotBundleSelectiveImportContextClosureTest {
                     ),
             )
 
-        assertEquals(
-            setOf("parent", "child"),
-            filtered.contexts.mapTo(linkedSetOf()) { it.id },
-        )
-        assertEquals(
-            listOf("parent" to "child"),
-            filtered.contextParentLinks.map { it.parentContextId to it.childContextId },
-        )
-    }
-
-    @Test
-    fun `selecting only one endpoint imports no context parent link`() {
-        val source =
-            SnapshotBundle(
-                version = 2,
-                contexts =
-                    listOf(
-                        context("parent"),
-                        context("child"),
-                    ),
-                contextParentLinks =
-                    listOf(
-                        parentLink("parent", "child"),
-                    ),
-            )
-
-        val filtered =
-            filter.filter(
-                source = source,
-                selection =
-                    WorkspaceSelectiveImportSelection(
-                        selectedContextIds = setOf("child"),
-                    ),
-            )
-
-        assertEquals(listOf("child"), filtered.contexts.map { it.id })
         assertTrue(filtered.contextParentLinks.isEmpty())
     }
 

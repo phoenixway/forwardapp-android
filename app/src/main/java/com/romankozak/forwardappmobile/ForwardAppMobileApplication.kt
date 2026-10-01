@@ -4,8 +4,6 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
-import com.romankozak.forwardappmobile.core.data.models.sync.currentHierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyAuthorityActivator
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
@@ -81,10 +79,6 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
 
         Timber.i("Logger initialized (Android 15)")
 
-        val isV2HierarchyAuthority =
-            currentHierarchyPlacementAuthorityMode() ==
-                HierarchyPlacementAuthorityMode.V2_AUTHORITY
-
         /*
          * P2 authority establishment is deliberately synchronous and fail-closed.
          *
@@ -94,83 +88,80 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
          * Therefore V2 startup establishes those prerequisites before the one-shot
          * hierarchy transaction and does not release UI/sync startup in between.
          *
-         * CURRENT_PRE_CUTOVER keeps the historical asynchronous bootstrap path and
-         * performs no hierarchy materialization here.
+         * Schema 180 has no pre-cutover runtime authority branch.
          */
-        if (isV2HierarchyAuthority) {
-            runBlocking(Dispatchers.IO) {
-                StartupTrace.measure("Application.systemWorkspaceOwnership") {
-                    databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
-                }
+        runBlocking(Dispatchers.IO) {
+            StartupTrace.measure("Application.systemWorkspaceOwnership") {
+                databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+            }
 
-                val dayThemeReport =
-                    StartupTrace.measure("Application.dayThemeBootstrap") {
-                        canonicalDayThemeBootstrapper.ensureBootstrapped()
-                    }
-                if (dayThemeReport.performed) {
-                    Timber.i(
-                        "Canonical DayTheme bootstrap completed: definitions=%d dayThemes=%d assignments=%d diagnostics=%d",
-                        dayThemeReport.insertedThemeDefinitions,
-                        dayThemeReport.insertedDayThemes,
-                        dayThemeReport.insertedAssignmentDocuments,
-                        dayThemeReport.diagnostics.size,
-                    )
+            val dayThemeReport =
+                StartupTrace.measure("Application.dayThemeBootstrap") {
+                    canonicalDayThemeBootstrapper.ensureBootstrapped()
                 }
+            if (dayThemeReport.performed) {
+                Timber.i(
+                    "Canonical DayTheme bootstrap completed: definitions=%d dayThemes=%d assignments=%d diagnostics=%d",
+                    dayThemeReport.insertedThemeDefinitions,
+                    dayThemeReport.insertedDayThemes,
+                    dayThemeReport.insertedAssignmentDocuments,
+                    dayThemeReport.diagnostics.size,
+                )
+            }
 
-                val orientationReport =
-                    StartupTrace.measure("Application.orientationBootstrap") {
-                        canonicalOrientationBootstrapper.ensureBootstrapped()
-                    }
-                if (orientationReport.performed) {
-                    Timber.i(
-                        "Canonical Orientation bootstrap: materialized=%d compared=%d issues=%d",
-                        orientationReport.materialized,
-                        orientationReport.compared,
-                        orientationReport.issues.size,
-                    )
+            val orientationReport =
+                StartupTrace.measure("Application.orientationBootstrap") {
+                    canonicalOrientationBootstrapper.ensureBootstrapped()
                 }
-                orientationReport.issues.forEach { issue ->
-                    Timber.e(
-                        "Canonical Orientation bootstrap issue: source=%s:%s code=%s detail=%s",
-                        issue.sourceType,
-                        issue.sourceId,
-                        issue.code,
-                        issue.detail,
-                    )
-                }
-                check(orientationReport.issues.isEmpty()) {
-                    "P2 hierarchy authority activation requires COMPLETE canonical Orientation bootstrap; " +
-                        "issues=${orientationReport.issues.size}"
-                }
+            if (orientationReport.performed) {
+                Timber.i(
+                    "Canonical Orientation bootstrap: materialized=%d compared=%d issues=%d",
+                    orientationReport.materialized,
+                    orientationReport.compared,
+                    orientationReport.issues.size,
+                )
+            }
+            orientationReport.issues.forEach { issue ->
+                Timber.e(
+                    "Canonical Orientation bootstrap issue: source=%s:%s code=%s detail=%s",
+                    issue.sourceType,
+                    issue.sourceId,
+                    issue.code,
+                    issue.detail,
+                )
+            }
+            check(orientationReport.issues.isEmpty()) {
+                "P2 hierarchy authority activation requires COMPLETE canonical Orientation bootstrap; " +
+                    "issues=${orientationReport.issues.size}"
+            }
 
-                val workspaceReport =
-                    StartupTrace.measure("Application.workspaceBootstrap") {
-                        canonicalWorkspaceBootstrapper.ensureBootstrapped()
-                    }
-                if (workspaceReport.performed || workspaceReport.issues.isNotEmpty()) {
-                    Timber.i(
-                        "Canonical Workspace bootstrap: workspaces=%d capabilities=%d issues=%d",
-                        workspaceReport.projectedWorkspaces,
-                        workspaceReport.projectedCapabilities,
-                        workspaceReport.issues.size,
-                    )
+            val workspaceReport =
+                StartupTrace.measure("Application.workspaceBootstrap") {
+                    canonicalWorkspaceBootstrapper.ensureBootstrapped()
                 }
-                check(workspaceReport.issues.isEmpty()) {
-                    "P2 hierarchy authority activation requires COMPLETE canonical Workspace bootstrap; " +
-                        "issues=${workspaceReport.issues.size}"
-                }
+            if (workspaceReport.performed || workspaceReport.issues.isNotEmpty()) {
+                Timber.i(
+                    "Canonical Workspace bootstrap: workspaces=%d capabilities=%d issues=%d",
+                    workspaceReport.projectedWorkspaces,
+                    workspaceReport.projectedCapabilities,
+                    workspaceReport.issues.size,
+                )
+            }
+            check(workspaceReport.issues.isEmpty()) {
+                "P2 hierarchy authority activation requires COMPLETE canonical Workspace bootstrap; " +
+                    "issues=${workspaceReport.issues.size}"
+            }
 
-                val report =
-                    StartupTrace.measure("Application.hierarchyAuthorityEstablishment") {
-                        canonicalHierarchyAuthorityActivator.ensureEstablished()
-                    }
-                if (report.performed) {
-                    Timber.i(
-                        "Canonical Hierarchy authority established: outcome=%s occurrences=%d",
-                        report.materialization?.outcome,
-                        report.materialization?.occurrenceCount ?: 0,
-                    )
+            val report =
+                StartupTrace.measure("Application.hierarchyAuthorityEstablishment") {
+                    canonicalHierarchyAuthorityActivator.ensureEstablished()
                 }
+            if (report.performed) {
+                Timber.i(
+                    "Canonical Hierarchy authority established: outcome=%s occurrences=%d",
+                    report.materialization?.outcome,
+                    report.materialization?.occurrenceCount ?: 0,
+                )
             }
         }
 

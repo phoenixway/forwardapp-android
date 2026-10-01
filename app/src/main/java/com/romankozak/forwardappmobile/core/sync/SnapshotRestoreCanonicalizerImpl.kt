@@ -9,7 +9,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.HierarchyPlacementAuthorityMode
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.classifyHierarchyBackupGeneration
 import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
@@ -65,16 +64,7 @@ class SnapshotRestoreCanonicalizerImpl
         private val legacyHierarchyRestoreTranslator =
             LegacyHierarchyRestoreTranslator()
 
-        override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle =
-            canonicalize(
-                bundle = bundle,
-                hierarchyAuthorityMode = HierarchyPlacementAuthorityMode.V2_AUTHORITY,
-            )
-
-        internal fun canonicalize(
-            bundle: SnapshotBundle,
-            hierarchyAuthorityMode: HierarchyPlacementAuthorityMode,
-        ): SnapshotBundle {
+        override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle {
             val hierarchyBackupGeneration = bundle.classifyHierarchyBackupGeneration()
             bundle.requireSupportedHierarchyFormat()
 
@@ -103,7 +93,6 @@ class SnapshotRestoreCanonicalizerImpl
                 return legacyHierarchyRestoreTranslator.translate(
                     source = bundle,
                     canonical = bundle,
-                    authorityMode = hierarchyAuthorityMode,
                     hierarchyBackupGeneration = hierarchyBackupGeneration,
                 )
             }
@@ -332,7 +321,6 @@ class SnapshotRestoreCanonicalizerImpl
             return legacyHierarchyRestoreTranslator.translate(
                 source = bundle,
                 canonical = result,
-                authorityMode = hierarchyAuthorityMode,
                 hierarchyBackupGeneration = hierarchyBackupGeneration,
             )
         }

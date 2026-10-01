@@ -134,20 +134,32 @@ The V2 hierarchy program is dependency-ordered:
    `OrientationHierarchyBuilder` are retired. A test-only builder copy remains
    solely for historical H2/V2 characterization.
 7. **H6 obsolete V1 hierarchy-storage retirement - CURRENT / IN PROGRESS.**
-   The first complete dependency census is recorded. No table or column is yet
-   globally removable: startup establishment, Restore, transport/merge,
-   selective import, bootstrap/presentation and Epic A dependencies remain.
+   The dependency census and first registered physical-retirement boundary are
+   complete. H6.E6k-L3d moved Room to schema 180 and physically retired the
+   proven obsolete Workspace/MainBeacon hierarchy surfaces.
+   H6.E7 post-L3d census is COMPLETE. It proves schema-180 runtime has no
+   accidental semantic dependency on the retired local storage; old physical
+   names survive only in migration/history code. Runtime LegacySource/Reader
+   facades are gone. B2 Restore DTOs, Desktop/shared Context parents, Epic A
+   Context persistence and current Beacon/Group ordering each have explicit
+   independent owners. The accepted closure policy allows deprecated B2
+   generations A/B/C to outlive H6 as supported historical Restore inputs;
+   their eventual retirement is a separate compatibility-window decision.
+   H6.E7a is COMPLETE / HOST VERIFIED: dead Room-link entity/mappers,
+   schema-180-stale selective-import link plumbing, and the unselectable
+   `CURRENT_PRE_CUTOVER` production selector are retired. The remaining H6
+   frontier is the final closure checkpoint. No physical migration is reopened.
    The first zero-caller API pruning slice and the bounded Restore link-evidence
    cleanup are COMPLETE / HOST VERIFIED. Restore consumes legacy
    Context/MainBeacon parent-link evidence without re-persisting those rows.
    A consumer-first V2 merge slice is COMPLETE / HOST VERIFIED: normal and
    selective merge no longer repopulate those link tables, including explicit
-   pre-cutover test fixtures. Pre-cutover mode remains only for separately
-   classified bootstrap/exact-System compatibility. The now-zero-caller Room
+   historical test fixtures. The global pre-cutover mode was later retired by
+   E7a; bounded compatibility now uses explicit owners. The now-zero-caller Room
    parent-link writer APIs are also removed; historical activation tests seed
    those tables through test-source-only SQL fixtures. The test-only raw
    Context-link inspection DAO is removed through the same boundary. The
-   The former marker-less source ambiguity is now closed by H6.E1,
+   former marker-less source ambiguity is now closed by H6.E1,
    **COMPLETE / HOST VERIFIED**. Schema 179 adds local-only durable
    establishment origin: marker-less supported upgrades become
    `LEGACY_UPGRADE_REQUIRES_CAPTURE`, activation marker v1/v2 databases become
@@ -286,18 +298,24 @@ The V2 hierarchy program is dependency-ordered:
    HOST-green for schema-150, rich schema-178, fresh-native and marker
    convergence paths, including explicit marker-v1 coverage.
 
-   No migration is registered and schema remains 179. Production kernel callers
-   remain zero. L3c also defines the future physical retirement set, rebuild
-   ordering, post-cleanup invariant and L3d acceptance matrix.
+   H6.E6k-L3d is **COMPLETE / HOST VERIFIED / REAL HISTORICAL DB VERIFIED /
+   LIVE UI SMOKE VERIFIED**. Schema 180 and registered `MIGRATION_179_180`
+   execute the production establishment kernel first and then perform the
+   reviewed physical retirement.
 
-   The next slice is **H6.E6k-L3d**, the real Room migration implementation:
-   execute the production establishment kernel against the converged schema-179
-   compatibility shape, require marker-v3/`ESTABLISHED`, then rebuild/drop only
-   the proven local legacy hierarchy surfaces. Context parent/order remains
-   Epic A scope, `beacon_order` remains current semantic state, and historical
-   backup DTO fields remain governed separately by B2. A reduced upgrade floor
-   still requires a separate explicit product decision and must not emerge
-   implicitly from cleanup.
+   Schema 180 removes Workspace embedded parent/order, `context_parent_links`,
+   MainBeacon embedded parent and `main_beacon_parent_links`. It preserves
+   `MainBeacon.beacon_order`, leaves Context parent/order under Epic A, and
+   leaves historical backup DTO compatibility under B2.
+
+   The real closure proof restored the immutable historical schema-178 database
+   byte-for-byte, migrated through 178 -> 180, completed Canonical Orientation
+   bootstrap with 4348 comparisons and zero issues, passed SQLite integrity and
+   foreign-key checks, and passed live application UI smoke.
+
+   Post-L3d H6 work remains compatibility-scoped: historical A/B/C Restore
+   lifetime, historical DTO/test cleanup, Desktop/shared cross-client contracts
+   and Epic A Context persistence.
    The matching modern Android producer
    omission is COMPLETE / HOST VERIFIED: new full/delta payloads leave both
    legacy link collections empty. The older convention that coherent H1
