@@ -35,7 +35,7 @@ class SnapshotBundleSelectiveImportRetirementClosureTest {
                     ),
             )
 
-        assertEquals(listOf("retired-context"), filtered.contexts.map { it.id })
+        assertEquals(emptyList<String>(), filtered.contexts.map { it.id })
 
         val retirementWorkspace =
             filtered.workspaces.orEmpty().singleOrNull {
@@ -102,7 +102,7 @@ class SnapshotBundleSelectiveImportRetirementClosureTest {
                     ),
             )
 
-        assertEquals(listOf("retired-context"), filtered.contexts.map { it.id })
+        assertEquals(emptyList<String>(), filtered.contexts.map { it.id })
         assertEquals(
             listOf("retired-placement"),
             filtered.hierarchyPlacements.orEmpty().map { it.id },

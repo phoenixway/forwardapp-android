@@ -7,7 +7,6 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyGlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
@@ -64,20 +63,8 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE parentId = :parentId AND is_deleted = 0 ORDER BY goal_order ASC")
     suspend fun getActiveContextsByParentId(parentId: String): List<Context>
 
-    @Query("SELECT * FROM contexts WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
-    suspend fun findChildByRole(
-        parentId: String,
-        roleCode: String,
-    ): Context?
-
     @Query("SELECT * FROM contexts WHERE parentId IS NULL ORDER BY goal_order ASC")
     suspend fun getTopLevelContexts(): List<Context>
-
-    @Query("SELECT * FROM contexts WHERE tags LIKE '%' || :tag || '%'")
-    suspend fun getContextsByTag(tag: String): List<Context>
-
-    @Query("SELECT id FROM contexts WHERE tags LIKE '%' || :tag || '%' ORDER BY goal_order ASC, createdAt ASC")
-    suspend fun getContextIdsByTag(tag: String): List<String>
 
     @Transaction
     @Query(
@@ -104,21 +91,6 @@ interface ContextDao {
     )
     suspend fun searchSubprojectsGlobal(query: String): List<LegacyGlobalSubcontextSearchResult>
 
-    @Query(
-        """
-    WITH RECURSIVE path_cte(id, name, path) AS (
-        SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
-        UNION ALL
-        SELECT p.id, p.name, pct.path || ' / ' || p.name
-        FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
-    )
-    SELECT p.*, pc.path as pathSegments
-    FROM contexts p
-    JOIN path_cte pc ON p.id = pc.id
-    WHERE p.name LIKE :query OR p.tags LIKE :query
-""",
-    )
-    suspend fun searchContextsGlobal(query: String): List<GlobalContextSearchRow>
 
     @Query("DELETE FROM contexts")
     suspend fun deleteAll()

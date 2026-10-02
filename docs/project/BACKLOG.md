@@ -52,7 +52,7 @@ still relevant to the current implementation.
   successfully migrated through bootstrap/integrity/UI closure.
   Cost: `done`.
 
-- **H6 follow-up — retire remaining non-hierarchy Workspace parent/order
+- **Post-H6 compatibility follow-up — retire remaining non-hierarchy Workspace parent/order
   presentation dependencies.** The production V2 hierarchy boundary is now
   topology-free, as is the internal canonical owner/details DTO. Context
   Screen linked-target pickers are also topology-free. Current-owner parent
@@ -84,8 +84,8 @@ still relevant to the current implementation.
   raw historical Restore/DTO lifetime plus cross-client/Epic A dependencies.
   The
   retained `SharedContextSummary.parentId` is separate Desktop snapshot/import
-  compatibility and needs its own future Desktop protocol decision. Cost:
-  `medium`.
+  compatibility and needs its own future Desktop protocol decision. This work
+  does not reopen or block completed H6. Cost: `medium`.
 
 - **B2 follow-up — decide when the currently shape-supported historical Restore
   generations may be retired.** H6.E6g makes the existing support and malformed
@@ -105,7 +105,8 @@ still relevant to the current implementation.
   selective-import local-link output, and the unselectable
   `CURRENT_PRE_CUTOVER` production selector are gone. B2 Restore snapshots,
   migration compatibility, Desktop/shared, Epic A and current semantics are
-  preserved. Remaining H6 work: final closure checkpoint only.
+  preserved. The subsequent durable checkpoint closed H6 with no remaining
+  H6-owned implementation work.
 
 - **H6.E6j COMPLETE — established-runtime MainBeacon raw-parent seams are
   retired.** Core Level/editor parent identity is exact-H1 occurrence state only;

@@ -20,8 +20,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
-import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
@@ -61,6 +61,11 @@ import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
+
+internal enum class ContextPersistenceMode {
+    NORMAL_MERGE,
+    RESTORE_COMPATIBILITY,
+}
 
 @Singleton
 class MergeLocalDataSourceImpl
@@ -128,32 +133,7 @@ class MergeLocalDataSourceImpl
         private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
             CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
 
-        override suspend fun getContexts(): List<Context> {
-            val retiredContextIds = db.canonicalRetiredContextIds()
-            return contextDao
-                .getAll()
-                .withoutLiveRetiredContexts(
-                    retiredContextIds = retiredContextIds,
-                    id = { it.id },
-                    isDeleted = { it.isDeleted },
-                )
-        }
-
         override suspend fun getGoals(): List<Goal> = goalDao.getAll()
-
-        override suspend fun insertContexts(contexts: List<Context>) =
-            contextWorkspaceWriteThrough.mutate {
-                val retiredContextIds = db.canonicalRetiredContextIds()
-                val contextsForPersistence =
-                    contexts
-                        .filterNot { context -> isReservedSystemContextId(context.id) }
-                        .withoutLiveRetiredContexts(
-                            retiredContextIds = retiredContextIds,
-                            id = { it.id },
-                            isDeleted = { it.isDeleted },
-                        )
-                contextDao.insertContexts(contextsForPersistence)
-            }
 
         override suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
 
@@ -163,6 +143,14 @@ class MergeLocalDataSourceImpl
             attachmentDao.insertContextAttachmentLinks(links)
 
         override suspend fun applyChanges(changes: List<SyncChange>) {
+            require(
+                changes.none { change ->
+                    change.entity is Context || change.entityType == "Список"
+                },
+            ) {
+                "Legacy approval sync refuses Context-shaped changes after the Context Big Cut"
+            }
+
             contextWorkspaceWriteThrough.mutate {
                 changes.forEach { change ->
                     when (change.type) {
@@ -181,25 +169,6 @@ class MergeLocalDataSourceImpl
             // У SyncChange.entity тип Any, він не може бути null, тому прибираємо Elvis оператор
             when (val entity = change.entity) {
                 is Goal -> goalDao.insertGoal(entity)
-                is Context -> {
-                    when {
-                        isReservedSystemContextId(entity.id) -> {
-                            Log.d(
-                                "MergeDataSource",
-                                "Ignoring legacy reserved-System Context upsert ${entity.id}",
-                            )
-                        }
-
-                        !entity.isDeleted && db.isCanonicalRetiredContextId(entity.id) -> {
-                            Log.d(
-                                "MergeDataSource",
-                                "Ignoring retired Context resurrection ${entity.id}",
-                            )
-                        }
-
-                        else -> contextDao.insert(entity)
-                    }
-                }
                 is AttachmentEntity -> attachmentDao.insertAttachment(entity)
             }
         }
@@ -208,41 +177,7 @@ class MergeLocalDataSourceImpl
             // Використовуємо правильні назви полів: entityType та id
             when (change.entityType) {
                 "Ціль" -> goalDao.deleteGoalById(change.id)
-                "Список" -> {
-                    if (isReservedSystemContextId(change.id)) {
-                        Log.d(
-                            "MergeDataSource",
-                            "Ignoring legacy reserved-System Context delete ${change.id}",
-                        )
-                    } else {
-                        val context = contextDao.getContextById(change.id)
-                        if (context == null) contextDao.delete(change.id) else contextDao.insert(context.softDelete())
-                    }
-                }
                 "Вкладення" -> attachmentDao.deleteAttachment(change.id)
-            }
-        }
-
-        override suspend fun importSelectedData(
-            projects: List<Context>,
-            goals: List<Goal>,
-            attachments: List<AttachmentEntity>,
-            crossRefs: List<ContextAttachmentCrossRef>,
-        ) {
-            contextWorkspaceWriteThrough.mutate {
-                val retiredContextIds = db.canonicalRetiredContextIds()
-                val ordinaryProjects =
-                    projects
-                        .filterNot { project -> isReservedSystemContextId(project.id) }
-                        .withoutLiveRetiredContexts(
-                            retiredContextIds = retiredContextIds,
-                            id = { it.id },
-                            isDeleted = { it.isDeleted },
-                        )
-                if (ordinaryProjects.isNotEmpty()) contextDao.insertContexts(ordinaryProjects)
-                if (goals.isNotEmpty()) goalDao.insertGoals(goals)
-                if (attachments.isNotEmpty()) attachmentDao.insertAttachments(attachments)
-                if (crossRefs.isNotEmpty()) attachmentDao.insertContextAttachmentLinks(crossRefs)
             }
         }
 
@@ -263,19 +198,25 @@ class MergeLocalDataSourceImpl
         internal suspend fun applyCanonicalSnapshotBundle(
             bundle: SnapshotBundle,
             selectiveHierarchyDelta: Boolean = false,
+            contextPersistenceMode: ContextPersistenceMode = ContextPersistenceMode.NORMAL_MERGE,
         ) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
 
             val contextIngress = partitionSystemContextSnapshotIngress(bundle.contexts)
-            val retiredContextIds =
-                db.canonicalRetiredContextIds(bundle.workspaces.orEmpty())
             val contextSnapshotsForPersistence =
-                contextIngress.ordinarySnapshots.withoutLiveRetiredContexts(
-                    retiredContextIds = retiredContextIds,
-                    id = { it.id },
-                    isDeleted = { it.isDeleted },
-                )
+                when (contextPersistenceMode) {
+                    ContextPersistenceMode.NORMAL_MERGE -> emptyList()
+                    ContextPersistenceMode.RESTORE_COMPATIBILITY -> {
+                        val retiredContextIds =
+                            db.canonicalRetiredContextIds(bundle.workspaces.orEmpty())
+                        contextIngress.ordinarySnapshots.withoutLiveRetiredContexts(
+                            retiredContextIds = retiredContextIds,
+                            id = { it.id },
+                            isDeleted = { it.isDeleted },
+                        )
+                    }
+                }
             val contextConfigurations =
                 bundle.contextConfigurations.map { snapshot ->
                     ContextConfiguration(
@@ -305,6 +246,25 @@ class MergeLocalDataSourceImpl
             val ordinaryContextConfigurations =
                 contextConfigurations.filterNot { configuration ->
                     isReservedSystemContextId(configuration.contextId)
+                }
+            val contextConfigurationsForPersistence =
+                when (contextPersistenceMode) {
+                    ContextPersistenceMode.NORMAL_MERGE -> emptyList()
+                    ContextPersistenceMode.RESTORE_COMPATIBILITY -> ordinaryContextConfigurations
+                }
+            val legacySystemConfigurationIds =
+                legacySystemConfigurationEvidence.mapTo(linkedSetOf()) { configuration ->
+                    configuration.id
+                }
+            val contextStructureItemsForPersistence =
+                when (contextPersistenceMode) {
+                    ContextPersistenceMode.NORMAL_MERGE -> emptyList()
+                    ContextPersistenceMode.RESTORE_COMPATIBILITY ->
+                        bundle.projectStructureItems
+                            .filterNot { item ->
+                                item.contextStructureId in legacySystemConfigurationIds
+                            }
+                            .map { it.toEntity() }
                 }
 
             val hasCanonicalDayThemePayload =
@@ -616,12 +576,8 @@ class MergeLocalDataSourceImpl
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
                 structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
                 structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
-                contextStructureDao.insertAll(ordinaryContextConfigurations)
-                contextStructureDao.insertAllItems(
-                    bundle.projectStructureItems
-                        .filterNot { item -> item.contextStructureId in legacySystemConfigurationEvidence.map { it.id } }
-                        .map { it.toEntity() },
-                )
+                contextStructureDao.insertAll(contextConfigurationsForPersistence)
+                contextStructureDao.insertAllItems(contextStructureItemsForPersistence)
                 if (bundle.contextInboxSortingRules.isNotEmpty()) {
                     Log.d(
                         "ForwardSync",
@@ -712,7 +668,33 @@ class MergeLocalDataSourceImpl
                     bundle.tacticalMissionAttachments.map { it.toEntity() },
                 )
 
-                mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+                when (contextPersistenceMode) {
+                    ContextPersistenceMode.NORMAL_MERGE -> {
+                        val workspaceOwnerRefs =
+                            bundle.mainBeaconContextCrossRefs.map { snapshot ->
+                                val workspace =
+                                    requireNotNull(
+                                        mainBeaconDao.getOperationalOwnerWorkspace(snapshot.contextId),
+                                    ) {
+                                        "Canonical merge Main Beacon owner ${snapshot.contextId} has no Workspace"
+                                    }
+                                require(!workspace.isDeleted) {
+                                    "Canonical merge Main Beacon owner ${snapshot.contextId} is a deleted Workspace"
+                                }
+                                MainBeaconWorkspaceCrossRef(
+                                    beaconId = snapshot.beaconId,
+                                    workspaceId = snapshot.contextId,
+                                    order = snapshot.order,
+                                )
+                            }
+                        mainBeaconDao.insertWorkspaceCrossRefs(workspaceOwnerRefs)
+                    }
+
+                    ContextPersistenceMode.RESTORE_COMPATIBILITY ->
+                        mainBeaconDao.insertContextCrossRefs(
+                            bundle.mainBeaconContextCrossRefs.map { it.toEntity() },
+                        )
+                }
                 // Legacy Beacon rows have no tombstone of their own. Once the
                 // canonical freshness merge is complete, retire imported
                 // compatibility rows for deleted canonical targets, including

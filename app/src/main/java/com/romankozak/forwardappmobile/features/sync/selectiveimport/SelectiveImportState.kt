@@ -4,7 +4,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
@@ -41,7 +40,7 @@ data class SelectiveImportState(
 )
 
 data class SelectableDatabaseContent(
-    val projects: List<SelectableDiffItem<Context>> = emptyList(),
+    val projects: List<SelectableDiffItem<WorkspaceImportPreviewRow>> = emptyList(),
     val goals: List<SelectableDiffItem<Goal>> = emptyList(),
     val workspaceBacklogEntries: List<SelectableDiffItem<CanonicalBacklogPreviewRow>> = emptyList(),
     val legacyNotes: List<SelectableDiffItem<LegacyNoteEntity>> = emptyList(),
@@ -54,6 +53,11 @@ data class SelectableDatabaseContent(
     val contextLogs: List<SelectableDiffItem<ContextLog>> = emptyList(),
     val scripts: List<SelectableDiffItem<ScriptEntity>> = emptyList(),
     val attachments: List<SelectableDiffItem<AttachmentEntity>> = emptyList(),
+)
+
+data class WorkspaceImportPreviewRow(
+    val id: String,
+    val name: String,
 )
 
 data class CanonicalBacklogPreviewRow(
@@ -98,7 +102,19 @@ fun BackupDiff.toSelectable(source: SnapshotBundle): SelectableDatabaseContent {
     }
 
     return SelectableDatabaseContent(
-        projects = mapDiff(this.projects, { it.toEntity() }),
+        projects =
+            mapDiff(
+                this.projects,
+                { workspace ->
+                    WorkspaceImportPreviewRow(
+                        id = workspace.id,
+                        name =
+                            workspace.nameOverride
+                                ?.takeIf { name -> name.isNotBlank() }
+                                ?: workspace.id,
+                    )
+                },
+            ),
         goals = mapDiff(this.goals, { it.toEntity() }),
         workspaceBacklogEntries = source.toSelectableCanonicalBacklog(),
         activityRecords = mapDiff(this.activityRecords, { it.toEntity() }),

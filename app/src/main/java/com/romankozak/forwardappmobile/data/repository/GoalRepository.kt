@@ -215,12 +215,8 @@ class GoalRepository
             action: ContextTextAction,
         ) {
             val contextTags =
-                when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
-                    SystemWorkspaceTagAuthority.Resolution.NotSystem ->
-                        contextDao.getContextById(contextId)?.tags.orEmpty()
-                    is SystemWorkspaceTagAuthority.Resolution.Canonical -> resolution.tags
-                    SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
-                }
+                systemWorkspaceTagAuthority.operationalTags(contextId)
+                    ?: return
             if (contextTags.isEmpty()) return
 
             val tagMap = contextMarkerHandler.tagToContextMarkerNameMap.value

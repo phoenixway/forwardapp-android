@@ -262,7 +262,10 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                 val restore =
                     SnapshotRestoreLocalDataSourceImpl(
                         database = destination,
-                        writer = CanonicalSnapshotTransactionWriter { merge(destination).applyCanonicalSnapshotBundle(it) },
+                        writer = CanonicalSnapshotTransactionWriter { merge(destination).applyCanonicalSnapshotBundle(
+                            bundle = it,
+                            contextPersistenceMode = ContextPersistenceMode.RESTORE_COMPATIBILITY,
+                        ) },
                         dayManagementRuntimeRepository = mockk<DayManagementRuntimeRepository>(relaxed = true),
                     )
 
@@ -322,6 +325,8 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                                 version = owner.version + 1L,
                                 updatedAt = owner.updatedAt + 10L,
                             ),
+                    ).copy(
+                        contexts = emptyList(),
                     ).let { bundle ->
                         val ownerSnapshot =
                             requireNotNull(bundle.workspaces).single().copy(
@@ -382,6 +387,8 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                                 version = owner.version + 1L,
                                 updatedAt = owner.updatedAt + 10L,
                             ),
+                    ).copy(
+                        contexts = emptyList(),
                     ).let { bundle ->
                         val ownerSnapshot =
                             requireNotNull(bundle.workspaces).single().copy(
@@ -465,6 +472,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                                 updatedAt = owner.updatedAt + 10L,
                             ),
                     ).copy(
+                        contexts = emptyList(),
                         hierarchyPlacements = emptyList(),
                         hierarchyPlacementGroupScopes = emptyList(),
                         hierarchyPlacementLinkedAppearances = emptyList(),
@@ -487,59 +495,64 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
         }
 
     @Test
-    fun `merge cannot resurrect Context retired by incoming canonical Workspace`() =
+    fun `normal merge rejects live ordinary Context even with incoming canonical Workspace`() =
         runBlocking {
             val destination = database()
             try {
-                val liveLegacy = ordinaryContext(RETIRED_ID)
+                val failure =
+                    runCatching {
+                        merge(destination).applySnapshotBundle(
+                            canonicalBundle(
+                                context = ordinaryContext(RETIRED_ID),
+                                workspace = canonicalOnlyWorkspace(RETIRED_ID),
+                            ),
+                        )
+                    }.exceptionOrNull()
 
-                merge(destination).applySnapshotBundle(
-                    canonicalBundle(
-                        context = liveLegacy,
-                        workspace = canonicalOnlyWorkspace(RETIRED_ID),
+                assertTrue(failure is IllegalArgumentException)
+                assertTrue(
+                    failure!!.message.orEmpty().contains(
+                        "Canonical merge ingress refuses ordinary Context persistence",
                     ),
                 )
-
-                val persisted = destination.contextDao().getContextById(RETIRED_ID)
-                assertTrue(persisted == null || persisted.isDeleted)
-
-                val workspace = destination.workspaceDao().getById(RETIRED_ID)
-                assertTrue(workspace != null)
-                assertTrue(workspace!!.provenance == WorkspaceProvenance.CANONICAL_ONLY.name)
-                assertNull(workspace.sourceContextId)
+                assertNull(destination.contextDao().getContextById(RETIRED_ID))
+                assertNull(destination.workspaceDao().getById(RETIRED_ID))
             } finally {
                 destination.close()
             }
         }
 
     @Test
-    fun `merge cannot resurrect Context retired by local canonical Workspace`() =
+    fun `normal merge rejects live ordinary Context with local canonical Workspace`() =
         runBlocking {
             val database = database()
             try {
-                database.workspaceDao().upsert(
-                    listOf(canonicalOnlyWorkspace(RETIRED_ID)),
-                )
+                val existingWorkspace = canonicalOnlyWorkspace(RETIRED_ID)
+                database.workspaceDao().upsert(listOf(existingWorkspace))
 
-                merge(database).applySnapshotBundle(
-                    SnapshotBundle(
-                        version = 1,
-                        contexts = listOf(ordinaryContext(RETIRED_ID).toSnapshot()),
-                        hierarchyPlacements = emptyList(),
-                        hierarchyPlacementGroupScopes = emptyList(),
-                        hierarchyPlacementLinkedAppearances = emptyList(),
-                    ),
-                )
+                val failure =
+                    runCatching {
+                        merge(database).applySnapshotBundle(
+                            SnapshotBundle(
+                                version = 1,
+                                contexts = listOf(ordinaryContext(RETIRED_ID).toSnapshot()),
+                                hierarchyPlacements = emptyList(),
+                                hierarchyPlacementGroupScopes = emptyList(),
+                                hierarchyPlacementLinkedAppearances = emptyList(),
+                            ),
+                        )
+                    }.exceptionOrNull()
 
-                val persisted = database.contextDao().getContextById(RETIRED_ID)
-                assertTrue(persisted == null || persisted.isDeleted)
+                assertTrue(failure is IllegalArgumentException)
+                assertNull(database.contextDao().getContextById(RETIRED_ID))
+                assertEquals(existingWorkspace, database.workspaceDao().getById(RETIRED_ID))
             } finally {
                 database.close()
             }
         }
 
     @Test
-    fun `retired Context tombstone remains valid transport evidence`() =
+    fun `normal merge rejects ordinary Context tombstone transport evidence`() =
         runBlocking {
             val destination = database()
             try {
@@ -549,16 +562,19 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                         version = 7L,
                     )
 
-                merge(destination).applySnapshotBundle(
-                    canonicalBundle(
-                        context = tombstone,
-                        workspace = canonicalOnlyWorkspace(RETIRED_ID),
-                    ),
-                )
+                val failure =
+                    runCatching {
+                        merge(destination).applySnapshotBundle(
+                            canonicalBundle(
+                                context = tombstone,
+                                workspace = canonicalOnlyWorkspace(RETIRED_ID),
+                            ),
+                        )
+                    }.exceptionOrNull()
 
-                val persisted = destination.contextDao().getContextById(RETIRED_ID)
-                assertTrue(persisted != null)
-                assertTrue(persisted!!.isDeleted)
+                assertTrue(failure is IllegalArgumentException)
+                assertNull(destination.contextDao().getContextById(RETIRED_ID))
+                assertNull(destination.workspaceDao().getById(RETIRED_ID))
             } finally {
                 destination.close()
             }
@@ -626,7 +642,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
         }
 
     @Test
-    fun `sync selection and delta exclude live retired Context but keep Context-backed Context`() =
+    fun `sync selection and delta do not emit Context persistence`() =
         runBlocking {
             val database = database()
             try {
@@ -645,20 +661,10 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                 val sync = sync(database)
 
                 val selection = sync.getUnsyncedSelection()
-                assertFalse(selection.contexts.any { it.id == RETIRED_ID })
-                assertTrue(selection.contexts.any { it.id == CONTEXT_BACKED_ID })
+                assertTrue(selection.isEmpty())
 
                 val delta = sync.getChangesSince(0L)
-                assertFalse(
-                    delta.contexts.any {
-                        it.id == RETIRED_ID && !it.isDeleted
-                    },
-                )
-                assertTrue(
-                    delta.contexts.any {
-                        it.id == CONTEXT_BACKED_ID && !it.isDeleted
-                    },
-                )
+                assertTrue(delta.contexts.isEmpty())
                 assertTrue(delta.contextParentLinks.isEmpty())
                 assertTrue(delta.mainBeaconParentLinks.isEmpty())
             } finally {
@@ -667,7 +673,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
         }
 
     @Test
-    fun `sync acknowledge cannot rewrite retired live Context`() =
+    fun `sync acknowledge does not rewrite Context persistence`() =
         runBlocking {
             val database = database()
             try {
@@ -683,17 +689,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                 assertNull(before.syncedAt)
 
                 val baseline = sync.getUnsyncedSelection()
-                sync.acknowledge(
-                    baseline.copy(
-                        contexts =
-                            listOf(
-                                LocalSyncVersion(
-                                    id = RETIRED_ID,
-                                    version = before.version,
-                                ),
-                            ),
-                    ),
-                )
+                sync.acknowledge(baseline)
 
                 val after = requireNotNull(database.contextDao().getContextById(RETIRED_ID))
                 assertNull(after.syncedAt)
@@ -1080,7 +1076,10 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
             database = database,
             writer =
                 CanonicalSnapshotTransactionWriter {
-                    merge(database).applyCanonicalSnapshotBundle(it)
+                    merge(database).applyCanonicalSnapshotBundle(
+                        bundle = it,
+                        contextPersistenceMode = ContextPersistenceMode.RESTORE_COMPATIBILITY,
+                    )
                 },
             dayManagementRuntimeRepository =
                 mockk<DayManagementRuntimeRepository>(relaxed = true),

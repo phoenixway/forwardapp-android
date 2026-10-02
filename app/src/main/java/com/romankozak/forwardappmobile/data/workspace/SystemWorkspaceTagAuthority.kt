@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.combine
  * tag cutover. Canonical membership is available only for a live promoted
  * CANONICAL_ONLY Workspace whose one-time seed/import marker is present.
  *
- * Ordinary non-System Contexts continue to own their existing Context.tags
- * representation until their later migration.
+ * Ordinary non-System runtime tag ownership is canonical Workspace-owned
+ * membership. Context.tags may remain only as compatibility, migration, or
+ * presentation residue until physical Context retirement.
  */
 @Singleton
 class SystemWorkspaceTagAuthority
@@ -124,6 +125,67 @@ class SystemWorkspaceTagAuthority
                 seededIds = systemWorkspaceTagSeedStateDao.getAll().mapTo(hashSetOf()) { it.workspaceId },
             )
 
+        suspend fun effectiveOwners(): List<TagOwner> =
+            effectiveOwners(
+                contexts = emptyList(),
+                workspaces = workspaceDao.getAll(),
+                tagRefs = workspaceTagRefDao.getAll(),
+                seededIds = systemWorkspaceTagSeedStateDao.getAll().mapTo(hashSetOf()) { it.workspaceId },
+            )
+
+        suspend fun operationalTags(workspaceId: String): List<String>? =
+            when (val resolution = resolve(workspaceId)) {
+                Resolution.NotSystem -> {
+                    val workspace = workspaceDao.getById(workspaceId)
+                    if (workspace == null || workspace.isDeleted) {
+                        null
+                    } else {
+                        canonicalWorkspaceTagRepository.getTags(workspaceId)
+                    }
+                }
+
+                is Resolution.Canonical -> resolution.tags
+                Resolution.Unavailable -> null
+            }
+
+        suspend fun isLiveOperationalOwner(workspaceId: String): Boolean =
+            if (SystemContexts.isSystem(ContextId(workspaceId))) {
+                isCanonicalSystemOwner(workspaceId)
+            } else {
+                workspaceDao.getById(workspaceId)?.isDeleted == false
+            }
+
+        suspend fun findOperationalOwnersByTags(
+            normalizedTags: List<String>,
+        ): List<TagMatch> {
+            if (normalizedTags.isEmpty()) return emptyList()
+
+            val workspaces = workspaceDao.getAll().associateBy { it.id }
+            val seededIds =
+                systemWorkspaceTagSeedStateDao.getAll()
+                    .mapTo(hashSetOf()) { it.workspaceId }
+
+            return workspaceTagRefDao.findLiveByTags(normalizedTags)
+                .asSequence()
+                .filter { ref ->
+                    val workspace = workspaces[ref.workspaceId]
+                    workspace != null &&
+                        !workspace.isDeleted &&
+                        (
+                            !SystemContexts.isSystem(ContextId(ref.workspaceId)) ||
+                                isCanonicalSystemOwner(
+                                    contextId = ref.workspaceId,
+                                    workspace = workspace,
+                                    seeded = ref.workspaceId in seededIds,
+                                )
+                        )
+                }
+                .map { ref -> TagMatch(ref.workspaceId, ref.normalizedTag) }
+                .distinct()
+                .sortedWith(compareBy(TagMatch::contextId, TagMatch::normalizedTag))
+                .toList()
+        }
+
         suspend fun findCanonicalSystemOwnersByTags(
             normalizedTags: List<String>,
         ): List<TagMatch> {
@@ -204,11 +266,16 @@ class SystemWorkspaceTagAuthority
                     .groupBy({ it.workspaceId }, { it.normalizedTag })
 
             val ordinaryOwners =
-                contexts
+                workspaces
                     .asSequence()
                     .filterNot { it.isDeleted }
                     .filterNot { SystemContexts.isSystem(ContextId(it.id)) }
-                    .map { context -> TagOwner(context.id, context.tags.orEmpty()) }
+                    .map { workspace ->
+                        TagOwner(
+                            id = workspace.id,
+                            tags = refsByWorkspace[workspace.id].orEmpty().sorted(),
+                        )
+                    }
 
             val canonicalSystemOwners =
                 workspaces

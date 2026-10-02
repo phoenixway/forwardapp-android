@@ -65,6 +65,20 @@ class CanonicalOrdinaryCapabilitySettings
             }
         }
 
+        suspend fun persistPresentationIfOwned(
+            workspaceId: String,
+            name: String,
+            description: String?,
+        ): Boolean {
+            if (!owns(workspaceId)) return false
+            workspaceRepository.updateNameAndDescription(
+                id = workspaceId,
+                nameOverride = name,
+                descriptionOverride = description,
+            )
+            return true
+        }
+
         suspend fun persistIfOwned(
             workspaceId: String,
             enabledCapabilityIds: Set<CapabilityId>,

@@ -57,7 +57,6 @@ class SystemShellFreeMainScreenViewModelsTest {
             val id = SystemContexts.MAIN_BEACONS.raw
             val contextRepository = mockk<ContextRepository>(relaxed = true)
             val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -96,14 +95,12 @@ class SystemShellFreeMainScreenViewModelsTest {
             every { settingsRepository.obsidianVaultNameFlow } returns flowOf("")
             every { settingsRepository.coreLinkedAttachmentIdsFlow } returns flowOf(emptySet())
             every { settingsRepository.coreConnectionsOrderFlow } returns flowOf(emptyList())
-            coEvery { tagAuthority.resolve(id) } returns
-                SystemWorkspaceTagAuthority.Resolution.Canonical(emptyList())
+            coEvery { tagAuthority.operationalTags(id) } returns emptyList()
 
             val viewModel =
                 CoreLevelViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -130,7 +127,6 @@ class SystemShellFreeMainScreenViewModelsTest {
         runTest(dispatcher) {
             val id = "standalone-core"
             val contextRepository = mockk<ContextRepository>(relaxed = true)
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -141,10 +137,7 @@ class SystemShellFreeMainScreenViewModelsTest {
             every { canonicalV2ReactiveHierarchyReadSource.observe() } returns emptyFlow()
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
-            coEvery { contextRepository.getContextById(id) } returns null
-            coEvery { tagAuthority.resolve(id) } returns SystemWorkspaceTagAuthority.Resolution.NotSystem
-            coEvery { projector.resolvePresentation(id, null) } returns standalonePresentation(id)
-            coEvery { canonicalWorkspaceTagRepository.getTags(id) } returns emptyList()
+            coEvery { tagAuthority.operationalTags(id) } returns emptyList()
             every { projector.observePresentationUniverse(any()) } returns flowOf(emptyList())
             every { projector.observeOwnerLabels(any()) } returns flowOf(emptyMap())
             every { mainBeaconRepository.observeMainBeaconDetails() } returns flowOf(emptyList())
@@ -159,7 +152,6 @@ class SystemShellFreeMainScreenViewModelsTest {
                 CoreLevelViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = mockk(relaxed = true),
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -175,9 +167,8 @@ class SystemShellFreeMainScreenViewModelsTest {
             viewModel.addCoreLink(id)
             advanceUntilIdle()
 
-            coVerify(exactly = 0) { contextRepository.updateContextTags(any(), any()) }
             coVerify(exactly = 1) {
-                canonicalWorkspaceTagRepository.replaceTags(id, listOf("core"), any())
+                contextRepository.updateContextTags(id, listOf("core"))
             }
         }
 
@@ -198,7 +189,6 @@ class SystemShellFreeMainScreenViewModelsTest {
             val id = SystemContexts.STRATEGIC.raw
             val contextRepository = mockk<ContextRepository>(relaxed = true)
             val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -207,7 +197,6 @@ class SystemShellFreeMainScreenViewModelsTest {
             val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
-            coEvery { contextRepository.getContextById(id) } returns null
 
             every {
                 projector.observePresentationUniverse(any())
@@ -225,8 +214,7 @@ class SystemShellFreeMainScreenViewModelsTest {
                     tags = emptyList(),
                 )
 
-            coEvery { tagAuthority.resolve(id) } returns
-                SystemWorkspaceTagAuthority.Resolution.Canonical(emptyList())
+            coEvery { tagAuthority.operationalTags(id) } returns emptyList()
 
             every { arcQuestRepository.observeNonEmptyArcKeys() } returns flowOf(emptyList())
             every { arcQuestRepository.observeArcQuests(any()) } returns flowOf(emptyList())
@@ -244,7 +232,6 @@ class SystemShellFreeMainScreenViewModelsTest {
                 StrategicArcViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -270,7 +257,7 @@ class SystemShellFreeMainScreenViewModelsTest {
             viewModel.addArcQuestFromContext(id)
             advanceUntilIdle()
 
-            coVerify(exactly = 1) { contextRepository.getContextById(id) }
+            coVerify(exactly = 0) { contextRepository.getContextById(id) }
             coVerify(exactly = 1) { projector.resolvePresentation(id, null) }
             coVerify(exactly = 1) { arcQuestRepository.addQuest(capture(questSlot)) }
 

@@ -53,6 +53,7 @@ class ContextStructureRepositoryRetiredContextRoomTest {
         try {
             val id = "ordinary"
             database.contextDao().insert(contextEntity(id))
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(id)))
             database.contextStructureDao().insertStructure(
                 ContextConfiguration.default(id).copy(enableAdvanced = true),
             )
@@ -92,11 +93,14 @@ class ContextStructureRepositoryRetiredContextRoomTest {
     }
 
     @Test
-    fun `new Context structure does not mint enableAdvanced`() = runBlocking {
+    fun `live Workspace owner admits structure despite retired Context compatibility row`() = runBlocking {
         val database = database()
         try {
             val id = "new-structure"
-            database.contextDao().insert(contextEntity(id))
+            val legacyContext = contextEntity(id)
+            database.contextDao().insert(legacyContext)
+            database.contextDao().insert(legacyContext.softDelete(20L))
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(id)))
 
             val structure = repository(database).ensureStructure(id)
 
@@ -261,7 +265,7 @@ class ContextStructureRepositoryRetiredContextRoomTest {
     }
 
     @Test
-    fun `existing legacy structure remains readable after Context retirement`() = runBlocking {
+    fun `existing legacy structure remains readable after Workspace owner retirement`() = runBlocking {
         val database = database()
         try {
             val source = contextEntity("retired-readable")
@@ -272,6 +276,9 @@ class ContextStructureRepositoryRetiredContextRoomTest {
                 )
 
             database.contextDao().insert(source)
+            database.workspaceDao().upsert(
+                listOf(canonicalWorkspace(source.id).copy(isDeleted = true)),
+            )
             database.contextStructureDao().insertStructure(structure)
             database.contextDao().insert(source.softDelete(20L))
 
@@ -285,16 +292,18 @@ class ContextStructureRepositoryRetiredContextRoomTest {
     }
 
     @Test
-    fun `retired Context cannot recreate missing legacy structure`() = runBlocking {
+    fun `retired Workspace owner cannot recreate missing legacy structure`() = runBlocking {
         val database = database()
         try {
             val source = contextEntity("retired-missing")
             database.contextDao().insert(source)
-            database.contextDao().insert(source.softDelete(20L))
+            database.workspaceDao().upsert(
+                listOf(canonicalWorkspace(source.id).copy(isDeleted = true)),
+            )
 
             try {
                 repository(database).ensureStructure(source.id)
-                fail("Expected retired Context structure creation to fail")
+                fail("Expected retired Workspace owner structure creation to fail")
             } catch (expected: IllegalStateException) {
                 assertTrue(expected.message.orEmpty().contains(source.id))
             }
@@ -306,7 +315,7 @@ class ContextStructureRepositoryRetiredContextRoomTest {
     }
 
     @Test
-    fun `retired Context rejects legacy structure and item mutations`() = runBlocking {
+    fun `retired Workspace owner rejects legacy structure and item mutations`() = runBlocking {
         val database = database()
         try {
             val source = contextEntity("retired-writes")
@@ -339,9 +348,11 @@ class ContextStructureRepositoryRetiredContextRoomTest {
                 )
 
             database.contextDao().insert(source)
+            database.workspaceDao().upsert(
+                listOf(canonicalWorkspace(source.id).copy(isDeleted = true)),
+            )
             database.contextStructureDao().insertStructure(structure)
             database.contextStructureDao().insertItems(listOf(existingItem))
-            database.contextDao().insert(source.softDelete(20L))
 
             val repository = repository(database)
 
@@ -623,7 +634,7 @@ class ContextStructureRepositoryRetiredContextRoomTest {
 
     private fun repository(database: AppDatabase) =
         ContextStructureRepository(
-            contextDao = database.contextDao(),
+            workspaceDao = database.workspaceDao(),
             contextStructureDao = database.contextStructureDao(),
             structurePresetDao = database.structurePresetDao(),
             structurePresetItemDao = database.structurePresetItemDao(),
@@ -756,6 +767,21 @@ class ContextStructureRepositoryRetiredContextRoomTest {
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+
+    private fun canonicalWorkspace(id: String) =
+        WorkspaceEntity(
+            id = id,
+            nameOverride = id,
+            descriptionOverride = null,
+            roleCode = null,
+            createdAt = 1L,
+            updatedAt = 2L,
+            syncedAt = null,
+            isDeleted = false,
+            version = 1L,
+            provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+            sourceContextId = null,
+        )
 
     private fun promotedSystemWorkspace(id: String) =
         WorkspaceEntity(

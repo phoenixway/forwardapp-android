@@ -60,6 +60,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Sav
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceConnectionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningCommitmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningScopeEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -122,6 +124,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySl
 import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.planning.PlanningDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
@@ -211,6 +214,8 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemAttachmentRefEntity::class,
         com.romankozak.forwardappmobile.data.database.WorkspaceDirectionEntryIssueEntity::class,
         SavedOrientationViewEntity::class,
+        PlanningScopeEntity::class,
+        PlanningCommitmentEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapIssueEntity::class,
         com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapStateEntity::class,
@@ -221,7 +226,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 180,
+    version = 181,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -319,6 +324,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userStateIntervalDao(): UserStateIntervalDao
 
     abstract fun orientationDao(): OrientationDao
+
+    abstract fun planningDao(): PlanningDao
 
     abstract fun hierarchyPlacementDao(): HierarchyPlacementDao
 

@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.domain.structure
 
+import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
@@ -12,6 +14,7 @@ import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceReposito
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
@@ -34,6 +37,101 @@ class StructurePresetServiceV2PreflightTest {
             contextRepository = contexts,
             canonicalWorkspaceRepository = workspaces,
         )
+
+    @Test
+    fun `preset role stays on live ordinary Context owner`() = runTest {
+        val contextId = "legacy-owner"
+        val presetCode = "development"
+        val context = mockk<Context>()
+
+        every { context.id } returns contextId
+        every { context.isDeleted } returns false
+        every { context.roleCode } returns "old-role"
+        coEvery { contexts.getContextById(contextId) } returns context
+        coEvery { structures.presetRequiresChildWorkspace(presetCode) } returns false
+        coEvery { structures.activeStructureRequiresChildWorkspace(contextId) } returns false
+        coEvery { structures.getStructureWithItems(contextId) } returns
+            ContextStructureWithItems(
+                structure = ContextConfiguration.default(contextId),
+                items = emptyList(),
+            )
+
+        service().applyPresetToContext(contextId, presetCode)
+
+        coVerify(exactly = 1) {
+            contexts.updateContextRole(
+                contextId = contextId,
+                roleCode = presetCode,
+            )
+        }
+        coVerify(exactly = 0) {
+            workspaces.updateRole(
+                id = any(),
+                roleCode = any(),
+                now = any(),
+            )
+        }
+    }
+
+    @Test
+    fun `preset role writes canonical Workspace when Context shell is absent`() = runTest {
+        val contextId = "standalone-owner"
+        val presetCode = "development"
+
+        coEvery { contexts.getContextById(contextId) } returns null
+        coEvery { structures.presetRequiresChildWorkspace(presetCode) } returns false
+        coEvery { structures.activeStructureRequiresChildWorkspace(contextId) } returns false
+        coEvery { structures.getStructureWithItems(contextId) } returns
+            ContextStructureWithItems(
+                structure = ContextConfiguration.default(contextId),
+                items = emptyList(),
+            )
+
+        service().applyPresetToContext(contextId, presetCode)
+
+        coVerify(exactly = 0) {
+            contexts.updateContextRole(any(), any())
+        }
+        coVerify(exactly = 1) {
+            workspaces.updateRole(
+                id = contextId,
+                roleCode = presetCode,
+                now = any(),
+            )
+        }
+    }
+
+    @Test
+    fun `System preset role writes canonical Workspace even while Context shell exists`() = runTest {
+        val contextId = SystemContexts.PERSONAL_MANAGEMENT.raw
+        val presetCode = "management"
+        val context = mockk<Context>()
+
+        every { context.id } returns contextId
+        every { context.isDeleted } returns false
+        every { context.roleCode } returns presetCode
+        coEvery { contexts.getContextById(contextId) } returns context
+        coEvery { structures.presetRequiresChildWorkspace(presetCode) } returns false
+        coEvery { structures.activeStructureRequiresChildWorkspace(contextId) } returns false
+        coEvery { structures.getStructureWithItems(contextId) } returns
+            ContextStructureWithItems(
+                structure = ContextConfiguration.default(contextId),
+                items = emptyList(),
+            )
+
+        service().applyPresetToContext(contextId, presetCode)
+
+        coVerify(exactly = 0) {
+            contexts.updateContextRole(any(), any())
+        }
+        coVerify(exactly = 1) {
+            workspaces.updateRole(
+                id = contextId,
+                roleCode = presetCode,
+                now = any(),
+            )
+        }
+    }
 
     @Test
     fun `V2 target-only structural preset rejects before capability or role writes`() = runTest {

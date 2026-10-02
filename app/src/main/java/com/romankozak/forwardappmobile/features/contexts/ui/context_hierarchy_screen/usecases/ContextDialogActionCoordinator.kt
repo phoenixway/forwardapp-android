@@ -139,7 +139,7 @@ class ContextDialogActionCoordinator
             if (newWorkspaceId != null) {
                 savedStateHandle.get<String>(PENDING_BEACON_FOR_NEW_CONTEXT_ID_KEY)
                     ?.let { beaconId ->
-                        mainBeaconRepository.addRelatedContexts(
+                        mainBeaconRepository.addRelatedWorkspaces(
                             beaconId,
                             setOf(newWorkspaceId),
                         )

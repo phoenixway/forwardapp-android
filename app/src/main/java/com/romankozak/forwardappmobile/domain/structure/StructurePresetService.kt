@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.domain.structure
 
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -58,14 +60,28 @@ class StructurePresetService
             // Canonical capability application must succeed before descriptive
             // legacy metadata or structural side effects are materialized.
             contextStructureRepository.applyPresetToContext(contextId, presetCode)
-            contextRepository.getContextById(contextId)?.let { context ->
-                if (context.roleCode != presetCode) {
+
+            val context = contextRepository.getContextById(contextId)
+            val liveOrdinaryContextOwner =
+                context?.takeIf {
+                    !it.isDeleted &&
+                        !SystemContexts.isSystem(ContextId(contextId))
+                }
+
+            if (liveOrdinaryContextOwner != null) {
+                if (liveOrdinaryContextOwner.roleCode != presetCode) {
                     contextRepository.updateContextRole(
-                        contextId = context.id,
+                        contextId = liveOrdinaryContextOwner.id,
                         roleCode = presetCode,
                     )
                 }
+            } else {
+                canonicalWorkspaceRepository.updateRole(
+                    id = contextId,
+                    roleCode = presetCode,
+                )
             }
+
             applyContextStructureInternal(contextId, parentPlacementId)
         }
 

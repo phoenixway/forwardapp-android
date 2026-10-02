@@ -11,7 +11,6 @@ import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.Flow
 
 data class MainBeaconWithRelations(
     val beacon: MainBeacon,
-    val relatedContexts: List<Context>,
     val relatedOwnerIds: List<String>,
     val relatedAttachments: List<AttachmentEntity>,
     val levelStatuses: List<MainBeaconLevelStatus>,
@@ -37,17 +35,6 @@ data class MainBeaconWithRelations(
 
 data class MainBeaconRelationEntity(
     @Embedded val beacon: MainBeacon,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "id",
-        associateBy =
-            Junction(
-                value = MainBeaconContextCrossRef::class,
-                parentColumn = "beacon_id",
-                entityColumn = "context_id",
-            ),
-    )
-    val relatedContexts: List<Context>,
     @Relation(parentColumn = "id", entityColumn = "beacon_id")
     val contextCrossRefs: List<MainBeaconContextCrossRef>,
     @Relation(parentColumn = "id", entityColumn = "beacon_id")
@@ -277,18 +264,6 @@ interface MainBeaconDao {
 
     @Query("DELETE FROM main_beacon_group_members")
     suspend fun deleteAllGroupMembers()
-
-    @Query(
-        """
-        SELECT c.*
-        FROM contexts AS c
-        INNER JOIN main_beacon_context_cross_ref AS cross_ref
-            ON cross_ref.context_id = c.id
-        WHERE cross_ref.beacon_id = :beaconId
-        ORDER BY cross_ref.ref_order ASC, c.name COLLATE NOCASE ASC
-        """,
-    )
-    suspend fun getContextsForBeacon(beaconId: String): List<Context>
 
     @Query(
         """

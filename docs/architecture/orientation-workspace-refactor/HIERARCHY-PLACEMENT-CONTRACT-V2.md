@@ -1228,7 +1228,19 @@ Goals:
 
 ### H6 - obsolete V1 hierarchy storage retirement
 
-Status: CURRENT / IN PROGRESS.
+Status: COMPLETE / HOST VERIFIED / DURABLE.
+
+H6 closed the Android GENERAL hierarchy migration at schema 180. Canonical H1
+is the sole runtime read/write authority; obsolete Workspace/MainBeacon
+physical hierarchy storage and the global pre-cutover selector are retired.
+Skipped-release hierarchy preservation is owned by migration-time
+establishment before cleanup. B2 historical Restore, Desktop/shared, Epic A,
+immutable migration history and current non-hierarchy ordering are intentional
+survivors with independent lifetimes, not incomplete H6 work.
+
+The paragraphs below preserve the implementation sequence as historical
+provenance; the completed audit is canonical in
+`H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`.
 
 The initial dependency census is complete and canonical in
 `H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`. It proves that no production V1

@@ -47,7 +47,6 @@ private const val TYPE_ORDER_OTHER = 3
 private data class SearchContextPresentationNode(
     val presentation: GlobalSearchContextPresentation,
     val isDeleted: Boolean,
-    val hasPersistedContext: Boolean,
     val legacyContextUpdatedAt: Long?,
 )
 
@@ -81,9 +80,6 @@ internal class SearchContextPresentationSnapshot(
 
     fun legacyContextUpdatedAt(contextId: String): Long? =
         nodesById[contextId]?.legacyContextUpdatedAt
-
-    fun hasPersistedContext(contextId: String): Boolean =
-        nodesById[contextId]?.hasPersistedContext == true
 
     suspend fun pathSegments(contextId: String): List<String>? {
         val occurrence = canonicalV2Read.navigationOccurrence(
@@ -193,7 +189,6 @@ private fun ContextPresentation.toSearchNode(
                 rankingTimestamp = rankingTimestamp,
             ),
         isDeleted = rawContext?.isDeleted ?: false,
-        hasPersistedContext = rawContext != null,
         legacyContextUpdatedAt = rawContext?.updatedAt,
     )
 }
@@ -379,20 +374,11 @@ class SearchRepository
                     val presentedContext = ownerContextId?.let(contextPresentation::presentation)
                     val presentedResult =
                         when {
-                            presentedContext != null &&
-                                contextPresentation.hasPersistedContext(presentedContext.id) ->
+                            presentedContext != null ->
                                 result.copy(
                                     contextName = presentedContext.name,
                                     contextUpdatedAt =
                                         contextPresentation.legacyContextUpdatedAt(presentedContext.id),
-                                )
-                            presentedContext != null ->
-                                // A shell-free promoted System owner still has a
-                                // canonical display label, but no Context-history
-                                // timestamp may be projected into this result.
-                                result.copy(
-                                    contextName = presentedContext.name,
-                                    contextUpdatedAt = null,
                                 )
                             ownerContextId != null && SystemContexts.isSystem(ContextId(ownerContextId)) ->
                                 result.copy(contextName = null, contextUpdatedAt = null)

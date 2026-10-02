@@ -1,46 +1,17 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.sync.SyncRepository
-import timber.log.Timber
 import javax.inject.Inject
 
 class SelectiveImportCoordinator @Inject constructor(
     private val syncRepository: SyncRepository,
 ) {
     suspend fun importSelection(state: SelectiveImportState): Result<Unit> {
-        val content = state.backupContent
-            ?: return Result.failure(IllegalStateException("Nothing to import"))
-        val selection = PreparedSelection.from(content)
-
-        Timber.tag("IMPORT_DEBUG").d("Total projects selected: ${selection.selectedProjects.size}")
-        Timber
-            .tag("IMPORT_DEBUG")
-            .d("Projects with parents: ${selection.selectedProjects.count { it.parentId != null }}")
-        Timber
-            .tag("IMPORT_DEBUG")
-            .d("Root projects (no parent): ${selection.selectedProjects.count { it.parentId == null }}")
-        Timber
-            .tag("IMPORT_DEBUG")
-            .d(
-                "Regular (non-system) projects: ${selection.regularProjects.size}, " +
-                    "System projects: ${selection.selectedProjects.size - selection.regularProjects.size}",
-            )
+        val content =
+            state.backupContent
+                ?: return Result.failure(IllegalStateException("Nothing to import"))
 
         val snapshotBundle =
             state.sourceSnapshotBundle
@@ -50,216 +21,22 @@ class SelectiveImportCoordinator @Inject constructor(
                     ),
                 )
 
-        return importSnapshotSelection(
-            snapshotBundle = snapshotBundle,
-            selection = selection,
-            sharedSelection = state.selection,
-        )
-    }
+        val effectiveSelection =
+            state.selection.takeUnless { it.isEmpty() }
+                ?: content.toWorkspaceSelectiveImportSelection()
 
-    private suspend fun importSnapshotSelection(
-        snapshotBundle: SnapshotBundle,
-        selection: PreparedSelection,
-        sharedSelection: WorkspaceSelectiveImportSelection,
-    ): Result<Unit> {
         val filteredSnapshotBundle =
             runCatching {
                 syncRepository.filterSnapshotBundleForSelectiveImport(
                     bundle = snapshotBundle,
-                    selection = sharedSelection.takeUnless { it.isEmpty() } ?: selection.snapshotSelection,
+                    selection = effectiveSelection,
                 )
             }.getOrElse { error -> return Result.failure(error) }
 
         return syncRepository.importSelectedSnapshotBundle(filteredSnapshotBundle).map { Unit }
     }
 
-    private data class PreparedSelection(
-        val selectedProjects: List<Context>,
-        val regularProjects: List<Context>,
-        val projectsWithValidParents: List<Context>,
-        val selectedGoals: List<Goal>,
-        val selectedLegacyNotes: List<LegacyNoteEntity>,
-        val selectedActivityRecords: List<ActivityRecord>,
-        val selectedDocuments: List<NoteDocumentEntity>,
-        val selectedChecklists: List<ChecklistEntity>,
-        val filteredChecklistItems: List<ChecklistItemEntity>,
-        val selectedLinkItems: List<LinkItemEntity>,
-        val selectedInboxRecords: List<InboxRecord>,
-        val selectedContextLogs: List<ContextLog>,
-        val selectedScripts: List<ScriptEntity>,
-        val filteredScripts: List<ScriptEntity>,
-        val selectedAttachments: List<AttachmentEntity>,
-        val snapshotSelection: WorkspaceSelectiveImportSelection,
-    ) {
-        companion object {
-            fun from(content: SelectableDatabaseContent): PreparedSelection {
-                val rawSelection = RawSelection.from(content)
-                val projectSelection = buildProjectSelection(content, rawSelection.selectedProjects)
-                val dependentSelection =
-                    buildDependentSelection(
-                        content = content,
-                        rawSelection = rawSelection,
-                        selectedContextIds = projectSelection.selectedContextIds,
-                    )
-                val snapshotSelection = buildSnapshotSelection(rawSelection)
-
-                return PreparedSelection(
-                    selectedProjects = rawSelection.selectedProjects,
-                    regularProjects = projectSelection.regularProjects,
-                    projectsWithValidParents = projectSelection.projectsWithValidParents,
-                    selectedGoals = rawSelection.selectedGoals,
-                    selectedLegacyNotes = rawSelection.selectedLegacyNotes,
-                    selectedActivityRecords = rawSelection.selectedActivityRecords,
-                    selectedDocuments = rawSelection.selectedDocuments,
-                    selectedChecklists = rawSelection.selectedChecklists,
-                    filteredChecklistItems = dependentSelection.filteredChecklistItems,
-                    selectedLinkItems = rawSelection.selectedLinkItems,
-                    selectedInboxRecords = rawSelection.selectedInboxRecords,
-                    selectedContextLogs = rawSelection.selectedContextLogs,
-                    selectedScripts = rawSelection.selectedScripts,
-                    filteredScripts = dependentSelection.filteredScripts,
-                    selectedAttachments = rawSelection.selectedAttachments,
-                    snapshotSelection = snapshotSelection,
-                )
-            }
-
-            private fun buildProjectSelection(
-                content: SelectableDatabaseContent,
-                selectedProjects: List<Context>,
-            ): ProjectSelection {
-                val regularProjects = selectedProjects.filterNot { SystemContexts.isSystem(ContextId(it.id)) }
-                val allProjectsMap = content.projects.map { it.item }.associateBy { it.id }
-                val regularContextIds = regularProjects.map { it.id }.toSet()
-                val projectsWithValidParents =
-                    regularProjects.filter { context ->
-                        isProjectValidForImport(
-                            contextId = context.id,
-                            allProjectsMap = allProjectsMap,
-                            regularContextIds = regularContextIds,
-                        )
-                    }
-
-                return ProjectSelection(
-                    regularProjects = regularProjects,
-                    projectsWithValidParents = projectsWithValidParents,
-                    selectedContextIds = projectsWithValidParents.map { it.id }.toSet(),
-                )
-            }
-
-            private fun buildDependentSelection(
-                content: SelectableDatabaseContent,
-                rawSelection: RawSelection,
-                selectedContextIds: Set<String>,
-            ): DependentSelection {
-                val selectedChecklistIds = rawSelection.selectedChecklists.map { it.id }.toSet()
-
-                val filteredChecklistItems =
-                    content.checklistItems.map { it.item }.filter { it.checklistId in selectedChecklistIds }
-                val filteredScripts =
-                    rawSelection.selectedScripts.filter { script ->
-                        script.contextId == null || script.contextId in selectedContextIds
-                    }
-
-                return DependentSelection(
-                    filteredChecklistItems = filteredChecklistItems,
-                    filteredScripts = filteredScripts,
-                )
-            }
-
-            private fun buildSnapshotSelection(rawSelection: RawSelection): WorkspaceSelectiveImportSelection =
-                WorkspaceSelectiveImportSelection(
-                    selectedContextIds = rawSelection.selectedProjects.map { it.id }.toSet(),
-                    selectedGoalIds = rawSelection.selectedGoals.map { it.id }.toSet(),
-                    selectedWorkspaceBacklogEntryIds =
-                        rawSelection.selectedWorkspaceBacklogEntries.map { it.entry.id }.toSet(),
-                    selectedDocumentIds = rawSelection.selectedDocuments.map { it.id }.toSet(),
-                    selectedChecklistIds = rawSelection.selectedChecklists.map { it.id }.toSet(),
-                    selectedLinkItemIds = rawSelection.selectedLinkItems.map { it.id }.toSet(),
-                    selectedInboxRecordIds = rawSelection.selectedInboxRecords.map { it.id }.toSet(),
-                    selectedContextLogIds = rawSelection.selectedContextLogs.map { it.id }.toSet(),
-                    selectedScriptIds = rawSelection.selectedScripts.map { it.id }.toSet(),
-                    selectedAttachmentIds = rawSelection.selectedAttachments.map { it.id }.toSet(),
-                    selectedActivityRecordIds = rawSelection.selectedActivityRecords.map { it.id }.toSet(),
-                )
-
-            private fun isProjectValidForImport(
-                contextId: String,
-                allProjectsMap: Map<String, Context>,
-                regularContextIds: Set<String>,
-                visited: Set<String> = emptySet(),
-            ): Boolean {
-                val isVisited = contextId in visited
-                val project = allProjectsMap[contextId]
-                val parentProject = project?.parentId?.let(allProjectsMap::get)
-                val parentId = project?.parentId
-
-                return when {
-                    isVisited -> false
-                    project == null -> false
-                    parentId == null -> true
-                    parentProject == null -> false
-                    SystemContexts.isSystem(ContextId(parentProject.id)) -> true
-                    else -> {
-                        parentId in regularContextIds &&
-                            isProjectValidForImport(
-                                contextId = parentId,
-                                allProjectsMap = allProjectsMap,
-                                regularContextIds = regularContextIds,
-                                visited = visited + contextId,
-                            )
-                    }
-                }
-            }
-        }
-    }
-
-    private data class RawSelection(
-        val selectedProjects: List<Context>,
-        val selectedGoals: List<Goal>,
-        val selectedWorkspaceBacklogEntries: List<CanonicalBacklogPreviewRow>,
-        val selectedLegacyNotes: List<LegacyNoteEntity>,
-        val selectedActivityRecords: List<ActivityRecord>,
-        val selectedDocuments: List<NoteDocumentEntity>,
-        val selectedChecklists: List<ChecklistEntity>,
-        val selectedLinkItems: List<LinkItemEntity>,
-        val selectedInboxRecords: List<InboxRecord>,
-        val selectedContextLogs: List<ContextLog>,
-        val selectedScripts: List<ScriptEntity>,
-        val selectedAttachments: List<AttachmentEntity>,
-    ) {
-        companion object {
-            fun from(content: SelectableDatabaseContent): RawSelection =
-                RawSelection(
-                    selectedProjects = content.projects.selectedItems(),
-                    selectedGoals = content.goals.selectedItems(),
-                    selectedWorkspaceBacklogEntries = content.workspaceBacklogEntries.selectedItems(),
-                    selectedLegacyNotes = content.legacyNotes.selectedItems(),
-                    selectedActivityRecords = content.activityRecords.selectedItems(),
-                    selectedDocuments = content.documents.selectedItems(),
-                    selectedChecklists = content.checklists.selectedItems(),
-                    selectedLinkItems = content.linkItems.selectedItems(),
-                    selectedInboxRecords = content.inboxRecords.selectedItems(),
-                    selectedContextLogs = content.contextLogs.selectedItems(),
-                    selectedScripts = content.scripts.selectedItems(),
-                    selectedAttachments = content.attachments.selectedItems(),
-                )
-        }
-    }
-
-    private data class ProjectSelection(
-        val regularProjects: List<Context>,
-        val projectsWithValidParents: List<Context>,
-        val selectedContextIds: Set<String>,
-    )
-
-    private data class DependentSelection(
-        val filteredChecklistItems: List<ChecklistItemEntity>,
-        val filteredScripts: List<ScriptEntity>,
-    )
 }
-
-private fun <T> List<SelectableDiffItem<T>>.selectedItems(): List<T> =
-    filter { it.isSelected && it.isSelectable }.map { it.item }
 
 private fun WorkspaceSelectiveImportSelection.isEmpty(): Boolean =
     selectedContextIds.isEmpty() &&

@@ -55,7 +55,6 @@ class StrategicArcWorkspaceCreationTest {
             val workspaceId = "strategic-arc-workspace"
             val contextRepository = mockk<ContextRepository>(relaxed = true)
             val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>()
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -84,19 +83,17 @@ class StrategicArcWorkspaceCreationTest {
                     now = any(),
                 )
             } returns workspaceId
-            coEvery { contextRepository.getContextById(workspaceId) } returns null
             coEvery { tagAuthority.resolve(workspaceId) } returns
                 SystemWorkspaceTagAuthority.Resolution.NotSystem
             coEvery {
                 projector.resolvePresentation(workspaceId, null)
             } returns standalonePresentation(workspaceId)
-            coEvery { canonicalWorkspaceTagRepository.getTags(workspaceId) } returns emptyList()
+            coEvery { tagAuthority.operationalTags(workspaceId) } returns emptyList()
 
             val viewModel =
                 StrategicArcViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -125,10 +122,7 @@ class StrategicArcWorkspaceCreationTest {
             advanceUntilIdle()
 
             coVerify(exactly = 1) {
-                canonicalWorkspaceTagRepository.replaceTags(workspaceId, listOf("arc"), any())
-            }
-            coVerify(exactly = 0) {
-                contextRepository.updateContextTags(any(), any())
+                contextRepository.updateContextTags(workspaceId, listOf("arc"))
             }
 
             val questSlot = slot<ArcQuestEntity>()

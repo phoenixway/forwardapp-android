@@ -83,13 +83,6 @@ class SyncLocalDataSourceImpl
         private val mainBeaconDao: MainBeaconDao,
     ) : SyncLocalDataSource {
         override suspend fun getUnsyncedSelection(): LocalSyncSelection {
-            val retiredContextIds = db.canonicalRetiredContextIds()
-            val projects =
-                contextDao.getAll()
-                    .filterNot { context ->
-                        SystemContexts.isSystem(ContextId(context.id)) ||
-                            (!context.isDeleted && context.id in retiredContextIds)
-                    }
             val goals = goalDao.getAll()
             val legacyNotes = legacyNoteDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
@@ -122,7 +115,6 @@ class SyncLocalDataSourceImpl
                     .map { LocalSyncVersion(id(it), version(it)) }
 
             return LocalSyncSelection(
-                contexts = versions(projects, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 goals = versions(goals, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 backlogItems = emptyList(),
                 backlogOrders = emptyList(),
@@ -149,13 +141,6 @@ class SyncLocalDataSourceImpl
         }
 
         override suspend fun getChangesSince(timestamp: Long): SnapshotBundle {
-            val retiredContextIds = db.canonicalRetiredContextIds()
-            val projects =
-                contextDao.getAll()
-                    .filterNot { context ->
-                        SystemContexts.isSystem(ContextId(context.id)) ||
-                            (!context.isDeleted && context.id in retiredContextIds)
-                    }
             val goals = goalDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
             val musicNotes = musicNoteDao.getAll()
@@ -203,7 +188,8 @@ class SyncLocalDataSourceImpl
             return SnapshotBundle(
                 version = 2,
                 exportedAt = System.currentTimeMillis(),
-                contexts = projects.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
+                // Context persistence is no longer an outbound Wi-Fi authority.
+                contexts = emptyList(),
                 // Canonical H1 is injected atomically by the Wi-Fi delta
                 // builder. Legacy structural links are Restore-only input.
                 contextParentLinks = emptyList(),
@@ -343,15 +329,7 @@ class SyncLocalDataSourceImpl
 
         override suspend fun acknowledge(selection: LocalSyncSelection) {
             val ts = System.currentTimeMillis()
-            val retiredContextIds = db.canonicalRetiredContextIds()
-
             db.withTransaction {
-                val projects =
-                contextDao.getAll()
-                    .filterNot { context ->
-                        SystemContexts.isSystem(ContextId(context.id)) ||
-                            (!context.isDeleted && context.id in retiredContextIds)
-                    }
                 val goals = goalDao.getAll()
                 val legacyNotes = legacyNoteDao.getAll()
                 val documents = noteDocumentDao.getAllDocuments()
@@ -374,7 +352,6 @@ class SyncLocalDataSourceImpl
                 fun versions(items: List<LocalSyncVersion>): Map<String, Long> =
                     items.associate { it.id to it.version }
 
-                val contextVersions = versions(selection.contexts)
                 val goalVersions = versions(selection.goals)
                 val noteVersions = versions(selection.notes)
                 val documentVersions = versions(selection.documents)
@@ -394,9 +371,6 @@ class SyncLocalDataSourceImpl
                 val slotVersions = versions(selection.tacticalActivitySlots)
                 val questVersions = versions(selection.arcQuests)
 
-                contextDao.insertContexts(
-                    projects.filter { contextVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
-                )
                 goalDao.insertGoals(
                     goals.filter { goalVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )

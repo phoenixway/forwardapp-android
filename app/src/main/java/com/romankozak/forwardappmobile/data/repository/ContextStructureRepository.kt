@@ -13,7 +13,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInbo
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.combine
 class ContextStructureRepository
     @Inject
     constructor(
-        private val contextDao: ContextDao,
+        private val workspaceDao: WorkspaceDao,
         private val contextStructureDao: ContextStructureDao,
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
@@ -46,12 +46,12 @@ class ContextStructureRepository
         private val canonicalExecutionLogRepository:
             CanonicalExecutionLogRepository,
     ) {
-        private suspend fun isLiveContext(contextId: String): Boolean =
-            contextDao.getContextById(contextId)?.isDeleted == false
+        private suspend fun isLiveWorkspace(workspaceId: String): Boolean =
+            workspaceDao.getById(workspaceId)?.isDeleted == false
 
         private suspend fun isLiveStructureOwner(structureId: String): Boolean {
             val structure = contextStructureDao.getStructureById(structureId) ?: return false
-            return isLiveContext(structure.contextId)
+            return isLiveWorkspace(structure.contextId)
         }
 
         suspend fun ensureReservedBaseRolePresets() {
@@ -89,8 +89,8 @@ class ContextStructureRepository
             val existing = contextStructureDao.getStructureByContext(contextId)
             if (existing != null) return existing
 
-            check(isLiveContext(contextId)) {
-                "Cannot create Context structure for retired or missing Context: $contextId"
+            check(isLiveWorkspace(contextId)) {
+                "Cannot create Context structure for retired or missing Workspace owner: $contextId"
             }
 
             val structure =
@@ -126,7 +126,7 @@ class ContextStructureRepository
         fun observeStructureOnly(contextId: String): Flow<ContextConfiguration?> = contextStructureDao.observeStructureByContext(contextId)
 
         suspend fun updateStructure(structure: ContextConfiguration) {
-            if (!isLiveContext(structure.contextId)) return
+            if (!isLiveWorkspace(structure.contextId)) return
 
             workspaceWriteThrough.mutate(
                 now = structure.updatedAt,
@@ -139,7 +139,7 @@ class ContextStructureRepository
         }
 
         suspend fun upsertStructure(structure: ContextConfiguration) {
-            if (!isLiveContext(structure.contextId)) return
+            if (!isLiveWorkspace(structure.contextId)) return
 
             workspaceWriteThrough.mutate(
                 now = structure.updatedAt,
@@ -173,7 +173,7 @@ class ContextStructureRepository
             contextId: String,
             presetCode: String,
         ) {
-            if (!isLiveContext(contextId)) return
+            if (!isLiveWorkspace(contextId)) return
 
             ensureReservedBaseRolePresets()
             val preset = structurePresetDao.getByCode(presetCode) ?: return

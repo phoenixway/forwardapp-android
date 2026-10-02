@@ -238,7 +238,6 @@ class ContextRepositoryHierarchyMutationTest {
     ): ContextRepository =
         ContextRepository(
             contextDao = contextDao,
-            contextTagRefDao = mockk(relaxed = true),
             legacyNoteRepository = mockk(relaxed = true),
             activityRepository = mockk(relaxed = true),
             recentItemsRepository = mockk(relaxed = true),

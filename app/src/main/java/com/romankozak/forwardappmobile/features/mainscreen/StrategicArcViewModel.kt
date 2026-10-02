@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
-import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
@@ -85,7 +84,6 @@ class StrategicArcViewModel
     constructor(
         private val contextRepository: ContextRepository,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
-        private val canonicalWorkspaceTagRepository: CanonicalWorkspaceTagRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
         private val settingsRepository: SettingsRepository,
@@ -377,11 +375,10 @@ class StrategicArcViewModel
 
         fun addArcQuestFromContext(contextId: String) {
             viewModelScope.launch {
-                val rawContext = contextRepository.getContextById(contextId)
                 val context =
                     systemWorkspacePresentationContextProjector.resolvePresentation(
                         contextId = contextId,
-                        context = rawContext,
+                        context = null,
                     ) ?: return@launch
                 arcQuestRepository.addQuest(
                     ArcQuestEntity(
@@ -509,50 +506,21 @@ class StrategicArcViewModel
             addTag: String? = null,
             removeTags: Set<String> = emptySet(),
         ) {
-            val writeContextTags: suspend (List<String>) -> Unit = { tags ->
-                contextRepository.updateContextTags(contextId, tags)
-            }
-            val currentAndWriter: Pair<List<String>, suspend (List<String>) -> Unit> =
-                when (val resolution = systemWorkspaceTagAuthority.resolve(contextId)) {
-                    SystemWorkspaceTagAuthority.Resolution.NotSystem -> {
-                        val rawContext = contextRepository.getContextById(contextId)
-                        if (rawContext?.isDeleted == true) {
-                            return
-                        }
-                        if (rawContext != null) {
-                            Pair<List<String>, suspend (List<String>) -> Unit>(
-                                rawContext.tags.orEmpty(),
-                                writeContextTags,
-                            )
-                        } else {
-                            systemWorkspacePresentationContextProjector
-                                .resolvePresentation(contextId, rawContext)
-                                ?.let {
-                                    val writeCanonicalTags: suspend (List<String>) -> Unit = { tags ->
-                                        canonicalWorkspaceTagRepository.replaceTags(contextId, tags)
-                                    }
-                                    Pair<List<String>, suspend (List<String>) -> Unit>(
-                                        canonicalWorkspaceTagRepository.getTags(contextId),
-                                        writeCanonicalTags,
-                                    )
-                                }
-                        }
-                    }
+            val current =
+                systemWorkspaceTagAuthority.operationalTags(contextId)
+                    ?: return
 
-                    is SystemWorkspaceTagAuthority.Resolution.Canonical ->
-                        Pair<List<String>, suspend (List<String>) -> Unit>(resolution.tags, writeContextTags)
-                    SystemWorkspaceTagAuthority.Resolution.Unavailable -> return
-                } ?: return
-            val (current, writeTags) = currentAndWriter
             val next =
                 current
                     .filterNot { it in removeTags }
                     .toMutableList()
+
             if (addTag != null && addTag !in next) {
                 next.add(addTag)
             }
+
             if (next != current) {
-                writeTags(next)
+                contextRepository.updateContextTags(contextId, next)
             }
         }
 

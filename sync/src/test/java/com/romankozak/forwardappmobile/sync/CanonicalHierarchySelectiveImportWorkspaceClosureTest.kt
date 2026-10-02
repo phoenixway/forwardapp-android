@@ -275,7 +275,7 @@ class CanonicalHierarchySelectiveImportWorkspaceClosureTest {
     }
 
     @Test
-    fun `selected Context without canonical Workspace target imports product row but selects no H1 occurrence`() {
+    fun `selected legacy Context without canonical Workspace target imports neither Context nor H1 occurrence`() {
         val selectedContext =
             com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot(
                 id = "context-only",
@@ -322,7 +322,7 @@ class CanonicalHierarchySelectiveImportWorkspaceClosureTest {
 
         val filtered = filter.filter(source, selection("context-only"))
 
-        assertEquals(listOf("context-only"), filtered.contexts.map { it.id })
+        assertTrue(filtered.contexts.isEmpty())
         assertNotNull(filtered.hierarchyPlacements)
         assertTrue(filtered.hierarchyPlacements.orEmpty().isEmpty())
         assertNotNull(filtered.hierarchyPlacementGroupScopes)

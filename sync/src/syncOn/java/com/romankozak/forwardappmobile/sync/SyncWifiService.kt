@@ -264,7 +264,6 @@ private fun buildSnapshotSelectionDelta(
     fun ids(items: List<com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncVersion>) =
         items.mapTo(hashSetOf()) { it.id }
 
-    val contexts = ids(selection.contexts)
     val goals = ids(selection.goals)
     val notes = ids(selection.notes)
     val documents = ids(selection.documents)
@@ -286,7 +285,8 @@ private fun buildSnapshotSelectionDelta(
     val quests = ids(selection.arcQuests)
 
     return full.copy(
-        contexts = full.contexts.filter { it.id in contexts },
+        // Context persistence is no longer part of current Wi-Fi outbound authority.
+        contexts = emptyList(),
         goals = full.goals.filter { it.id in goals },
         backlogItems = emptyList(),
         backlogOrders = emptyList(),

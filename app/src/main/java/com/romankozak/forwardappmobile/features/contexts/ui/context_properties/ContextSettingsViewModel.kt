@@ -331,6 +331,21 @@ class ContextSettingsViewModel
                 return true
             }
 
+            if (
+                canonicalOrdinaryCapabilitySettings.persistPresentationIfOwned(
+                    workspaceId = projectId,
+                    name = _uiState.value.title.text,
+                    description = _uiState.value.description.text.ifEmpty { null },
+                )
+            ) {
+                contextRepository.updateContextTags(
+                    contextId = projectId,
+                    tags = sanitizeTags(_uiState.value.tags),
+                )
+                persistFeatureFlags()
+                return true
+            }
+
             project ?: return false
             contextRepository.updateContextSettings(
                 contextId = projectId,
@@ -432,11 +447,10 @@ class ContextSettingsViewModel
 
         fun onAddContextLink(contextId: String) {
             viewModelScope.launch {
-                val context = contextRepository.getContextById(contextId)
                 val presented =
                     systemWorkspacePresentationContextProjector.resolvePresentation(
                         contextId = contextId,
-                        context = context,
+                        context = null,
                     ) ?: return@launch
                 addRelatedLink(
                     RelatedLink(

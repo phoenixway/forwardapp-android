@@ -85,6 +85,52 @@ class MainBeaconDaoWorkspaceOwnerRoomTest {
             }
         }
 
+    @Test
+    fun `current ordinary Workspace owner persists only in Workspace relation`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                dao.insertBeacon(
+                    MainBeacon(
+                        id = BEACON_ID,
+                        title = "Beacon",
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                    ),
+                )
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalWorkspace(ORDINARY_ID),
+                    ),
+                )
+
+                dao.insertWorkspaceCrossRefs(
+                    listOf(
+                        com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef(
+                            beaconId = BEACON_ID,
+                            workspaceId = ORDINARY_ID,
+                            order = 2L,
+                        ),
+                    ),
+                )
+
+                assertEquals(
+                    listOf(ORDINARY_ID),
+                    dao.getAllWorkspaceCrossRefsSync().map { it.workspaceId },
+                )
+                assertEquals(
+                    0L,
+                    scalarLong(
+                        database,
+                        "SELECT COUNT(*) FROM main_beacon_context_cross_ref WHERE context_id = '$ORDINARY_ID'",
+                    ),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
     private fun context(id: String) =
         ContextEntity(
             id = id,

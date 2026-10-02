@@ -57,7 +57,7 @@ class MainBeaconV2CreateRoomTest {
             val beacon = beacon("beacon-a")
             repository.createBeacon(
                 beacon = beacon,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = groups.toSet(),
                 levelStatuses = emptyList(),
@@ -117,14 +117,14 @@ class MainBeaconV2CreateRoomTest {
             val beaconB = beacon("beacon-b")
             repository.createBeacon(
                 beacon = beaconA,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = setOf(groupA.id),
                 levelStatuses = emptyList(),
             )
             repository.createBeacon(
                 beacon = beaconB,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = setOf(groupB.id),
                 levelStatuses = emptyList(),
@@ -234,7 +234,7 @@ class MainBeaconV2CreateRoomTest {
             val parent = beacon("parent-beacon")
             repository.createBeacon(
                 beacon = parent,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -265,7 +265,7 @@ class MainBeaconV2CreateRoomTest {
             val child = beacon("child-beacon")
             repository.createBeacon(
                 beacon = child,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -303,7 +303,7 @@ class MainBeaconV2CreateRoomTest {
             for (parent in listOf(first, second)) {
                 repository.createBeacon(
                     beacon = parent,
-                    relatedContextIds = emptySet(),
+                    relatedOwnerIds = emptySet(),
                     relatedAttachmentIds = emptySet(),
                     groupIds = emptySet(),
                     levelStatuses = emptyList(),
@@ -326,7 +326,7 @@ class MainBeaconV2CreateRoomTest {
             try {
                 repository.createBeacon(
                     beacon = invalidChild,
-                    relatedContextIds = emptySet(),
+                    relatedOwnerIds = emptySet(),
                     relatedAttachmentIds = emptySet(),
                     groupIds = emptySet(),
                     levelStatuses = emptyList(),
@@ -360,7 +360,7 @@ class MainBeaconV2CreateRoomTest {
             try {
                 repository.createBeacon(
                     beacon = beacon,
-                    relatedContextIds = emptySet(),
+                    relatedOwnerIds = emptySet(),
                     relatedAttachmentIds = emptySet(),
                     groupIds = setOf("missing-group"),
                     levelStatuses = emptyList(),
@@ -398,7 +398,7 @@ class MainBeaconV2CreateRoomTest {
             val beacon = beacon("beacon-edit")
             repository.createBeacon(
                 beacon = beacon,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = setOf(group.id),
                 levelStatuses = emptyList(),
@@ -410,7 +410,7 @@ class MainBeaconV2CreateRoomTest {
 
             repository.updateBeacon(
                 beacon = beacon.copy(title = "Edited", updatedAt = 40L),
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = setOf(group.id),
                 levelStatuses = emptyList(),
@@ -439,7 +439,7 @@ class MainBeaconV2CreateRoomTest {
             val beacon = beacon("beacon-order")
             repository.createBeacon(
                 beacon = beacon,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -449,7 +449,7 @@ class MainBeaconV2CreateRoomTest {
             val failure = runCatching {
                 repository.updateBeacon(
                     beacon = stored.copy(order = stored.order + 1L, title = "Unauthorized order edit"),
-                    relatedContextIds = emptySet(),
+                    relatedOwnerIds = emptySet(),
                     relatedAttachmentIds = emptySet(),
                     groupIds = emptySet(),
                     levelStatuses = emptyList(),
@@ -474,7 +474,7 @@ class MainBeaconV2CreateRoomTest {
             for (beacon in listOf(parent, child)) {
                 repository.createBeacon(
                     beacon = beacon,
-                    relatedContextIds = emptySet(),
+                    relatedOwnerIds = emptySet(),
                     relatedAttachmentIds = emptySet(),
                     groupIds = emptySet(),
                     levelStatuses = emptyList(),
@@ -514,14 +514,14 @@ class MainBeaconV2CreateRoomTest {
             val independent = beacon("independent-beacon")
             repository.createBeacon(
                 beacon = deleted,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = setOf("group-one", "group-two"),
                 levelStatuses = emptyList(),
             )
             repository.createBeacon(
                 beacon = independent,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -596,7 +596,7 @@ class MainBeaconV2CreateRoomTest {
             HierarchyPlacementGroupScopeMutationCoordinator(db).setRootScope(link, null, 25L)
             repository.createBeacon(
                 beacon = child,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -668,7 +668,7 @@ class MainBeaconV2CreateRoomTest {
                 .single { !it.isDeleted && it.targetId == parentMapping.subjectId }
             repository.createBeacon(
                 beacon = child,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),
@@ -807,7 +807,7 @@ class MainBeaconV2CreateRoomTest {
             }
             repository.createBeacon(
                 beacon = child,
-                relatedContextIds = emptySet(),
+                relatedOwnerIds = emptySet(),
                 relatedAttachmentIds = emptySet(),
                 groupIds = emptySet(),
                 levelStatuses = emptyList(),

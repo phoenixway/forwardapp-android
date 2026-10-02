@@ -114,9 +114,9 @@ class WorkspaceClipboardCoordinatorTest {
         runTest {
             coordinator.copyWorkspace("source")
             coEvery {
-                mainBeaconRepository.addRelatedContexts(
+                mainBeaconRepository.addRelatedWorkspaces(
                     beaconId = "beacon",
-                    contextIds = setOf("source"),
+                    workspaceIds = setOf("source"),
                 )
             } returns 1
 
@@ -132,9 +132,9 @@ class WorkspaceClipboardCoordinatorTest {
         runTest {
             coordinator.cutWorkspace("source", occurrence("source", "source-placement"))
             coEvery {
-                mainBeaconRepository.moveRelatedContextsToBeacon(
+                mainBeaconRepository.moveRelatedWorkspacesToBeacon(
                     beaconId = "beacon",
-                    contextIds = setOf("source"),
+                    workspaceIds = setOf("source"),
                 )
             } returns 1
 

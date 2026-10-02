@@ -20,6 +20,50 @@ internal fun requireCanonicalMergeIngress(
 ) {
     bundle.requireSupportedHierarchyFormat()
 
+    val ordinaryContextIds =
+        bundle.contexts
+            .asSequence()
+            .map { snapshot -> snapshot.id }
+            .filterNot { id -> SystemContexts.isSystem(ContextId(id)) }
+            .toList()
+
+    require(ordinaryContextIds.isEmpty()) {
+        "Canonical merge ingress refuses ordinary Context persistence after the Context Big Cut: " +
+            ordinaryContextIds.joinToString()
+    }
+
+    val systemConfigurationIds =
+        bundle.contextConfigurations
+            .asSequence()
+            .filter { snapshot -> SystemContexts.isSystem(ContextId(snapshot.contextId)) }
+            .map { snapshot -> snapshot.id }
+            .toSet()
+
+    val ordinaryConfigurationContextIds =
+        bundle.contextConfigurations
+            .asSequence()
+            .map { snapshot -> snapshot.contextId }
+            .filterNot { contextId -> SystemContexts.isSystem(ContextId(contextId)) }
+            .distinct()
+            .toList()
+
+    require(ordinaryConfigurationContextIds.isEmpty()) {
+        "Canonical merge ingress refuses ordinary Context configuration persistence after the Context Big Cut: " +
+            ordinaryConfigurationContextIds.joinToString()
+    }
+
+    val ordinaryStructureItemIds =
+        bundle.projectStructureItems
+            .asSequence()
+            .filterNot { item -> item.contextStructureId in systemConfigurationIds }
+            .map { item -> item.id }
+            .toList()
+
+    require(ordinaryStructureItemIds.isEmpty()) {
+        "Canonical merge ingress refuses ordinary Context structure persistence after the Context Big Cut: " +
+            ordinaryStructureItemIds.joinToString()
+    }
+
     requireHierarchyPlacementIngress(
         boundary = HierarchyPlacementIngressBoundary.NORMAL_MERGE,
         canonicalH1Present = bundle.hierarchyPlacements != null,

@@ -105,15 +105,15 @@ class WorkspaceClipboardCoordinator
                 val affected =
                     when (current.operation) {
                         Operation.COPY ->
-                            mainBeaconRepository.addRelatedContexts(
+                            mainBeaconRepository.addRelatedWorkspaces(
                                 beaconId = beaconId,
-                                contextIds = current.workspaceIds,
+                                workspaceIds = current.workspaceIds,
                             )
 
                         Operation.CUT ->
-                            mainBeaconRepository.moveRelatedContextsToBeacon(
+                            mainBeaconRepository.moveRelatedWorkspacesToBeacon(
                                 beaconId = beaconId,
-                                contextIds = current.workspaceIds,
+                                workspaceIds = current.workspaceIds,
                             )
                     }
 

@@ -4365,7 +4365,7 @@ Consequence:
 The Workspace/MainBeacon physical hierarchy-storage retirement boundary is
 closed.
 
-H6 itself remains in progress. Deprecated A/B/C historical Restore support,
+At this L3d checkpoint H6 itself remained in progress. Deprecated A/B/C historical Restore support,
 historical DTO/test compatibility, Desktop/shared cross-client contracts and
 Epic A Context persistence retain independent lifetimes and require explicit
 future decisions or implementation slices.
@@ -4416,3 +4416,278 @@ entities and entity/snapshot mappers, stale selective-import local-link output,
 and the unselectable `CURRENT_PRE_CUTOVER` production authority selector.
 Historical link snapshots and B2 Restore behavior remain supported. The next
 H6 step is a final closure checkpoint, not another implementation slice.
+
+## 2026-10-01 - H6 Canonical Hierarchy physical and compatibility migration is closed
+
+**DECIDED / COMPLETE / HOST VERIFIED / DURABLE.**
+
+H6 is complete in its defined Android GENERAL hierarchy scope. Canonical H1 is
+the sole runtime structural read/write authority. Schema 180 contains no
+Workspace embedded parent/order, MainBeacon embedded parent, or local
+Context/MainBeacon parent-link tables. Supported skipped-release databases
+establish/converge H1 inside `MIGRATION_179_180` before physical retirement.
+
+The final census found no runtime V1 selector, V1 fallback/rematerialization,
+legacy local reader/source, unknown owner, or unowned H6 residue. Remaining
+legacy-looking surfaces have explicit owners:
+
+- migration-time establishment and old SQL are migration/immutable history;
+- A/B/C are supported deprecated B2 Restore inputs and may outlive H6;
+- D and CURRENT remain canonical backup generations;
+- Desktop/shared Context parent contracts are cross-client responsibility;
+- Context persistence belongs to Epic A;
+- Beacon/Group ordering and operational-owner associations remain current
+  non-GENERAL semantics.
+
+This closure does not retire historical backup formats, migrate Desktop
+hierarchy, complete Epic A, delete immutable migrations, or remove current
+non-hierarchy ordering. The next project frontier is Epic A Step 12D, not an H7
+or a reopening of schema 180.
+
+## 2026-10-02 - Canonical architecture evolution proceeds in parallel with Context extinction
+
+**DECIDED.**
+
+Adopt `docs/architecture/CANONICAL-ARCHITECTURE-VISION.md` as the durable
+strategic north star for the purpose and future evolution of Canonical V1,
+Canonical Hierarchy V2, and their product/UI realization.
+
+The Canonical V1 refactor is not interpreted merely as preparation for deleting
+Context persistence. Its durable purpose is to separate semantic identity,
+operational ownership, structural placement, semantic relation,
+planning/commitment, execution/evidence, and presentation so that one technical
+container does not become authority for all meanings again.
+
+Terminology is explicit:
+
+- the **canonical semantic graph** is the semantic world of accepted
+  `ManagedSubject` identities, currently Orientation and Aspect, plus their
+  semantic relations, Aspect taxonomy, and Orientation-to-Aspect membership;
+- `WorkspaceBinding` is a separate operational-to-semantic binding world;
+- `HierarchyPlacement` is the independent structural/visual occurrence world;
+- planning/commitment and execution/evidence remain independently owned domain
+  concepts.
+
+The following semantic targets are now accepted:
+
+    OrientationKind.PROJECT
+        bounded completable undertaking
+
+    OrientationKind.QUEST
+        reusable strategic transformation or challenge
+
+    OrientationKind.THEME
+        reusable thematic focus
+
+`QUEST` is not owned by Strategic Arc and `THEME` is not owned by Day.
+
+The accepted planning-scope direction is:
+
+    PlanningScope(kind = DAY)
+    PlanningScope(kind = TACTICAL_CYCLE)
+    PlanningScope(kind = STRATEGIC_ARC)
+
+These scopes are planning containers, not semantic parents and not
+`OrientationKind` values.
+
+Mission, Priority, Focus, and similar scope-local concepts are planning roles.
+An Orientation may play such a role without changing semantic identity or
+semantic kind.
+
+ForwardApp should provide the standard product operation:
+
+    Transform orientation to...
+
+This reclassifies the same Orientation identity between compatible semantic
+kinds. Independently owned canonical relationships, bindings, placements,
+planning commitments, history, and provenance are preserved unless an explicit
+kind-specific rule requires otherwise.
+
+Current implementation vocabulary `DAY_THEME` and `ARC_QUEST` is treated as
+migration evidence toward canonical `THEME` and `QUEST`. This decision does not
+silently rewrite persisted schema or wire formats.
+
+The leading Canonical V3 direction is the shared planning / commitment layer:
+
+    PlanningScope
+        kind = DAY | TACTICAL_CYCLE | STRATEGIC_ARC
+
+    PlanningCommitment
+        scopeId
+        orientationId
+        role
+        order
+        priority
+        status
+        planning metadata
+
+This decision accepts that architectural direction but does not yet declare the
+concrete Canonical V3 persistence, lifecycle, transport, migration, or
+cross-client contract.
+
+It also does not add a universal relationship table or write API or a new
+ManagedSubject subtype.
+
+Before the concrete Canonical V3 planning contract is declared, execute the
+evidence-based global census defined in
+`docs/architecture/CANONICAL-MODEL-CENSUS.md`.
+
+The census must distinguish:
+
+- implemented canonical capability;
+- canonical backend capability not yet productized;
+- partial or domain-specific capability;
+- compatibility bridges;
+- legacy-only surfaces;
+- genuinely missing capability;
+- unresolved product or architecture decisions.
+
+ForwardApp now has three coordinated strategic tracks:
+
+1. Epic A legacy / Context extinction;
+2. canonical architecture evolution beyond the current V1 + V2 foundations;
+3. canonical productization and UI/UX.
+
+These tracks are not globally serialized. Architecture or product work may use
+already-authoritative canonical V1/V2 foundations while unrelated Context
+compatibility remains, provided the slice has explicit ownership, lifecycle,
+transport where relevant, authority, and verification boundaries and does not
+introduce new legacy authority.
+
+Project semantic identity, Quest semantic identity, Theme semantic identity,
+and the Day / Tactical Cycle / Strategic Arc planning-scope direction are no
+longer open census questions.
+
+The census instead determines their current implementation mapping, migration
+boundaries, specialized planning-store ownership, shared PlanningScope /
+PlanningCommitment boundary, relation metadata, common relationship read
+projections, and derived relationship context.
+
+The accepted sequence is recorded in `docs/project/ROADMAP.md`.
+
+## 2026-10-02 — Global Canonical Model Census accepted
+
+The evidence-based census in
+`docs/architecture/CANONICAL-MODEL-CENSUS.md` is complete.
+
+It establishes:
+
+- canonical semantic, Workspace/capability and H1 foundations already exist;
+- generic semantic relations, Aspect membership, WorkspaceBinding and saved
+  views are materially backend-complete but not generally productized;
+- PROJECT is not implemented as an Orientation identity;
+- DAY_THEME -> THEME and ARC_QUEST -> QUEST require data decomposition rather
+  than enum-only renames;
+- Day, Tactical Cycle and Strategic Arc are specialized planning domains with
+  no shared PlanningScope/PlanningCommitment authority;
+- the future Canonical V3 boundary is the shared planning/commitment layer;
+- a common relationship read projection may unify product reads, but no
+  universal relationship write authority is accepted;
+- identity-preserving kind transformation needs a guarded command and
+  kind-specific migration rules before product exposure;
+- Context extinction remains Epic A, H6 remains closed, and Desktop planning
+  transport is an explicit cross-client boundary.
+
+The census has no unknown ownership. Remaining open items are explicit
+architecture or product decisions listed in its CURRENT results section.
+
+## 2026-10-02 - Canonical V3 planning contract accepted and V3.1 shared-domain foundation established
+
+**DECIDED / V3.0 COMPLETE / V3.1 COMPLETE / VERIFIED.**
+
+`docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md` is the accepted Canonical
+V3 planning contract.
+
+The shared planning core is:
+
+    PlanningScope
+    PlanningCommitment
+
+with durable independent identities, scope kinds `DAY`, `TACTICAL_CYCLE` and
+`STRATEGIC_ARC`, one Orientation target and one planning role per commitment,
+scoped ordering, optional `priorityLevel`, planning status, provenance, version
+and tombstone semantics.
+
+Common planning roles include `MISSION`, `PRIORITY` and `FOCUS`. Validated
+namespaced domain roles are extensible. Planning role remains independent from
+`OrientationKind`, and the `PRIORITY` role is distinct from
+`PlanningPriorityLevel`.
+
+V3.1 implements the pure shared-domain foundation in `shared-core-domain`:
+
+- `PlanningScopeId` and `PlanningCommitmentId`;
+- `PlanningScopeKind` and `PlanningScopeLifecycle`;
+- `PlanningCommitmentStatus` and `PlanningPriorityLevel`;
+- `PlanningRoleCode` with common and namespaced roles;
+- `PlanningProvenance`;
+- `PlanningScope` and `PlanningCommitment`;
+- pure validation for record identity, live
+  `(scopeId, orientationId, role)` uniqueness, scope/Orientation liveness and
+  optional horizon validity;
+- deterministic commitment ordering by `(order, id)`.
+
+This slice introduces no Room persistence, database migration, backup/Restore
+or sync authority, Day/Tactical/Strategic adapter, Workspace identity,
+HierarchyPlacement identity, execution/evidence ownership or Context
+dependency.
+
+Focused `PlanningContractTest` JVM verification and shared JS compilation are
+green. A repository refresh confirms the isolated V3.1 planning package/test
+surface and no forbidden Workspace/H1/Context/execution references.
+
+The next Canonical V3 implementation frontier is **V3.2 canonical
+persistence**.
+
+Three accepted domain-cutover gates remain deferred rather than blocking V3.2:
+
+1. free-form TacticalMission to Orientation adoption policy;
+2. free-form DayFocusItem/DayTask to Orientation adoption policy;
+3. UX policy for deleting an Orientation with live planning commitments.
+
+Canonical V3 work remains independently executable from Epic A Context
+extinction. Epic A Step 12D remains `CURRENT / IN PROGRESS`; Step 12E remains
+`DECIDED / NOT STARTED`.
+
+## 2026-10-02 - Canonical V3.2 persistence established
+
+**DECIDED / COMPLETE / VERIFIED.**
+
+Canonical V3.2 establishes dormant Android persistence for the accepted V3
+planning core.
+
+Room schema 181 adds:
+
+- `planning_scopes`;
+- `planning_commitments`;
+- additive `MIGRATION_180_181`;
+- canonical planning DAO/repository registration.
+
+`CanonicalPlanningRepository` is the persistence authority for the dormant V3
+store. It enforces:
+
+- live uniqueness by `(scopeId, orientationId, role)` transactionally;
+- live scope and Orientation target validation;
+- explicit tombstone and restore operations;
+- scope tombstoning of live commitments without deleting semantic targets;
+- no implicit restoration;
+- deterministic role-scoped ordering by `(order, commitmentId)`;
+- immutable scope kind and created-at identity across revisions.
+
+PlanningCommitment uses physical references to PlanningScope and canonical
+Orientation storage with no destructive cascades. Tombstoned historical
+commitments may coexist with a live replacement, so no ordinary SQL UNIQUE
+constraint incorrectly models live-only uniqueness.
+
+V3.2 performs no historical Day/Tactical/Strategic migration, no domain
+adapter/cutover, no dual-write, and no backup/Restore/sync/Desktop/UI
+integration. Existing specialized planning stores remain authoritative.
+
+Focused migration acceptance, Room repository tests and affected production
+compilation are green. Repository review confirms the existing-file changes
+are limited to planning DAO registration, migration registration, planning
+entities and schema version 181.
+
+The next Canonical V3 frontier is **V3.3 cross-client transport**.
+
+Epic A Step 12D remains independently `CURRENT / IN PROGRESS`; Step 12E remains
+`DECIDED / NOT STARTED`.

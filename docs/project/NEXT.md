@@ -6,9 +6,9 @@ This file contains only the immediate continuation state.
 
 ## Current checkpoint
 
-**Hierarchy V2 P2 production authority activation and H5 runtime/compatibility
-retirement are COMPLETE / HOST VERIFIED. Production hierarchy reads and writes
-Canonical V2 directly. H6 is CURRENT / IN PROGRESS.**
+**Canonical Hierarchy V2 H0-H6 is COMPLETE / HOST VERIFIED / DURABLE.
+Production GENERAL hierarchy reads and writes canonical H1 directly; schema
+180 physical retirement and the final post-L3d ownership audit are closed.**
 
 H1.5 is closed. The pre-existing CURRENT `SYNC_ENABLED=false` / `syncOff`
 source-set/DI capability was repaired and HOST verified with both sync-disabled
@@ -468,7 +468,7 @@ of pretending all malformed history is fail-closed. Focused Restore
 characterization for missing parents, closed parent cycles, and anomalous
 legacy order is HOST green.
 
-**NEXT H6 frontier:** do not remove Workspace parent/order columns or wire
+**Historical E6g frontier (superseded by schema 180 and H6 closure):** do not remove Workspace parent/order columns or wire
 members yet. Remaining blockers are the finite
 `LEGACY_UPGRADE_REQUIRES_CAPTURE` establishment window, the product decision on
 how long the currently shape-supported historical Restore generations remain
@@ -600,15 +600,52 @@ Restore generations and may intentionally outlive H6. Their future retirement
 is a separate compatibility-window decision, not an H6 completion gate. D and
 CURRENT remain canonical as already recorded.
 
-**Immediate H6 continuation:** CHECKPOINT H6 CLOSURE. Reconfirm the durable
-boundary map and close H6 if no new H6-owned work appears. Do not reopen schema
-180, L3d, migration-time establishment, or the B2 support window.
+**H6 closure checkpoint is COMPLETE.** Final production census found no runtime
+V1 selector, legacy local reader/source, current Workspace/MainBeacon physical
+hierarchy owner, unknown owner, or unfinished H6 implementation seam. B2 A/B/C,
+Desktop/shared, Epic A, current ordering, and immutable migrations retain their
+explicit independent ownership.
 
 The complete current H6 matrix and dependency order are in
 `docs/architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`.
 
-The separate Epic A Context Persistence Extinction program remains active:
-Step 12D is `CURRENT / IN PROGRESS`; Step 12E is `DECIDED / NOT STARTED`.
+**Global Canonical Model Census is COMPLETE (2026-10-02).** The repository-wide
+semantic/operational/structural/planning/productization map is recorded in
+`docs/architecture/CANONICAL-MODEL-CENSUS.md`, with `UNKNOWN=0`.
+
+**Canonical V3.0 contract acceptance is COMPLETE and V3.1 shared
+models/validation are COMPLETE / VERIFIED.**
+`docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md` is the accepted contract.
+`shared-core-domain` now owns the pure PlanningScope / PlanningCommitment domain
+foundation, extensible planning-role vocabulary, provenance, collection-level
+uniqueness/liveness validation and deterministic ordering. V3.1 adds no Room
+authority, transport, domain adapter/cutover, Workspace/H1 coupling, execution
+authority or Context dependency.
+
+**Canonical V3.2 canonical persistence is COMPLETE / VERIFIED.**
+Room schema 181 now contains dormant canonical PlanningScope /
+PlanningCommitment storage behind `CanonicalPlanningRepository`, with additive
+180 -> 181 migration, live-only uniqueness enforcement, target-liveness checks,
+explicit tombstones/restoration and deterministic ordering. Existing
+Day/Tactical/Strategic authorities are unchanged and no transport or dual-write
+exists.
+
+The next bounded Canonical V3 frontier is **V3.3 cross-client transport**.
+This remains independent from the immediate Epic A continuation below.
+
+**Immediate project continuation:** Epic A Context Persistence Extinction Step
+12D compatibility/transport extinction is `CURRENT / IN PROGRESS`. The bounded
+ContextSettings legacy-payload census is complete with `UNKNOWN=0` and no
+evidence-proven safe production retirement cut: the remaining fields are live
+presentation/compatibility state, already-partially-canonical assessment state,
+or scoring semantics that require an explicit owner migration. Do not delete
+that payload merely because ordinary Context creation is being extinguished.
+The ordinary production creation frontier is now closed:
+`createContextWithId()` has zero production callers and the historical
+`ensureSubcontextByRole()` helper is absent; preset `SUBCONTEXT` children are
+canonical occurrence-aware Workspaces. Continue with remaining Android-local
+Context consumers and external Context ingress. Step 12E remains
+`DECIDED / NOT STARTED` and begins only after the 12D boundary closes.
 
 
 H2 closure evidence includes production compile, H1 placement persistence

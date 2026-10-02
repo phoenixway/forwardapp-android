@@ -27,7 +27,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.GoalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
@@ -45,7 +45,7 @@ data class DiffResult<T>(
 )
 
 data class BackupDiff(
-    val projects: DiffResult<ContextSnapshot> = DiffResult(),
+    val projects: DiffResult<WorkspaceSnapshot> = DiffResult(),
     val goals: DiffResult<GoalSnapshot> = DiffResult(),
     val backlogItems: DiffResult<BacklogItemSnapshot> = DiffResult(),
     val backlogOrders: DiffResult<BacklogOrderSnapshot> = DiffResult(),

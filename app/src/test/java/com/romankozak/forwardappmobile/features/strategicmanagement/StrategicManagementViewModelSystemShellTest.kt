@@ -51,7 +51,6 @@ class StrategicManagementViewModelSystemShellTest {
 
             val contextRepository = mockk<ContextRepository>(relaxed = true)
             val canonicalWorkspaceRepository = mockk<CanonicalWorkspaceRepository>(relaxed = true)
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
@@ -82,14 +81,12 @@ class StrategicManagementViewModelSystemShellTest {
             every { settingsRepository.strategicScopeAttachmentsExpandedFlow } returns flowOf(true)
             every { settingsRepository.strategicConnectionsOrderFlow } returns flowOf(emptyList())
 
-            coEvery { tagAuthority.resolve(id) } returns
-                SystemWorkspaceTagAuthority.Resolution.Canonical(emptyList())
+            coEvery { tagAuthority.operationalTags(id) } returns emptyList()
 
             val viewModel =
                 StrategicManagementViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = canonicalWorkspaceRepository,
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -118,17 +115,13 @@ class StrategicManagementViewModelSystemShellTest {
         runTest(dispatcher) {
             val id = "standalone-strategic"
             val contextRepository = mockk<ContextRepository>(relaxed = true)
-            val canonicalWorkspaceTagRepository = mockk<CanonicalWorkspaceTagRepository>(relaxed = true)
             val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val tagAuthority = mockk<SystemWorkspaceTagAuthority>()
             val settingsRepository = mockk<SettingsRepository>()
             val attachmentsRepository = mockk<AttachmentsRepository>(relaxed = true)
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
-            coEvery { contextRepository.getContextById(id) } returns null
-            coEvery { tagAuthority.resolve(id) } returns SystemWorkspaceTagAuthority.Resolution.NotSystem
-            coEvery { projector.resolvePresentation(id, null) } returns standalonePresentation(id)
-            coEvery { canonicalWorkspaceTagRepository.getTags(id) } returns emptyList()
+            coEvery { tagAuthority.operationalTags(id) } returns emptyList()
             every { projector.observePresentationUniverse(any()) } returns flowOf(emptyList())
             every { attachmentsRepository.getAttachmentLibraryItems() } returns flowOf(emptyList())
             every { settingsRepository.obsidianVaultNameFlow } returns flowOf("")
@@ -141,7 +134,6 @@ class StrategicManagementViewModelSystemShellTest {
                 StrategicManagementViewModel(
                     contextRepository = contextRepository,
                     canonicalWorkspaceRepository = mockk(relaxed = true),
-                    canonicalWorkspaceTagRepository = canonicalWorkspaceTagRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = tagAuthority,
                     settingsRepository = settingsRepository,
@@ -154,9 +146,8 @@ class StrategicManagementViewModelSystemShellTest {
             viewModel.addStrategicLink(id)
             advanceUntilIdle()
 
-            coVerify(exactly = 0) { contextRepository.updateContextTags(any(), any()) }
             coVerify(exactly = 1) {
-                canonicalWorkspaceTagRepository.replaceTags(id, listOf("strategic"), any())
+                contextRepository.updateContextTags(id, listOf("strategic"))
             }
         }
 

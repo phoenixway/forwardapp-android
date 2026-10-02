@@ -1,13 +1,17 @@
 # H6 Legacy Structural Storage Retirement Audit
 
-Status: CURRENT / IN PROGRESS
+Status: COMPLETE / HOST VERIFIED / DURABLE
 
-Audited: 2026-09-26; updated: 2026-09-29
+Audited: 2026-09-26; closed: 2026-10-01
 
-This document is the evidence baseline for H6. It does not authorize schema
-deletion. `HierarchyPlacement` is the sole CURRENT authority for GENERAL
-structure; the structures below survive only for the explicitly identified
-responsibilities.
+This document is the completed evidence and ownership record for H6.
+`HierarchyPlacement` is the sole CURRENT authority for GENERAL structure;
+schema-180 physical retirement is complete, and every intentional survivor
+below has a non-H6 owner.
+
+The early dependency table preserves the evolving pre-retirement census. For
+current ownership and closure state, the E7 residual map and Final H6 durable
+closure sections below supersede earlier transitional dispositions.
 
 ## Classification rule
 
@@ -828,7 +832,8 @@ This closes the physical Workspace/MainBeacon hierarchy-storage retirement
 boundary without imposing a bridge release or silently narrowing the proven
 continuous direct-upgrade chain.
 
-It does not close H6 as a whole. Remaining independent boundaries include:
+At the L3d checkpoint this did not yet close H6 as a whole. The then-remaining
+independent boundaries were:
 
 - explicit lifetime/retirement of deprecated A/B/C historical Restore
   generations;
@@ -896,8 +901,8 @@ compatibility cleanup. Epic A and Desktop/shared contracts have independent
 owners and do not themselves block H6 closure. The accepted policy allows
 deprecated B2 generations A/B/C to remain supported historical Restore inputs
 and intentionally outlive H6. Their retirement is a separate support-window
-decision. D and CURRENT remain canonical. The remaining H6-owned step is the
-final closure checkpoint.
+decision. D and CURRENT remain canonical. At the E7 checkpoint, the only
+remaining H6-owned step was the final closure checkpoint, completed below.
 
 ## H6.E7a post-schema180 dead-scaffolding cleanup
 
@@ -919,5 +924,44 @@ Status: **COMPLETE / HOST VERIFIED**.
   kernel and selective-import suites are HOST green. Schema remains 180 and
   `MIGRATION_179_180` is unchanged.
 
-No further H6-owned implementation work is identified. Next: **CHECKPOINT H6
-CLOSURE**.
+No further H6-owned implementation work was identified.
+
+## Final H6 durable closure
+
+Status: **COMPLETE / HOST VERIFIED / DURABLE**.
+
+Closed scope:
+
+- canonical H1 is the sole GENERAL runtime read/write authority;
+- runtime V1 selector, fallback, rematerialization and legacy local
+  reader/source are absent;
+- schema 180 physically retires Workspace embedded parent/order, MainBeacon
+  embedded parent, and both local parent-link tables;
+- `MIGRATION_179_180` establishes/converges H1 before destructive cleanup and
+  preserves skipped-release upgrades;
+- E7/E7a classify all residue and remove the final dead runtime scaffolding.
+
+Intentional survivors:
+
+- A/B/C historical Restore under B2; D and CURRENT canonical backup formats;
+- migration-time establishment, raw pre-180 SQL and immutable fixtures;
+- Desktop/shared Context-shaped contracts;
+- Epic A Context persistence and parent/order;
+- `MainBeacon.beacon_order`, Group/GroupMember ordering and operational-owner
+  semantics.
+
+Verification inherited by this closure:
+
+- L3d production migration acceptance and exact migration/runtime parity;
+- immutable real schema-178 -> 180 migration, SQLite integrity/FK checks,
+  Canonical Orientation bootstrap `materialized=0 compared=4348 issues=0`, and
+  live UI smoke;
+- E7a app/sync production compilation plus focused Restore, ingress, migration
+  kernel and selective-import tests;
+- final bounded census with `UNKNOWN=0`, `UNOWNED_H6_RESIDUE=0`, and clean
+  `git diff --check`.
+
+Future work is explicitly non-H6: B2 support-window retirement, Desktop/shared
+protocol evolution, Epic A Steps 12D/12E, and any independent current-semantic
+ordering changes. H6 must not be reopened merely because those contracts still
+contain historical vocabulary.

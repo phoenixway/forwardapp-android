@@ -18,7 +18,6 @@ data class LocalSyncCrossRefVersion(
 )
 
 data class LocalSyncSelection(
-    val contexts: List<LocalSyncVersion> = emptyList(),
     val goals: List<LocalSyncVersion> = emptyList(),
     val backlogItems: List<LocalSyncVersion> = emptyList(),
     val backlogOrders: List<LocalSyncVersion> = emptyList(),
@@ -44,8 +43,7 @@ data class LocalSyncSelection(
     val arcQuests: List<LocalSyncVersion> = emptyList(),
 ) {
     fun isEmpty(): Boolean =
-        contexts.isEmpty() &&
-            goals.isEmpty() &&
+        goals.isEmpty() &&
             backlogItems.isEmpty() &&
             backlogOrders.isEmpty() &&
             notes.isEmpty() &&

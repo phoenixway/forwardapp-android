@@ -80,6 +80,30 @@ The following directories contain subsystem documentation:
 - `desktop/`
 - `architecture/`
 
+### Canonical architecture evolution
+
+`architecture/CANONICAL-ARCHITECTURE-VISION.md`
+- `DECIDED`
+- Project-wide motivation and north star for Canonical V1, Canonical Hierarchy
+  V2, post-V2 architecture evolution, and canonical product/UI development.
+  Defines the separation between semantic, operational-binding, structural,
+  commitment, execution/evidence, and presentation worlds.
+
+`architecture/CANONICAL-MODEL-CENSUS.md`
+- `DECIDED`; census state `COMPLETE` (2026-10-02)
+- Evidence-backed global V1/V2 implementation and product-exposure map. It
+  classifies existing canonical capability, specialized planning domains,
+  Project/Theme/Quest migration boundaries, productization candidates, and
+  the concrete planning/commitment boundary for future Canonical V3 design.
+
+`architecture/CANONICAL-PLANNING-CONTRACT-V3.md`
+- `DECIDED`
+- Accepted shared planning contract for durable Day, Tactical Cycle, and
+  Strategic Arc scopes, Orientation commitments, planning roles, domain
+  extensions, lifecycle, transport, and staged migration boundaries. V3.0
+  contract acceptance is complete; persistence and production migration remain
+  separately authorized.
+
 ### Orientation and Workspace refactor
 
 `architecture/orientation-workspace-refactor/PROPOSAL.md`
@@ -127,7 +151,7 @@ The following directories contain subsystem documentation:
   invariants, and H0-H6 cutover stages. P2 is CURRENT production authority.
 
 `architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`
-- `CURRENT / IN PROGRESS`
+- `CURRENT / COMPLETE`
 - Evidence baseline and dependency-ordered retirement plan for surviving
   Canonical V1/legacy structural storage and APIs after H5 closure.
 

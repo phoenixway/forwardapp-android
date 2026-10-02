@@ -26,7 +26,10 @@ class MergeCanonicalSnapshotTransactionWriter
         private val mergeLocalDataSource: MergeLocalDataSourceImpl,
     ) : CanonicalSnapshotTransactionWriter {
         override suspend fun apply(bundle: SnapshotBundle) {
-            mergeLocalDataSource.applyCanonicalSnapshotBundle(bundle)
+            mergeLocalDataSource.applyCanonicalSnapshotBundle(
+                bundle = bundle,
+                contextPersistenceMode = ContextPersistenceMode.RESTORE_COMPATIBILITY,
+            )
         }
     }
 

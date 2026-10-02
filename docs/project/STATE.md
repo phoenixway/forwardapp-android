@@ -56,13 +56,50 @@ The project still has two separately tracked migration programs:
 - **Epic A, Legacy -> Canonical V1: CURRENT / IN PROGRESS.** Context
   Persistence Extinction Step 12D remains unfinished and Step 12E is
   `DECIDED / NOT STARTED`.
-- **Epic B, Canonical V1 -> Canonical V2 hierarchy: P2 and H5 COMPLETE / HOST
-  VERIFIED; H6 CURRENT / IN PROGRESS.** H0-H4 preparation and the coordinated
-  P2 production authority transfer are complete. H5 retired the production V1
-  runtime/composition seams. H6 has completed its initial dependency census;
-  no legacy structural table or column is yet globally removable because
-  startup, Restore, transport, bootstrap/presentation, or Epic A dependencies
-  remain.
+- **Epic B, Canonical V1 -> Canonical V2 hierarchy: H0-H6 COMPLETE / HOST
+  VERIFIED / DURABLE.** P2 owns production GENERAL hierarchy reads and writes.
+  H5 retired runtime V1 composition; H6 retired obsolete Android
+  Workspace/MainBeacon physical hierarchy storage through schema 180 while
+  preserving explicitly owned migration, Restore, Desktop/shared, Epic A and
+  current-semantic boundaries.
+
+The **Global Canonical Model Census is COMPLETE (2026-10-02)**. Its durable
+result is `docs/architecture/CANONICAL-MODEL-CENSUS.md`. It confirms that
+Canonical V1 semantic identity/relations and Canonical V2 structural authority
+already provide substantial backend capability, while product exposure is
+uneven. PROJECT is not yet an Orientation kind; THEME and QUEST remain
+decomposition/migration targets from DAY_THEME and ARC_QUEST. Day,
+TacticalIteration and Strategic Arc contain reusable planning evidence; the
+census identified their shared Canonical V3 boundary as planning/commitment,
+with `UNKNOWN` ownership at zero.
+
+Canonical V3.0 is now **COMPLETE / ACCEPTED**.
+`docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md` is the accepted shared
+planning contract.
+
+Canonical V3.1 shared models and pure validation are **COMPLETE / VERIFIED** in
+`shared-core-domain`. The implementation now provides durable
+`PlanningScopeId` / `PlanningCommitmentId`, scope kind and lifecycle,
+commitment status, `PlanningPriorityLevel`, extensible `PlanningRoleCode`,
+planning provenance, `PlanningScope`, `PlanningCommitment`, live
+`(scopeId, orientationId, role)` uniqueness/liveness validation and
+deterministic commitment ordering. It introduces no persistence authority,
+transport, Day/Tactical/Strategic cutover, Workspace/H1 coupling, execution
+authority or Context dependency. Focused JVM planning tests and shared JS
+compilation are green.
+
+Canonical V3.2 canonical persistence is now **COMPLETE / VERIFIED**.
+Android Room schema 181 adds dormant canonical `planning_scopes` and
+`planning_commitments` storage through additive `MIGRATION_180_181`.
+`CanonicalPlanningRepository` owns transactional live-participation
+uniqueness, target-liveness validation, explicit tombstone/restore behavior and
+deterministic role-scoped ordering. Existing Day, Tactical and Strategic stores
+remain authoritative; V3.2 introduces no dual-write, transport or domain
+cutover.
+
+The next Canonical V3 implementation frontier is **V3.3 cross-client
+transport**. Epic A Step 12D remains independently `CURRENT / IN PROGRESS`;
+Step 12E remains `DECIDED / NOT STARTED`.
 
 Cross-epoch rules are canonical in
 `docs/governance/PROJECT-CONSTITUTION.md`.
@@ -100,16 +137,15 @@ The former global `CURRENT_PRE_CUTOVER` authority mode is removed. Historical
 Restore compatibility is generation-specific and test fixtures no longer force
 a production runtime selector.
 
-### Hierarchy V2 H6 dependency checkpoint
+### Hierarchy V2 H6 closure checkpoint
 
-H6 is **CURRENT / IN PROGRESS**. The initial storage/API census is recorded in
+H6 is **COMPLETE / HOST VERIFIED / DURABLE**. The final ownership and closure
+record is in
 `docs/architecture/orientation-workspace-refactor/H6-LEGACY-STRUCTURAL-STORAGE-AUDIT.md`.
 
-The census proves zero production V1 GENERAL read/write authority, but it also
-proves active non-authority dependencies: bounded first establishment,
-Restore-only legacy translation, SnapshotBundle/full-backup/delta/merge and
-selective-import contracts, Workspace/System bootstrap and presentation use,
-Main Beacon presentation/editor state, and Epic A Context persistence.
+Canonical H1 is the sole GENERAL runtime read/write authority. There is no
+runtime V1 selector, fallback, rematerialization, local legacy reader/source,
+or current-schema Workspace/MainBeacon physical hierarchy owner.
 
 H6.E1 first-activation lineage control is **COMPLETE / HOST VERIFIED**.
 Schema 179 introduces local-only `hierarchy_establishment_origin` metadata.
@@ -375,7 +411,7 @@ A/B/C may be retired only by a separate explicit compatibility-window closure
 decision. No cutoff is inferred from `SnapshotBundle.version`,
 `backupSchemaVersion`, or Room schema version.
 
-**NEXT H6 frontier:** H6.E6k-L owns the finite local direct-upgrade /
+**Historical pre-L3 frontier (now closed):** H6.E6k-L owns the finite local direct-upgrade /
 `LEGACY_UPGRADE_REQUIRES_CAPTURE` support-window decision. Physical
 legacy hierarchy storage remains blocked by that local-upgrade boundary and
 the remaining schema/cross-client/Epic A dependencies.
@@ -500,9 +536,18 @@ and is not an H6 completion gate. D remains historical canonical and CURRENT
 remains strict marker-1 canonical. Migration compatibility, Desktop/shared,
 Epic A, and current Beacon/Group ordering keep their independent owners.
 
-**NEXT H6 frontier:** CHECKPOINT H6 CLOSURE. No further H6-owned implementation
-work is currently identified; the final audit must confirm the recorded
-boundaries without reopening schema 180, `MIGRATION_179_180`, or B2 support.
+The final closure audit found **zero unknown or unowned H6 residues**. Existing
+references are classified as migration compatibility, B2 historical Restore,
+Desktop/shared, Epic A, current semantics, or immutable history. L3d's
+schema-178 -> 180 real-device proof, integrity checks, 4348/0 canonical
+bootstrap comparison and live UI smoke remain the physical-retirement evidence;
+E7a's app/sync compile and focused Restore/ingress/migration/selective tests
+remain the final code gate.
+
+**NEXT project frontier:** Epic A Context Persistence Extinction Step 12D
+compatibility/transport extinction remains `CURRENT / IN PROGRESS`; Step 12E
+follows only after that boundary closes. H6 must not be reopened for B2 A/B/C,
+Desktop/shared Context contracts, immutable migrations, or current ordering.
 
 Earlier H6 slices removed only zero-production-caller APIs and compatibility
 seams while leaving physical storage intact. H6.E6k-L3d is the explicit
@@ -3500,9 +3545,18 @@ supported migration authority; old Android states with active ordinary Context
 rows and the existing Context-based Desktop protocol do not block the cut, and
 the surviving `632` ordinary Context tombstones do not require preservation.
 12D now closes external Context ingress and surviving Android-local Context
-consumers. **12E persistence/FK/schema extinction** follows after that boundary
-is closed and removes the remaining physical Context schema and temporary
-compatibility machinery.
+consumers. The bounded ContextSettings legacy-payload census is **COMPLETE /
+UNKNOWN=0 / NO SAFE RETIREMENT CUT**: `relatedLinks`,
+`isContextManagementEnabled`, and `scoringStatus` remain live compatibility
+state; `showCheckboxes` remains live presentation behavior;
+`valueImportance`/`valueImpact` have canonical Orientation assessment semantics
+but still retain compatibility copies; and
+`effort`/`cost`/`risk`/`weightEffort`/`weightCost`/`weightRisk` plus
+`rawScore`/`displayScore` require an explicit scoring-owner migration before
+legacy ownership can retire. No production ContextSettings field or API was
+removed by this census. **12E persistence/FK/schema extinction** follows only
+after the full 12D boundary closes and removes the remaining physical Context
+schema and temporary compatibility machinery.
 
 The first 12D ordinary-creation foundation is **CURRENT / VERIFIED**. New
 role-less root quick-create from Global Search, Command Deck, Day Plan, and
@@ -3677,12 +3731,15 @@ Focused host Gradle verification is green for production Kotlin compilation,
 `CanonicalWorkspaceRepositoryRoomTest`, and
 `ContextHierarchyScreenViewModelSystemInboxWriteTest`.
 
-The current source census leaves one external production
-`createContextWithId()` reference in the legacy `ContextClipboardCoordinator`
-COPY branch. Normal hierarchy Workspace Copy/Cut/Paste does not route through
-that branch. The internal preset-driven `ensureSubcontextByRole()` helper also
-still creates an ordinary Context. These are remaining code frontiers, not
-evidence that normal Workspace clipboard requires Context compatibility.
+The current production source census closes the ordinary-creation frontier:
+`createContextWithId()` has zero production callers and
+`ensureSubcontextByRole()` is absent from production. Normal hierarchy
+Workspace Copy/Cut/Paste is canonical Workspace-owned. The surviving
+`ContextClipboardCoordinator` is not an ordinary creator: it remains reachable
+for distinct Context LINK/CUT appearance compatibility and Beacon clipboard
+semantics. Preset-driven `SUBCONTEXT` materialization is occurrence-aware
+canonical child Workspace creation through
+`ensureChildWorkspaceByRoleAtOccurrence()`.
 
 
 ### Step 12D Tactical Mission standalone project-owner routing

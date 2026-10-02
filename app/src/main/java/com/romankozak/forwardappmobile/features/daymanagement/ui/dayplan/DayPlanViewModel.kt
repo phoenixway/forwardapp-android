@@ -225,8 +225,7 @@ class DayPlanViewModel
                     initialValue = emptyList(),
                 )
         val allTags: StateFlow<List<String>> =
-            contextRepository
-                .getAllContextsFlow()
+            allContextsFlow
                 .map { contexts ->
                     contexts
                         .flatMap { it.tags.orEmpty() }

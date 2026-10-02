@@ -60,6 +60,126 @@ entity-aware UI. A persisted Workspace start-view preference is likewise not
 introduced until its canonical navigation/capability policy is explicitly
 designed.
 
+### Canonical architecture evolution and productization
+
+The durable product and architecture north star is defined in
+`docs/architecture/CANONICAL-ARCHITECTURE-VISION.md`.
+
+ForwardApp now has three coordinated strategic tracks:
+
+1. **Legacy extinction.**
+   Complete Epic A Context retirement without restoring Context as product or
+   architecture authority.
+
+2. **Canonical architecture evolution.**
+   Audit and evolve Canonical V1 plus Canonical Hierarchy V2 toward explicitly
+   decided post-V2 architecture. Canonical V3 is the shared planning /
+   commitment layer. V3.0 contract acceptance is complete and V3.1 shared
+   models/validation are complete; persistence, cross-client transport and
+   domain cutovers remain staged follow-up work.
+
+3. **Canonical productization and UI/UX.**
+   Build product surfaces around already-authoritative canonical capabilities
+   and later accepted extensions without waiting for unrelated physical legacy
+   cleanup.
+
+These tracks are not globally serialized. Track B and Track C may proceed while
+Epic A continues when the relevant identity, lifecycle, transport, and
+read/write authorities are already explicit and no new legacy authority is
+introduced.
+
+The committed architecture-evolution sequence is:
+
+1. establish the durable architecture vision — **COMPLETE**;
+2. execute the evidence-based global canonical-model census defined in
+   `docs/architecture/CANONICAL-MODEL-CENSUS.md` — **COMPLETE 2026-10-02**;
+3. classify current capability as implemented canonical, implemented backend
+   but not productized, partial/domain-specific, compatibility bridge,
+   legacy-only, not implemented, or requiring an architecture decision —
+   **COMPLETE**;
+4. distinguish true post-V2 architecture gaps from V1/V2 capability that
+   already exists — **COMPLETE**;
+5. record explicit contracts for accepted architecture extensions -
+   **V3.0 COMPLETE / ACCEPTED** for the shared planning layer;
+6. execute bounded architecture and UI/UX slices -
+   **V3.1 shared models/validation COMPLETE / VERIFIED**;
+   **V3.2 canonical persistence COMPLETE / VERIFIED**;
+   V3.3 cross-client transport is next.
+
+The completed census established the concrete Canonical V3 boundary as the
+shared planning/commitment layer. The accepted V3.0 contract is
+`docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md`.
+
+The dependency-ordered Canonical V3 sequence is now:
+
+1. **V3.0 planning contract - COMPLETE / ACCEPTED.**
+2. **V3.1 shared models and validation - COMPLETE / VERIFIED.**
+   `shared-core-domain` owns the pure cross-client PlanningScope /
+   PlanningCommitment models and validators. No persistence authority or domain
+   cutover is introduced.
+3. **V3.2 canonical persistence - COMPLETE / VERIFIED.**
+   Schema 181 adds dormant canonical planning storage through
+   `MIGRATION_180_181` and `CanonicalPlanningRepository`. No specialized
+   planning authority cutover or dual-write is introduced.
+4. **V3.3 cross-client transport - NEXT.**
+5. **V3.4 Day adapter/cutover.**
+6. **V3.5 Tactical adapter/cutover.**
+7. **V3.6 Strategic adapter/cutover.**
+8. **V3.7 product/read integration.**
+9. **V3.8 compatibility retirement.**
+
+The accepted semantic target vocabulary now includes:
+
+    PROJECT
+    QUEST
+    THEME
+
+as reusable `OrientationKind` values alongside the existing semantic
+Orientation model.
+
+`PROJECT` represents a bounded completable undertaking.
+
+`QUEST` represents a reusable strategic transformation or challenge and is not
+owned by Strategic Arc.
+
+`THEME` represents a reusable thematic focus and is not owned by Day.
+
+The accepted planning-scope direction is:
+
+    DAY
+    TACTICAL_CYCLE
+    STRATEGIC_ARC
+
+These are planning containers rather than semantic parents or Orientation
+kinds.
+
+Mission, Priority, Focus, and similar concepts are planning roles within a
+scope. Playing such a role does not change an Orientation's semantic kind.
+
+The standard product direction includes:
+
+    Transform orientation to...
+
+as identity-preserving semantic reclassification between compatible
+Orientation kinds.
+
+Current `DAY_THEME` and `ARC_QUEST` implementation vocabulary remains census
+and migration evidence toward canonical `THEME` and `QUEST`; those names are
+not silently rewritten by roadmap declaration alone.
+
+The census has determined the implementation mapping and exact Canonical V3
+technical boundary. V3.0 then froze shared PlanningScope / PlanningCommitment
+identity, lifecycle, roles, ordering, provenance, authority separation,
+cross-client transport direction and staged cutover rules. V3.1 implements the
+pure shared-domain foundation. Remaining architecture/product work includes
+canonical persistence and transport, Day/Tactical/Strategic adapters and
+cutovers, common relationship read projections, relation metadata and derived
+relationship context.
+
+This direction does not itself authorize schema, authority, or UI cutovers.
+Each implementation slice still requires its own scoped ownership,
+compatibility, migration where relevant, and verification boundary.
+
 ### Architecture epochs and Canonical Hierarchy V2
 
 Cross-cutting epoch and authority rules are defined by
@@ -133,7 +253,8 @@ The V2 hierarchy program is dependency-ordered:
    `HierarchyReadAuthorityRouter`, and production
    `OrientationHierarchyBuilder` are retired. A test-only builder copy remains
    solely for historical H2/V2 characterization.
-7. **H6 obsolete V1 hierarchy-storage retirement - CURRENT / IN PROGRESS.**
+7. **H6 obsolete V1 hierarchy-storage retirement - COMPLETE / HOST VERIFIED /
+   DURABLE.**
    The dependency census and first registered physical-retirement boundary are
    complete. H6.E6k-L3d moved Room to schema 180 and physically retired the
    proven obsolete Workspace/MainBeacon hierarchy surfaces.
@@ -147,8 +268,9 @@ The V2 hierarchy program is dependency-ordered:
    their eventual retirement is a separate compatibility-window decision.
    H6.E7a is COMPLETE / HOST VERIFIED: dead Room-link entity/mappers,
    schema-180-stale selective-import link plumbing, and the unselectable
-   `CURRENT_PRE_CUTOVER` production selector are retired. The remaining H6
-   frontier is the final closure checkpoint. No physical migration is reopened.
+   `CURRENT_PRE_CUTOVER` production selector are retired. The final closure
+   audit found zero unknown/unowned H6 residue. No physical migration is
+   reopened.
    The first zero-caller API pruning slice and the bounded Restore link-evidence
    cleanup are COMPLETE / HOST VERIFIED. Restore consumes legacy
    Context/MainBeacon parent-link evidence without re-persisting those rows.
@@ -313,9 +435,10 @@ The V2 hierarchy program is dependency-ordered:
    bootstrap with 4348 comparisons and zero issues, passed SQLite integrity and
    foreign-key checks, and passed live application UI smoke.
 
-   Post-L3d H6 work remains compatibility-scoped: historical A/B/C Restore
-   lifetime, historical DTO/test cleanup, Desktop/shared cross-client contracts
-   and Epic A Context persistence.
+   Post-L3d survivors are explicitly outside the H6 completion gate:
+   historical A/B/C Restore lifetime is governed by B2, Desktop/shared owns its
+   cross-client Context contract, and Epic A owns Context persistence. The next
+   active project frontier remains Epic A Step 12D.
    The matching modern Android producer
    omission is COMPLETE / HOST VERIFIED: new full/delta payloads leave both
    legacy link collections empty. The older convention that coherent H1
@@ -669,6 +792,10 @@ The dependency-ordered cutover is:
       closed. No presentation-to-Context adapter or second mutation authority
       was introduced.
     - **12D compatibility/transport extinction - CURRENT / IN PROGRESS.**
+      The ContextSettings legacy-payload census is complete with `UNKNOWN=0`
+      and no safe retirement cut: surviving fields are classified as live
+      compatibility/presentation state, already-partially-canonical assessment
+      state, or scoring semantics requiring explicit owner migration.
       `SnapshotBundle.crossRefs` retirement and exact-System
       `ContextConfiguration` transient ingress are verified. New ordinary
       operational creation is progressively moving to canonical non-System
@@ -677,8 +804,12 @@ The dependency-ordered cutover is:
       add/create are verified shell-free creators. The hierarchy path also
       initializes supported role/preset defaults through canonical capability
       owners and uses canonical `DIRECTION` configuration for parent auto-link.
-      Three external `createContextWithId()` callers remain, plus the internal
-      preset-driven `SUBCONTEXT` helper. Tactical Mission project-owner routing
+      The current production creator census is now closed: external
+      `createContextWithId()` callers are zero, and the historical
+      `ensureSubcontextByRole()` helper is absent from production. Preset-driven
+      `SUBCONTEXT` materialization now uses canonical occurrence-aware child
+      Workspace creation rather than ordinary Context creation. Tactical Mission
+      project-owner routing
       is now **CURRENT / VERIFIED** for shell-free standalone ownership:
       ordinary Context-backed owners remain on `projectId`, while valid exact
       System and live non-System `STANDALONE` Workspace owners persist through
@@ -701,10 +832,12 @@ The dependency-ordered cutover is:
       intentionally admitted to operational presentation without a Context
       shell. Global Search, Command Deck, Day Plan, and Tactical Mission
       root-picker creation author it directly without Context or
-      ContextConfiguration persistence. Remaining 12D work is to migrate the
-      surviving ordinary Context creators and Android-local consumers, then
-      close external Context ingress. No one-for-one replacement of obsolete
-      Context fields is required.
+      ContextConfiguration persistence. The ordinary production creation
+      frontier is closed. Remaining 12D work is to migrate surviving
+      Android-local Context consumers and close external Context ingress, plus
+      the separately classified compatibility/owner migrations that still
+      block retirement. No one-for-one replacement of obsolete Context fields
+      is required.
     - **12E persistence/FK/schema extinction - DECIDED / NOT STARTED.**
       After 12D closes external Context ingress and surviving Android-local
       Context consumers, remove Context foreign keys, DAO/schema infrastructure,

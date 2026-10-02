@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -263,6 +264,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                     canonical = SystemInboxDirectionState(null, null),
                     id = id,
                     canonicalOrdinaryOwner = true,
+                    contextPresent = false,
                 )
             advanceUntilIdle()
 
@@ -279,6 +281,15 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             coVerify(exactly = 1) { fixture.canonicalConnections.setEnabled(id, true, any()) }
             coVerify(exactly = 1) { fixture.canonicalDirection.setEnabled(id, true, any()) }
             coVerify(exactly = 1) { fixture.canonicalKeyProblems.setEnabled(id, true, any()) }
+            coVerify(exactly = 0) { fixture.contextRepository.updateContextSettings(any(), any()) }
+            coVerify(exactly = 1) {
+                fixture.canonicalWorkspaceRepository.updateNameAndDescription(
+                    id = id,
+                    nameOverride = any(),
+                    descriptionOverride = any(),
+                    now = any(),
+                )
+            }
             coVerify(exactly = 0) { fixture.structureRepository.ensureStructure(id) }
             coVerify(exactly = 0) { fixture.structureRepository.updateStructure(any()) }
         }
@@ -304,6 +315,43 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             coVerify(exactly = 0) { fixture.structureRepository.applyPresetToContext(any(), any()) }
         }
 
+    @Test
+    fun `related Context link resolves shell free canonical Workspace without Context row`() =
+        runTest(dispatcher) {
+            val targetId = "standalone-related"
+            val fixture = fixture(SystemInboxDirectionState(null, null))
+
+            coEvery {
+                fixture.presentationProjector.resolvePresentation(targetId, null)
+            } returns
+                ContextPresentation(
+                    id = targetId,
+                    name = "Canonical related",
+                    description = null,
+                    parentId = null,
+                    roleCode = null,
+                    order = 0L,
+                    tags = emptyList(),
+                )
+
+            advanceUntilIdle()
+
+            fixture.viewModel.onAddContextLink(targetId)
+            advanceUntilIdle()
+
+            val link = fixture.viewModel.uiState.value.relatedLinks.single()
+            assertEquals(LinkType.CONTEXT, link.type)
+            assertEquals(targetId, link.target)
+            assertEquals("Canonical related", link.displayName)
+
+            coVerify(exactly = 0) {
+                fixture.contextRepository.getContextById(targetId)
+            }
+            coVerify(exactly = 1) {
+                fixture.presentationProjector.resolvePresentation(targetId, null)
+            }
+        }
+
     private fun fixture(
         canonical: SystemInboxDirectionState,
         historicalEnableAdvanced: Boolean? = null,
@@ -313,6 +361,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         projectedOrder: Long = 0L,
         id: String = SystemContexts.INBOX.raw,
         canonicalOrdinaryOwner: Boolean = false,
+        contextPresent: Boolean = true,
     ): Fixture {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val context =
@@ -324,8 +373,10 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 createdAt = 1L,
                 updatedAt = 1L,
             )
-        every { contextRepository.getAllContextsFlow() } returns flowOf(listOf(context))
-        coEvery { contextRepository.getContextById(id) } returns context
+        every { contextRepository.getAllContextsFlow() } returns
+            flowOf(if (contextPresent) listOf(context) else emptyList())
+        coEvery { contextRepository.getContextById(id) } returns
+            context.takeIf { contextPresent }
 
         val structureRepository = mockk<ContextStructureRepository>(relaxed = true)
         val structure =
@@ -358,7 +409,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val canonicalConnections = mockk<CanonicalConnectionsRepository>(relaxed = true)
         val canonicalInboxSorting = mockk<CanonicalInboxSortingRepository>(relaxed = true)
         val canonicalKeyProblems = mockk<CanonicalKeyProblemsRepository>(relaxed = true)
-        coEvery { canonicalWorkspaceRepository.getCanonicalPresentation(id) } returns
+        val effectiveCanonicalPresentation =
             if (canonicalOrdinaryOwner) {
                 CanonicalWorkspacePresentation(
                     id = id,
@@ -370,6 +421,8 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             } else {
                 canonicalPresentation
             }
+        coEvery { canonicalWorkspaceRepository.getCanonicalPresentation(id) } returns
+            effectiveCanonicalPresentation
         val canonicalOrdinaryCapabilitySettings =
             CanonicalOrdinaryCapabilitySettings(
                 workspaceRepository = canonicalWorkspaceRepository,
@@ -389,7 +442,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val presetService = mockk<StructurePresetService>(relaxed = true)
         val presentationProjector = mockk<SystemWorkspacePresentationContextProjector>()
         val presentedContext =
-            canonicalPresentation?.let { presentation ->
+            effectiveCanonicalPresentation?.let { presentation ->
                 context.copy(
                     name = requireNotNull(presentation.nameOverride),
                     description = presentation.descriptionOverride,
@@ -450,6 +503,8 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
             canonicalDirection,
             canonicalConnections,
             canonicalKeyProblems,
+            canonicalWorkspaceRepository,
+            presentationProjector,
         )
     }
 
@@ -478,6 +533,8 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val canonicalDirection: CanonicalDirectionRepository,
         val canonicalConnections: CanonicalConnectionsRepository,
         val canonicalKeyProblems: CanonicalKeyProblemsRepository,
+        val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        val presentationProjector: SystemWorkspacePresentationContextProjector,
     )
 
     private fun backlogState(state: WorkspaceCapabilityState) =

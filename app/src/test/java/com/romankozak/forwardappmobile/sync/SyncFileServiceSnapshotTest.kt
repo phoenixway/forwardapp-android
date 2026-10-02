@@ -169,6 +169,46 @@ class SyncFileServiceSnapshotTest {
     // === Тести ===
 
     @Test
+    fun `createFullBackupJsonString strips Context persistence from current export`() =
+        runBlocking {
+            val source =
+                requireNotNull(
+                    gson
+                        .fromJson(createNewFormatJson(), FullAppBackup::class.java)
+                        .snapshotBundle,
+                )
+            assertThat(source.contexts).isNotEmpty()
+
+            coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns source
+            coEvery { mockLocalDataSource.getSettingsSnapshot() } returns emptyMap()
+
+            val json = syncFileService.createFullBackupJsonString()
+            val exported = gson.fromJson(json, FullAppBackup::class.java)
+
+            assertThat(requireNotNull(exported.snapshotBundle).contexts).isEmpty()
+        }
+
+    @Test
+    fun `createFullSnapshotJsonString strips Context persistence from current export`() =
+        runBlocking {
+            val source =
+                requireNotNull(
+                    gson
+                        .fromJson(createNewFormatJson(), FullAppBackup::class.java)
+                        .snapshotBundle,
+                )
+            assertThat(source.contexts).isNotEmpty()
+
+            coEvery { mockLocalDataSource.loadFullSnapshotBundle() } returns source
+            coEvery { mockLocalDataSource.getSettingsSnapshot() } returns emptyMap()
+
+            val json = syncFileService.createFullSnapshotJsonString()
+            val exported = gson.fromJson(json, FullAppBackup::class.java)
+
+            assertThat(requireNotNull(exported.snapshotBundle).contexts).isEmpty()
+        }
+
+    @Test
     fun `importFullBackupFromFile uses canonical destructive restore instead of merge`() =
         runBlocking {
             val uriString = "content://test/full_restore"

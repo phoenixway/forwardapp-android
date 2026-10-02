@@ -66,7 +66,14 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun createFullBackupJsonString(): String {
-                val snapshotBundle = localDataSource.loadFullSnapshotBundle()
+        val snapshotBundle =
+            localDataSource
+                .loadFullSnapshotBundle()
+                .copy(
+                    // Context persistence is Restore/input compatibility only
+                    // after the Context Big Cut and is not emitted by current exports.
+                    contexts = emptyList(),
+                )
         val settingsMap = localDataSource.getSettingsSnapshot()
 
         val fullBackup = FullAppBackup(
@@ -217,7 +224,14 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun createFullSnapshotJsonString(): String {
-        val snapshotBundle = localDataSource.loadFullSnapshotBundle()
+        val snapshotBundle =
+            localDataSource
+                .loadFullSnapshotBundle()
+                .copy(
+                    // Keep SnapshotBundle.contexts as a compatibility input shape,
+                    // but current Android full exports no longer author it.
+                    contexts = emptyList(),
+                )
         val settingsMap = localDataSource.getSettingsSnapshot()
 
         val fullBackup = FullAppBackup(

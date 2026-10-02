@@ -2,20 +2,13 @@ package com.romankozak.forwardappmobile.data.logic
 
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagLookup
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
 import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,8 +16,6 @@ import javax.inject.Singleton
 class TagAssociationHandler
     @Inject
     constructor(
-        private val contextTagRefDao: ContextTagRefDao,
-        private val contextDao: ContextDao,
         private val backlogPlacementCommands: BacklogPlacementCommands,
         private val backlogGoalAssociationLinkDao: BacklogGoalAssociationLinkDao,
         private val inboxAssociationCache: InboxAssociationCache,
@@ -47,42 +38,6 @@ class TagAssociationHandler
                 .toList()
 
         @Transaction
-        suspend fun syncContextTags(
-            context: Context,
-            previousTags: List<String>? = null,
-        ) {
-            val normalizedTags =
-                when (val resolution = systemWorkspaceTagAuthority.resolve(context.id)) {
-                    SystemWorkspaceTagAuthority.Resolution.NotSystem -> {
-                        val tags = normalizeTags(context.tags)
-                        contextTagRefDao.deleteForContext(context.id)
-                        if (tags.isNotEmpty()) {
-                            contextTagRefDao.insertAll(
-                                tags.map { normalized -> ContextTagRef(context.id, normalized) },
-                            )
-                        }
-                        tags
-                    }
-                    is SystemWorkspaceTagAuthority.Resolution.Canonical -> {
-                        contextTagRefDao.deleteForContext(context.id)
-                        resolution.tags
-                    }
-                    SystemWorkspaceTagAuthority.Resolution.Unavailable ->
-                        throw IllegalStateException("Canonical System Workspace tags are unavailable: ${context.id}")
-            }
-
-            val changedTags =
-                ((previousTags ?: emptyList()).let(::normalizeTags) + normalizedTags)
-                    .distinct()
-                    .filter { tag ->
-                        tag in normalizeTags(previousTags) || tag in normalizedTags
-                    }
-            if (changedTags.isNotEmpty()) {
-                reconcileChangedTags(changedTags)
-            }
-        }
-
-        @Transaction
         suspend fun syncGoalAssociations(
             goal: Goal,
             sourceContextId: String?,
@@ -91,8 +46,7 @@ class TagAssociationHandler
                 backlogPlacementCommands
                     .findLiveGoalWorkspaceIdsIfCutOver(goal.id)
                     .filter { workspaceId ->
-                        contextDao.getContextById(workspaceId) != null ||
-                            systemWorkspaceTagAuthority.isCanonicalSystemOwner(workspaceId)
+                        systemWorkspaceTagAuthority.isLiveOperationalOwner(workspaceId)
                     }
                     .toSet()
 
@@ -180,10 +134,6 @@ class TagAssociationHandler
         suspend fun repairAllAssociations() {
             backlogGoalAssociationLinkDao.deleteAll()
 
-            contextDao.getAll()
-                .filterNot { it.isDeleted }
-                .forEach { context -> syncContextTags(context, previousTags = null) }
-
             goalDao.getAllVisible().forEach { goal ->
                 syncGoalAssociations(goal, sourceContextId = null)
             }
@@ -194,16 +144,10 @@ class TagAssociationHandler
         private suspend fun resolveDesiredContexts(text: String): Map<String, String> {
             val tags = extractHashtags(text)
             if (tags.isEmpty()) return emptyMap()
-            val legacyMatches =
-                contextTagRefDao.findContextsByTags(tags)
-                    .filterNot { lookup -> SystemContexts.isSystem(ContextId(lookup.contextId)) }
-            val canonicalMatches =
-                systemWorkspaceTagAuthority
-                    .findCanonicalSystemOwnersByTags(tags)
-                    .map { match -> ContextTagLookup(match.contextId, match.normalizedTag) }
-            return (legacyMatches + canonicalMatches)
+            return systemWorkspaceTagAuthority
+                .findOperationalOwnersByTags(tags)
                 .groupBy { it.contextId }
-                .mapValues { (_, lookups) -> lookups.first().normalizedTag }
+                .mapValues { (_, matches) -> matches.first().normalizedTag }
         }
 
         private companion object {

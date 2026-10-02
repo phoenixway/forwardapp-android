@@ -85,7 +85,6 @@ class ContextRepository
     @Inject
     constructor(
         private val contextDao: ContextDao,
-        private val contextTagRefDao: ContextTagRefDao,
         private val legacyNoteRepository: LegacyNoteRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
@@ -302,7 +301,12 @@ class ContextRepository
             tagAssociationHandler
                 .normalizeTags(listOf(tag))
                 .firstOrNull()
-                ?.let { normalized -> contextTagRefDao.findContextIdsByTag(normalized) }
+                ?.let { normalized ->
+                    systemWorkspaceTagAuthority
+                        .findOperationalOwnersByTags(listOf(normalized))
+                        .map { it.contextId }
+                        .distinct()
+                }
                 ?: emptyList()
 
         suspend fun doesLinkToContextExist(
@@ -554,18 +558,16 @@ class ContextRepository
             contextId: String,
             tags: List<String>,
         ) {
-            if (SystemContexts.isSystem(ContextId(contextId))) {
-                canonicalWorkspaceTagRepository.replaceTags(
-                    workspaceId = contextId,
-                    tags = tags,
-                )
-                return
-            }
+            val previousTags = canonicalWorkspaceTagRepository.getTags(contextId)
+            canonicalWorkspaceTagRepository.replaceTags(
+                workspaceId = contextId,
+                tags = tags,
+            )
+            val currentTags = canonicalWorkspaceTagRepository.getTags(contextId)
 
-            val context = contextDao.getContextById(contextId)?.takeUnless { it.isDeleted } ?: return
-            persistContextUpdate(
-                context = context.copy(tags = tags),
-                previous = context,
+            tagAssociationHandler.reconcileChangedTags(
+                (previousTags + currentTags)
+                    .distinct(),
             )
         }
 
@@ -591,7 +593,6 @@ class ContextRepository
                     },
                 )
 
-            tagAssociationHandler.syncContextTags(persisted, previous.tags)
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = previous.parentId,
                 newParentId = persisted.parentId,

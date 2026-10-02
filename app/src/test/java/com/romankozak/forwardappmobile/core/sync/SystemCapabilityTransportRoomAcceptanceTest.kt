@@ -865,7 +865,7 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         }
 
     @Test
-    fun `historical nonreserved sys configuration remains ordinary transport input`() = runBlocking {
+    fun `normal merge rejects historical nonreserved sys Context transport`() = runBlocking {
         val database = database()
         try {
             val contextId = "sys_custom"
@@ -876,22 +876,108 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     contextId = contextId,
                 )
 
-            merge(database).applySnapshotBundle(
-                SnapshotBundle(
-                    version = 1,
-                    contexts = listOf(context.toSnapshot()),
-                    contextConfigurations = listOf(configuration.toSnapshot()),
-                    hierarchyPlacements = emptyList(),
-                    hierarchyPlacementGroupScopes = emptyList(),
-                    hierarchyPlacementLinkedAppearances = emptyList(),
+            val failure =
+                runCatching {
+                    merge(database).applySnapshotBundle(
+                        SnapshotBundle(
+                            version = 1,
+                            contexts = listOf(context.toSnapshot()),
+                            contextConfigurations = listOf(configuration.toSnapshot()),
+                            hierarchyPlacements = emptyList(),
+                            hierarchyPlacementGroupScopes = emptyList(),
+                            hierarchyPlacementLinkedAppearances = emptyList(),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertNull(database.contextDao().getContextById(contextId))
+            assertNull(database.contextStructureDao().getStructureByContext(contextId))
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `normal merge rejects ordinary Context configuration without Context row`() = runBlocking {
+        val database = database()
+        try {
+            val contextId = "ordinary-config-only"
+            val configuration =
+                contradictoryLegacyConfiguration().copy(
+                    id = "transport-config-$contextId",
+                    contextId = contextId,
+                )
+
+            val failure =
+                runCatching {
+                    merge(database).applySnapshotBundle(
+                        SnapshotBundle(
+                            version = 1,
+                            contextConfigurations = listOf(configuration.toSnapshot()),
+                            hierarchyPlacements = emptyList(),
+                            hierarchyPlacementGroupScopes = emptyList(),
+                            hierarchyPlacementLinkedAppearances = emptyList(),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertTrue(
+                failure!!.message.orEmpty().contains(
+                    "Canonical merge ingress refuses ordinary Context configuration persistence",
                 ),
             )
+            assertNull(database.contextDao().getContextById(contextId))
+            assertNull(database.contextStructureDao().getStructureByContext(contextId))
+        } finally {
+            database.close()
+        }
+    }
 
-            assertNotNull(database.contextDao().getContextById(contextId))
-            val transportedConfiguration =
-                requireNotNull(database.contextStructureDao().getStructureByContext(contextId))
-            // The legacy transport DTO is non-nullable here: entity null normalizes to false on the wire.
-            assertEquals(configuration.copy(enableAdvanced = false), transportedConfiguration)
+    @Test
+    fun `normal merge rejects ordinary Context structure item without configuration`() = runBlocking {
+        val database = database()
+        try {
+            val structureId = "ordinary-structure"
+            val itemId = "ordinary-structure-item"
+
+            val failure =
+                runCatching {
+                    merge(database).applySnapshotBundle(
+                        SnapshotBundle(
+                            version = 1,
+                            projectStructureItems =
+                                listOf(
+                                    com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot(
+                                        id = itemId,
+                                        contextStructureId = structureId,
+                                        entityType = "GOAL",
+                                        roleCode = "GOAL",
+                                        containerType = null,
+                                        title = "Legacy structure item",
+                                        mandatory = false,
+                                        isEnabled = true,
+                                        version = 1L,
+                                        updatedAt = 1L,
+                                        isDeleted = false,
+                                    ),
+                                ),
+                            hierarchyPlacements = emptyList(),
+                            hierarchyPlacementGroupScopes = emptyList(),
+                            hierarchyPlacementLinkedAppearances = emptyList(),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertTrue(
+                failure!!.message.orEmpty().contains(
+                    "Canonical merge ingress refuses ordinary Context structure persistence",
+                ),
+            )
+            assertNull(database.contextStructureDao().getStructureById(structureId))
+            assertTrue(database.contextStructureDao().getItems(structureId).isEmpty())
         } finally {
             database.close()
         }
@@ -1180,7 +1266,10 @@ class SystemCapabilityTransportRoomAcceptanceTest {
             database = database,
             writer =
                 CanonicalSnapshotTransactionWriter {
-                    merge(database).applyCanonicalSnapshotBundle(it)
+                    merge(database).applyCanonicalSnapshotBundle(
+                        bundle = it,
+                        contextPersistenceMode = ContextPersistenceMode.RESTORE_COMPATIBILITY,
+                    )
                 },
             dayManagementRuntimeRepository =
                 mockk<DayManagementRuntimeRepository>(relaxed = true),

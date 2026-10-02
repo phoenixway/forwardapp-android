@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
 import com.romankozak.forwardappmobile.data.database.HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.planning.PlanningDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
@@ -198,6 +199,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideOrientationDao(appDatabase: AppDatabase): OrientationDao = appDatabase.orientationDao()
+
+    @Provides
+    @Singleton
+    fun providePlanningDao(appDatabase: AppDatabase): PlanningDao = appDatabase.planningDao()
 
     @Provides
     @Singleton

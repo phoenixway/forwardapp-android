@@ -154,12 +154,8 @@ open class NoOpSyncLogicHelper @Inject constructor() : SyncLogicHelper() {
 
 @Singleton
 class NoOpMergeLocalDataSource @Inject constructor() : MergeLocalDataSource {
-    override suspend fun getContexts(): List<Context> = emptyList()
     override suspend fun getGoals(): List<Goal> = emptyList()
 
-    override suspend fun insertContexts(contexts: List<Context>) {
-        Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertContexts called")
-    }
     override suspend fun insertGoals(goals: List<Goal>) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertGoals called")
     }
@@ -172,15 +168,6 @@ class NoOpMergeLocalDataSource @Inject constructor() : MergeLocalDataSource {
     override suspend fun applyChanges(changes: List<SyncChange>) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: applyChanges called")
     }
-    override suspend fun importSelectedData(
-        projects: List<Context>,
-        goals: List<Goal>,
-        attachments: List<AttachmentEntity>,
-        crossRefs: List<ContextAttachmentCrossRef>
-    ) {
-        Log.d("NoOpSync", "NoOpMergeLocalDataSource: importSelectedData called")
-    }
-
     override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: applySnapshotBundle called")
     }

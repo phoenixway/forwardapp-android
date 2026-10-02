@@ -121,7 +121,7 @@ class SystemWorkspaceTagAuthorityRoomTest {
     }
 
     @Test
-    fun `ordinary Context tags remain legacy owned`() = runBlocking {
+    fun `ordinary resolve remains outside System compatibility authority`() = runBlocking {
         val database = database()
         try {
             val ordinaryId = "ordinary-context"
@@ -135,6 +135,50 @@ class SystemWorkspaceTagAuthorityRoomTest {
                 authority.resolve(ordinaryId),
             )
             assertEquals(source, authority.project(source))
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `ordinary operational owner uses Workspace tags and ignores stale Context tags`() = runBlocking {
+        val database = database()
+        try {
+            val id = "ordinary-workspace"
+            insertContext(database, id, listOf("stale-context-tag"))
+            insertCanonicalWorkspace(database, id)
+            database.workspaceTagRefDao().upsert(
+                listOf(tagRef(id, "workspace-tag")),
+            )
+
+            val source = requireNotNull(database.contextDao().getContextById(id))
+            val authority = authority(database)
+
+            assertEquals(
+                listOf(
+                    SystemWorkspaceTagAuthority.TagOwner(
+                        id = id,
+                        tags = listOf("workspace-tag"),
+                    ),
+                ),
+                authority.effectiveOwners(listOf(source))
+                    .filter { it.id == id },
+            )
+
+            assertEquals(
+                listOf(
+                    SystemWorkspaceTagAuthority.TagMatch(
+                        contextId = id,
+                        normalizedTag = "workspace-tag",
+                    ),
+                ),
+                authority.findOperationalOwnersByTags(listOf("workspace-tag")),
+            )
+
+            assertTrue(
+                authority.findOperationalOwnersByTags(listOf("stale-context-tag"))
+                    .none { it.contextId == id },
+            )
         } finally {
             database.close()
         }

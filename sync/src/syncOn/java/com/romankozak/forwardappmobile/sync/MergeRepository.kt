@@ -50,7 +50,14 @@ class MergeRepository @Inject constructor(
             local.projectCanonicalExecutionLogsForSelectiveImportPreview()
 
         return BackupDiff(
-            projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { project -> project.id }, { project -> project.version }, { project -> project.updatedAt }),
+            projects =
+                logicHelper.diffEntities(
+                    incoming.workspaces.orEmpty(),
+                    local.workspaces.orEmpty(),
+                    { workspace -> workspace.id },
+                    { workspace -> workspace.version },
+                    { workspace -> workspace.updatedAt },
+                ),
             goals = logicHelper.diffEntities(incoming.goals, local.goals, { goal -> goal.id }, { goal -> goal.version }, { goal -> goal.updatedAt }),
             backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { item -> item.id }, { item -> item.version }, { item -> item.updatedAt }),
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
@@ -89,7 +96,10 @@ class MergeRepository @Inject constructor(
             }
         }
 
-        addChanges(bundle.contexts, localBundle.contexts.associateBy { context -> context.id }, { context -> context.id }, { context -> context.name }, "Список", { context -> context.version }, { context -> context.updatedAt })
+        // Context-shaped transport is no longer an approval-sync mutation
+        // authority after the Context Big Cut. Canonical SnapshotBundle ingress
+        // must use applySnapshotBundle()/applySelectiveSnapshotBundle(), while
+        // historical Context evidence remains Restore-only compatibility input.
         addChanges(bundle.goals, localBundle.goals.associateBy { goal -> goal.id }, { goal -> goal.id }, { goal -> goal.text }, "Ціль", { goal -> goal.version }, { goal -> goal.updatedAt })
 
         return SyncReport(changes)

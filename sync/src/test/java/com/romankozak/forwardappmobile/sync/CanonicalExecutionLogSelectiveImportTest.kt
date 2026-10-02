@@ -267,7 +267,7 @@ class CanonicalExecutionLogSelectiveImportTest {
                     ),
             )
 
-        assertEquals(listOf("context-1"), filtered.contexts.map { it.id })
+        assertTrue(filtered.contexts.isEmpty())
         assertEquals(listOf("goal-1"), filtered.goals.map { it.id })
         assertTrue(filtered.backlogItems.isEmpty())
         assertTrue(filtered.backlogOrders.isEmpty())

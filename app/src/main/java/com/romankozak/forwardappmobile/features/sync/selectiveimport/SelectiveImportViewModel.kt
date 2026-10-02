@@ -620,7 +620,7 @@ private fun <T> List<SelectableDiffItem<T>>.selectedCandidateIds(): Set<String> 
 
 private fun extractSelectionId(item: Any): String? =
     when (item) {
-        is com.romankozak.forwardappmobile.core.data.models.entities.Context -> item.id
+        is WorkspaceImportPreviewRow -> item.id
         is com.romankozak.forwardappmobile.core.data.models.entities.Goal -> item.id
         is CanonicalBacklogPreviewRow -> item.entry.id
         is com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem -> item.id

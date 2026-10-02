@@ -13,24 +13,32 @@ class SnapshotBundleSelectiveImportFilter {
     ): SnapshotBundle {
         source.requireSupportedHierarchyFormat()
 
-        val filteredContexts = source.contexts.filter { context -> context.id in selection.selectedContextIds }
-        val validContextIds = filteredContexts.mapTo(linkedSetOf()) { context -> context.id }
+        // selectedContextIds is retained as a compatibility/UI contract name,
+        // but current selective-import authority is canonical Workspace identity.
+        val selectedWorkspaceIds =
+            source.workspaces
+                .orEmpty()
+                .asSequence()
+                .map { workspace -> workspace.id }
+                .filter { workspaceId -> workspaceId in selection.selectedContextIds }
+                .toCollection(linkedSetOf())
+
         val filteredGoals = source.goals.filter { goal -> goal.id in selection.selectedGoalIds }
         val filteredDocuments =
             source.documents.filter { document ->
                 document.id in selection.selectedDocumentIds &&
-                    (document.contextId == null || document.contextId in validContextIds)
+                    (document.contextId == null || document.contextId in selectedWorkspaceIds)
             }
         val filteredChecklists =
             source.checklists.filter { checklist ->
                 checklist.id in selection.selectedChecklistIds &&
-                    (checklist.contextId == null || checklist.contextId in validContextIds)
+                    (checklist.contextId == null || checklist.contextId in selectedWorkspaceIds)
             }
         val filteredLinks = source.linkItemEntities.filter { link -> link.id in selection.selectedLinkItemIds }
         val executionLogOwnerContexts = source.contextBackedExecutionLogOwnerContexts()
         val selectedExecutionLogWorkspaceIds =
             executionLogOwnerContexts
-                .filterValues { contextId -> contextId in validContextIds }
+                .filterValues { contextId -> contextId in selectedWorkspaceIds }
                 .keys
         val filteredCanonicalExecutionLogs =
             source.canonicalExecutionLogs?.filter { log ->
@@ -48,7 +56,9 @@ class SnapshotBundleSelectiveImportFilter {
 
         val filtered = source.copy(
             hierarchyFormatVersion = null,
-            contexts = filteredContexts,
+            // Ordinary Context persistence is extinct on current selective import.
+            // Historical Context-shaped evidence remains Restore-only.
+            contexts = emptyList(),
             // Historical links are Restore-only evidence and have no
             // schema-180 selective-import persistence owner.
             contextParentLinks = emptyList(),
@@ -91,10 +101,9 @@ class SnapshotBundleSelectiveImportFilter {
                     record.id in selection.selectedActivityRecordIds
                 },
             mainBeacons = filteredMainBeacons,
-            mainBeaconContextCrossRefs =
-                source.mainBeaconContextCrossRefs.filter { crossRef ->
-                    crossRef.beaconId in validMainBeaconIds && crossRef.contextId in validContextIds
-                },
+            // Ordinary MainBeacon Context ownership still has a physical Context FK.
+            // Current selective import must not recreate that legacy persistence edge.
+            mainBeaconContextCrossRefs = emptyList(),
             mainBeaconAttachmentCrossRefs =
                 source.mainBeaconAttachmentCrossRefs.filter { crossRef ->
                     crossRef.beaconId in validMainBeaconIds && crossRef.attachmentId in validAttachmentIds
