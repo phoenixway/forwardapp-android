@@ -44,7 +44,10 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                         canonicalWorkspace(SYSTEM_ID),
                         standaloneWorkspace(STANDALONE_ID),
                         canonicalWorkspace(RETIRED_ID),
-                        canonicalWorkspace(ORDINARY_ID),
+                        canonicalWorkspace(ORDINARY_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = ORDINARY_ID,
+                        ),
                         canonicalWorkspace(HISTORICAL_SYS_PREFIX_ID).copy(
                             provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
                             sourceContextId = HISTORICAL_SYS_PREFIX_ID,
@@ -70,13 +73,13 @@ class DayTaskDaoWorkspaceProjectRoomTest {
                 assertEquals(SYSTEM_ID, systemTask.logicalProjectId)
 
                 val ordinaryTask = requireNotNull(stored["ordinary-task"])
-                assertEquals(ORDINARY_ID, ordinaryTask.projectId)
-                assertNull(ordinaryTask.projectWorkspaceId)
+                assertNull(ordinaryTask.projectId)
+                assertEquals(ORDINARY_ID, ordinaryTask.projectWorkspaceId)
                 assertEquals(ORDINARY_ID, ordinaryTask.logicalProjectId)
 
                 val historicalTask = requireNotNull(stored["historical-task"])
-                assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalTask.projectId)
-                assertNull(historicalTask.projectWorkspaceId)
+                assertNull(historicalTask.projectId)
+                assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalTask.projectWorkspaceId)
                 assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalTask.logicalProjectId)
 
                 val standaloneTask = requireNotNull(stored["standalone-task"])
@@ -181,7 +184,6 @@ class DayTaskDaoWorkspaceProjectRoomTest {
     fun `non-System routing rejects unadmitted Workspace owners`() =
         runBlocking {
             listOf(
-                canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID),
                 standaloneWorkspace(DELETED_STANDALONE_ID).copy(isDeleted = true),
                 standaloneWorkspace(MALFORMED_STANDALONE_ID).copy(sourceContextId = ORDINARY_ID),
             ).forEach { workspace ->
@@ -222,6 +224,299 @@ class DayTaskDaoWorkspaceProjectRoomTest {
 
                 assertTrue(failure is IllegalArgumentException)
                 assertTrue(database.dayTaskDao().getAllTasksSync().isEmpty())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `compatibility project input converges on insert and update`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.dayTaskDao()
+                database.dayPlanDao().insert(dayPlan())
+                database.contextDao().insertContexts(
+                    listOf(context(ORDINARY_ID)),
+                )
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalWorkspace(ORDINARY_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = ORDINARY_ID,
+                        ),
+                    ),
+                )
+
+                dao.insert(task("compatibility-input", ORDINARY_ID))
+
+                val stored = requireNotNull(
+                    dao.getTaskById("compatibility-input"),
+                )
+                assertNull(stored.projectId)
+                assertEquals(ORDINARY_ID, stored.projectWorkspaceId)
+                assertEquals(ORDINARY_ID, stored.logicalProjectId)
+
+                dao.update(
+                    stored.copy(
+                        title = "Updated",
+                        projectId = ORDINARY_ID,
+                        projectWorkspaceId = null,
+                    ),
+                )
+
+                val updated = requireNotNull(
+                    dao.getTaskById("compatibility-input"),
+                )
+                assertEquals("Updated", updated.title)
+                assertNull(updated.projectId)
+                assertEquals(ORDINARY_ID, updated.projectWorkspaceId)
+
+                dao.insert(
+                    task("equivalent-dual", ORDINARY_ID).copy(
+                        projectWorkspaceId = ORDINARY_ID,
+                    ),
+                )
+
+                val equivalent = requireNotNull(
+                    dao.getTaskById("equivalent-dual"),
+                )
+                assertNull(equivalent.projectId)
+                assertEquals(ORDINARY_ID, equivalent.projectWorkspaceId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `contextless canonical Workspace and no-project DayTask remain valid`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.dayTaskDao()
+                database.dayPlanDao().insert(dayPlan())
+                database.workspaceDao().upsert(
+                    listOf(canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID)),
+                )
+
+                dao.insertTasks(
+                    listOf(
+                        task("contextless-canonical", ARBITRARY_CANONICAL_ONLY_ID),
+                        task("without-project", null),
+                    ),
+                )
+
+                val canonical = requireNotNull(
+                    dao.getTaskById("contextless-canonical"),
+                )
+                assertNull(canonical.projectId)
+                assertEquals(
+                    ARBITRARY_CANONICAL_ONLY_ID,
+                    canonical.projectWorkspaceId,
+                )
+
+                val withoutProject = requireNotNull(
+                    dao.getTaskById("without-project"),
+                )
+                assertNull(withoutProject.projectId)
+                assertNull(withoutProject.projectWorkspaceId)
+                assertNull(withoutProject.logicalProjectId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `unproven live and retired Context mappings fail closed`() =
+        runBlocking {
+            val cases = listOf(
+                "unproven-live-mapping" to (
+                    context(ORDINARY_ID) to canonicalWorkspace(ORDINARY_ID)
+                ),
+                "missing-workspace" to (
+                    context(ORDINARY_ID) to null
+                ),
+                "deleted-workspace" to (
+                    context(ORDINARY_ID) to
+                        canonicalWorkspace(ORDINARY_ID).copy(isDeleted = true)
+                ),
+                "unproven-retired-mapping" to (
+                    context(ORDINARY_ID).copy(isDeleted = true) to
+                        canonicalWorkspace(ORDINARY_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = ORDINARY_ID,
+                        )
+                ),
+            )
+
+            cases.forEach { (name, owners) ->
+                val (ownerContext, ownerWorkspace) = owners
+                val database = database()
+                try {
+                    database.dayPlanDao().insert(dayPlan())
+                    database.contextDao().insertContexts(
+                        listOf(ownerContext),
+                    )
+                    ownerWorkspace?.let { workspace ->
+                        database.workspaceDao().upsert(listOf(workspace))
+                    }
+
+                    val failure = runCatching {
+                        database.dayTaskDao().insert(
+                            task("invalid-$name", ORDINARY_ID),
+                        )
+                    }.exceptionOrNull()
+
+                    assertTrue(
+                        "$name must fail closed: $failure",
+                        failure is IllegalArgumentException,
+                    )
+                    assertTrue(
+                        database.dayTaskDao().getAllTasksSync().isEmpty(),
+                    )
+                } finally {
+                    database.close()
+                }
+            }
+        }
+
+    @Test
+    fun `mixed batch rejects invalid owner without inserting valid task`() =
+        runBlocking {
+            val database = database()
+            try {
+                database.dayPlanDao().insert(dayPlan())
+                database.contextDao().insertContexts(
+                    listOf(context(ORDINARY_ID)),
+                )
+
+                val failure = runCatching {
+                    database.dayTaskDao().insertTasks(
+                        listOf(
+                            task("valid-no-project", null),
+                            task("invalid-owner", ORDINARY_ID),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(failure is IllegalArgumentException)
+                assertTrue(
+                    database.dayTaskDao().getAllTasksSync().isEmpty(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `sync ACK changes only metadata for canonical Workspace owner`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.dayTaskDao()
+                database.dayPlanDao().insert(dayPlan())
+                database.contextDao().insertContexts(
+                    listOf(context(ORDINARY_ID)),
+                )
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalWorkspace(ORDINARY_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = ORDINARY_ID,
+                        ),
+                    ),
+                )
+
+                dao.insert(task("ack-canonical", ORDINARY_ID))
+                val before = dao.getAllTasksSync().single()
+
+                assertNull(before.projectId)
+                assertEquals(ORDINARY_ID, before.projectWorkspaceId)
+                assertNull(before.syncedAt)
+
+                assertEquals(
+                    1,
+                    dao.markSyncedIfVersionMatches(
+                        taskId = before.id,
+                        expectedVersion = before.version,
+                        syncedAt = 1234L,
+                    ),
+                )
+
+                val acknowledged = dao.getAllTasksSync().single()
+                assertEquals(before.copy(syncedAt = 1234L), acknowledged)
+                assertNull(acknowledged.projectId)
+                assertEquals(
+                    ORDINARY_ID,
+                    acknowledged.projectWorkspaceId,
+                )
+
+                assertEquals(
+                    0,
+                    dao.markSyncedIfVersionMatches(
+                        taskId = before.id,
+                        expectedVersion = before.version + 1L,
+                        syncedAt = 5678L,
+                    ),
+                )
+                assertEquals(
+                    acknowledged,
+                    dao.getAllTasksSync().single(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `sync ACK preserves canonicalized compatibility owner`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.dayTaskDao()
+                database.dayPlanDao().insert(dayPlan())
+                database.contextDao().insertContexts(
+                    listOf(context(ORDINARY_ID)),
+                )
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalWorkspace(ORDINARY_ID).copy(
+                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                            sourceContextId = ORDINARY_ID,
+                        ),
+                    ),
+                )
+
+                dao.insert(task("ack-compatibility", ORDINARY_ID))
+
+                val before = dao.getAllTasksSync().single()
+                assertNull(before.projectId)
+                assertEquals(ORDINARY_ID, before.projectWorkspaceId)
+                assertNull(before.syncedAt)
+
+                assertEquals(
+                    1,
+                    dao.markSyncedIfVersionMatches(
+                        taskId = before.id,
+                        expectedVersion = before.version,
+                        syncedAt = 2345L,
+                    ),
+                )
+
+                val acknowledged = dao.getAllTasksSync().single()
+                assertEquals(before.copy(syncedAt = 2345L), acknowledged)
+                assertNull(acknowledged.projectId)
+                assertEquals(ORDINARY_ID, acknowledged.projectWorkspaceId)
+
+                assertEquals(
+                    0,
+                    dao.markSyncedIfVersionMatches(
+                        taskId = before.id,
+                        expectedVersion = before.version + 1L,
+                        syncedAt = 6789L,
+                    ),
+                )
+                assertEquals(acknowledged, dao.getAllTasksSync().single())
             } finally {
                 database.close()
             }

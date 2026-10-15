@@ -39,6 +39,11 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.S
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayFocusItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
@@ -68,6 +73,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Leg
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationScoringOverrideEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
@@ -82,6 +88,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot
 
 
 /**
@@ -103,6 +110,18 @@ data class SnapshotBundle(
      */
     @SerializedName("hierarchyFormatVersion")
     val hierarchyFormatVersion: Int? = null,
+
+    /**
+     * Explicit canonical Planning V3 transport-generation marker.
+     *
+     * null = sender predates/does not provide the canonical Planning contract.
+     * version 1 = planningScopes and planningCommitments are authoritative.
+     * version 2 = common collections plus the typed Day extension.
+     * version 3 = common + Day + Tactical extensions.
+     * CURRENT_PLANNING_FORMAT_VERSION = common + Day + Tactical + Strategic extensions.
+     */
+    @SerializedName("planningFormatVersion")
+    val planningFormatVersion: Int? = null,
 
     @SerializedName("exportedAt")
     val exportedAt: Long = System.currentTimeMillis(),
@@ -146,6 +165,22 @@ data class SnapshotBundle(
     @SerializedName("workspaceBacklogEntries")
     val workspaceBacklogEntries: List<WorkspaceBacklogEntrySnapshot>? = null,
 
+    // Canonical Planning V3 common transport contract.
+    // null = sender does not carry V3 planning; [] = authoritative empty.
+    @SerializedName("planningScopes")
+    val planningScopes: List<PlanningScopeSnapshot>? = null,
+    @SerializedName("planningCommitments")
+    val planningCommitments: List<PlanningCommitmentSnapshot>? = null,
+    // Planning format v2 typed DAY extension. null is valid only for v1/absent Planning.
+    @SerializedName("dayPlanningScopeExtensions")
+    val dayPlanningScopeExtensions: List<DayPlanningScopeExtensionSnapshot>? = null,
+    // Planning format v3 typed TACTICAL_CYCLE extension. null is valid only for v1/v2/absent Planning.
+    @SerializedName("tacticalPlanningScopeExtensions")
+    val tacticalPlanningScopeExtensions: List<TacticalPlanningScopeExtensionSnapshot>? = null,
+    // Planning format v4 typed STRATEGIC_ARC extension. null is valid only for v1-v3/absent Planning.
+    @SerializedName("strategicPlanningScopeExtensions")
+    val strategicPlanningScopeExtensions: List<StrategicPlanningScopeExtensionSnapshot>? = null,
+
     // Canonical Hierarchy V2 placement contract.
     // null = sender does not carry H1; [] = authoritative present-and-empty.
     @SerializedName("hierarchyPlacements")
@@ -183,6 +218,10 @@ data class SnapshotBundle(
     val orientationAssessments: List<OrientationAssessmentEntity>? = null,
     @SerializedName("orientationAssessmentRevisions")
     val orientationAssessmentRevisions: List<OrientationAssessmentRevisionEntity>? = null,
+    // Optional extension to the canonical Orientation envelope. null means the
+    // sender predates canonical scoring authority; [] is authoritatively empty.
+    @SerializedName("orientationScoringOverrides")
+    val orientationScoringOverrides: List<OrientationScoringOverrideEntity>? = null,
     @SerializedName("legacySubjectMappings")
     val legacySubjectMappings: List<LegacySubjectMappingEntity>? = null,
     @SerializedName("orientationRelations")
@@ -193,6 +232,10 @@ data class SnapshotBundle(
     @SerializedName("workspaceBindings") val workspaceBindings: List<WorkspaceBindingEntity>? = null,
     @SerializedName("workspaceCapabilityInstances")
     val workspaceCapabilityInstances: List<WorkspaceCapabilityInstanceEntity>? = null,
+    // Canonical Workspace presentation-preferences contract.
+    // null = absent/pre-cutover; [] = authoritative present-and-empty.
+    @SerializedName("workspacePresentationPreferences")
+    val workspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot>? = null,
     // Canonical Workspace tag-membership contract. null = absent/pre-cutover;
     // [] = current canonical transport contains no membership rows.
     @SerializedName("workspaceTagRefs")

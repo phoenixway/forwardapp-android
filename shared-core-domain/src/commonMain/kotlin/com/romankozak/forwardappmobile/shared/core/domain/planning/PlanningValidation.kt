@@ -49,6 +49,45 @@ fun validatePlanningCommitment(
     return violations
 }
 
+fun validateStrategicPlanningScopeExtension(
+    extension: StrategicPlanningScopeExtension,
+): List<PlanningContractViolation> {
+    val path = "strategicScopeExtensions.${extension.scopeId.value}"
+    val violations = mutableListOf<PlanningContractViolation>()
+    if (extension.legacyArcKey.isBlank()) {
+        violations += violation(path, "BLANK_LEGACY_ARC_KEY", "Legacy arc key must not be blank")
+    }
+    if (extension.version < 0L) {
+        violations += violation(path, "NEGATIVE_VERSION", "Extension version must be nonnegative")
+    }
+    if (extension.updatedAt != null && extension.updatedAt < extension.createdAt) {
+        violations += violation(path, "UPDATED_BEFORE_CREATED", "Extension update precedes creation")
+    }
+    if (extension.syncedAt != null && extension.syncedAt < extension.createdAt) {
+        violations += violation(path, "SYNCED_BEFORE_CREATED", "Extension sync precedes creation")
+    }
+    return violations
+}
+
+fun validateStrategicPlanningScopeExtensionDependency(
+    extension: StrategicPlanningScopeExtension,
+    scope: PlanningScope?,
+): List<PlanningContractViolation> {
+    val path = "strategicScopeExtensions.${extension.scopeId.value}"
+    val violations = validateStrategicPlanningScopeExtension(extension).toMutableList()
+    when {
+        scope == null ->
+            violations += violation(path, "MISSING_SCOPE", "Strategic extension scope does not exist")
+        scope.id != extension.scopeId ->
+            violations += violation(path, "SCOPE_ID_MISMATCH", "Strategic extension scope id does not match")
+        scope.kind != PlanningScopeKind.STRATEGIC_ARC ->
+            violations += violation(path, "WRONG_SCOPE_KIND", "Strategic extension requires STRATEGIC_ARC")
+        !extension.isDeleted && scope.isDeleted ->
+            violations += violation(path, "TOMBSTONED_SCOPE", "Live Strategic extension requires a live scope")
+    }
+    return violations.distinctBy { it.path to it.code }
+}
+
 /**
  * Validates one complete prospective planning state without persistence access.
  *

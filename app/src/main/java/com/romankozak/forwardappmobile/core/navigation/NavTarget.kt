@@ -19,6 +19,24 @@ sealed interface NavTarget {
 
     // -------- CONTENT --------
 
+    /**
+     * Standalone Legacy Note identity.
+     * Workspace is optional navigation provenance, never content ownership.
+     */
+    data class LegacyNote(
+        val noteId: String,
+        val workspaceId: String? = null,
+    ) : NavTarget
+
+    /** Canonical semantic identity; never a Context or Workspace locator. */
+    data class SemanticEntityEditor(
+        val subjectId: String,
+    ) : NavTarget
+
+    data class CanonicalEntityPicker(
+        val request: com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityPickerRequest,
+    ) : NavTarget
+
     data class NoteDocument(
         val id: String,
         val startEdit: Boolean = false,
@@ -77,6 +95,8 @@ sealed interface NavTarget {
     data object AttachmentsLibrary : NavTarget
 
     data object ScriptsLibrary : NavTarget
+
+    data object EntityLibrary : NavTarget
 
     data object TacticalManagement : NavTarget
 

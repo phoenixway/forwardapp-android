@@ -282,11 +282,7 @@ class GlobalSearchViewModel
             }
             viewModelScope.launch {
                 val storedTypes = settingsRepository.globalSearchSelectedTypesFlow.first()
-                val resolvedTypes =
-                    storedTypes
-                        .mapNotNull { typeName -> GlobalSearchType.entries.firstOrNull { it.name == typeName } }
-                        .toSet()
-                        .ifEmpty { GlobalSearchType.entries.toSet() }
+                val resolvedTypes = resolveGlobalSearchTypeSelection(storedTypes)
                 _uiState.update { state ->
                     state.copy(
                         selectedTypes = resolvedTypes,
@@ -497,6 +493,24 @@ class GlobalSearchViewModel
             dataUsage[resultUniqueId] = (dataUsage[resultUniqueId] ?: 0) + 1
             trimUsageMap(dataUsage)
             savedStateHandle[DATA_USAGE_KEY] = dataUsage.toMap()
+        }
+
+        fun openSemanticEntity(result: GlobalSearchResultItem.OrientationItem) {
+            onDataResultOpened(result.uniqueId)
+            enhancedNavigationManager.navigate(
+                target = NavTarget.SemanticEntityEditor(result.orientationId),
+            )
+        }
+
+        /**
+         * A Legacy Note has its own identity and does not require a
+         * historical Context or an active BACKLOG placement to open.
+         */
+        fun openNoteResult(result: GlobalSearchResultItem.NoteItem) {
+            onDataResultOpened(result.uniqueId)
+            enhancedNavigationManager.navigate(
+                target = NavTarget.LegacyNote(noteId = result.note.id),
+            )
         }
 
         fun openAttachmentResult(result: GlobalSearchResultItem.AttachmentItem) {
@@ -1121,6 +1135,11 @@ class GlobalSearchViewModel
 
         private fun searchableFields(item: GlobalSearchResultItem): List<String> =
             when (item) {
+                is GlobalSearchResultItem.OrientationItem ->
+                    listOf(
+                        item.title,
+                        item.description ?: "",
+                    )
                 is GlobalSearchResultItem.GoalItem ->
                     listOf(
                         item.goal.text,
@@ -1155,6 +1174,11 @@ class GlobalSearchViewModel
                     )
                 is GlobalSearchResultItem.InboxItem ->
                     listOf(item.record.text)
+                is GlobalSearchResultItem.NoteItem ->
+                    listOf(
+                        item.note.title,
+                        item.note.content,
+                    )
                 is GlobalSearchResultItem.AttachmentItem ->
                     listOf(
                         item.searchResult.title,
@@ -1172,9 +1196,7 @@ class GlobalSearchViewModel
 
         private suspend fun resolveInboxNavigationTarget(): Pair<String, String>? {
             val presentedContexts =
-                systemWorkspacePresentationContextProjector.projectPresentationUniverse(
-                    contextRepository.getAllContextsFlow().first(),
-                )
+                systemWorkspacePresentationContextProjector.projectPresentationUniverse()
             val inbox =
                 presentedContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }
                     ?: presentedContexts.firstOrNull {
@@ -1269,15 +1291,8 @@ class GlobalSearchViewModel
                 val presentation =
                     systemWorkspacePresentationContextProjector.resolvePresentation(projectId)
 
-                val rawContext = contextRepository.getContextById(projectId)?.takeUnless { it.isDeleted }
-                when {
-                    rawContext != null ->
-                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, rawContext.name)
-
-                    presentation != null ->
-                        enhancedNavigationManager.navigateToWorkspaceRead(projectId, presentation.name)
-
-                    else -> Unit
+                presentation?.let {
+                    enhancedNavigationManager.navigateToWorkspaceRead(projectId, it.name)
                 }
             }
         }

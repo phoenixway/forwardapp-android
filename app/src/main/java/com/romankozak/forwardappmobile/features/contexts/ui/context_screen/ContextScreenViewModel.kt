@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRema
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionIds
@@ -160,6 +161,7 @@ class ContextScreenViewModel
         private val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,
         private val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+        private val workspacePresentationPreferencesRepository: WorkspacePresentationPreferencesRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
@@ -192,7 +194,6 @@ class ContextScreenViewModel
         internal val stateManager = ContextStateManager(viewModelScope)
         private val tagManager =
             TagManager(
-                contextRepository = contextRepository,
                 systemWorkspacePresentationContextProjector =
                     systemWorkspacePresentationContextProjector,
                 scope = viewModelScope,
@@ -349,6 +350,7 @@ class ContextScreenViewModel
             ContextSettingsActions(
                 contextRepository = contextRepository,
                 canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                workspacePresentationPreferencesRepository = workspacePresentationPreferencesRepository,
             )
         }
         private val currentContextActions by lazy {
@@ -423,7 +425,7 @@ class ContextScreenViewModel
                 )
         private val _pickerPresentations =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .observePresentationUniverse()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         val allContextsForPicker: StateFlow<List<ContextPresentation>> =
             _pickerPresentations
@@ -519,6 +521,7 @@ class ContextScreenViewModel
                         noteRepository = noteRepository,
                         goalRepository = goalRepository,
                         canonicalWorkspaceRepository = canonicalWorkspaceRepository,
+                        workspacePresentationPreferencesRepository = workspacePresentationPreferencesRepository,
                         orientationDao = orientationDao,
                         systemInboxDirectionAccess = systemInboxDirectionAccess,
                         systemRemainingCapabilityAccess = systemRemainingCapabilityAccess,
@@ -993,6 +996,12 @@ class ContextScreenViewModel
 
         override fun openUri(uri: String) {
             viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) }
+        }
+
+        override fun requestNavigation(target: NavTarget) {
+            viewModelScope.launch {
+                uiEventActions.tryEmit(UiEvent.Navigate(target))
+            }
         }
 
         override fun requestNavigation(route: String) {

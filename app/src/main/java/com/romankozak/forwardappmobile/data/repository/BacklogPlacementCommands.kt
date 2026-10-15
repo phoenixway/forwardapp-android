@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.data.workspace.capability.BacklogCanonicalTargetResolver
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +22,22 @@ class BacklogPlacementCommands
         private val canonicalRepository: CanonicalBacklogRepository,
         private val canonicalTargetResolver: BacklogCanonicalTargetResolver,
     ) {
+        /** Add a Note occurrence without assigning Workspace content ownership. */
+        suspend fun addNoteAtStart(
+            workspaceId: String,
+            noteId: String,
+            now: Long = System.currentTimeMillis(),
+        ): String =
+            canonicalRepository.addEntryAtStart(
+                workspaceId = workspaceId,
+                target =
+                    WorkspaceBacklogTargetRef(
+                        kind = WorkspaceBacklogTargetKind.LEGACY_NOTE,
+                        id = noteId,
+                    ),
+                now = now,
+            )
+
         suspend fun addToContextBacked(
             contextId: String,
             itemType: String,

@@ -13,9 +13,12 @@ import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateOr
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateWorkspaceBindings
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AspectOrientationRef
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationRelation
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationRelationType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBinding
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 
 /** Validated local write boundary for canonical semantic relations and Workspace bindings. */
 @Singleton
@@ -26,6 +29,162 @@ class CanonicalOrientationGraphRepository
         private val dao: OrientationDao,
         private val workspaceDao: WorkspaceDao,
     ) {
+        /**
+         * Narrow canonical read for the Orientation editor.
+         * Includes both incoming and outgoing live edges.
+         */
+        fun observeRelations(
+            orientationId: String,
+        ): Flow<List<OrientationRelationEntity>> =
+            dao.observeLiveOrientationRelationsForOrientation(orientationId)
+
+        /**
+         * Product command for independently authorable Orientation graph edges.
+         * PART_OF is excluded because Beacon Group membership has a separate
+         * GroupScope / hierarchy mutation authority.
+         */
+        suspend fun addRelation(
+            fromOrientationId: String,
+            toOrientationId: String,
+            relationType: OrientationRelationType,
+            now: Long = System.currentTimeMillis(),
+        ): String =
+            database.withTransaction {
+                require(relationType != OrientationRelationType.PART_OF) {
+                    "PART_OF is managed by its canonical hierarchy authority"
+                }
+                require(fromOrientationId != toOrientationId) {
+                    "Orientation self-relations are forbidden"
+                }
+
+                requireLiveOrientation(fromOrientationId)
+                requireLiveOrientation(toOrientationId)
+
+                val fromId: String
+                val toId: String
+
+                if (
+                    relationType == OrientationRelationType.CONFLICTS_WITH &&
+                    fromOrientationId > toOrientationId
+                ) {
+                    fromId = toOrientationId
+                    toId = fromOrientationId
+                } else {
+                    fromId = fromOrientationId
+                    toId = toOrientationId
+                }
+
+                val all = dao.getAllOrientationRelations()
+                val existing =
+                    all.firstOrNull {
+                        it.fromOrientationId == fromId &&
+                            it.toOrientationId == toId &&
+                            it.relationType == relationType.name
+                    }
+
+                if (existing != null && !existing.isDeleted) {
+                    return@withTransaction existing.id
+                }
+
+                val target =
+                    existing?.copy(
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = existing.version + 1L,
+                    ) ?: OrientationRelationEntity(
+                        id = UUID.randomUUID().toString(),
+                        fromOrientationId = fromId,
+                        toOrientationId = toId,
+                        relationType = relationType.name,
+                        relationOrder = null,
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    )
+
+                validateGraphChange(all, target)
+                dao.upsertOrientationRelations(listOf(target))
+                target.id
+            }
+
+        /**
+         * Tombstones precisely one canonical edge using optimistic versioning.
+         * Neither endpoint nor any other relation family is mutated.
+         */
+        suspend fun removeRelation(
+            relationId: String,
+            expectedVersion: Long,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            database.withTransaction {
+                val all = dao.getAllOrientationRelations()
+                val existing =
+                    requireNotNull(all.firstOrNull { it.id == relationId }) {
+                        "Orientation relation does not exist"
+                    }
+
+                require(existing.relationType != OrientationRelationType.PART_OF.name) {
+                    "PART_OF is managed by its canonical hierarchy authority"
+                }
+                require(!existing.isDeleted) {
+                    "Orientation relation is already deleted"
+                }
+                require(existing.version == expectedVersion) {
+                    "Orientation relation version conflict"
+                }
+
+                requireLiveOrientation(existing.fromOrientationId)
+                requireLiveOrientation(existing.toOrientationId)
+
+                val tombstone =
+                    existing.copy(
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = existing.version + 1L,
+                    )
+
+                validateGraphChange(all, tombstone)
+                dao.upsertOrientationRelations(listOf(tombstone))
+            }
+        }
+
+        private suspend fun requireLiveOrientation(id: String) {
+            val subject =
+                requireNotNull(dao.getManagedSubject(id)) {
+                    "Orientation ManagedSubject does not exist"
+                }
+            require(
+                !subject.isDeleted &&
+                    subject.subjectType == ManagedSubjectType.ORIENTATION.name
+            ) {
+                "Orientation ManagedSubject is not active"
+            }
+            require(dao.getOrientation(id) != null) {
+                "Canonical Orientation node does not exist"
+            }
+        }
+
+        private suspend fun validateGraphChange(
+            existing: List<OrientationRelationEntity>,
+            change: OrientationRelationEntity,
+        ) {
+            val final =
+                (existing.associateBy { it.id } + (change.id to change))
+                    .values.map { it.toModel() }
+            val orientationIds =
+                dao.getAllOrientations().mapTo(hashSetOf()) { it.subjectId }
+            val violations = validateOrientationRelations(orientationIds, final)
+
+            require(violations.isEmpty()) {
+                "Orientation graph violates DOMAIN-CONTRACT v1: " +
+                    violations.joinToString { it.code }
+            }
+        }
+
         suspend fun saveRelations(changes: List<OrientationRelation>) {
             database.withTransaction {
                 val final = mergeById(dao.getAllOrientationRelations().map { it.toModel() }, changes) { it.id }

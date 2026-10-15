@@ -178,14 +178,16 @@ class ContextHierarchyScreenViewModel
         private val _uiEventChannel = Channel<ProjectUiEvent>()
         val uiEventFlow = _uiEventChannel.receiveAsFlow()
 
-        private val rawContextsFlow = contextRepository.getAllContextsFlow()
-
+        // Legacy Context clipboard payloads still require live Context-id
+        // retention. This flow must not feed hierarchy presentation authority.
         private val _rawContextsFlat =
-            rawContextsFlow.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            contextRepository
+                .getAllContextsFlow()
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         private val hierarchyPresentationFlow =
             projectHierarchyScreenStateUseCase
-                .observeHierarchyPresentationUniverse(rawContextsFlow)
+                .observeHierarchyPresentationUniverse()
                 .map { presentations ->
                     presentations.map { it.toHierarchyPresentationNode() }
                 }
@@ -229,7 +231,6 @@ class ContextHierarchyScreenViewModel
             )
             projectHierarchyScreenStateUseCase.initialize(
                 scope = viewModelScope,
-                rawContextsFlat = _rawContextsFlat,
                 showRecentListsSheet = _showRecentListsSheet,
                 isBottomNavExpanded = _isBottomNavExpanded,
                 showSearchDialog = _showSearchDialog,

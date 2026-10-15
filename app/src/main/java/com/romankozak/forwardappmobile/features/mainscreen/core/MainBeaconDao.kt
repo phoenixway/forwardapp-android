@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 data class MainBeaconWithRelations(
     val beacon: MainBeacon,
@@ -35,8 +36,6 @@ data class MainBeaconWithRelations(
 
 data class MainBeaconRelationEntity(
     @Embedded val beacon: MainBeacon,
-    @Relation(parentColumn = "id", entityColumn = "beacon_id")
-    val contextCrossRefs: List<MainBeaconContextCrossRef>,
     @Relation(parentColumn = "id", entityColumn = "beacon_id")
     val workspaceCrossRefs: List<MainBeaconWorkspaceCrossRef>,
     @Relation(
@@ -92,17 +91,31 @@ interface MainBeaconDao {
     @Query("SELECT * FROM main_beacon_group_members ORDER BY group_id ASC, member_order ASC")
     fun observeGroupMembers(): Flow<List<MainBeaconGroupMember>>
 
+    /**
+     * Observe canonical Workspace refs and owner evidence changes.
+     * Historical Context changes also invalidate the projection.
+     */
     @Query(
         """
-        SELECT beacon_id, context_id, ref_order
-        FROM main_beacon_context_cross_ref
-        UNION ALL
-        SELECT beacon_id, workspace_id AS context_id, ref_order
-        FROM main_beacon_workspace_cross_ref
-        ORDER BY beacon_id ASC, ref_order ASC, context_id ASC
+        SELECT refs.beacon_id,
+               refs.workspace_id AS context_id,
+               refs.ref_order
+        FROM main_beacon_workspace_cross_ref AS refs
+        LEFT JOIN workspaces AS owner_workspace
+            ON owner_workspace.id = refs.workspace_id
+        LEFT JOIN contexts AS historical_context
+            ON historical_context.id = refs.workspace_id
+        ORDER BY refs.beacon_id ASC,
+                 refs.ref_order ASC,
+                 refs.workspace_id ASC
         """,
     )
-    fun observeContextCrossRefs(): Flow<List<MainBeaconContextCrossRef>>
+    fun observeRawContextCrossRefs(): Flow<List<MainBeaconContextCrossRef>>
+
+    fun observeContextCrossRefs(): Flow<List<MainBeaconContextCrossRef>> =
+        observeRawContextCrossRefs().map {
+            getAllContextCrossRefsSync()
+        }
 
     @Query("SELECT * FROM main_beacon_attachment_cross_ref")
     fun observeAttachmentCrossRefs(): Flow<List<MainBeaconAttachmentCrossRef>>
@@ -112,15 +125,44 @@ interface MainBeaconDao {
 
     @Query(
         """
-        SELECT beacon_id, context_id, ref_order
-        FROM main_beacon_context_cross_ref
-        UNION ALL
-        SELECT beacon_id, workspace_id AS context_id, ref_order
+        SELECT beacon_id,
+               workspace_id AS context_id,
+               ref_order
         FROM main_beacon_workspace_cross_ref
-        ORDER BY beacon_id ASC, ref_order ASC
+        ORDER BY beacon_id ASC, ref_order ASC, workspace_id ASC
         """,
     )
-    suspend fun getAllContextCrossRefsSync(): List<MainBeaconContextCrossRef>
+    suspend fun getAllRawContextCrossRefsSync(): List<MainBeaconContextCrossRef>
+
+    /**
+     * Canonical logical transport reader.
+     *
+     * The compatibility DTO is projected from canonical Workspace refs.
+     * Every emitted logical association must have a valid live Workspace.
+     */
+    @Transaction
+    suspend fun getAllContextCrossRefsSync(): List<MainBeaconContextCrossRef> {
+        val logical =
+            coalesceMainBeaconLogicalOwnerRefs(
+                getAllRawContextCrossRefsSync(),
+            )
+
+        logical.forEach { association ->
+            requireMainBeaconWorkspaceOwner(
+                ownerId = association.contextId,
+                context =
+                    getHistoricalMainBeaconOwnerContext(
+                        association.contextId,
+                    ),
+                workspace =
+                    getOperationalOwnerWorkspace(
+                        association.contextId,
+                    ),
+            )
+        }
+
+        return logical
+    }
 
     @Query("SELECT * FROM main_beacon_workspace_cross_ref ORDER BY beacon_id ASC, ref_order ASC")
     suspend fun getAllWorkspaceCrossRefsSync(): List<MainBeaconWorkspaceCrossRef>
@@ -161,15 +203,8 @@ interface MainBeaconDao {
     @Query(
         """
         SELECT COALESCE(MAX(ref_order), -1)
-        FROM (
-            SELECT ref_order
-            FROM main_beacon_context_cross_ref
-            WHERE beacon_id = :beaconId
-            UNION ALL
-            SELECT ref_order
-            FROM main_beacon_workspace_cross_ref
-            WHERE beacon_id = :beaconId
-        )
+        FROM main_beacon_workspace_cross_ref
+        WHERE beacon_id = :beaconId
         """,
     )
     suspend fun getMaxContextCrossRefOrder(beaconId: String): Long
@@ -190,20 +225,6 @@ interface MainBeaconDao {
 
     @Query(
         """
-        UPDATE main_beacon_context_cross_ref
-        SET ref_order = :order
-        WHERE beacon_id = :beaconId
-            AND context_id = :contextId
-        """,
-    )
-    suspend fun updateLegacyContextCrossRefOrder(
-        beaconId: String,
-        contextId: String,
-        order: Long,
-    )
-
-    @Query(
-        """
         UPDATE main_beacon_workspace_cross_ref
         SET ref_order = :order
         WHERE beacon_id = :beaconId
@@ -216,17 +237,32 @@ interface MainBeaconDao {
         order: Long,
     )
 
+    /**
+     * Legacy logical ordering API. Never update the Context FK table.
+     * Reordering targets only the canonical Workspace association.
+     */
     @Transaction
     suspend fun updateContextCrossRefOrder(
         beaconId: String,
         contextId: String,
         order: Long,
     ) {
-        if (SystemContexts.isSystem(ContextId(contextId))) {
-            updateWorkspaceCrossRefOrder(beaconId, contextId, order)
-        } else {
-            updateLegacyContextCrossRefOrder(beaconId, contextId, order)
+        val workspaceRef =
+            getAllWorkspaceCrossRefsSync().singleOrNull {
+                it.beaconId == beaconId && it.workspaceId == contextId
+            }
+
+        requireNotNull(workspaceRef) {
+            "Main Beacon $beaconId has no Workspace owner association $contextId"
         }
+
+        requireMainBeaconWorkspaceOwner(
+            ownerId = contextId,
+            context = getHistoricalMainBeaconOwnerContext(contextId),
+            workspace = getOperationalOwnerWorkspace(contextId),
+        )
+
+        updateWorkspaceCrossRefOrder(beaconId, contextId, order)
     }
 
     @Query("UPDATE main_beacons SET is_expanded = :isExpanded, updatedAt = :updatedAt WHERE id = :beaconId")
@@ -291,70 +327,80 @@ interface MainBeaconDao {
     suspend fun insertLevelStatuses(statuses: List<MainBeaconLevelStatus>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertLegacyContextCrossRefs(crossRefs: List<MainBeaconContextCrossRef>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkspaceCrossRefs(crossRefs: List<MainBeaconWorkspaceCrossRef>)
 
     @Query("SELECT * FROM workspaces WHERE id = :workspaceId LIMIT 1")
     suspend fun getOperationalOwnerWorkspace(workspaceId: String): WorkspaceEntity?
 
+    @Query("SELECT * FROM contexts WHERE id = :contextId LIMIT 1")
+    suspend fun getHistoricalMainBeaconOwnerContext(
+        contextId: String,
+    ): com.romankozak.forwardappmobile.core.data.models.entities.Context?
+
     /**
-     * Historical API name retained because SnapshotBundle still transports this
-     * logical relation as mainBeaconContextCrossRefs.
-     *
-     * Ordinary ids remain Context-owned. Exact reserved System ids are routed
-     * to their same-id canonical Workspace and must never recreate a Context FK.
+     * Historical logical transport compatibility.
+     * MainBeaconContextCrossRef is a DTO, not a Room entity.
      */
     @Transaction
     suspend fun insertContextCrossRefs(crossRefs: List<MainBeaconContextCrossRef>) {
         if (crossRefs.isEmpty()) return
 
-        val legacyRefs = mutableListOf<MainBeaconContextCrossRef>()
-        val workspaceRefs = mutableListOf<MainBeaconWorkspaceCrossRef>()
+        val unique = linkedMapOf<Pair<String, String>, MainBeaconContextCrossRef>()
 
         crossRefs.forEach { ref ->
-            if (SystemContexts.isSystem(ContextId(ref.contextId))) {
-                val workspace =
-                    requireNotNull(getOperationalOwnerWorkspace(ref.contextId)) {
-                        "Reserved Main Beacon owner ${ref.contextId} has no same-id Workspace"
-                    }
-                require(
-                    !workspace.isDeleted &&
-                        workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name &&
-                        workspace.sourceContextId == null,
-                ) {
-                    "Reserved Main Beacon owner ${ref.contextId} is not a live CANONICAL_ONLY Workspace"
-                }
-                workspaceRefs +=
-                    MainBeaconWorkspaceCrossRef(
-                        beaconId = ref.beaconId,
-                        workspaceId = ref.contextId,
-                        order = ref.order,
-                    )
-            } else {
-                legacyRefs += ref
+            require(ref.beaconId.isNotBlank() && ref.contextId.isNotBlank()) {
+                "Main Beacon owner association has a blank identity"
             }
+
+            val key = ref.beaconId to ref.contextId
+            val previous = unique[key]
+
+            require(previous == null || previous.order == ref.order) {
+                "Main Beacon owner $key has divergent incoming orders"
+            }
+
+            unique[key] = ref
         }
 
-        if (legacyRefs.isNotEmpty()) insertLegacyContextCrossRefs(legacyRefs)
-        if (workspaceRefs.isNotEmpty()) insertWorkspaceCrossRefs(workspaceRefs)
-    }
+        val workspaceByKey =
+            getAllWorkspaceCrossRefsSync()
+                .associateBy { it.beaconId to it.workspaceId }
 
-    @Query("DELETE FROM main_beacon_context_cross_ref WHERE beacon_id = :beaconId")
-    suspend fun deleteLegacyContextCrossRefsForBeacon(beaconId: String)
+        val planned = unique.map { (key, ref) ->
+            requireMainBeaconWorkspaceOwner(
+                ownerId = ref.contextId,
+                context = getHistoricalMainBeaconOwnerContext(ref.contextId),
+                workspace = getOperationalOwnerWorkspace(ref.contextId),
+            )
+
+            val canonical = workspaceByKey[key]
+            require(canonical == null || canonical.order == ref.order) {
+                "Main Beacon owner $key has divergent Workspace order"
+            }
+
+            MainBeaconWorkspaceCrossRef(
+                beaconId = ref.beaconId,
+                workspaceId = ref.contextId,
+                order = ref.order,
+            )
+        }
+
+        val missing = planned.filter { ref ->
+            (ref.beaconId to ref.workspaceId) !in workspaceByKey
+        }
+
+        if (missing.isNotEmpty()) {
+            insertWorkspaceCrossRefs(missing)
+        }
+    }
 
     @Query("DELETE FROM main_beacon_workspace_cross_ref WHERE beacon_id = :beaconId")
     suspend fun deleteWorkspaceCrossRefsForBeacon(beaconId: String)
 
     @Transaction
     suspend fun deleteContextCrossRefsForBeacon(beaconId: String) {
-        deleteLegacyContextCrossRefsForBeacon(beaconId)
         deleteWorkspaceCrossRefsForBeacon(beaconId)
     }
-
-    @Query("DELETE FROM main_beacon_context_cross_ref WHERE context_id IN (:contextIds)")
-    suspend fun deleteLegacyContextCrossRefsForContexts(contextIds: Set<String>)
 
     @Query("DELETE FROM main_beacon_workspace_cross_ref WHERE workspace_id IN (:workspaceIds)")
     suspend fun deleteWorkspaceCrossRefsForWorkspaces(workspaceIds: Set<String>)
@@ -362,7 +408,6 @@ interface MainBeaconDao {
     @Transaction
     suspend fun deleteContextCrossRefsForContexts(contextIds: Set<String>) {
         if (contextIds.isEmpty()) return
-        deleteLegacyContextCrossRefsForContexts(contextIds)
         deleteWorkspaceCrossRefsForWorkspaces(contextIds)
     }
 

@@ -423,7 +423,11 @@ class InputHandler(
                 resultListener.requestNavigation("goal_detail_screen/${item.target}")
             }
             RecentItemType.NOTE -> {
-                resultListener.requestNavigation("note_edit_screen?noteId=${item.target}")
+                resultListener.requestNavigation(
+                    com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes.legacyNote(
+                        noteId = item.target,
+                    ),
+                )
             }
             RecentItemType.NOTE_DOCUMENT -> {
                 resultListener.requestNavigation("note_document_screen/${item.target}")

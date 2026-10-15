@@ -99,7 +99,6 @@ class CanonicalExecutionLogRepository
                 contextManagementDao.insertLog(
                     ContextLog(
                         id = id,
-                        contextId = null,
                         timestamp = timestamp,
                         type = type,
                         description = description,
@@ -140,7 +139,6 @@ class CanonicalExecutionLogRepository
                 contextManagementDao.insertLog(
                     ContextLog(
                         id = id,
-                        contextId = null,
                         timestamp = timestamp,
                         type = type,
                         description = description,
@@ -227,9 +225,6 @@ class CanonicalExecutionLogRepository
                     "EXECUTION_LOG row does not exist"
                 }
 
-            require(log.contextId == null && log.workspaceId != null) {
-                "Canonical EXECUTION_LOG commands cannot mutate a legacy Context row"
-            }
             require(log.workspaceId == workspaceId) {
                 "EXECUTION_LOG row belongs to another Workspace"
             }

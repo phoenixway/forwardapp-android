@@ -623,6 +623,10 @@ class HierarchyPlacementRestoreRoomTest {
         writer = CanonicalSnapshotTransactionWriter(write),
         dayManagementRuntimeRepository =
             mockk<DayManagementRuntimeRepository>(relaxed = true),
+        dayPlanningAuthorityActivator = mockk(relaxed = true),
+        tacticalPlanningAuthorityActivator = mockk(relaxed = true),
+        strategicPlanningAuthorityActivator = mockk(relaxed = true),
+        canonicalScoringAuthorityActivator = mockk(relaxed = true),
     )
 
     private suspend fun installTargets(

@@ -50,6 +50,7 @@ fun CommandDeckMoreActionButton(
     onShowWifiImport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onNavigateToEntityLibrary: () -> Unit,
     onShowAbout: () -> Unit,
     additionalActions: List<MoreSheetAction> = emptyList(),
     featureToggles: Map<FeatureFlag, Boolean>,
@@ -114,6 +115,7 @@ fun CommandDeckMoreActionButton(
                 },
                 onNavigateToAttachments = { runAfterSheetDismiss(onNavigateToAttachments) },
                 onNavigateToScripts = { runAfterSheetDismiss(onNavigateToScripts) },
+                onNavigateToEntityLibrary = { runAfterSheetDismiss(onNavigateToEntityLibrary) },
                 onShowAbout = { runAfterSheetDismiss(onShowAbout) },
                 additionalActions =
                     additionalActions.map { action ->

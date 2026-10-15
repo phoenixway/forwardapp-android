@@ -82,6 +82,17 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             { it.version },
             { it.updatedAt },
         )
+    val scoringOverrides =
+        bundle.orientationScoringOverrides?.let { incoming ->
+            mergeByFreshnessIfNeeded(
+                merge,
+                getAllScoringOverrides(),
+                incoming,
+                { it.orientationId },
+                { it.version },
+                { it.updatedAt },
+            )
+        }.orEmpty()
     val mappings =
         mergeByFreshnessIfNeeded(
             merge,
@@ -138,6 +149,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
         )
 
     if (revisions.isNotEmpty()) upsertAssessmentRevisions(revisions)
+    if (scoringOverrides.isNotEmpty()) upsertScoringOverrides(scoringOverrides)
     if (assessments.isNotEmpty()) upsertAssessments(assessments)
     if (mappings.isNotEmpty()) upsertLegacyMappings(mappings)
     if (relations.isNotEmpty()) upsertOrientationRelations(relations)

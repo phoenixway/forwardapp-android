@@ -8,7 +8,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
@@ -63,7 +62,6 @@ class ChecklistViewModel
         private val checklistRepository: ChecklistRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
-        private val contextRepository: ContextRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val goalRepository: GoalRepository,
         private val inboxRepository: InboxRepository,
@@ -92,7 +90,7 @@ class ChecklistViewModel
 
         private val presentedContexts =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .observePresentationUniverse()
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         val linkSuggestions: StateFlow<List<String>> =
@@ -537,7 +535,6 @@ class ChecklistViewModel
             val checklistById = checklistRepository.getItemsByIds(checklistIds).associateBy { it.id }
             val backlogItemsById = listItemRepository.getItemsByIds(backlogItemIds).associateBy { it.id }
             val directionById = directionRepository.getDirectionItemsByIds(directionIds).associateBy { it.id }
-            val dayTasksById = dayTaskIds.associateWith { id -> contextRepository; null }
 
             val goalsFromRefs = backlogGoalIds.associateWith { id -> goalRepository.getGoalById(id) }
             val goalIdsFromBacklog = backlogItemsById.values.filter { it.itemType == BacklogItemTypeValues.GOAL }.map { it.entityId }.distinct()

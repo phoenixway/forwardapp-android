@@ -213,7 +213,12 @@ class CanonicalPlanningRepositoryRoomTest {
             .build()
 
     private fun repository(database: AppDatabase) =
-        CanonicalPlanningRepository(database, database.planningDao())
+        CanonicalPlanningRepository(
+            database,
+            database.planningDao(),
+            database.dayPlanningScopeExtensionDao(),
+            database.tacticalPlanningScopeExtensionDao(),
+        )
 
     private suspend fun seedOrientation(
         database: AppDatabase,

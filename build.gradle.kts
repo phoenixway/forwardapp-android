@@ -33,3 +33,57 @@ subprojects {
         )
     }
 }
+
+// AI CLI verification capability authority.
+//
+// Task identities are explicit authored facts. The Bridge treats task names
+// as opaque identities and reads semantics only from aicliVerification.
+fun Project.aicliVerificationTask(
+    taskName: String,
+    provides: List<String>,
+    target: String,
+) {
+    tasks
+        .matching { it.name == taskName }
+        .configureEach {
+            extensions.extraProperties.set(
+                "aicliVerification",
+                mapOf(
+                    "provides" to provides,
+                    "target" to target,
+                    "cost" to "normal",
+                    "confidence" to 1.0,
+                ),
+            )
+        }
+}
+
+project(":app").aicliVerificationTask(
+    taskName = "compileProdDebugKotlin",
+    provides = listOf("compile"),
+    target = "app",
+)
+
+project(":app").aicliVerificationTask(
+    taskName = "testProdDebugUnitTest",
+    provides = listOf("compile", "unit-test"),
+    target = "app",
+)
+
+project(":sync").aicliVerificationTask(
+    taskName = "compileDebugKotlin",
+    provides = listOf("compile"),
+    target = "sync",
+)
+
+project(":shared-core-data-models").aicliVerificationTask(
+    taskName = "jvmTest",
+    provides = listOf("compile", "unit-test"),
+    target = "shared-core-data-models",
+)
+
+project(":shared-core-domain").aicliVerificationTask(
+    taskName = "jvmTest",
+    provides = listOf("compile", "unit-test"),
+    target = "shared-core-domain",
+)

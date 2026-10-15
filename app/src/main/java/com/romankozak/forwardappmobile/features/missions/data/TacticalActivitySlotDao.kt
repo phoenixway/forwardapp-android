@@ -25,6 +25,16 @@ interface TacticalActivitySlotDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(slots: List<TacticalActivitySlot>)
 
+    @Query(
+        "UPDATE tactical_activity_slots SET synced_at = :syncedAt " +
+            "WHERE id = :slotId AND version = :expectedVersion",
+    )
+    suspend fun markSyncedIfVersionMatches(
+        slotId: String,
+        expectedVersion: Long,
+        syncedAt: Long,
+    ): Int
+
     @Query("DELETE FROM tactical_activity_slots")
     suspend fun deleteAll()
 

@@ -4,6 +4,7 @@ package com.romankozak.forwardappmobile.data.orientation
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.decodeOrientationAssessmentJson
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.*
 import com.romankozak.forwardappmobile.shared.core.models.orientation.*
 
@@ -11,6 +12,34 @@ internal fun validateCanonicalPayloadReferences(
     bundle: SnapshotBundle,
     validateEmbeddedWorkspaceTopology: Boolean,
 ) {
+    bundle.orientationScoringOverrides?.let { overrides ->
+        val orientationIds = requireNotNull(bundle.orientations).mapTo(hashSetOf()) { it.subjectId }
+        require(overrides.map { it.orientationId }.distinct().size == overrides.size) {
+            "Canonical Orientation scoring payload contains duplicate override ids"
+        }
+        val policy = DEFAULT_ORIENTATION_SCORING_POLICY_V1
+        overrides.forEach { override ->
+            require(override.orientationId in orientationIds) {
+                "Orientation scoring override ${override.orientationId} has no Orientation target"
+            }
+            require(
+                override.policyId == policy.id &&
+                    override.policyVersion == policy.version &&
+                    override.formulaVersion == policy.formulaVersion,
+            ) { "Unsupported Orientation scoring policy binding" }
+            listOf(
+                override.importanceCoordinate,
+                override.impactCoordinate,
+                override.effortWeight,
+                override.costWeight,
+                override.riskWeight,
+            ).filterNotNull().forEach { value ->
+                require(value.isFinite() && value >= 0f) {
+                    "Orientation scoring override contains an invalid numeric value"
+                }
+            }
+        }
+    }
     val violations =
         validateCanonicalOrientationReferences(
             bundle.toCanonicalOrientationValidationGraph(validateEmbeddedWorkspaceTopology),
@@ -37,7 +66,7 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(
             CanonicalAssessmentRevisionReference(
                 id = it.id,
                 orientationId = it.orientationId,
-                assessment = gson.fromJson(it.assessmentJson, OrientationAssessment::class.java),
+                assessment = decodeOrientationAssessmentJson(gson, it.assessmentJson),
             )
         },
         mappings = requireNotNull(legacySubjectMappings).map {
@@ -73,6 +102,10 @@ private fun com.romankozak.forwardappmobile.core.data.models.entities.orientatio
         attentionTier = AxisAssessment(attentionTierValue, ValueOrigin.valueOf(attentionTierOrigin)),
         commitment = AxisAssessment(commitmentValue, ValueOrigin.valueOf(commitmentOrigin)),
         confidence = AxisAssessment(confidenceValue, ValueOrigin.valueOf(confidenceOrigin)),
+        effort = AxisAssessment(effortValue, ValueOrigin.valueOf(effortOrigin)),
+        cost = AxisAssessment(costValue, ValueOrigin.valueOf(costOrigin)),
+        risk = AxisAssessment(riskValue, ValueOrigin.valueOf(riskOrigin)),
+        evaluationState = OrientationEvaluationState.valueOf(evaluationState),
     )
 
 private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity.toModel() =

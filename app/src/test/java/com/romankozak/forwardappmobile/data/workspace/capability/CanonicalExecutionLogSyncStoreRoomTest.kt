@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
@@ -45,7 +44,7 @@ class CanonicalExecutionLogSyncStoreRoomTest {
     }
 
     @Test
-    fun `canonical ingress accepts Context backed Workspace and rejects legacy id collision`() = runBlocking {
+    fun `canonical ingress accepts Context backed Workspace and rejects owner movement`() = runBlocking {
         val database = database()
         try {
             database.workspaceDao().upsert(
@@ -56,26 +55,15 @@ class CanonicalExecutionLogSyncStoreRoomTest {
             )
             val store = store(database)
 
-            val contextEntity =
-                ContextEntity(
-                    id = "context",
-                    name = "Legacy",
-                    description = null,
-                    parentId = null,
-                    createdAt = 1L,
-                    updatedAt = 2L,
-                    roleCode = "management",
-                )
-            database.contextDao().insert(contextEntity)
             database.contextManagementDao().insertLog(
                 ContextLog(
                     id = "shared-id",
-                    contextId = contextEntity.id,
                     timestamp = 10L,
                     type = "COMMENT",
-                    description = "Legacy row",
+                    description = "Owned row",
                     updatedAt = 10L,
                     version = 1L,
+                    workspaceId = "legacy-workspace",
                 ),
             )
 
@@ -107,9 +95,9 @@ class CanonicalExecutionLogSyncStoreRoomTest {
 
             val preserved =
                 requireNotNull(database.contextManagementDao().getLogById("shared-id"))
-            assertEquals("context", preserved.contextId)
-            assertNull(preserved.workspaceId)
-            assertEquals("Legacy row", preserved.description)
+            assertNull(preserved.contextId)
+            assertEquals("legacy-workspace", preserved.workspaceId)
+            assertEquals("Owned row", preserved.description)
         } finally {
             database.close()
         }

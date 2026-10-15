@@ -29,9 +29,16 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.toLegacyProjection
+import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ImpactValue
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ImportanceValue
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
@@ -75,6 +82,7 @@ class ContextSettingsViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val canonicalOrientationRepository: CanonicalOrientationRepository,
         private val reminderRepository: ReminderRepository,
         private val savedStateHandle: SavedStateHandle,
         private val structurePresetDao: StructurePresetDao,
@@ -90,6 +98,7 @@ class ContextSettingsViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val canonicalOrdinaryCapabilitySettings: CanonicalOrdinaryCapabilitySettings,
+        private val workspacePresentationPreferencesRepository: WorkspacePresentationPreferencesRepository,
         private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
         private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
         private val systemCapabilityAccess: SystemContextCanonicalInboxDirectionAccess,
@@ -97,10 +106,14 @@ class ContextSettingsViewModel
         private val systemBacklogLifecycleAccess: SystemContextCanonicalBacklogLifecycleAccess,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
+
+        private var loadedCanonicalImportance: AxisAssessment? = null
+        private var loadedCanonicalImpact: AxisAssessment? = null
+        private var canonicalImportanceDirty = false
+        private var canonicalImpactDirty = false
+
         private val allContexts =
-            systemWorkspacePresentationContextProjector.observePresentationUniverse(
-                contextRepository.getAllContextsFlow(),
-            ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+            systemWorkspacePresentationContextProjector.observePresentationUniverse().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
         private val allAttachmentOptions =
             attachmentsRepository.getAttachmentLibraryItems()
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -198,6 +211,9 @@ class ContextSettingsViewModel
 
             val canonicalOrdinaryCapabilities =
                 canonicalOrdinaryCapabilitySettings.loadEnabledOrNull(projectId)
+            val presentationPreferences =
+                workspacePresentationPreferencesRepository.getCanonicalOrNull(projectId)
+                    ?: com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences()
 
             val legacyEnabledCapabilities =
                 contextCapabilitiesResolver.resolve(
@@ -246,6 +262,16 @@ class ContextSettingsViewModel
                     withCanonicalDashboard - executionLogCapability
                 }
 
+            val canonicalEvaluation =
+                canonicalOrientationRepository.getContextEvaluation(projectId)
+            val canonicalScoring = canonicalEvaluation?.toLegacyProjection()
+            val canonicalAssessment = canonicalEvaluation?.assessment
+
+            loadedCanonicalImportance = canonicalAssessment?.importance
+            loadedCanonicalImpact = canonicalAssessment?.impact
+            canonicalImportanceDirty = false
+            canonicalImpactDirty = false
+
             val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities() + enabledCapabilities
             val structureFeatures =
                 allKnownCapabilities.associate { capId ->
@@ -261,20 +287,21 @@ class ContextSettingsViewModel
                     tags = sanitizeTags(presentedProject.tags),
                     isReady = true,
                     isNewProject = false,
-                    showCheckboxes = project?.showCheckboxes ?: state.showCheckboxes,
-                    valueImportance = project?.valueImportance ?: 0f,
-                    valueImpact = project?.valueImpact ?: 0f,
-                    effort = project?.effort ?: 0f,
-                    cost = project?.cost ?: 0f,
-                    risk = project?.risk ?: 0f,
-                    weightEffort = project?.weightEffort ?: 1f,
-                    weightCost = project?.weightCost ?: 1f,
-                    weightRisk = project?.weightRisk ?: 1f,
-                    rawScore = project?.rawScore ?: 0f,
-                    displayScore = project?.displayScore ?: 0,
-                    scoringStatus = project?.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
+                    showCheckboxes = presentationPreferences.showCheckboxes,
+                    isCanonicalAssessmentAvailable = canonicalAssessment != null,
+                    valueImportance = canonicalAssessment?.importance.toImportanceUiValue(),
+                    valueImpact = canonicalAssessment?.impact.toImpactUiValue(),
+                    effort = canonicalScoring?.effort ?: 0f,
+                    cost = canonicalScoring?.cost ?: 0f,
+                    risk = canonicalScoring?.risk ?: 0f,
+                    weightEffort = canonicalScoring?.effortWeight ?: 1f,
+                    weightCost = canonicalScoring?.costWeight ?: 1f,
+                    weightRisk = canonicalScoring?.riskWeight ?: 1f,
+                    rawScore = canonicalScoring?.rawScore ?: 0f,
+                    displayScore = canonicalScoring?.displayScore ?: 0,
+                    scoringStatus = canonicalScoring?.scoringStatus ?: ScoringStatusValues.NOT_ASSESSED,
                     isScoringEnabled =
-                        project?.scoringStatus?.let {
+                        canonicalScoring?.scoringStatus?.let {
                             it != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS
                         } ?: true,
                     basePresetCode = resolvedConfig.basePresetCode,
@@ -311,6 +338,11 @@ class ContextSettingsViewModel
             val project = contextRepository.getContextById(projectId)
             val isReservedSystem = SystemContexts.isSystem(ContextId(projectId))
 
+            workspacePresentationPreferencesRepository.setShowCheckboxes(
+                workspaceId = projectId,
+                showCheckboxes = _uiState.value.showCheckboxes,
+            )
+
             if (isReservedSystem) {
                 val presentation =
                     systemWorkspacePresentationContextProjector.resolvePresentation(
@@ -318,8 +350,8 @@ class ContextSettingsViewModel
                         context = project,
                     ) ?: return false
 
-                contextRepository.updateContextPresentation(
-                    contextId = presentation.id,
+                contextRepository.updateSystemWorkspacePresentation(
+                    workspaceId = presentation.id,
                     name = _uiState.value.title.text,
                     description = _uiState.value.description.text.ifEmpty { null },
                 )
@@ -327,6 +359,7 @@ class ContextSettingsViewModel
                     contextId = projectId,
                     tags = sanitizeTags(_uiState.value.tags),
                 )
+                if (!persistCanonicalAssessmentIfAvailable(projectId)) return false
                 persistFeatureFlags()
                 return true
             }
@@ -342,6 +375,7 @@ class ContextSettingsViewModel
                     contextId = projectId,
                     tags = sanitizeTags(_uiState.value.tags),
                 )
+                if (!persistCanonicalAssessmentIfAvailable(projectId)) return false
                 persistFeatureFlags()
                 return true
             }
@@ -354,10 +388,7 @@ class ContextSettingsViewModel
                         name = _uiState.value.title.text,
                         description = _uiState.value.description.text.ifEmpty { null },
                         relatedLinks = _uiState.value.relatedLinks,
-                        showCheckboxes = _uiState.value.showCheckboxes,
                         isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
-                        valueImportance = _uiState.value.valueImportance,
-                        valueImpact = _uiState.value.valueImpact,
                         effort = _uiState.value.effort,
                         cost = _uiState.value.cost,
                         risk = _uiState.value.risk,
@@ -373,17 +404,69 @@ class ContextSettingsViewModel
                 contextId = projectId,
                 tags = sanitizeTags(_uiState.value.tags),
             )
+            if (!persistCanonicalAssessmentIfAvailable(projectId)) return false
             persistFeatureFlags()
             return true
+        }
+
+        private suspend fun persistCanonicalAssessmentIfAvailable(
+            projectId: String,
+        ): Boolean {
+            if (!_uiState.value.isCanonicalAssessmentAvailable) return true
+
+            val importance =
+                if (canonicalImportanceDirty) {
+                    _uiState.value.valueImportance.toCanonicalImportanceAssessment()
+                } else {
+                    loadedCanonicalImportance
+                        ?: _uiState.value.valueImportance.toCanonicalImportanceAssessment()
+                }
+
+            val impact =
+                if (canonicalImpactDirty) {
+                    _uiState.value.valueImpact.toCanonicalImpactAssessment()
+                } else {
+                    loadedCanonicalImpact
+                        ?: _uiState.value.valueImpact.toCanonicalImpactAssessment()
+                }
+
+            val updated =
+                canonicalOrientationRepository.updateContextEvaluation(
+                    contextId = projectId,
+                    importance = _uiState.value.valueImportance,
+                    impact = _uiState.value.valueImpact,
+                    effort = _uiState.value.effort,
+                    cost = _uiState.value.cost,
+                    risk = _uiState.value.risk,
+                    effortWeight = _uiState.value.weightEffort,
+                    costWeight = _uiState.value.weightCost,
+                    riskWeight = _uiState.value.weightRisk,
+                    scoringStatus = _uiState.value.scoringStatus,
+                )
+
+            if (updated) {
+                loadedCanonicalImportance = importance
+                loadedCanonicalImpact = impact
+                canonicalImportanceDirty = false
+                canonicalImpactDirty = false
+            }
+
+            return updated
         }
 
         fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
 
         fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
 
-        override fun onValueImportanceChange(value: Float) = _uiState.update { it.copy(valueImportance = value) }
+        override fun onValueImportanceChange(value: Float) {
+            canonicalImportanceDirty = true
+            _uiState.update { it.copy(valueImportance = value) }
+        }
 
-        override fun onValueImpactChange(value: Float) = _uiState.update { it.copy(valueImpact = value) }
+        override fun onValueImpactChange(value: Float) {
+            canonicalImpactDirty = true
+            _uiState.update { it.copy(valueImpact = value) }
+        }
 
         override fun onEffortChange(value: Float) = _uiState.update { it.copy(effort = value) }
 
@@ -859,3 +942,57 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
 }
 
 private fun relatedLinkIdentity(link: RelatedLink): String = "${link.type}:${link.target}:${link.vault.orEmpty()}"
+
+private fun AxisAssessment?.toImportanceUiValue(): Float =
+    when (this?.valueCode) {
+        ImportanceValue.LOW.name -> 1f
+        ImportanceValue.MEDIUM.name -> 4f
+        ImportanceValue.HIGH.name -> 7f
+        ImportanceValue.CRITICAL.name -> 10f
+        else -> 0f
+    }
+
+private fun AxisAssessment?.toImpactUiValue(): Float =
+    when (this?.valueCode) {
+        ImpactValue.TINY.name -> 1f
+        ImpactValue.SMALL.name -> 2f
+        ImpactValue.MEDIUM.name -> 3f
+        ImpactValue.LARGE.name -> 5f
+        ImpactValue.TRANSFORMATIVE.name -> 8f
+        else -> 0f
+    }
+
+private fun Float.toCanonicalImportanceAssessment(): AxisAssessment {
+    val value =
+        when (toInt()) {
+            in 1..3 -> ImportanceValue.LOW
+            in 4..6 -> ImportanceValue.MEDIUM
+            in 7..9 -> ImportanceValue.HIGH
+            in 10..12 -> ImportanceValue.CRITICAL
+            else -> null
+        }
+
+    return if (value == null) {
+        AxisAssessment(valueCode = null, origin = ValueOrigin.UNSET)
+    } else {
+        AxisAssessment(valueCode = value.name, origin = ValueOrigin.EXPLICIT)
+    }
+}
+
+private fun Float.toCanonicalImpactAssessment(): AxisAssessment {
+    val value =
+        when (toInt()) {
+            1 -> ImpactValue.TINY
+            2 -> ImpactValue.SMALL
+            3 -> ImpactValue.MEDIUM
+            5 -> ImpactValue.LARGE
+            8, 13 -> ImpactValue.TRANSFORMATIVE
+            else -> null
+        }
+
+    return if (value == null) {
+        AxisAssessment(valueCode = null, origin = ValueOrigin.UNSET)
+    } else {
+        AxisAssessment(valueCode = value.name, origin = ValueOrigin.EXPLICIT)
+    }
+}

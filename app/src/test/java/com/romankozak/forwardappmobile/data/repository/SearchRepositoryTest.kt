@@ -2,9 +2,20 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
+import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
+import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.product.CanonicalProductReadRepository
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyReadSnapshotAssembler
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyReadAdapter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.toHierarchyPresentationNode
@@ -15,12 +26,25 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTar
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
+import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalOrientationProductProjection
+import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadResult
+import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadViolation
+import com.romankozak.forwardappmobile.shared.core.domain.product.HierarchyAppearanceProjection
+import com.romankozak.forwardappmobile.shared.core.domain.product.PlanningMembershipProjection
+import com.romankozak.forwardappmobile.shared.core.domain.product.WorkspaceMembershipProjection
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceTagRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubject
+import com.romankozak.forwardappmobile.shared.core.models.orientation.Workspace
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBinding
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -578,6 +602,440 @@ class SearchRepositoryTest {
             assertThat(repository.contextResultIds("%Legacy Parent%")).contains(parent.id)
         }
 
+    @Test
+    fun `canonical semantic search matches Orientation title and description`() =
+        runTest {
+            val repository =
+                repository(
+                    contexts = emptyList(),
+                    workspaces = emptyList(),
+                    productRead =
+                        CanonicalProductReadResult.Ready(
+                            listOf(
+                                semanticOrientation(
+                                    id = "orientation-title",
+                                    title = "Canonical North Star",
+                                    description = "Other text",
+                                ),
+                                semanticOrientation(
+                                    id = "orientation-description",
+                                    title = "Different title",
+                                    description = "Contains semantic needle",
+                                ),
+                            ),
+                        ),
+                )
+
+            val titleResults =
+                repository.searchGlobal("North Star")
+                    .filterIsInstance<GlobalSearchResultItem.OrientationItem>()
+            val descriptionResults =
+                repository.searchGlobal("semantic needle")
+                    .filterIsInstance<GlobalSearchResultItem.OrientationItem>()
+
+            assertThat(titleResults.map { it.orientationId })
+                .containsExactly("orientation-title")
+            assertThat(descriptionResults.map { it.orientationId })
+                .containsExactly("orientation-description")
+        }
+
+    @Test
+    fun `multi-scope multi-workspace multi-hierarchy Orientation stays one semantic result`() =
+        runTest {
+            val repository =
+                repository(
+                    contexts = emptyList(),
+                    workspaces = emptyList(),
+                    productRead =
+                        CanonicalProductReadResult.Ready(
+                            listOf(
+                                semanticOrientation(
+                                    id = "orientation-one",
+                                    title = "One semantic identity",
+                                    description = null,
+                                    planningMembershipCount = 3,
+                                    workspaceDecorations =
+                                        listOf(
+                                            "workspace-a" to "Workspace A",
+                                            "workspace-b" to "Workspace B",
+                                        ),
+                                    hierarchyAppearanceCount = 4,
+                                ),
+                            ),
+                        ),
+                )
+
+            val results =
+                repository.searchGlobal("semantic identity")
+                    .filterIsInstance<GlobalSearchResultItem.OrientationItem>()
+
+            assertThat(results).hasSize(1)
+            assertThat(results.single().orientationId).isEqualTo("orientation-one")
+        }
+
+    @Test
+    fun `CUT_OVER Goal duplicate is suppressed by canonical Orientation`() =
+        runTest {
+            val contextId = "goal-context"
+            val goalId = "legacy-goal"
+            val orientationId = "orientation-goal"
+
+            val goal = mockk<Goal>(relaxed = true)
+            every { goal.id } returns goalId
+            every { goal.text } returns "Canonical semantic goal"
+
+            val goalResult = mockk<GlobalGoalSearchResult>()
+            every { goalResult.goal } returns goal
+            every { goalResult.contextId } returns contextId
+
+            val backlogItem = mockk<BacklogItem>(relaxed = true)
+            every { backlogItem.contextId } returns contextId
+
+            val repository =
+                repository(
+                    contexts = listOf(context(contextId, "Goal workspace")),
+                    workspaces = listOf(workspace(contextId, "Goal workspace")),
+                    productRead =
+                        CanonicalProductReadResult.Ready(
+                            listOf(
+                                semanticOrientation(
+                                    id = orientationId,
+                                    title = "Canonical semantic goal",
+                                    description = null,
+                                ),
+                            ),
+                        ),
+                    legacyMappings =
+                        listOf(
+                            cutOverMapping(
+                                sourceType = LegacyOrientationSourceType.GOAL,
+                                sourceId = goalId,
+                                subjectId = orientationId,
+                            ),
+                        ),
+                    goalResults = listOf(goalResult),
+                    goalBacklogItems = mapOf(goalId to backlogItem),
+                )
+
+            val results = repository.searchGlobal("Canonical semantic goal")
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.OrientationItem>()
+                    .map { it.orientationId },
+            ).containsExactly(orientationId)
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.GoalItem>()
+                    .map { it.goal.id },
+            ).doesNotContain(goalId)
+        }
+
+    @Test
+    fun `CUT_OVER Context duplicate is suppressed by canonical Orientation`() =
+        runTest {
+            val contextId = "legacy-context"
+            val orientationId = "orientation-context"
+            val repository =
+                repository(
+                    contexts = listOf(context(contextId, "Canonical semantic context")),
+                    workspaces = listOf(workspace(contextId, "Canonical semantic context")),
+                    productRead =
+                        CanonicalProductReadResult.Ready(
+                            listOf(
+                                semanticOrientation(
+                                    id = orientationId,
+                                    title = "Canonical semantic context",
+                                    description = null,
+                                ),
+                            ),
+                        ),
+                    legacyMappings =
+                        listOf(
+                            cutOverMapping(
+                                sourceType = LegacyOrientationSourceType.CONTEXT,
+                                sourceId = contextId,
+                                subjectId = orientationId,
+                            ),
+                        ),
+                )
+
+            val results = repository.searchGlobal("Canonical semantic context")
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.OrientationItem>()
+                    .map { it.orientationId },
+            ).containsExactly(orientationId)
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.ContextItem>()
+                    .map { it.searchResult.presentation.id },
+            ).doesNotContain(contextId)
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.SubcontextItem>()
+                    .map { it.searchResult.presentation.id },
+            ).doesNotContain(contextId)
+        }
+
+    @Test
+    fun `canonical integrity failure does not resurrect mapped Context`() =
+        runTest {
+            val contextId = "legacy-context"
+            val repository =
+                repository(
+                    contexts = listOf(context(contextId, "Legacy fallback candidate")),
+                    workspaces = listOf(workspace(contextId, "Legacy fallback candidate")),
+                    attachments =
+                        listOf(
+                            AttachmentLibraryQueryResult(
+                                id = "specialized-attachment",
+                                entityId = "note-specialized",
+                                attachmentType = "NOTE_DOCUMENT",
+                                ownerContextId = null,
+                                attachmentUpdatedAt = 7L,
+                                noteName = "Legacy fallback candidate attachment",
+                                noteContent = "specialized content",
+                                musicNoteName = null,
+                                musicNoteContent = null,
+                                noteUpdatedAt = null,
+                                checklistName = null,
+                                checklistContent = null,
+                                linkDisplayName = null,
+                                linkTarget = null,
+                                linkCreatedAt = null,
+                                scriptName = null,
+                                scriptDescription = null,
+                                scriptContent = null,
+                                contextName = null,
+                                contextUpdatedAt = null,
+                            ),
+                        ),
+                    productRead =
+                        CanonicalProductReadResult.IntegrityFailure(
+                            listOf(
+                                CanonicalProductReadViolation(
+                                    path = "search",
+                                    code = "BROKEN_CANONICAL",
+                                    message = "forced",
+                                ),
+                            ),
+                        ),
+                    legacyMappings =
+                        listOf(
+                            cutOverMapping(
+                                sourceType = LegacyOrientationSourceType.CONTEXT,
+                                sourceId = contextId,
+                                subjectId = "orientation-context",
+                            ),
+                        ),
+                )
+
+            val results = repository.searchGlobal("Legacy fallback candidate")
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.OrientationItem>(),
+            ).isEmpty()
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.ContextItem>()
+                    .map { it.searchResult.presentation.id },
+            ).doesNotContain(contextId)
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.AttachmentItem>()
+                    .map { it.searchResult.attachmentId },
+            ).containsExactly("specialized-attachment")
+        }
+
+    @Test
+    fun `tombstoned canonical semantic node has no legacy resurrection`() =
+        runTest {
+            val contextId = "tombstoned-context"
+            val repository =
+                repository(
+                    contexts = listOf(context(contextId, "Tombstoned semantic")),
+                    workspaces = listOf(workspace(contextId, "Tombstoned semantic")),
+                    // Tombstoned semantic subjects are excluded by the canonical
+                    // product projector, so the live product frame is empty.
+                    productRead = CanonicalProductReadResult.Ready(emptyList()),
+                    legacyMappings =
+                        listOf(
+                            cutOverMapping(
+                                sourceType = LegacyOrientationSourceType.CONTEXT,
+                                sourceId = contextId,
+                                subjectId = "tombstoned-orientation",
+                            ),
+                        ),
+                )
+
+            val results = repository.searchGlobal("Tombstoned semantic")
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.OrientationItem>(),
+            ).isEmpty()
+
+            assertThat(
+                results.filterIsInstance<GlobalSearchResultItem.ContextItem>()
+                    .map { it.searchResult.presentation.id },
+            ).doesNotContain(contextId)
+        }
+
+    @Test
+    fun `standalone Notes match title and content without Context ownership`() =
+        runTest {
+            val repository =
+                repository(
+                    contexts = emptyList(),
+                    workspaces = emptyList(),
+                    notes =
+                        listOf(
+                            LegacyNoteEntity(
+                                id = "standalone-title",
+                                title = "Aurora title",
+                                content = "First body",
+                            ),
+                            LegacyNoteEntity(
+                                id = "standalone-content",
+                                title = "Second title",
+                                content = "Aurora body",
+                            ),
+                        ),
+                )
+
+            val notes =
+                repository.searchGlobal("%Aurora%")
+                    .filterIsInstance<GlobalSearchResultItem.NoteItem>()
+
+            assertThat(notes.map { it.uniqueId })
+                .containsExactly(
+                    "note_standalone-title",
+                    "note_standalone-content",
+                )
+            assertThat(notes.map { it.note.id }.toSet()).hasSize(2)
+        }
+
+    @Test
+    fun `Note search excludes tombstones but does not require historical Context`() =
+        runTest {
+            val repository =
+                repository(
+                    contexts = emptyList(),
+                    workspaces = emptyList(),
+                    notes =
+                        listOf(
+                            LegacyNoteEntity(
+                                id = "orphan-note",
+                                contextId = "missing-historical-context",
+                                title = "Signal live",
+                                content = "Body",
+                            ),
+                            LegacyNoteEntity(
+                                id = "deleted-note",
+                                title = "Signal deleted",
+                                content = "Body",
+                                isDeleted = true,
+                            ),
+                        ),
+                )
+
+            val notes =
+                repository.searchGlobal("%Signal%")
+                    .filterIsInstance<GlobalSearchResultItem.NoteItem>()
+
+            assertThat(notes.map { it.note.id })
+                .containsExactly("orphan-note")
+            assertThat(notes.single().uniqueId).isEqualTo("note_orphan-note")
+        }
+
+    @Test
+    fun `structured Note search matches content hashtags independently`() =
+        runTest {
+            val repository =
+                repository(
+                    contexts = emptyList(),
+                    workspaces = emptyList(),
+                    notes =
+                        listOf(
+                            LegacyNoteEntity(
+                                id = "tagged-note",
+                                title = "Daily observations",
+                                content = "Aurora #field research",
+                            ),
+                            LegacyNoteEntity(
+                                id = "wrong-tag-note",
+                                title = "Aurora observations",
+                                content = "#other research",
+                            ),
+                        ),
+                )
+
+            val notes =
+                repository.searchGlobal("%Aurora #field%")
+                    .filterIsInstance<GlobalSearchResultItem.NoteItem>()
+
+            assertThat(notes.map { it.note.id })
+                .containsExactly("tagged-note")
+            assertThat(notes.single().matchedTags)
+                .containsExactly("field")
+        }
+
+    @Test
+    fun `standalone Note search has one identity across zero one and many BACKLOG placements`() =
+        runTest {
+            val note =
+                LegacyNoteEntity(
+                    id = "placement-independent-note",
+                    contextId = "historical-context-only",
+                    title = "Delta field log",
+                    content = "Observations #field",
+                    updatedAt = 120L,
+                )
+            val canonicalEntries =
+                (1..3).map { number ->
+                    WorkspaceBacklogEntryEntity(
+                        id = "entry-$number",
+                        workspaceId = "workspace-$number",
+                        capabilityInstanceId = "backlog-instance-$number",
+                        targetKind = WorkspaceBacklogTargetKind.LEGACY_NOTE.name,
+                        targetId = note.id,
+                        entryOrder = 0L,
+                        createdAt = 100L,
+                        updatedAt = 100L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    )
+                }
+
+            for (placementCount in listOf(0, 1, 3)) {
+                val repository =
+                    repository(
+                        contexts = emptyList(),
+                        workspaces = emptyList(),
+                        notes = listOf(note),
+                        noteBacklogEntries = canonicalEntries.take(placementCount),
+                    )
+
+                val ordinary =
+                    repository.searchGlobal("%Delta%")
+                        .filterIsInstance<GlobalSearchResultItem.NoteItem>()
+
+                val structured =
+                    repository.searchGlobal("%Delta #field%")
+                        .filterIsInstance<GlobalSearchResultItem.NoteItem>()
+
+                assertThat(ordinary.map { it.uniqueId })
+                    .containsExactly("note_${note.id}")
+                assertThat(structured.map { it.uniqueId })
+                    .containsExactly("note_${note.id}")
+
+                assertThat(ordinary.single().note.id).isEqualTo(note.id)
+                assertThat(structured.single().note.id).isEqualTo(note.id)
+                assertThat(structured.single().matchedTags)
+                    .containsExactly("field")
+            }
+        }
+
     private fun v2Placement(
         placementId: String,
         workspaceId: String,
@@ -604,7 +1062,14 @@ class SearchRepositoryTest {
         canonicalSystemTags: Map<String, List<String>> = emptyMap(),
         unavailableSystemTagIds: Set<String> = emptySet(),
         attachments: List<AttachmentLibraryQueryResult> = emptyList(),
+        notes: List<LegacyNoteEntity> = emptyList(),
+        noteBacklogEntries: List<WorkspaceBacklogEntryEntity> = emptyList(),
         placements: List<HierarchyPlacement>? = null,
+        productRead: CanonicalProductReadResult =
+            CanonicalProductReadResult.Ready(emptyList()),
+        legacyMappings: List<LegacySubjectMappingEntity> = emptyList(),
+        goalResults: List<GlobalGoalSearchResult> = emptyList(),
+        goalBacklogItems: Map<String, BacklogItem> = emptyMap(),
     ): SearchRepository {
         val contextDao = mockk<ContextDao>()
         coEvery { contextDao.getAllRaw() } returns contexts
@@ -614,6 +1079,40 @@ class SearchRepositoryTest {
 
         val attachmentsRepository = mockk<AttachmentsRepository>()
         every { attachmentsRepository.getAttachmentLibraryItems() } returns flowOf(attachments)
+
+        val goalDao = mockk<GoalDao>()
+        coEvery { goalDao.searchGoalsGlobal(any()) } returns goalResults
+
+        val listItemRepository = mockk<ListItemRepository>(relaxed = true)
+        coEvery {
+            listItemRepository.getRuntimeItemForEntityInContext(
+                entityId = any(),
+                itemType = any(),
+                contextId = any(),
+            )
+        } coAnswers {
+            goalBacklogItems[firstArg<String>()]
+        }
+
+        val orientationDao = mockk<OrientationDao>()
+        coEvery { orientationDao.getAllLegacyMappings() } returns legacyMappings
+
+        val database = mockk<AppDatabase>(relaxed = true)
+        every { database.orientationDao() } returns orientationDao
+
+        val legacyNoteDao = mockk<LegacyNoteDao>()
+        every { database.legacyNoteDao() } returns legacyNoteDao
+        coEvery { legacyNoteDao.getAllRaw() } returns notes
+
+        val noteBacklogDao = mockk<WorkspaceBacklogEntryDao>()
+        every { database.workspaceBacklogEntryDao() } returns noteBacklogDao
+        coEvery {
+            noteBacklogDao.getLiveByTarget(
+                WorkspaceBacklogTargetKind.LEGACY_NOTE.name,
+                any(),
+            )
+        } returns noteBacklogEntries
+        coEvery { noteBacklogDao.getAll() } returns noteBacklogEntries
 
         val systemWorkspaceTagAuthority = mockk<SystemWorkspaceTagAuthority>()
         coEvery { systemWorkspaceTagAuthority.resolve(any()) } coAnswers {
@@ -627,9 +1126,7 @@ class SearchRepositoryTest {
             }
         }
         return SearchRepository(
-            goalDao = mockk(relaxed = true),
             contextDao = contextDao,
-            listItemRepository = mockk(relaxed = true),
             linkItemDao = mockk(relaxed = true),
             activityRepository = mockk(relaxed = true),
             inboxRecordDao = mockk(relaxed = true),
@@ -646,9 +1143,12 @@ class SearchRepositoryTest {
                     contextDao = contextDao,
                 ),
             workspaceDao = workspaceDao,
-            database = mockk<AppDatabase>(relaxed = true),
+            database = database,
             canonicalV2ReadAssembler = CanonicalV2HierarchyReadSnapshotAssembler(),
+            canonicalProductReadRepository =
+                mockk<CanonicalProductReadRepository>(relaxed = true),
         ).also { repository ->
+            repository.canonicalProductSearchReadProvider = { productRead }
             repository.canonicalV2SearchReadProvider = { presentations ->
                 CanonicalV2ProductionHierarchyReadAdapter().read(
                     placements =
@@ -666,6 +1166,68 @@ class SearchRepositoryTest {
             }
         }
     }
+
+    private fun semanticOrientation(
+        id: String,
+        title: String,
+        description: String?,
+        planningMembershipCount: Int = 0,
+        workspaceDecorations: List<Pair<String, String>> = emptyList(),
+        hierarchyAppearanceCount: Int = 0,
+    ): CanonicalOrientationProductProjection {
+        val subject = mockk<ManagedSubject>()
+        every { subject.id } returns id
+        every { subject.title } returns title
+        every { subject.description } returns description
+        every { subject.updatedAt } returns 100L
+
+        val workspaceMemberships =
+            workspaceDecorations.mapIndexed { index, (workspaceId, workspaceName) ->
+                val workspace = mockk<Workspace>()
+                every { workspace.id } returns workspaceId
+                every { workspace.nameOverride } returns workspaceName
+
+                val binding = mockk<WorkspaceBinding>()
+                every { binding.bindingType } returns WorkspaceBindingType.EMBODIES
+                every { binding.isPrimary } returns (index == 0)
+
+                val membership = mockk<WorkspaceMembershipProjection>()
+                every { membership.workspace } returns workspace
+                every { membership.binding } returns binding
+                membership
+            }
+
+        val projection = mockk<CanonicalOrientationProductProjection>()
+        every { projection.subject } returns subject
+        every { projection.planningMemberships } returns
+            List(planningMembershipCount) {
+                mockk<PlanningMembershipProjection>(relaxed = true)
+            }
+        every { projection.workspaceMemberships } returns workspaceMemberships
+        every { projection.hierarchyAppearances } returns
+            List(hierarchyAppearanceCount) {
+                mockk<HierarchyAppearanceProjection>(relaxed = true)
+            }
+        return projection
+    }
+
+    private fun cutOverMapping(
+        sourceType: LegacyOrientationSourceType,
+        sourceId: String,
+        subjectId: String,
+    ) = LegacySubjectMappingEntity(
+        id = "mapping-${sourceType.name}-$sourceId",
+        sourceType = sourceType.name,
+        sourceId = sourceId,
+        subjectId = subjectId,
+        migrationVersion = 1,
+        state = LegacySubjectMappingState.CUT_OVER.name,
+        createdAt = 1L,
+        updatedAt = 1L,
+        syncedAt = null,
+        isDeleted = false,
+        version = 1L,
+    )
 
     private suspend fun SearchRepository.contextResult(
         query: String,

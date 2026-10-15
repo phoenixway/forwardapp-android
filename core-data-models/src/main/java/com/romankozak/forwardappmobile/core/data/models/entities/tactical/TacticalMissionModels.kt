@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.data.models.entities.tactical
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
@@ -19,12 +20,6 @@ const val GENERAL_MISSION_STREAM_ID = "general"
     tableName = "tactical_missions",
     foreignKeys = [
         ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
             entity = WorkspaceEntity::class,
             parentColumns = ["id"],
             childColumns = ["project_workspace_id"],
@@ -32,7 +27,6 @@ const val GENERAL_MISSION_STREAM_ID = "general"
         ),
     ],
     indices = [
-        Index(value = ["projectId"]),
         Index(value = ["project_workspace_id"]),
         Index(value = ["week_key"]),
         Index(value = ["iteration_id"]),
@@ -42,7 +36,7 @@ const val GENERAL_MISSION_STREAM_ID = "general"
     ],
 )
 @TypeConverters(Converters::class)
-data class TacticalMission(
+data class TacticalMission @Ignore constructor(
     @PrimaryKey(autoGenerate = true)
     @SerializedName("a")
     val id: Long = 0,
@@ -56,6 +50,7 @@ data class TacticalMission(
     val status: MissionStatus = MissionStatus.ACTIVE,
     @SerializedName("g")
     val priority: MissionPriority = MissionPriority.MEDIUM,
+    @Ignore
     @SerializedName(value = "projectId", alternate = ["contextId", "c"])
     val projectId: String?,
     @SerializedName(value = "linkedProjectIds", alternate = ["i", "j"])
@@ -115,7 +110,72 @@ data class TacticalMission(
     @ColumnInfo(name = "project_workspace_id")
     @SerializedName("projectWorkspaceId")
     val projectWorkspaceId: String? = null,
-)
+) {
+    /**
+     * Room-only persistence constructor.
+     *
+     * Legacy projectId is compatibility input, never a Room column.
+     * Room-loaded missions expose only their canonical Workspace owner.
+     */
+    constructor(
+        id: Long,
+        title: String,
+        description: String?,
+        startTime: Long?,
+        deadline: Long,
+        status: MissionStatus,
+        priority: MissionPriority,
+        linkedProjectIds: List<String>?,
+        linkedAttachmentIds: List<String>?,
+        order: Long,
+        weekKey: String,
+        iterationId: String?,
+        carriedFromMissionId: Long?,
+        orderInWeek: Long,
+        orderInSlot: Long?,
+        missionStreamId: String?,
+        activitySlotContextId: String?,
+        sourceType: MissionSourceType,
+        sourceContextId: String?,
+        sourceBacklogItemId: String?,
+        sourceArcQuestId: String?,
+        createdAt: Long,
+        updatedAt: Long?,
+        syncedAt: Long?,
+        isDeleted: Boolean,
+        version: Long,
+        projectWorkspaceId: String?,
+    ) : this(
+        id = id,
+        title = title,
+        description = description,
+        startTime = startTime,
+        deadline = deadline,
+        status = status,
+        priority = priority,
+        projectId = null,
+        linkedProjectIds = linkedProjectIds,
+        linkedAttachmentIds = linkedAttachmentIds,
+        order = order,
+        weekKey = weekKey,
+        iterationId = iterationId,
+        carriedFromMissionId = carriedFromMissionId,
+        orderInWeek = orderInWeek,
+        orderInSlot = orderInSlot,
+        missionStreamId = missionStreamId,
+        activitySlotContextId = activitySlotContextId,
+        sourceType = sourceType,
+        sourceContextId = sourceContextId,
+        sourceBacklogItemId = sourceBacklogItemId,
+        sourceArcQuestId = sourceArcQuestId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+        projectWorkspaceId = projectWorkspaceId,
+    )
+}
 
 val TacticalMission.logicalProjectId: String?
     get() = projectWorkspaceId ?: projectId

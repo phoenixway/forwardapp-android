@@ -50,7 +50,7 @@ class StrategicManagementViewModel
     ) : ViewModel() {
         val uiState: StateFlow<StrategicManagementUiState> =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .observePresentationUniverse()
                 .map { projects ->
                     val strategic =
                         projects.filter {

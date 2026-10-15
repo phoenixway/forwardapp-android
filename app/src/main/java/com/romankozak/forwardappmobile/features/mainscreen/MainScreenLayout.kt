@@ -69,6 +69,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
@@ -146,6 +147,7 @@ fun MainScreenLayout(
     onNavigateToSyncScreenWithData: (String) -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onNavigateToEntityLibrary: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
     commandDeckViewModel: CommandDeckViewModel = hiltViewModel(),
@@ -402,6 +404,7 @@ fun MainScreenLayout(
                     onShowWifiImport = onShowWifiImport,
                     onNavigateToAttachments = onNavigateToAttachments,
                     onNavigateToScripts = onNavigateToScripts,
+                    onNavigateToEntityLibrary = onNavigateToEntityLibrary,
                     onShowAbout = { showAboutDialog = true },
                     onNavigateToRecentItem = onNavigateToRecentItem,
                     recentViewModel = recentViewModel,
@@ -480,6 +483,12 @@ fun MainScreenLayout(
             onDismissCreateSheet = { showGlobalCreateSheet = false },
             onCreateContext = commandDeckViewModel::createContext,
             onCreateDocument = commandDeckViewModel::createAttachmentFromCommandDeck,
+            onCreateCanonicalNote = {
+                navController.navigate(NavigationRoutes.LEGACY_NOTE_CREATE)
+            },
+            onSemanticEntityCreated = { subjectId ->
+                navigationManager?.navigate(NavTarget.SemanticEntityEditor(subjectId))
+            },
             onCreateReminder = commandDeckViewModel::createReminder,
             snackbarHostState = snackbarHostState,
         )
@@ -709,6 +718,7 @@ private fun MainScreenBottomBar(
     onShowWifiImport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onNavigateToEntityLibrary: () -> Unit,
     onShowAbout: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel,
@@ -761,6 +771,7 @@ private fun MainScreenBottomBar(
             onShowWifiImport = onShowWifiImport,
             onNavigateToAttachments = onNavigateToAttachments,
             onNavigateToScripts = onNavigateToScripts,
+            onNavigateToEntityLibrary = onNavigateToEntityLibrary,
             onShowAbout = onShowAbout,
             featureToggles = contextUiState.featureToggles,
             onNavigateToRecentItem = onNavigateToRecentItem,

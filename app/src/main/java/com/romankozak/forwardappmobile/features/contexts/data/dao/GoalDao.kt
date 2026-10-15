@@ -27,6 +27,12 @@ data class GoalOrientationBootstrapRow(
     val version: Long,
     val valueImportance: Float,
     val valueImpact: Float,
+    val effort: Float,
+    val cost: Float,
+    val risk: Float,
+    val weightEffort: Float,
+    val weightCost: Float,
+    val weightRisk: Float,
     val scoringStatus: String,
     val goalStatus: String,
 )
@@ -50,6 +56,38 @@ interface GoalDao {
 
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoalById(id: String): Goal?
+
+    @Query(
+        """
+        UPDATE goals SET
+            valueImportance = :importance,
+            valueImpact = :impact,
+            effort = :effort,
+            cost = :cost,
+            risk = :risk,
+            weightEffort = :effortWeight,
+            weightCost = :costWeight,
+            weightRisk = :riskWeight,
+            rawScore = :rawScore,
+            displayScore = :displayScore,
+            scoring_status = :scoringStatus
+        WHERE id = :goalId
+        """,
+    )
+    suspend fun projectCanonicalScoring(
+        goalId: String,
+        importance: Float,
+        impact: Float,
+        effort: Float,
+        cost: Float,
+        risk: Float,
+        effortWeight: Float,
+        costWeight: Float,
+        riskWeight: Float,
+        rawScore: Float,
+        displayScore: Int,
+        scoringStatus: String,
+    )
 
     @Query("SELECT * FROM goals WHERE id IN (:ids)")
     fun getGoalsByIds(ids: List<String>): Flow<List<Goal>>
@@ -75,13 +113,7 @@ interface GoalDao {
     @Transaction
     @Query(
         """
-        WITH RECURSIVE path_cte(id, name, path) AS (
-            SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
-            UNION ALL
-            SELECT p.id, p.name, pct.path || ' / ' || p.name
-            FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
-        ),
-        goal_contexts(goalId, contextId) AS (
+        WITH goal_contexts(goalId, contextId) AS (
             SELECT mapping.sourceId, entry.workspaceId
             FROM workspace_backlog_entries entry
             JOIN legacy_subject_mappings mapping
@@ -99,13 +131,9 @@ interface GoalDao {
         )
         SELECT DISTINCT
             g.*,
-            p.id as contextId,
-            p.name as contextName,
-            pc.path as pathSegments
+            gc.contextId as contextId
         FROM goals g
         JOIN goal_contexts gc ON gc.goalId = g.id
-        JOIN contexts p ON gc.contextId = p.id
-        JOIN path_cte pc ON p.id = pc.id
         WHERE (g.text LIKE :query OR g.description LIKE :query)
           AND g.is_deleted = 0
         """,
@@ -140,6 +168,12 @@ interface GoalDao {
             version,
             valueImportance,
             valueImpact,
+            effort,
+            cost,
+            risk,
+            weightEffort,
+            weightCost,
+            weightRisk,
             scoring_status AS scoringStatus,
             goal_status AS goalStatus
         FROM goals

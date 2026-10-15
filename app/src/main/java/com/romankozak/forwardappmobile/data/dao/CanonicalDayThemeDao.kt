@@ -48,6 +48,23 @@ interface CanonicalDayThemeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertThemeDefinitions(items: List<ThemeDefinitionEntity>)
 
+    /** Canonical Theme common fields are projected without creating extension sync authority. */
+    @Query(
+        """
+        UPDATE theme_definitions
+        SET title = :title,
+            description = :description,
+            isDeleted = :isDeleted
+        WHERE id = :id
+        """,
+    )
+    suspend fun projectThemeCommonFields(
+        id: String,
+        title: String,
+        description: String,
+        isDeleted: Boolean,
+    )
+
     @Query("SELECT * FROM day_themes")
     suspend fun getAllDayThemesSync(): List<CanonicalDayThemeEntity>
 
@@ -83,6 +100,16 @@ interface CanonicalDayThemeDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDayThemes(items: List<CanonicalDayThemeEntity>)
+
+    /** Derived compatibility projection; DAY.THEME commitment owns order and planning status. */
+    @Query(
+        "UPDATE day_themes SET `order` = :order, isActive = :isActive WHERE id = :id",
+    )
+    suspend fun projectPlanningFields(
+        id: String,
+        order: Long,
+        isActive: Boolean,
+    )
 
     @Query("SELECT * FROM day_theme_assignment_documents")
     suspend fun getAllAssignmentDocumentsSync(): List<DayThemeAssignmentDocumentEntity>

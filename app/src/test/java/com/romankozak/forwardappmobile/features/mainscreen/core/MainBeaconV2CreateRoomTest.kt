@@ -3,7 +3,9 @@ package com.romankozak.forwardappmobile.features.mainscreen.core
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyPresentationProvenance
@@ -21,6 +23,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTar
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationRelationType
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -871,6 +874,100 @@ class MainBeaconV2CreateRoomTest {
         }
     }
 
+    @Test
+    fun `Beacon create rejects mismatched Workspace provenance and retries with validated owner`() =
+        runBlocking {
+            val db = database()
+            try {
+                val (repository, _) = repository(db)
+                val ownerId = "beacon-create-owner"
+                val beacon = beacon("beacon-create-provenance")
+
+                db.contextDao().insertContexts(
+                    listOf(
+                        ContextEntity(
+                            id = ownerId,
+                            name = ownerId,
+                            description = null,
+                            parentId = null,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                        ),
+                    ),
+                )
+
+                val invalidWorkspace =
+                    WorkspaceEntity(
+                        id = ownerId,
+                        nameOverride = ownerId,
+                        descriptionOverride = null,
+                        roleCode = null,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                        provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                        sourceContextId = "different-source-context",
+                    )
+
+                db.workspaceDao().upsert(listOf(invalidWorkspace))
+
+                val failure =
+                    runCatching {
+                        repository.createBeacon(
+                            beacon = beacon,
+                            relatedOwnerIds = setOf(ownerId),
+                            relatedAttachmentIds = emptySet(),
+                            groupIds = emptySet(),
+                            levelStatuses = emptyList(),
+                        )
+                    }.exceptionOrNull()
+
+                assertTrue(
+                    "Expected provenance rejection, got $failure",
+                    failure is IllegalArgumentException,
+                )
+                assertNull(db.mainBeaconDao().getBeaconById(beacon.id))
+                assertNull(
+                    db.orientationDao().getLegacyMapping(
+                        LegacyOrientationSourceType.MAIN_BEACON.name,
+                        beacon.id,
+                    ),
+                )
+                assertTrue(
+                    db.mainBeaconDao().getAllWorkspaceCrossRefsSync().isEmpty(),
+                )
+                assertTrue(
+                    retiredMainBeaconTableAbsentForCreate(db),
+                )
+
+                db.workspaceDao().upsert(
+                    listOf(invalidWorkspace.copy(sourceContextId = ownerId)),
+                )
+
+                repository.createBeacon(
+                    beacon = beacon,
+                    relatedOwnerIds = setOf(ownerId),
+                    relatedAttachmentIds = emptySet(),
+                    groupIds = emptySet(),
+                    levelStatuses = emptyList(),
+                )
+
+                assertEquals(
+                    listOf(ownerId),
+                    db.mainBeaconDao()
+                        .getAllWorkspaceCrossRefsSync()
+                        .map { it.workspaceId },
+                )
+                assertTrue(
+                    retiredMainBeaconTableAbsentForCreate(db),
+                )
+            } finally {
+                db.close()
+            }
+        }
+
     private fun beacon(id: String) = MainBeacon(
         id = id,
         title = "Beacon",
@@ -900,3 +997,12 @@ class MainBeaconV2CreateRoomTest {
         return repository to bridge
     }
 }
+
+private fun retiredMainBeaconTableAbsentForCreate(database: com.romankozak.forwardappmobile.database.AppDatabase): Boolean =
+    database.openHelper.writableDatabase.query(
+        "SELECT COUNT(*) FROM sqlite_master " +
+            "WHERE type = 'table' AND name = 'main_beacon_context_cross_ref'",
+    ).use { cursor ->
+        check(cursor.moveToFirst())
+        cursor.getLong(0) == 0L
+    }

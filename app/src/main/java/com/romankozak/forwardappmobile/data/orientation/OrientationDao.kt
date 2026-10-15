@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationScoringOverrideEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
@@ -32,6 +33,12 @@ interface OrientationDao {
     @Query("SELECT * FROM orientations")
     suspend fun getAllOrientations(): List<OrientationEntity>
 
+    @Query("SELECT * FROM orientations WHERE subjectId = :id LIMIT 1")
+    suspend fun getOrientation(id: String): OrientationEntity?
+
+    @Query("SELECT * FROM orientations")
+    fun observeOrientations(): Flow<List<OrientationEntity>>
+
     @Query("SELECT * FROM aspects")
     suspend fun getAllAspects(): List<AspectEntity>
 
@@ -44,8 +51,20 @@ interface OrientationDao {
     @Query("SELECT * FROM orientation_assessments")
     suspend fun getAllAssessments(): List<OrientationAssessmentEntity>
 
+    @Query("SELECT * FROM orientation_assessments ORDER BY orientationId")
+    fun observeAssessments(): Flow<List<OrientationAssessmentEntity>>
+
     @Query("SELECT * FROM orientation_assessment_revisions")
     suspend fun getAllAssessmentRevisions(): List<OrientationAssessmentRevisionEntity>
+
+    @Query("SELECT * FROM orientation_assessment_revisions ORDER BY orientationId, effectiveFrom, id")
+    fun observeAssessmentRevisions(): Flow<List<OrientationAssessmentRevisionEntity>>
+
+    @Query("SELECT * FROM orientation_scoring_overrides")
+    suspend fun getAllScoringOverrides(): List<OrientationScoringOverrideEntity>
+
+    @Query("SELECT * FROM orientation_scoring_overrides WHERE orientationId = :orientationId LIMIT 1")
+    suspend fun getScoringOverride(orientationId: String): OrientationScoringOverrideEntity?
 
     @Query("SELECT * FROM legacy_subject_mappings")
     suspend fun getAllLegacyMappings(): List<LegacySubjectMappingEntity>
@@ -62,6 +81,18 @@ interface OrientationDao {
     @Query(
         """
         SELECT * FROM orientation_relations
+        WHERE isDeleted = 0
+          AND (fromOrientationId = :orientationId OR toOrientationId = :orientationId)
+        ORDER BY relationType, fromOrientationId, relationOrder, toOrientationId, id
+        """,
+    )
+    fun observeLiveOrientationRelationsForOrientation(
+        orientationId: String,
+    ): Flow<List<OrientationRelationEntity>>
+
+    @Query(
+        """
+        SELECT * FROM orientation_relations
         ORDER BY relationType, fromOrientationId, relationOrder, toOrientationId, id
         """,
     )
@@ -73,11 +104,29 @@ interface OrientationDao {
     @Query("SELECT * FROM aspect_orientation_refs ORDER BY aspectId, refOrder")
     fun observeAspectOrientationRefs(): Flow<List<AspectOrientationRefEntity>>
 
+    @Query(
+        """
+        SELECT * FROM aspect_orientation_refs
+        WHERE orientationId = :orientationId AND isDeleted = 0
+        ORDER BY refOrder, id
+        """,
+    )
+    fun observeLiveAspectRefsForOrientation(orientationId: String): Flow<List<AspectOrientationRefEntity>>
+
     @Query("SELECT * FROM workspace_bindings")
     suspend fun getAllWorkspaceBindings(): List<WorkspaceBindingEntity>
 
     @Query("SELECT * FROM workspace_bindings ORDER BY workspaceId, bindingOrder")
     fun observeWorkspaceBindings(): Flow<List<WorkspaceBindingEntity>>
+
+    @Query(
+        """
+        SELECT * FROM workspace_bindings
+        WHERE subjectId = :subjectId AND isDeleted = 0
+        ORDER BY bindingOrder, id
+        """,
+    )
+    fun observeLiveWorkspaceBindingsForSubject(subjectId: String): Flow<List<WorkspaceBindingEntity>>
 
     @Query("SELECT * FROM workspace_capability_instances")
     suspend fun getAllWorkspaceCapabilities(): List<WorkspaceCapabilityInstanceEntity>
@@ -107,6 +156,9 @@ interface OrientationDao {
 
     @Upsert
     suspend fun upsertAssessmentRevisions(items: List<OrientationAssessmentRevisionEntity>)
+
+    @Upsert
+    suspend fun upsertScoringOverrides(items: List<OrientationScoringOverrideEntity>)
 
     @Upsert
     suspend fun upsertLegacyMappings(items: List<LegacySubjectMappingEntity>)
@@ -149,6 +201,9 @@ interface OrientationDao {
 
     @Query("UPDATE orientation_assessment_revisions SET syncedAt = :syncedAt WHERE id = :id AND version = :version AND syncedAt IS NULL")
     suspend fun markAssessmentRevisionSynced(id: String, version: Long, syncedAt: Long): Int
+
+    @Query("UPDATE orientation_scoring_overrides SET syncedAt = :syncedAt WHERE orientationId = :id AND version = :version AND syncedAt IS NULL")
+    suspend fun markScoringOverrideSynced(id: String, version: Long, syncedAt: Long): Int
 
     @Query("UPDATE legacy_subject_mappings SET syncedAt = :syncedAt WHERE id = :id AND version = :version AND syncedAt IS NULL")
     suspend fun markLegacyMappingSynced(id: String, version: Long, syncedAt: Long): Int

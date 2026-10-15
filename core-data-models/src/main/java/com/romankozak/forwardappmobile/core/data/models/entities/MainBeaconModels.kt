@@ -149,28 +149,6 @@ data class MainBeaconGroupMember(
     val order: Long = 0L,
 )
 
-@Entity(
-    tableName = "main_beacon_context_cross_ref",
-    primaryKeys = ["beacon_id", "context_id"],
-    foreignKeys = [
-        ForeignKey(
-            entity = MainBeacon::class,
-            parentColumns = ["id"],
-            childColumns = ["beacon_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [
-        Index(value = ["context_id"]),
-        Index(value = ["beacon_id", "ref_order"]),
-    ],
-)
 data class MainBeaconContextCrossRef(
     @ColumnInfo(name = "beacon_id")
     @SerializedName("beaconId")

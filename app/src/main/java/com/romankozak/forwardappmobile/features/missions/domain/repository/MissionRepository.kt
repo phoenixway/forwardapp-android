@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.missions.domain.repository
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalMissionAdapter
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -13,43 +14,38 @@ class MissionRepository
     @Inject
     constructor(
         private val tacticalMissionDao: TacticalMissionDao,
+        private val canonicalMissionAdapter: CanonicalTacticalMissionAdapter,
     ) {
         private val tag = "MissionRepository"
 
-        fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>> {
-            return tacticalMissionDao.getMissionsForProject(projectId)
-        }
+        fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>> =
+            canonicalMissionAdapter.getMissionsForProject(projectId)
 
-        fun getAllMissions(): Flow<List<TacticalMission>> {
-            return tacticalMissionDao.getAllMissions()
-        }
+        fun getAllMissions(): Flow<List<TacticalMission>> =
+            canonicalMissionAdapter.getAllMissions()
 
         fun observeBacklogMissionIdsForWeek(weekKey: String): Flow<List<String>> =
-            tacticalMissionDao.observeBacklogMissionIdsForWeek(weekKey)
+            canonicalMissionAdapter.observeBacklogMissionIdsForWeek(weekKey)
 
         fun observeBacklogMissionsForWeek(weekKey: String): Flow<List<TacticalMission>> =
-            tacticalMissionDao.observeBacklogMissionsForWeek(weekKey)
+            canonicalMissionAdapter.observeBacklogMissionsForWeek(weekKey)
 
-        suspend fun getMissionById(missionId: Long): TacticalMission? {
-            return tacticalMissionDao.getMissionById(missionId)
-        }
+        suspend fun getMissionById(missionId: Long): TacticalMission? =
+            canonicalMissionAdapter.getMissionById(missionId)
 
         suspend fun getMissionForBacklogItemInWeek(
             backlogItemId: String,
             weekKey: String,
-        ): TacticalMission? = tacticalMissionDao.getMissionForBacklogItemInWeek(backlogItemId, weekKey)
+        ): TacticalMission? =
+            canonicalMissionAdapter.getMissionForBacklogItemInWeek(backlogItemId, weekKey)
 
-        suspend fun insertMission(mission: TacticalMission): Long {
-            return tacticalMissionDao.insertMission(mission)
-        }
+        suspend fun insertMission(mission: TacticalMission): Long =
+            canonicalMissionAdapter.insertMission(mission)
 
         suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
-            val topOrder = tacticalMissionDao.getMinMissionOrder() - 1
             val now = System.currentTimeMillis()
-            return tacticalMissionDao.insertMission(
+            return canonicalMissionAdapter.insertMissionWithAutoOrder(
                 mission.copy(
-                    order = topOrder,
-                    orderInWeek = topOrder,
                     createdAt = mission.createdAt.takeIf { it > 0L } ?: now,
                     updatedAt = now,
                     syncedAt = null,
@@ -59,7 +55,7 @@ class MissionRepository
         }
 
         suspend fun updateMission(mission: TacticalMission) {
-            tacticalMissionDao.updateMission(
+            canonicalMissionAdapter.updateMission(
                 mission.copy(
                     updatedAt = System.currentTimeMillis(),
                     syncedAt = null,
@@ -69,7 +65,7 @@ class MissionRepository
         }
 
         suspend fun deleteMissionById(missionId: Long) {
-            tacticalMissionDao.deleteMissionById(missionId)
+            canonicalMissionAdapter.deleteMissionById(missionId)
         }
 
         suspend fun setAttachments(
@@ -120,8 +116,6 @@ class MissionRepository
         }
 
         suspend fun reorderMissions(missions: List<TacticalMission>) {
-            missions.forEachIndexed { index, mission ->
-                tacticalMissionDao.updateMissionOrder(missionId = mission.id, order = index.toLong())
-            }
+            canonicalMissionAdapter.reorderMissions(missions)
         }
     }

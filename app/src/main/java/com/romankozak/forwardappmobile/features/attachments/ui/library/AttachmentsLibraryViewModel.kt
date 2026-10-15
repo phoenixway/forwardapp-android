@@ -8,7 +8,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.sync.*
@@ -22,7 +21,6 @@ class AttachmentsLibraryViewModel
     @Inject
     constructor(
         private val attachmentRepository: AttachmentsRepository,
-        private val contextDao: ContextDao,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) : ViewModel() {
         private val _events = MutableSharedFlow<AttachmentsLibraryEvent>()
@@ -37,7 +35,7 @@ class AttachmentsLibraryViewModel
             combine(
                 attachmentRepository.getAttachmentLibraryItems(),
                 attachmentRepository.getAllAttachmentLinks(),
-                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextDao.getAllContextsFlow()),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
                 queryState,
                 filterState,
             ) { queryResults: List<AttachmentLibraryQueryResult>,

@@ -69,10 +69,10 @@ class SystemShellFreeMainScreenViewModelsTest {
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
             coEvery { contextRepository.getContextById(id) } returns null
             every {
-                projector.observePresentationUniverse(any())
+                projector.observePresentationUniverse()
             } returns flowOf(emptyList())
             every {
-                projector.observeOwnerLabels(any())
+                projector.observeOwnerLabels()
             } returns flowOf(emptyMap())
             coEvery {
                 projector.resolvePresentation(id, null)
@@ -138,8 +138,8 @@ class SystemShellFreeMainScreenViewModelsTest {
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
             coEvery { tagAuthority.operationalTags(id) } returns emptyList()
-            every { projector.observePresentationUniverse(any()) } returns flowOf(emptyList())
-            every { projector.observeOwnerLabels(any()) } returns flowOf(emptyMap())
+            every { projector.observePresentationUniverse() } returns flowOf(emptyList())
+            every { projector.observeOwnerLabels() } returns flowOf(emptyMap())
             every { mainBeaconRepository.observeMainBeaconDetails() } returns flowOf(emptyList())
             every { mainBeaconRepository.observeGroups() } returns flowOf(emptyList())
             every { attachmentsRepository.getAttachmentLibraryItems() } returns flowOf(emptyList())
@@ -199,7 +199,7 @@ class SystemShellFreeMainScreenViewModelsTest {
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
 
             every {
-                projector.observePresentationUniverse(any())
+                projector.observePresentationUniverse()
             } returns flowOf(emptyList())
             coEvery {
                 projector.resolvePresentation(id, null)

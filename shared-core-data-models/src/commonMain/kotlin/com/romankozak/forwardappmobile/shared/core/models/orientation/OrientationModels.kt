@@ -17,10 +17,15 @@ enum class OrientationKind {
     MAIN_BEACON_GROUP,
     GOAL,
     DIRECTION,
+    INTENT,
     MILESTONE,
     ONGOING_STANDARD,
     OPPORTUNITY,
+    THEME,
+    QUEST,
+    /** Compatibility vocabulary for pre-Theme-authority rows and payloads. */
     DAY_THEME,
+    /** Compatibility vocabulary for pre-QUEST-authority rows and payloads. */
     ARC_QUEST,
 }
 
@@ -44,6 +49,9 @@ enum class OrientationAxis {
     ATTENTION_TIER,
     COMMITMENT,
     CONFIDENCE,
+    EFFORT,
+    COST,
+    RISK,
 }
 
 @JsExport
@@ -78,6 +86,47 @@ enum class CommitmentValue { IDEA, CANDIDATE, INTENDED, COMMITTED, OBLIGATION }
 
 @JsExport
 enum class ConfidenceValue { SPECULATIVE, POSSIBLE, LIKELY, CONFIDENT, CERTAIN }
+
+@JsExport
+enum class EffortValue {
+    NONE,
+    MINIMAL,
+    LOW,
+    MODERATE,
+    HIGH,
+    VERY_HIGH,
+    EXTREME,
+    MASSIVE,
+}
+
+@JsExport
+enum class CostValue {
+    NONE,
+    VERY_LOW,
+    LOW,
+    MODERATE,
+    HIGH,
+    VERY_HIGH,
+}
+
+@JsExport
+enum class RiskValue {
+    NONE,
+    MINIMAL,
+    LOW,
+    MODERATE,
+    HIGH,
+    VERY_HIGH,
+    EXTREME,
+    CRITICAL,
+}
+
+@JsExport
+enum class OrientationEvaluationState {
+    UNASSESSED,
+    ASSESSED,
+    UNSCORABLE,
+}
 
 /** Raw code plus a known value. rawCode is retained when known is null. */
 @JsExport
@@ -122,6 +171,10 @@ data class OrientationAssessment(
     val attentionTier: AxisAssessment,
     val commitment: AxisAssessment,
     val confidence: AxisAssessment,
+    val effort: AxisAssessment = unsetAxis(),
+    val cost: AxisAssessment = unsetAxis(),
+    val risk: AxisAssessment = unsetAxis(),
+    val evaluationState: OrientationEvaluationState = OrientationEvaluationState.UNASSESSED,
 ) {
     fun valueFor(axis: OrientationAxis): AxisAssessment =
         when (axis) {
@@ -133,6 +186,9 @@ data class OrientationAssessment(
             OrientationAxis.ATTENTION_TIER -> attentionTier
             OrientationAxis.COMMITMENT -> commitment
             OrientationAxis.CONFIDENCE -> confidence
+            OrientationAxis.EFFORT -> effort
+            OrientationAxis.COST -> cost
+            OrientationAxis.RISK -> risk
         }
 }
 
@@ -175,6 +231,7 @@ enum class LegacyOrientationSourceType {
     DIRECTION,
     THEME_DEFINITION,
     ARC_QUEST,
+    TACTICAL_MISSION,
 }
 
 @JsExport
@@ -267,6 +324,10 @@ fun emptyApplicableAssessment(): OrientationAssessment =
         attentionTier = unsetAxis(),
         commitment = unsetAxis(),
         confidence = unsetAxis(),
+        effort = unsetAxis(),
+        cost = unsetAxis(),
+        risk = unsetAxis(),
+        evaluationState = OrientationEvaluationState.UNASSESSED,
     )
 
-const val ORIENTATION_MODEL_VERSION: Int = 1
+const val ORIENTATION_MODEL_VERSION: Int = 2

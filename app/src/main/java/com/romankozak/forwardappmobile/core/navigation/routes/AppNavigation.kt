@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.features.activitytracker.reflection.TimeR
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote.MusicNoteScreen
+import com.romankozak.forwardappmobile.features.attachments.specifictypes.note.NoteEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.script.ScriptChooserScreen
@@ -64,6 +65,11 @@ import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
+import com.romankozak.forwardappmobile.features.semanticeditor.SemanticEntityEditorScreen
+import com.romankozak.forwardappmobile.features.entitypicker.CANONICAL_ENTITY_PICKER_RESULT_KEY
+import com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityPickerScreen
+import com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityRefCodec
+import com.romankozak.forwardappmobile.features.entitylibrary.EntityLibraryScreen
 import com.romankozak.forwardappmobile.features.settings.ManageContextMarkersScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
 import com.romankozak.forwardappmobile.features.sync.SyncScreen
@@ -232,6 +238,7 @@ private fun NavGraphBuilder.mainGraph(
             },
             onNavigateToAttachments = { navigationManager.navigate(target = NavTarget.AttachmentsLibrary) },
             onNavigateToScripts = { navigationManager.navigate(target = NavTarget.ScriptsLibrary) },
+            onNavigateToEntityLibrary = { navigationManager.navigate(target = NavTarget.EntityLibrary) },
             onNavigateToRecentItem = { item: RecentItem ->
                 when (item.type) {
                     RecentItemType.PROJECT ->
@@ -262,9 +269,10 @@ private fun NavGraphBuilder.mainGraph(
                             null -> Unit
                         }
 
-                    RecentItemType.NOTE,
-                    RecentItemType.NOTE_DOCUMENT,
-                    ->
+                    RecentItemType.NOTE ->
+                        navigationManager.navigate(target = NavTarget.LegacyNote(noteId = item.target))
+
+                    RecentItemType.NOTE_DOCUMENT ->
                         navigationManager.navigate(target = NavTarget.NoteDocument(id = item.target))
 
                     RecentItemType.CHECKLIST ->
@@ -413,6 +421,52 @@ private fun NavGraphBuilder.mainGraph(
         MagicBoxScreen(viewModel = viewModel, navController = navController)
     }
 
+    composable(
+        route = NavigationRoutes.SEMANTIC_ENTITY_EDITOR_PATTERN,
+        arguments = listOf(navArgument("subjectId") { type = NavType.StringType }),
+    ) {
+        SemanticEntityEditorScreen(navController = navController)
+    }
+
+    composable(
+        route = NavigationRoutes.CANONICAL_ENTITY_PICKER_PATTERN,
+        arguments =
+            listOf(
+                navArgument("allowedClasses") { type = NavType.StringType },
+                navArgument("selectionMode") { type = NavType.StringType },
+                navArgument("excludedRefs") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("initiallySelected") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+            ),
+    ) {
+        CanonicalEntityPickerScreen(
+            onBack = { navController.popBackStack() },
+            onResult = { selected ->
+                navController.previousBackStackEntry?.savedStateHandle?.set(
+                    CANONICAL_ENTITY_PICKER_RESULT_KEY,
+                    selected.map(CanonicalEntityRefCodec::encode),
+                )
+                navController.popBackStack()
+            },
+        )
+    }
+
+    composable(NavigationRoutes.ENTITY_LIBRARY) {
+        EntityLibraryScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSemanticEditor = { subjectId ->
+                appNavigationViewModel.navigationManager.navigate(
+                    NavTarget.SemanticEntityEditor(subjectId),
+                )
+            },
+        )
+    }
+
     composable(NavigationRoutes.ATTACHMENTS_LIBRARY) {
         AttachmentsLibraryScreen(
             navController = navController,
@@ -512,7 +566,28 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
+    // R1.13: standalone canonical Note creation without an owner.
+    composable(NavigationRoutes.LEGACY_NOTE_CREATE) {
+        NoteEditorScreen(navController = navController)
+    }
+
     // Об'єднаний екран для перегляду/редагування існуючого списку
+    // FK.10B: open Note by its own identity, without Context or placement.
+    composable(
+        route = NavigationRoutes.LEGACY_NOTE_PATTERN,
+        arguments =
+            listOf(
+                navArgument("noteId") { type = NavType.StringType },
+                navArgument("workspaceId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) {
+        NoteEditorScreen(navController = navController)
+    }
+
     composable(
         route = "${NavigationRoutes.NOTE_DOCUMENT}/{documentId}?startEdit={startEdit}",
         arguments =

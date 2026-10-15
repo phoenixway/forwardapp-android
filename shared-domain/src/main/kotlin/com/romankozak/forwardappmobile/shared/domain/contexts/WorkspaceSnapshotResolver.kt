@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.shared.domain.contexts
 import com.romankozak.forwardappmobile.shared.contracts.contexts.DesktopWorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.ResolvedWorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
+import com.romankozak.forwardappmobile.shared.contracts.contexts.requireValidCanonicalPlanningTransport
 import kotlinx.serialization.json.Json
 
 class WorkspaceSnapshotResolver(
@@ -13,10 +14,11 @@ class WorkspaceSnapshotResolver(
     fun resolve(snapshotText: String): ResolvedWorkspaceSnapshot? =
         runCatching {
             json.decodeFromString(DesktopWorkspaceSnapshot.serializer(), snapshotText)
-        }.getOrNull()?.let { snapshot ->
+        }.map { snapshot -> snapshot.also { it.requireValidCanonicalPlanningTransport() } }
+            .getOrNull()?.let { snapshot ->
             ResolvedWorkspaceSnapshot(
                 snapshot = snapshot,
                 format = WorkspaceSnapshotFormat.Desktop,
             )
-        } ?: androidImporter.parse(snapshotText)
+        } ?: runCatching { androidImporter.parse(snapshotText) }.getOrNull()
 }

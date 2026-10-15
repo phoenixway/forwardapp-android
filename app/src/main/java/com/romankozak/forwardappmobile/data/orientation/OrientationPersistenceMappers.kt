@@ -107,6 +107,13 @@ private fun OrientationAssessment.toEntity(
         commitmentOrigin = commitment.origin.name,
         confidenceValue = confidence.valueCode,
         confidenceOrigin = confidence.origin.name,
+        effortValue = effort.valueCode,
+        effortOrigin = effort.origin.name,
+        costValue = cost.valueCode,
+        costOrigin = cost.origin.name,
+        riskValue = risk.valueCode,
+        riskOrigin = risk.origin.name,
+        evaluationState = evaluationState.name,
         provenanceJson = Gson().toJson(provenances()),
         createdAt = subject.createdAt,
         updatedAt = subject.updatedAt,
@@ -116,5 +123,16 @@ private fun OrientationAssessment.toEntity(
     )
 
 private fun OrientationAssessment.provenances() =
-    listOf(importance, impact, breadth, expectedSpan, targetWindow, attentionTier, commitment, confidence)
-        .mapNotNull(AxisAssessment::provenance)
+    listOf(
+        importance,
+        impact,
+        breadth,
+        expectedSpan,
+        targetWindow,
+        attentionTier,
+        commitment,
+        confidence,
+        effort,
+        cost,
+        risk,
+    ).mapNotNull(AxisAssessment::provenance)

@@ -1,5 +1,34 @@
 # ForwardApp Backlog
 
+<!-- R2A3P_DEVICE_PERF_ACCEPTED_2026_10_15 -->
+
+## PERF-P2 - Remaining canonical runtime performance debt
+
+Status: NON-BLOCKING / MEASURED
+
+R2A.3P removed the severe runtime regressions, but the physical historical
+dataset still exposes bounded performance debt.
+
+Measured remaining areas:
+- ProductRead assembleFrame is still roughly 1-2 s;
+- some database invalidations still lead to repeated ProductRead snapshot or
+  projection work;
+- concurrent/repeated ProductRead.project consumers should be consolidated
+  where ownership permits;
+- Hierarchy.project still repeats and costs roughly 0.10-0.20 s per measured
+  execution;
+- legacy Context Markers initialization measured roughly 4.8 s and should be
+  classified for removal, deferral, or optimization during shell cleanup.
+
+Reopen PERF-P2 when:
+- the user again observes material CRUD/navigation lag;
+- R2B browsing exposes unexpected jank;
+- a dedicated performance-hardening milestone is scheduled.
+
+Do not solve this debt by weakening canonical validation or by coupling new
+lightweight browser surfaces to the full ProductRead graph.
+
+
 Status: CANONICAL
 
 This file stores work deliberately not being done now.
@@ -129,6 +158,49 @@ still relevant to the current implementation.
   toward the Context-FK branch and fails closed. Repair this in the canonical
   operational-owner repository, not by recreating Context. Cost: `small`.
 
+
+<!-- BACKLOG_WORKSPACE_LIBRARY_PRODUCT_SURFACE_2026_10_16 -->
+
+- **Backlog addition:** `#1`
+- **Priority:** `UNSET`
+- **Status:** `DEFERRED`
+
+- **Workspace + Library product-surface adaptation.**
+  Evolve the existing legacy Context-oriented UI into the canonical Workspace
+  product surface rather than creating a parallel replacement screen.
+
+  Scope:
+  - adapt the existing Context screen into the canonical Workspace screen;
+  - adapt the already-existing Context properties screen into Workspace
+    properties instead of designing a second properties surface;
+  - Workspace properties must read/edit canonical WorkspaceBinding relations
+    to semantic entities using the established relation authority rather than
+    legacy Context ownership;
+  - the Workspace screen should expose an action to open one of its linked
+    semantic entities in the corresponding canonical semantic editor;
+  - Workspace rows in the Library should navigate to this canonical Workspace
+    destination once the surface is ready;
+  - product copy should prefer the shorter name `Library` over
+    `Entity Library`, while internal implementation names may be migrated
+    separately when useful;
+  - Library needs explicit ordering controls, at minimum ascending/descending
+    datetime ordering and other canonical sort keys justified by the existing
+    catalog model, such as name ordering.
+
+  Architectural boundary:
+  Workspace remains an operational container. Adapting the old Context screens
+  must not recreate Context as semantic identity, hierarchy authority or
+  Planning owner. WorkspaceBinding remains an independent relation family.
+  Opening a linked semantic entity is navigation to canonical identity, not
+  ownership transfer.
+
+  Split implementation into bounded slices when scheduled:
+  1. canonical Workspace destination over the existing Context screen;
+  2. canonical Workspace properties adaptation;
+  3. Workspace -> linked semantic entity navigation;
+  4. Library naming and sorting polish.
+
+  Cost: `medium/large`.
 
 - **POSTPONED — canonical entity lifecycle UI/UX.** Legacy `Context` status,
   completion/scoring and Project-Management-style state are not Workspace

@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.planning
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.planning.day.DayPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningScopeExtensionDao
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitment
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleCode
@@ -21,6 +23,8 @@ class CanonicalPlanningRepository
     constructor(
         private val database: AppDatabase,
         private val dao: PlanningDao,
+        private val dayExtensionDao: DayPlanningScopeExtensionDao,
+        private val tacticalExtensionDao: TacticalPlanningScopeExtensionDao,
     ) {
         private val roleRegistry = PlanningRoleRegistry.INITIAL
 
@@ -89,6 +93,12 @@ class CanonicalPlanningRepository
                         "Planning scope does not exist"
                     }
                 if (current.isDeleted) return@withTransaction current
+                require(dayExtensionDao.get(id.value)?.isDeleted != false) {
+                    "Tombstone the live Day scope extension in the same higher-level command first"
+                }
+                require(tacticalExtensionDao.get(id.value)?.isDeleted != false) {
+                    "Tombstone the live Tactical scope extension in the same higher-level command first"
+                }
 
                 val tombstonedCommitments =
                     dao.getLiveCommitmentsForScope(id.value).map { entity ->

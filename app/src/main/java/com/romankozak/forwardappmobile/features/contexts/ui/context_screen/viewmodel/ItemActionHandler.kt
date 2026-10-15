@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
@@ -44,6 +45,9 @@ class ItemActionHandler
             fun requestAttachmentShare(item: BacklogItemContent)
 
             fun requestNavigation(route: String)
+
+            /** Typed navigation bypasses historical Context route parsing. */
+            fun requestNavigation(target: NavTarget)
 
             fun handleRelatedLink(link: RelatedLink)
 
@@ -154,7 +158,12 @@ class ItemActionHandler
                     is BacklogItemContent.LinkItem ->
                         resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
                     is BacklogItemContent.NoteItem ->
-                        resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
+                        resultListener.requestNavigation(
+                            NavTarget.LegacyNote(
+                                noteId = item.note.id,
+                                workspaceId = currentProjectId.takeIf { it.isNotBlank() },
+                            ),
+                        )
                     is BacklogItemContent.NoteDocumentItem ->
                         resultListener.requestNavigation("note_document_screen/${item.document.id}")
                     is BacklogItemContent.MusicNoteItem ->

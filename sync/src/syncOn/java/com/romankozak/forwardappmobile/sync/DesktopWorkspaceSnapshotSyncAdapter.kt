@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusVa
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
@@ -13,12 +15,30 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.DesktopWorkspac
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningScopeSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedTacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedStrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.requireValidCanonicalPlanningTransport
 
 class DesktopWorkspaceSnapshotSyncAdapter {
     fun toSnapshotBundle(
         snapshot: DesktopWorkspaceSnapshot,
         exportedAt: Long = System.currentTimeMillis(),
     ): SnapshotBundle {
+        snapshot.requireValidCanonicalPlanningTransport()
+        require(
+            snapshot.planningCommitments.orEmpty().none { commitment ->
+                commitment.role == "MISSION" && !commitment.isDeleted
+            },
+        ) {
+            "Desktop Workspace transport cannot admit live Tactical MISSION commitments " +
+                "without TacticalMission compatibility rows."
+        }
         val validContextIds = snapshot.contexts.mapTo(linkedSetOf()) { it.id }
         val goals =
             snapshot.backlogItems
@@ -93,6 +113,15 @@ class DesktopWorkspaceSnapshotSyncAdapter {
         return SnapshotBundle(
             version = 2,
             exportedAt = exportedAt,
+            planningFormatVersion = snapshot.planningFormatVersion,
+            planningScopes = snapshot.planningScopes?.map { scope -> scope.toAndroidSnapshot() },
+            planningCommitments = snapshot.planningCommitments?.map { commitment -> commitment.toAndroidSnapshot() },
+            dayPlanningScopeExtensions =
+                snapshot.dayPlanningScopeExtensions?.map { extension -> extension.toAndroidSnapshot() },
+            tacticalPlanningScopeExtensions =
+                snapshot.tacticalPlanningScopeExtensions?.map { extension -> extension.toAndroidSnapshot() },
+            strategicPlanningScopeExtensions =
+                snapshot.strategicPlanningScopeExtensions?.map { extension -> extension.toAndroidSnapshot() },
             contexts =
                 snapshot.contexts.mapIndexed { index, context ->
                     val sync = context.sync.withExportFallback(exportedAt)
@@ -143,6 +172,78 @@ class DesktopWorkspaceSnapshotSyncAdapter {
 
     private fun backlogItemId(backlogItemId: String): String = backlogItemId
 }
+
+private fun SharedPlanningScopeSnapshot.toAndroidSnapshot(): PlanningScopeSnapshot =
+    PlanningScopeSnapshot(
+        id = id,
+        kind = kind,
+        lifecycle = lifecycle,
+        title = title,
+        startsAt = startsAt,
+        endsAt = endsAt,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+    )
+
+private fun SharedPlanningCommitmentSnapshot.toAndroidSnapshot(): PlanningCommitmentSnapshot =
+    PlanningCommitmentSnapshot(
+        id = id,
+        scopeId = scopeId,
+        orientationId = orientationId,
+        role = role,
+        order = order,
+        priorityLevel = priorityLevel,
+        status = status,
+        provenanceKind = provenanceKind,
+        provenanceSourceType = provenanceSourceType,
+        provenanceSourceId = provenanceSourceId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+    )
+
+private fun SharedDayPlanningScopeExtensionSnapshot.toAndroidSnapshot():
+    DayPlanningScopeExtensionSnapshot =
+    DayPlanningScopeExtensionSnapshot(
+        scopeId = scopeId,
+        calendarDayStartMillis = calendarDayStartMillis,
+        outcome = outcome,
+        plannedBudgetMinutes = plannedBudgetMinutes,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+    )
+
+private fun SharedTacticalPlanningScopeExtensionSnapshot.toAndroidSnapshot() =
+    TacticalPlanningScopeExtensionSnapshot(
+        scopeId = scopeId,
+        iterationType = iterationType,
+        weekKey = weekKey,
+        closedAt = closedAt,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+    )
+
+private fun SharedStrategicPlanningScopeExtensionSnapshot.toAndroidSnapshot() =
+    StrategicPlanningScopeExtensionSnapshot(
+        scopeId = scopeId,
+        legacyArcKey = legacyArcKey,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = isDeleted,
+    )
 
 private fun SharedContextStatus.toAndroidContextStatus(): String =
     when (this) {

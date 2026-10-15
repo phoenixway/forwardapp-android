@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class LegacyNoteSnapshot(
     @SerializedName("id") val id: String,
-    @SerializedName("contextId") val contextId: String,
+    @SerializedName("contextId") val contextId: String?,
     @SerializedName("title") val title: String,
     @SerializedName("content") val content: String,
     @SerializedName("createdAt") val createdAt: Long,

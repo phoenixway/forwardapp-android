@@ -272,21 +272,42 @@ internal class CanonicalHierarchyMigrationEvidenceReader {
             }
         }
 
-    private fun readOwnerRows(db: SupportSQLiteDatabase): List<OwnerRow> =
-        db.query(
-            """
-            SELECT beacon_id, context_id, ref_order FROM main_beacon_context_cross_ref
-            UNION ALL
-            SELECT beacon_id, workspace_id, ref_order FROM main_beacon_workspace_cross_ref
-            ORDER BY beacon_id ASC, ref_order ASC, context_id ASC
-            """.trimIndent(),
-        ).use { cursor ->
+    private fun readOwnerRows(db: SupportSQLiteDatabase): List<OwnerRow> {
+        val legacyTableExists =
+            db.query(
+                """
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table'
+                  AND name = 'main_beacon_context_cross_ref'
+                """.trimIndent(),
+            ).use { cursor -> cursor.moveToFirst() }
+
+        val sql =
+            if (legacyTableExists) {
+                """
+                SELECT beacon_id, context_id, ref_order
+                FROM main_beacon_context_cross_ref
+                UNION ALL
+                SELECT beacon_id, workspace_id AS context_id, ref_order
+                FROM main_beacon_workspace_cross_ref
+                ORDER BY beacon_id ASC, ref_order ASC, context_id ASC
+                """.trimIndent()
+            } else {
+                """
+                SELECT beacon_id, workspace_id AS context_id, ref_order
+                FROM main_beacon_workspace_cross_ref
+                ORDER BY beacon_id ASC, ref_order ASC, workspace_id ASC
+                """.trimIndent()
+            }
+
+        return db.query(sql).use { cursor ->
             buildList {
                 while (cursor.moveToNext()) {
                     add(OwnerRow(cursor.getString(0), cursor.getString(1)))
                 }
             }
         }
+    }
 
     private fun readContextParentLinks(
         db: SupportSQLiteDatabase,

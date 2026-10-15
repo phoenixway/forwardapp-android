@@ -161,6 +161,25 @@ interface DayPlanDao {
         updatedAt: Long,
     )
 
+    /** Derived compatibility projection; canonical Day planning owns these fields after activation. */
+    @Query(
+        """
+        UPDATE day_plans
+        SET date = :date,
+            name = :name,
+            status = :status,
+            predictedDurationMinutes = :predictedDurationMinutes
+        WHERE id = :planId
+        """,
+    )
+    suspend fun projectCanonicalPlanningFields(
+        planId: String,
+        date: Long,
+        name: String?,
+        status: DayStatus,
+        predictedDurationMinutes: Long?,
+    )
+
     @Query("SELECT id FROM day_plans WHERE date >= :date")
     suspend fun getFutureDayPlanIds(date: Long): List<String>
 

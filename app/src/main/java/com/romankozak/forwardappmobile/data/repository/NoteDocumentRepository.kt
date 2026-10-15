@@ -120,7 +120,14 @@ class NoteDocumentRepository
         }
 
         suspend fun importFromLegacy(note: LegacyNoteEntity) {
-            val document = note.toNoteDocument()
+            // FK.10A: this compatibility importer requires a historical
+            // Context-backed projection. Standalone Notes remain in notes;
+            // their canonical runtime convergence belongs to FK.10B.
+            val document =
+                requireNotNull(note.toNoteDocument()) {
+                    "Cannot import standalone LegacyNote ${note.id} " +
+                        "as a Context-bound NoteDocument"
+                }
             noteDocumentDao.insertDocument(document)
             attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,

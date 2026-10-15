@@ -22,9 +22,11 @@ class LegacySubjectUuidTest {
     fun `legacy identity is stable and source type is part of identity`() {
         val goal = LegacySubjectRef(LegacyOrientationSourceType.GOAL, "same-id")
         val direction = LegacySubjectRef(LegacyOrientationSourceType.DIRECTION, "same-id")
+        val tacticalMission = LegacySubjectRef(LegacyOrientationSourceType.TACTICAL_MISSION, "same-id")
 
         assertEquals(LegacySubjectUuid.resolve(goal), LegacySubjectUuid.resolve(goal))
         assertNotEquals(LegacySubjectUuid.resolve(goal), LegacySubjectUuid.resolve(direction))
+        assertNotEquals(LegacySubjectUuid.resolve(goal), LegacySubjectUuid.resolve(tacticalMission))
         assertEquals(5, UUID.fromString(LegacySubjectUuid.resolve(goal)).version())
     }
 }

@@ -44,7 +44,6 @@ class SyncLocalDataSourceImpl
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
         private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
-        private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
         private val activityRecordDao: ActivityRecordDao,
         private val contextManagementDao: ContextManagementDao,
@@ -118,7 +117,16 @@ class SyncLocalDataSourceImpl
                 goals = versions(goals, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 backlogItems = emptyList(),
                 backlogOrders = emptyList(),
-                notes = versions(legacyNotes, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                // ACKed Note tombstones are not perpetually dirty.
+                // Keep the shared legacy deletion policy unchanged.
+                notes =
+                    legacyNotes
+                        .filter { note ->
+                            val syncedAt = note.syncedAt
+                            syncedAt == null || syncedAt == 0L ||
+                                note.updatedTs() > syncedAt
+                        }
+                        .map { LocalSyncVersion(it.id, it.version) },
                 documents = versions(documents, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 musicNotes = versions(musicNotes, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 checklists = versions(checklists, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
@@ -142,6 +150,7 @@ class SyncLocalDataSourceImpl
 
         override suspend fun getChangesSince(timestamp: Long): SnapshotBundle {
             val goals = goalDao.getAll()
+            val legacyNotes = legacyNoteDao.getAll()
             val documents = noteDocumentDao.getAllDocuments()
             val musicNotes = musicNoteDao.getAll()
             val attachments = attachmentDao.getAll()
@@ -196,6 +205,8 @@ class SyncLocalDataSourceImpl
                 goals = goals.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 backlogItems = emptyList(),
                 backlogOrders = emptyList(),
+                // Standalone Note changes and tombstones travel independently of Context and BACKLOG.
+                notes = legacyNotes.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 documents =
                     documents.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 musicNotes =
@@ -331,7 +342,6 @@ class SyncLocalDataSourceImpl
             val ts = System.currentTimeMillis()
             db.withTransaction {
                 val goals = goalDao.getAll()
-                val legacyNotes = legacyNoteDao.getAll()
                 val documents = noteDocumentDao.getAllDocuments()
                 val musicNotes = musicNoteDao.getAll()
                 val checklists = checklistDao.getAllChecklists()
@@ -342,18 +352,15 @@ class SyncLocalDataSourceImpl
                 val attachments = attachmentDao.getAll()
                 val dayPlans = dayPlanDao.getAllPlansSync()
                 val dayFocusItems = dayFocusItemDao.getAllSync()
-                val dayTasks = dayTaskDao.getAllTasksSync()
                 val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
                 val tacticalIterations = tacticalIterationDao.getAllSync()
                 val missionStreams = missionStreamDao.getAllSync()
-                val tacticalActivitySlots = tacticalActivitySlotDao.getAllSync()
                 val arcQuests = arcQuestDao.getAllSync()
 
                 fun versions(items: List<LocalSyncVersion>): Map<String, Long> =
                     items.associate { it.id to it.version }
 
                 val goalVersions = versions(selection.goals)
-                val noteVersions = versions(selection.notes)
                 val documentVersions = versions(selection.documents)
                 val musicNoteVersions = versions(selection.musicNotes)
                 val checklistVersions = versions(selection.checklists)
@@ -364,19 +371,21 @@ class SyncLocalDataSourceImpl
                 val attachmentVersions = versions(selection.attachments)
                 val planVersions = versions(selection.dayPlans)
                 val focusItemVersions = versions(selection.dayFocusItems)
-                val taskVersions = versions(selection.dayTasks)
                 val missionVersions = versions(selection.tacticalMissions)
                 val iterationVersions = versions(selection.tacticalIterations)
                 val streamVersions = versions(selection.missionStreams)
-                val slotVersions = versions(selection.tacticalActivitySlots)
                 val questVersions = versions(selection.arcQuests)
 
                 goalDao.insertGoals(
                     goals.filter { goalVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
-                legacyNoteDao.insertAll(
-                    legacyNotes.filter { noteVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
-                )
+                selection.notes.forEach { selected ->
+                    legacyNoteDao.markSyncedIfVersionMatches(
+                        noteId = selected.id,
+                        expectedVersion = selected.version,
+                        syncedAt = ts,
+                    )
+                }
                 noteDocumentDao.insertAllDocuments(
                     documents.filter { documentVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
@@ -407,23 +416,35 @@ class SyncLocalDataSourceImpl
                 dayFocusItemDao.insertAll(
                     dayFocusItems.filter { focusItemVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
-                dayTaskDao.insertTasks(
-                    dayTasks.filter { taskVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
-                )
-                tacticalMissionDao.insertMissions(
-                    tacticalMissions
-                        .filter { missionVersions[it.id.toString()] == it.version }
-                        .map { it.copy(syncedAt = ts) },
-                )
+                selection.dayTasks.forEach { selected ->
+                    dayTaskDao.markSyncedIfVersionMatches(
+                        taskId = selected.id,
+                        expectedVersion = selected.version,
+                        syncedAt = ts,
+                    )
+                }
+                tacticalMissions
+                    .filter { missionVersions[it.id.toString()] == it.version }
+                    .forEach { mission ->
+                        tacticalMissionDao.markMissionSyncedIfVersionMatches(
+                            missionId = mission.id,
+                            expectedVersion = mission.version,
+                            syncedAt = ts,
+                        )
+                    }
                 tacticalIterationDao.insertAll(
                     tacticalIterations.filter { iterationVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
                 missionStreamDao.insertAll(
                     missionStreams.filter { streamVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
-                tacticalActivitySlotDao.insertAll(
-                    tacticalActivitySlots.filter { slotVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
-                )
+                selection.tacticalActivitySlots.forEach { selected ->
+                    tacticalActivitySlotDao.markSyncedIfVersionMatches(
+                        slotId = selected.id,
+                        expectedVersion = selected.version,
+                        syncedAt = ts,
+                    )
+                }
                 arcQuestDao.insertAll(
                     arcQuests.filter { questVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
@@ -435,7 +456,6 @@ class SyncLocalDataSourceImpl
                 contextManagementDao.deleteAllLogs()
                 linkItemDao.deleteAll()
                 activityRecordDao.clearAll()
-                listItemDao.deleteAll()
                 noteDocumentDao.deleteAllDocuments()
                 musicNoteDao.deleteAll()
                 checklistDao.deleteAllChecklistItems()

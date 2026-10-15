@@ -66,9 +66,7 @@ class GoalSettingsViewModel
         private val goalId: String? = savedStateHandle["goalId"]
         private val initialProjectId: String? = savedStateHandle["projectId"]
         private val allContexts =
-            systemWorkspacePresentationContextProjector.observePresentationUniverse(
-                contextRepository.getAllContextsFlow(),
-            )
+            systemWorkspacePresentationContextProjector.observePresentationUniverse()
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
         private val allAttachmentOptions =
             attachmentsRepository.getAttachmentLibraryItems()

@@ -84,6 +84,9 @@ class SystemWorkspacePresentationContextProjector
  * independently admitted without a Context shell. The tombstone contributes
  * no display fields. Reserved System ids remain independently shell-free.
          */
+        suspend fun projectPresentationUniverse(): List<ContextPresentation> =
+            projectPresentationUniverse(contextDao.getAllActiveOrdered())
+
         suspend fun projectPresentationUniverse(
             contexts: List<Context>,
         ): List<ContextPresentation> {
@@ -212,6 +215,17 @@ class SystemWorkspacePresentationContextProjector
          * Context shells. It never manufactures a Context entity and must not
          * feed Context mutation paths.
          */
+        /**
+         * Default complete presentation boundary for callers that do not need
+         * raw Context rows for any separate purpose.
+         *
+         * Active legacy Context rows remain an implementation detail of this
+         * transitional projector. Retirement evidence is still sourced from
+         * the complete Context table by the delegated overload below.
+         */
+        fun observePresentationUniverse(): Flow<List<ContextPresentation>> =
+            observePresentationUniverse(contextDao.getAllContexts())
+
         fun observePresentationUniverse(
             contexts: Flow<List<Context>>,
         ): Flow<List<ContextPresentation>> =
@@ -272,6 +286,9 @@ class SystemWorkspacePresentationContextProjector
          * Resolves display labels for stable operational-owner ids without
          * manufacturing a Context shell for a canonical-only System Workspace.
          */
+        fun observeOwnerLabels(): Flow<Map<String, String>> =
+            observeOwnerLabels(contextDao.getAllContexts())
+
         fun observeOwnerLabels(contexts: Flow<List<Context>>): Flow<Map<String, String>> =
             combine(
                 contexts,

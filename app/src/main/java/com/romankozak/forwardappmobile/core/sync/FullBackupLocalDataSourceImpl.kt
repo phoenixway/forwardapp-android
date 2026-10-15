@@ -21,6 +21,7 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_HIERARCHY_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
@@ -32,13 +33,16 @@ import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
-import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -57,7 +61,11 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesS
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalExecutionLogSyncVersion
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
@@ -65,6 +73,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
+import com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -87,8 +96,8 @@ class FullBackupLocalDataSourceImpl
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
+        private val canonicalScoringAuthorityActivator: CanonicalScoringAuthorityActivator,
         private val canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
-        private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
         private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
         private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
         private val canonicalOrientationSyncStore: CanonicalOrientationSyncStore,
@@ -127,12 +136,52 @@ class FullBackupLocalDataSourceImpl
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
     ) : FullBackupLocalDataSource {
+        private val canonicalPlanningSyncStore =
+            CanonicalPlanningSyncStore(db)
+        private val canonicalDayPlanningScopeExtensionSyncStore =
+            CanonicalDayPlanningScopeExtensionSyncStore(db)
+        private val canonicalTacticalPlanningScopeExtensionSyncStore =
+            CanonicalTacticalPlanningScopeExtensionSyncStore(db)
+        private val canonicalStrategicPlanningScopeExtensionSyncStore =
+            CanonicalStrategicPlanningScopeExtensionSyncStore(db)
         private val canonicalHierarchyPlacementSyncStore =
             CanonicalHierarchyPlacementSyncStore(db)
         private val canonicalHierarchyPlacementGroupScopeSyncStore =
             CanonicalHierarchyPlacementGroupScopeSyncStore(db)
         private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
             CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
+
+        override suspend fun loadUnsyncedCanonicalPlanning(): CanonicalPlanningSyncPayload =
+            CanonicalPlanningSyncPayload(
+                scopes = canonicalPlanningSyncStore.loadUnsyncedScopes(),
+                commitments = canonicalPlanningSyncStore.loadUnsyncedCommitments(),
+                dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadUnsynced(),
+                tacticalScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadUnsynced(),
+                strategicScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadUnsynced(),
+            )
+
+        override suspend fun loadCanonicalPlanningChangedSince(
+            timestamp: Long,
+        ): CanonicalPlanningSyncPayload =
+            CanonicalPlanningSyncPayload(
+                scopes = canonicalPlanningSyncStore.loadScopesChangedSince(timestamp),
+                commitments = canonicalPlanningSyncStore.loadCommitmentsChangedSince(timestamp),
+                dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadChangedSince(timestamp),
+                tacticalScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadChangedSince(timestamp),
+                strategicScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadChangedSince(timestamp),
+            )
+
+        override suspend fun markCanonicalPlanningSynced(
+            ack: CanonicalPlanningSyncAck,
+        ) {
+            canonicalPlanningSyncStore.markSynced(
+                scopes = ack.scopes,
+                commitments = ack.commitments,
+            )
+            canonicalDayPlanningScopeExtensionSyncStore.markSynced(ack.dayScopeExtensions)
+            canonicalTacticalPlanningScopeExtensionSyncStore.markSynced(ack.tacticalScopeExtensions)
+            canonicalStrategicPlanningScopeExtensionSyncStore.markSynced(ack.strategicScopeExtensions)
+        }
 
         override suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload =
             canonicalOrientationSyncStore.loadUnsynced()
@@ -147,6 +196,32 @@ class FullBackupLocalDataSourceImpl
             logs: List<CanonicalExecutionLogSyncVersion>,
         ) {
             canonicalExecutionLogSyncStore.markSynced(logs)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspacePresentationPreferences() =
+            db.workspacePresentationPreferencesDao()
+                .getUnsynced()
+                .map { it.toTransportSnapshot() }
+
+        override suspend fun loadCanonicalWorkspacePresentationPreferencesChangedSince(timestamp: Long) =
+            db.workspacePresentationPreferencesDao()
+                .getChangedSince(timestamp)
+                .map { it.toTransportSnapshot() }
+
+        override suspend fun markCanonicalWorkspacePresentationPreferencesSynced(
+            entries: List<WorkspacePresentationPreferencesSyncVersion>,
+        ) {
+            if (entries.isEmpty()) return
+            val syncedAt = System.currentTimeMillis()
+            db.withTransaction {
+                entries.forEach { sent ->
+                    db.workspacePresentationPreferencesDao().markSyncedIfVersionMatches(
+                        workspaceId = sent.workspaceId,
+                        expectedVersion = sent.version,
+                        syncedAt = syncedAt,
+                    )
+                }
+            }
         }
 
         override suspend fun loadUnsyncedCanonicalWorkspaceDirectionEntries() =
@@ -341,11 +416,24 @@ class FullBackupLocalDataSourceImpl
         }
 
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+            val base = loadBaseFullSnapshotBundle()
+            val planning = loadCanonicalPlanningForFullSnapshot()
+
+            return base.copy(
+                planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
+                planningScopes = planning.scopes,
+                planningCommitments = planning.commitments,
+                dayPlanningScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadAll(),
+                tacticalPlanningScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadAll(),
+                strategicPlanningScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadAll(),
+            )
+        }
+
+        private suspend fun loadBaseFullSnapshotBundle(): SnapshotBundle {
             canonicalDayThemeBootstrapper.ensureBootstrapped()
             canonicalOrientationBootstrapper.ensureBootstrapped()
+            canonicalScoringAuthorityActivator.ensureActivated()
             canonicalWorkspaceBootstrapper.ensureBootstrapped()
-            executionLogWorkspaceOwnershipBridge.repairUnresolved()
-
             val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
                 db.withTransaction {
                     Triple(
@@ -356,6 +444,7 @@ class FullBackupLocalDataSourceImpl
                 }
 
             val canonicalWorkspaceProblems = canonicalWorkspaceProblemSyncStore.loadAll()
+            val canonicalOrientation = loadCanonicalOrientationSnapshotFields()
 
             val retiredContextIds = db.canonicalRetiredContextIds()
             val contextsForTransport =
@@ -426,21 +515,26 @@ class FullBackupLocalDataSourceImpl
                 themeDefinitions = canonicalThemeDefinitions,
                 dayThemes = canonicalDayThemes,
                 dayThemeAssignmentDocuments = canonicalAssignmentDocuments,
-                managedSubjects = db.orientationDao().getAllManagedSubjects(),
-                orientations = db.orientationDao().getAllOrientations(),
-                aspects = db.orientationDao().getAllAspects(),
-                orientationAssessments = db.orientationDao().getAllAssessments(),
-                orientationAssessmentRevisions = db.orientationDao().getAllAssessmentRevisions(),
-                legacySubjectMappings = db.orientationDao().getAllLegacyMappings(),
-                orientationRelations = db.orientationDao().getAllOrientationRelations(),
-                aspectOrientationRefs = db.orientationDao().getAllAspectOrientationRefs(),
+                managedSubjects = canonicalOrientation.managedSubjects,
+                orientations = canonicalOrientation.orientations,
+                aspects = canonicalOrientation.aspects,
+                orientationAssessments = canonicalOrientation.orientationAssessments,
+                orientationAssessmentRevisions = canonicalOrientation.orientationAssessmentRevisions,
+                orientationScoringOverrides = canonicalOrientation.orientationScoringOverrides,
+                legacySubjectMappings = canonicalOrientation.legacySubjectMappings,
+                orientationRelations = canonicalOrientation.orientationRelations,
+                aspectOrientationRefs = canonicalOrientation.aspectOrientationRefs,
                 workspaces =
                     db.workspaceDao()
                         .getAll()
                         .map { it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology() },
-                workspaceBindings = db.orientationDao().getAllWorkspaceBindings(),
-                workspaceCapabilityInstances = db.orientationDao().getAllWorkspaceCapabilities(),
-                savedOrientationViews = db.orientationDao().getAllSavedViews(),
+                workspacePresentationPreferences =
+                    db.workspacePresentationPreferencesDao()
+                        .getAll()
+                        .map { it.toTransportSnapshot() },
+                workspaceBindings = canonicalOrientation.workspaceBindings,
+                workspaceCapabilityInstances = canonicalOrientation.workspaceCapabilityInstances,
+                savedOrientationViews = canonicalOrientation.savedOrientationViews,
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = emptyList(),
                 recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
@@ -491,6 +585,30 @@ class FullBackupLocalDataSourceImpl
             )
         }
 
+        private suspend fun loadCanonicalOrientationSnapshotFields(): SnapshotBundle {
+            val dao = db.orientationDao()
+            return SnapshotBundle(
+                managedSubjects = dao.getAllManagedSubjects(),
+                orientations = dao.getAllOrientations(),
+                aspects = dao.getAllAspects(),
+                orientationAssessments = dao.getAllAssessments(),
+                orientationAssessmentRevisions = dao.getAllAssessmentRevisions(),
+                orientationScoringOverrides = dao.getAllScoringOverrides(),
+                legacySubjectMappings = dao.getAllLegacyMappings(),
+                orientationRelations = dao.getAllOrientationRelations(),
+                aspectOrientationRefs = dao.getAllAspectOrientationRefs(),
+                workspaceBindings = dao.getAllWorkspaceBindings(),
+                workspaceCapabilityInstances = dao.getAllWorkspaceCapabilities(),
+                savedOrientationViews = dao.getAllSavedViews(),
+            )
+        }
+
+        private suspend fun loadCanonicalPlanningForFullSnapshot(): CanonicalPlanningSyncPayload =
+            CanonicalPlanningSyncPayload(
+                scopes = canonicalPlanningSyncStore.loadAllScopes(),
+                commitments = canonicalPlanningSyncStore.loadAllCommitments(),
+            )
+
         override suspend fun clearAllTables() {
             Log.w("Sync", "Clearing all database tables!")
             db.clearAllTables()
@@ -506,3 +624,15 @@ class FullBackupLocalDataSourceImpl
             settingsRepository.restoreFromMap(settings)
         }
     }
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspacePresentationPreferencesEntity
+    .toTransportSnapshot(): WorkspacePresentationPreferencesSnapshot =
+    WorkspacePresentationPreferencesSnapshot(
+        workspaceId = workspaceId,
+        defaultViewModeName = defaultViewModeName,
+        isAttachmentsExpanded = isAttachmentsExpanded,
+        showCheckboxes = showCheckboxes,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        version = version,
+    )

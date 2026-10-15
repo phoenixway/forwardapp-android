@@ -30,6 +30,7 @@ data class BottomPanelGlobalActions(
     val onShowWifiImport: () -> Unit,
     val onNavigateToAttachments: () -> Unit,
     val onNavigateToScripts: () -> Unit,
+    val onNavigateToEntityLibrary: () -> Unit,
     val onShowAbout: () -> Unit,
     val featureToggles: Map<FeatureFlag, Boolean>,
     val onNavigateToRecentItem: (RecentItem) -> Unit,

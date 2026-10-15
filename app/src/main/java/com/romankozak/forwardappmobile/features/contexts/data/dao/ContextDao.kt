@@ -7,7 +7,6 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.LegacyGlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,8 +47,37 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE id = :id")
     suspend fun getContextById(id: String): Context?
 
-    @Query("SELECT * FROM contexts WHERE id = :id")
-    fun getContextByIdStream(id: String): Flow<Context?>
+    @Query(
+        """
+        UPDATE contexts SET
+            valueImportance = :importance,
+            valueImpact = :impact,
+            effort = :effort,
+            cost = :cost,
+            risk = :risk,
+            weightEffort = :effortWeight,
+            weightCost = :costWeight,
+            weightRisk = :riskWeight,
+            rawScore = :rawScore,
+            displayScore = :displayScore,
+            scoring_status = :scoringStatus
+        WHERE id = :contextId
+        """,
+    )
+    suspend fun projectCanonicalScoring(
+        contextId: String,
+        importance: Float,
+        impact: Float,
+        effort: Float,
+        cost: Float,
+        risk: Float,
+        effortWeight: Float,
+        costWeight: Float,
+        riskWeight: Float,
+        rawScore: Float,
+        displayScore: Int,
+        scoringStatus: String,
+    )
 
     @Query("UPDATE contexts SET goal_order = :order WHERE id = :contextId")
     suspend fun updateOrder(
@@ -66,40 +94,8 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE parentId IS NULL ORDER BY goal_order ASC")
     suspend fun getTopLevelContexts(): List<Context>
 
-    @Transaction
-    @Query(
-        """
-    WITH RECURSIVE path_cte(id, name, path) AS (
-        SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
-        UNION ALL
-        SELECT p.id, p.name, pct.path || ' / ' || p.name
-        FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
-    )
-    SELECT
-        subproject.*,
-        parent_project.id as parentContextId,
-        parent_project.name as parentContextName,
-        pc.path as pathSegments
-    FROM contexts AS subproject
-    INNER JOIN contexts AS parent_project ON subproject.parentId = parent_project.id
-    INNER JOIN path_cte pc ON subproject.id = pc.id
-    WHERE subproject.parentId IS NOT NULL
-      AND subproject.is_deleted = 0
-      AND parent_project.is_deleted = 0
-      AND subproject.name LIKE :query
-    """,
-    )
-    suspend fun searchSubprojectsGlobal(query: String): List<LegacyGlobalSubcontextSearchResult>
-
-
     @Query("DELETE FROM contexts")
     suspend fun deleteAll()
-
-    @Query("UPDATE contexts SET default_view_mode = :viewModeName WHERE id = :contextId")
-    suspend fun updateViewMode(
-        contextId: String,
-        viewModeName: String,
-    )
 
     @Query("SELECT * FROM contexts")
     fun getAllContextsFlow(): Flow<List<Context>>
@@ -110,13 +106,4 @@ interface ContextDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(contexts: List<Context>)
 
-    @Query(
-        """
-    SELECT * FROM contexts
-    WHERE parentId = :parentId
-      AND is_deleted = 0
-    ORDER BY goal_order ASC, id ASC
-""",
-    )
-    fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>>
 }

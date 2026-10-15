@@ -32,6 +32,11 @@ object NavigationRoutes {
     const val PROJECT_SETTINGS = "project_settings_screen"
     const val GOAL_SETTINGS = "goal_settings_screen"
     const val SYNC = "sync_screen"
+    const val LEGACY_NOTE = "legacy_note_screen"
+    const val LEGACY_NOTE_CREATE = "legacy_note_create_screen"
+    const val SEMANTIC_ENTITY_EDITOR = "semantic_entity_editor_screen"
+    const val CANONICAL_ENTITY_PICKER = "canonical_entity_picker_screen"
+    const val ENTITY_LIBRARY = "entity_library_screen"
     const val NOTE_DOCUMENT = "note_document_screen"
     const val NOTE_DOCUMENT_CREATE = "note_document_create_screen"
     const val NOTE_DOCUMENT_EDIT = "note_document_edit_screen"
@@ -61,6 +66,11 @@ object NavigationRoutes {
             "&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}" +
             "&initialTagQuery={initialTagQuery}&originContextId={originContextId}"
     const val SCRIPT_EDITOR_PATTERN = "$SCRIPT_EDITOR?projectId={projectId}&scriptId={scriptId}"
+    const val LEGACY_NOTE_PATTERN = "$LEGACY_NOTE/{noteId}?workspaceId={workspaceId}"
+    const val SEMANTIC_ENTITY_EDITOR_PATTERN = "$SEMANTIC_ENTITY_EDITOR/{subjectId}"
+    const val CANONICAL_ENTITY_PICKER_PATTERN =
+        "$CANONICAL_ENTITY_PICKER?allowedClasses={allowedClasses}&selectionMode={selectionMode}" +
+            "&excludedRefs={excludedRefs}&initiallySelected={initiallySelected}"
     const val NOTE_DOCUMENT_EDIT_PATTERN = "$NOTE_DOCUMENT_EDIT?projectId={projectId}&documentId={documentId}"
     const val CHECKLIST_PATTERN = "$CHECKLIST?projectId={projectId}&checklistId={checklistId}"
     const val MUSIC_NOTE_PATTERN = "$MUSIC_NOTE/{musicNoteId}?startEdit={startEdit}"
@@ -94,6 +104,37 @@ object NavigationRoutes {
             queryOf(
                 listOf(ARG_PROJECT_ID_TO_REVEAL to projectIdToReveal),
             )
+
+    fun legacyNote(
+        noteId: String,
+        workspaceId: String? = null,
+    ): String {
+        require(noteId.isNotBlank()) { "Legacy Note ID must not be blank" }
+        return "$LEGACY_NOTE/${URLEncoder.encode(noteId, "UTF-8")}" +
+            queryOf(listOf("workspaceId" to workspaceId))
+    }
+
+    fun semanticEntityEditor(subjectId: String): String {
+        require(subjectId.isNotBlank()) { "Semantic subject ID must not be blank" }
+        return "$SEMANTIC_ENTITY_EDITOR/${URLEncoder.encode(subjectId, "UTF-8")}"
+    }
+
+    fun canonicalEntityPicker(
+        request: com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityPickerRequest,
+    ): String {
+        fun encodedRefs(refs: Set<com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef>): String =
+            URLEncoder.encode(
+                refs.joinToString(";") {
+                    com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityRefCodec.encode(it)
+                },
+                "UTF-8",
+            )
+        return "$CANONICAL_ENTITY_PICKER?" +
+            "allowedClasses=${request.allowedClasses.joinToString(",") { it.name }}" +
+            "&selectionMode=${request.selectionMode.name}" +
+            "&excludedRefs=${encodedRefs(request.excludedRefs)}" +
+            "&initiallySelected=${encodedRefs(request.initiallySelected)}"
+    }
 
     fun noteDocument(
         id: String,

@@ -272,8 +272,8 @@ class CanonicalBacklogRepository
          * duplicated Workspace hierarchy.
          *
          * This deliberately reads only canonical placement and target state.
-         * Retained list_items must never influence runtime cleanup after the
-         * schema-162 authority switch.
+         * Legacy list_items ceased being runtime input at schema 162 and were
+         * physically retired at schema 194.
          */
         suspend fun tombstoneDanglingAndStructuralEntries(
             now: Long = System.currentTimeMillis(),

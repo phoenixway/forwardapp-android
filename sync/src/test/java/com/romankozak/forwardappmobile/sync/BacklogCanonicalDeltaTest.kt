@@ -36,6 +36,7 @@ class BacklogCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),

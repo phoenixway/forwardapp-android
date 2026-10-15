@@ -19,12 +19,27 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.TACTICAL_EXTENSION_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskOwnerRejection
+import com.romankozak.forwardappmobile.data.dao.DayTaskWorkspaceOwnerRejected
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
@@ -145,6 +160,72 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                     .single { it.id == workspace.id }
             assertNull(exportedWorkspace.parentWorkspaceId)
             assertEquals(0L, exportedWorkspace.workspaceOrder)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `full export carries canonical Day scope extension without legacy DayPlan synthesis`() = runBlocking {
+        val database = database()
+        try {
+            val planningStore = CanonicalPlanningSyncStore(database)
+            val decodedPlanning =
+                planningStore.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope(kind = "DAY")),
+                    commitments = emptyList(),
+                    liveOrientationIds = emptySet(),
+                )
+            planningStore.restoreExactDecoded(decodedPlanning)
+
+            val extensionStore = CanonicalDayPlanningScopeExtensionSyncStore(database)
+            extensionStore.restoreExactDecoded(
+                extensionStore.decodeAndValidateForRestore(
+                    snapshots = listOf(dayPlanningExtension()),
+                    scopes = decodedPlanning.scopes,
+                ),
+            )
+
+            val bundle = fullBackup(database).loadFullSnapshotBundle()
+
+            assertEquals(CURRENT_PLANNING_FORMAT_VERSION, bundle.planningFormatVersion)
+            assertEquals(listOf(planningScope(kind = "DAY")), bundle.planningScopes)
+            assertEquals(emptyList<Any>(), bundle.planningCommitments)
+            assertEquals(listOf(dayPlanningExtension()), bundle.dayPlanningScopeExtensions)
+            assertEquals(emptyList<Any>(), bundle.tacticalPlanningScopeExtensions)
+            assertEquals(emptyList<Any>(), bundle.strategicPlanningScopeExtensions)
+            assertTrue(database.dayPlanDao().getAllPlansSync().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `full export carries canonical Strategic extension without ArcQuest synthesis`() = runBlocking {
+        val database = database()
+        try {
+            val planningStore = CanonicalPlanningSyncStore(database)
+            val decodedPlanning =
+                planningStore.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope(kind = "STRATEGIC_ARC")),
+                    commitments = emptyList(),
+                    liveOrientationIds = emptySet(),
+                )
+            planningStore.restoreExactDecoded(decodedPlanning)
+
+            val extensionStore = CanonicalStrategicPlanningScopeExtensionSyncStore(database)
+            extensionStore.restoreExactDecoded(
+                extensionStore.decodeAndValidateForRestore(
+                    snapshots = listOf(strategicPlanningExtension()),
+                    scopes = decodedPlanning.scopes,
+                ),
+            )
+
+            val bundle = fullBackup(database).loadFullSnapshotBundle()
+
+            assertEquals(CURRENT_PLANNING_FORMAT_VERSION, bundle.planningFormatVersion)
+            assertEquals(listOf(strategicPlanningExtension()), bundle.strategicPlanningScopeExtensions)
+            assertTrue(bundle.arcQuests.isEmpty())
         } finally {
             database.close()
         }
@@ -672,6 +753,454 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         }
 
     @Test
+    fun `normal merge rejects unproven DayTask Workspace owners atomically`() =
+        runBlocking {
+            val source = database()
+            try {
+                initializer(source).ensureCanonicalSystemWorkspaceOwnership()
+
+                source.dayPlanDao().insert(
+                    DayPlan(
+                        id = DAY_TASK_PLAN_ID,
+                        date = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                val validId = "merge-rollback-valid-daytask"
+                val rejectedId = "merge-rollback-invalid-daytask"
+
+                source.dayTaskDao().insertTasks(
+                    listOf(
+                        DayTask(
+                            id = validId,
+                            dayPlanId = DAY_TASK_PLAN_ID,
+                            title = "Valid task preceding rejected owner",
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                        DayTask(
+                            id = rejectedId,
+                            dayPlanId = DAY_TASK_PLAN_ID,
+                            title = "Task with rejected owner",
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                    ),
+                )
+
+                val baseline = fullBackup(source).loadFullSnapshotBundle()
+                assertEquals(2, baseline.dayTasks.size)
+                assertTrue(baseline.dayTasks.all { it.projectId == null })
+
+                val cases =
+                    listOf(
+                        Triple(
+                            "missing",
+                            "merge-missing-daytask-owner",
+                            DayTaskOwnerRejection.MISSING_WORKSPACE,
+                        ),
+                        Triple(
+                            "deleted",
+                            "merge-deleted-daytask-owner",
+                            DayTaskOwnerRejection.DELETED_WORKSPACE,
+                        ),
+                        Triple(
+                            "unproven-live",
+                            "merge-unproven-daytask-owner",
+                            DayTaskOwnerRejection.UNPROVEN_LIVE_CONTEXT_MAPPING,
+                        ),
+                    )
+
+                cases.forEach { (caseName, ownerId, expectedReason) ->
+                    val destination = database()
+                    try {
+                        initializer(destination).ensureCanonicalSystemWorkspaceOwnership()
+
+                        when (caseName) {
+                            "missing" -> Unit
+                            "deleted" -> {
+                                destination.workspaceDao().upsert(
+                                    listOf(
+                                        canonicalWorkspace(ownerId).copy(
+                                            isDeleted = true,
+                                        ),
+                                    ),
+                                )
+                            }
+                            "unproven-live" -> {
+                                destination.contextDao().insertContexts(
+                                    listOf(
+                                        retiredContext(ownerId).copy(
+                                            isDeleted = false,
+                                        ),
+                                    ),
+                                )
+                                destination.workspaceDao().upsert(
+                                    listOf(canonicalWorkspace(ownerId)),
+                                )
+                            }
+                            else -> error("Unexpected test case: $caseName")
+                        }
+
+                        destination.dayPlanDao().insert(
+                            DayPlan(
+                                id = "merge-local-survivor-plan",
+                                date = 2L,
+                                createdAt = 1L,
+                                updatedAt = 1L,
+                                version = 1L,
+                            ),
+                        )
+                        destination.dayTaskDao().insert(
+                            DayTask(
+                                id = "merge-local-survivor-task",
+                                dayPlanId = "merge-local-survivor-plan",
+                                title = "Existing local task",
+                                createdAt = 1L,
+                                updatedAt = 1L,
+                                version = 1L,
+                            ),
+                        )
+
+                        val plansBefore =
+                            destination.dayPlanDao().getAllPlansSync()
+                        val tasksBefore =
+                            destination.dayTaskDao().getAllTasksSync()
+
+                        val incoming =
+                            baseline.copy(
+                                dayTasks =
+                                    baseline.dayTasks.map { task ->
+                                        if (task.id == rejectedId) {
+                                            task.copy(projectId = ownerId)
+                                        } else {
+                                            task
+                                        }
+                                    },
+                            )
+
+                        val failure =
+                            runCatching {
+                                merge(destination).applySnapshotBundle(incoming)
+                            }.exceptionOrNull()
+
+                        assertTrue(
+                            "$caseName expected DayTask owner rejection, " +
+                                "got ${failure?.javaClass?.name}: ${failure?.message}",
+                            failure is DayTaskWorkspaceOwnerRejected,
+                        )
+                        assertEquals(
+                            "$caseName rejection reason",
+                            expectedReason,
+                            (failure as DayTaskWorkspaceOwnerRejected).reason,
+                        )
+
+                        assertEquals(
+                            "$caseName must roll back incoming DayPlan",
+                            plansBefore,
+                            destination.dayPlanDao().getAllPlansSync(),
+                        )
+                        assertEquals(
+                            "$caseName must preserve existing tasks and " +
+                                "roll back both incoming tasks",
+                            tasksBefore,
+                            destination.dayTaskDao().getAllTasksSync(),
+                        )
+                        assertNull(
+                            destination.dayTaskDao().getTaskById(validId),
+                        )
+                        assertNull(
+                            destination.dayTaskDao().getTaskById(rejectedId),
+                        )
+                    } finally {
+                        destination.close()
+                    }
+                }
+            } finally {
+                source.close()
+            }
+        }
+
+    @Test
+    fun `full restore neutralizes missing DayTask Workspace owner without dropping task`() =
+        runBlocking {
+            val source = database()
+            val destination = database()
+            try {
+                initializer(source).ensureCanonicalSystemWorkspaceOwnership()
+
+                val taskId = "restore-missing-owner-daytask"
+                val missingOwner = "restore-missing-workspace"
+
+                source.dayPlanDao().insert(
+                    DayPlan(
+                        id = DAY_TASK_PLAN_ID,
+                        date = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+                source.dayTaskDao().insert(
+                    DayTask(
+                        id = taskId,
+                        dayPlanId = DAY_TASK_PLAN_ID,
+                        title = "Task survives invalid owner",
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                val exported = fullBackup(source).loadFullSnapshotBundle()
+                val incoming =
+                    exported.copy(
+                        dayTasks =
+                            exported.dayTasks.map { task ->
+                                if (task.id == taskId) {
+                                    task.copy(projectId = missingOwner)
+                                } else {
+                                    task
+                                }
+                            },
+                    )
+
+                assertEquals(
+                    missingOwner,
+                    incoming.dayTasks.single { it.id == taskId }.projectId,
+                )
+                assertTrue(
+                    incoming.workspaces.orEmpty().none {
+                        it.id == missingOwner
+                    },
+                )
+
+                restore(destination, incoming)
+
+                val restored =
+                    requireNotNull(
+                        destination.dayTaskDao().getTaskById(taskId),
+                    )
+                assertEquals(
+                    "Task survives invalid owner",
+                    restored.title,
+                )
+                assertNull(restored.projectId)
+                assertNull(restored.projectWorkspaceId)
+                assertNull(restored.logicalProjectId)
+
+                val exportedAgain =
+                    fullBackup(destination)
+                        .loadFullSnapshotBundle()
+                        .dayTasks
+                        .single { it.id == taskId }
+
+                assertNull(exportedAgain.projectId)
+                assertEquals(restored.title, exportedAgain.title)
+            } finally {
+                source.close()
+                destination.close()
+            }
+        }
+
+    @Test
+    fun `normal merge rejects invalid TacticalMission Workspace owners atomically`() =
+        runBlocking {
+            val source = database()
+            try {
+                initializer(source).ensureCanonicalSystemWorkspaceOwnership()
+
+                val validId = 97001L
+                val rejectedId = 97002L
+                val survivorId = 97003L
+
+                source.dayPlanDao().insert(
+                    DayPlan(
+                        id = "merge-tactical-incoming-plan",
+                        date = 1L,
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        version = 1L,
+                    ),
+                )
+
+                source.tacticalMissionDao().insertMissions(
+                    listOf(
+                        TacticalMission(
+                            id = validId,
+                            title = "Valid incoming mission",
+                            description = null,
+                            deadline = NO_DEADLINE,
+                            projectId = null,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                        TacticalMission(
+                            id = rejectedId,
+                            title = "Mission with rejected owner",
+                            description = null,
+                            deadline = NO_DEADLINE,
+                            projectId = null,
+                            createdAt = 1L,
+                            updatedAt = 1L,
+                            version = 1L,
+                        ),
+                    ),
+                )
+
+                val baseline = fullBackup(source).loadFullSnapshotBundle()
+                assertEquals(
+                    setOf(validId, rejectedId),
+                    baseline.tacticalMissions.map { it.id }.toSet(),
+                )
+
+                val cases =
+                    listOf(
+                        Triple(
+                            "missing",
+                            "merge-missing-tactical-owner",
+                            DayTaskOwnerRejection.MISSING_WORKSPACE,
+                        ),
+                        Triple(
+                            "deleted",
+                            "merge-deleted-tactical-owner",
+                            DayTaskOwnerRejection.DELETED_WORKSPACE,
+                        ),
+                        Triple(
+                            "unproven-live",
+                            "merge-unproven-tactical-owner",
+                            DayTaskOwnerRejection.UNPROVEN_LIVE_CONTEXT_MAPPING,
+                        ),
+                    )
+
+                cases.forEach { (caseName, ownerId, expectedReason) ->
+                    val destination = database()
+                    try {
+                        initializer(destination)
+                            .ensureCanonicalSystemWorkspaceOwnership()
+
+                        when (caseName) {
+                            "missing" -> Unit
+
+                            "deleted" -> {
+                                destination.workspaceDao().upsert(
+                                    listOf(
+                                        canonicalWorkspace(ownerId)
+                                            .copy(isDeleted = true),
+                                    ),
+                                )
+                            }
+
+                            "unproven-live" -> {
+                                destination.contextDao().insertContexts(
+                                    listOf(
+                                        retiredContext(ownerId)
+                                            .copy(isDeleted = false),
+                                    ),
+                                )
+                                destination.workspaceDao().upsert(
+                                    listOf(canonicalWorkspace(ownerId)),
+                                )
+                            }
+
+                            else -> error("Unexpected test case: $caseName")
+                        }
+
+                        destination.dayPlanDao().insert(
+                            DayPlan(
+                                id = "merge-tactical-local-plan",
+                                date = 2L,
+                                createdAt = 1L,
+                                updatedAt = 1L,
+                                version = 1L,
+                            ),
+                        )
+
+                        destination.tacticalMissionDao().insertMission(
+                            TacticalMission(
+                                id = survivorId,
+                                title = "Existing local mission",
+                                description = null,
+                                deadline = NO_DEADLINE,
+                                projectId = null,
+                                createdAt = 1L,
+                                updatedAt = 1L,
+                                version = 1L,
+                            ),
+                        )
+
+                        val plansBefore =
+                            destination.dayPlanDao().getAllPlansSync()
+                        val missionsBefore =
+                            destination.tacticalMissionDao()
+                                .getAllMissionsSync()
+
+                        val incoming =
+                            baseline.copy(
+                                tacticalMissions =
+                                    baseline.tacticalMissions.map { mission ->
+                                        if (mission.id == rejectedId) {
+                                            mission.copy(projectId = ownerId)
+                                        } else {
+                                            mission
+                                        }
+                                    },
+                            )
+
+                        val failure =
+                            runCatching {
+                                merge(destination).applySnapshotBundle(incoming)
+                            }.exceptionOrNull()
+
+                        assertTrue(
+                            "$caseName expected TacticalMission owner rejection, " +
+                                "got ${failure?.javaClass?.name}: ${failure?.message}",
+                            failure is DayTaskWorkspaceOwnerRejected,
+                        )
+
+                        assertEquals(
+                            "$caseName rejection reason",
+                            expectedReason,
+                            (failure as DayTaskWorkspaceOwnerRejected).reason,
+                        )
+
+                        assertEquals(
+                            "$caseName must roll back incoming DayPlan",
+                            plansBefore,
+                            destination.dayPlanDao().getAllPlansSync(),
+                        )
+
+                        assertEquals(
+                            "$caseName must preserve local mission and roll back incoming missions",
+                            missionsBefore,
+                            destination.tacticalMissionDao()
+                                .getAllMissionsSync(),
+                        )
+
+                        assertNull(
+                            destination.tacticalMissionDao()
+                                .getMissionById(validId),
+                        )
+                        assertNull(
+                            destination.tacticalMissionDao()
+                                .getMissionById(rejectedId),
+                        )
+                    } finally {
+                        destination.close()
+                    }
+                }
+            } finally {
+                source.close()
+            }
+        }
+
+    @Test
     fun `merge installs System Workspace before routing reserved TacticalMission project`() =
         runBlocking {
             val source = database()
@@ -984,6 +1513,295 @@ class SystemCapabilityTransportRoomAcceptanceTest {
     }
 
     @Test
+    fun `planning restore null preserves dormant canonical state`() = runBlocking {
+        val database = database()
+        try {
+            seedPlanningOrientation(database)
+            val store = CanonicalPlanningSyncStore(database)
+            store.restoreExactDecoded(
+                store.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope(syncedAt = 51L)),
+                    commitments = listOf(planningCommitment(syncedAt = 61L)),
+                    liveOrientationIds = setOf(PLANNING_ORIENTATION_ID),
+                ),
+            )
+
+            restore(database, planningBundle())
+
+            assertEquals(51L, store.loadAllScopes().single().syncedAt)
+            assertEquals(61L, store.loadAllCommitments().single().syncedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `planning restore explicit empty authoritatively clears dormant state`() = runBlocking {
+        val database = database()
+        try {
+            seedPlanningOrientation(database)
+            val store = CanonicalPlanningSyncStore(database)
+            store.restoreExactDecoded(
+                store.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope()),
+                    commitments = listOf(planningCommitment()),
+                    liveOrientationIds = setOf(PLANNING_ORIENTATION_ID),
+                ),
+            )
+
+            restore(
+                database,
+                planningBundle(
+                    scopes = emptyList(),
+                    commitments = emptyList(),
+                ),
+            )
+
+            assertTrue(store.loadAllScopes().isEmpty())
+            assertTrue(store.loadAllCommitments().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `Strategic extension restore explicit empty is authoritative while scope remains`() = runBlocking {
+        val database = database()
+        try {
+            val planningStore = CanonicalPlanningSyncStore(database)
+            val decoded =
+                planningStore.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope(kind = "STRATEGIC_ARC")),
+                    commitments = emptyList(),
+                    liveOrientationIds = emptySet(),
+                )
+            planningStore.restoreExactDecoded(decoded)
+            val strategicStore = CanonicalStrategicPlanningScopeExtensionSyncStore(database)
+            strategicStore.restoreExactDecoded(
+                strategicStore.decodeAndValidateForRestore(
+                    snapshots = listOf(strategicPlanningExtension()),
+                    scopes = decoded.scopes,
+                ),
+            )
+
+            restore(
+                database,
+                planningBundle(
+                    scopes = listOf(planningScope(kind = "STRATEGIC_ARC")),
+                    commitments = emptyList(),
+                    strategicExtensions = emptyList(),
+                ),
+            )
+
+            assertEquals(1, planningStore.loadAllScopes().size)
+            assertTrue(strategicStore.loadAll().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `planning v3 restore preserves unsupported local Strategic extension`() = runBlocking {
+        val database = database()
+        try {
+            val planningStore = CanonicalPlanningSyncStore(database)
+            val decoded =
+                planningStore.decodeAndValidateForRestore(
+                    scopes = listOf(planningScope(kind = "STRATEGIC_ARC")),
+                    commitments = emptyList(),
+                    liveOrientationIds = emptySet(),
+                )
+            planningStore.restoreExactDecoded(decoded)
+            val strategicStore = CanonicalStrategicPlanningScopeExtensionSyncStore(database)
+            strategicStore.restoreExactDecoded(
+                strategicStore.decodeAndValidateForRestore(
+                    snapshots = listOf(strategicPlanningExtension()),
+                    scopes = decoded.scopes,
+                ),
+            )
+
+            val v3Bundle =
+                planningBundle(
+                    scopes = listOf(planningScope(kind = "STRATEGIC_ARC")),
+                    commitments = emptyList(),
+                ).copy(
+                    planningFormatVersion = TACTICAL_EXTENSION_PLANNING_FORMAT_VERSION,
+                    strategicPlanningScopeExtensions = null,
+                )
+            restore(database, v3Bundle)
+
+            assertEquals(listOf(strategicPlanningExtension()), strategicStore.loadAll())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `planning populated restore preserves exact version tombstone and syncedAt`() = runBlocking {
+        val database = database()
+        try {
+            restore(
+                database,
+                planningBundle(
+                    scopes = listOf(planningScope(version = 7L, syncedAt = 71L)),
+                    commitments =
+                        listOf(
+                            planningCommitment(
+                                version = 8L,
+                                syncedAt = 81L,
+                                deleted = true,
+                            ),
+                        ),
+                ),
+            )
+
+            val store = CanonicalPlanningSyncStore(database)
+            val scope = store.loadAllScopes().single()
+            val commitment = store.loadAllCommitments().single()
+            assertEquals(7L, scope.version)
+            assertEquals(71L, scope.syncedAt)
+            assertEquals(8L, commitment.version)
+            assertEquals(81L, commitment.syncedAt)
+            assertTrue(commitment.isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `day planning extension restore preserves typed state and exact metadata`() = runBlocking {
+        val database = database()
+        try {
+            restore(
+                database,
+                planningBundle(
+                    scopes = listOf(planningScope(kind = "DAY")),
+                    commitments = emptyList(),
+                    dayExtensions = listOf(dayPlanningExtension()),
+                ),
+            )
+
+            val extension = CanonicalDayPlanningScopeExtensionSyncStore(database).loadAll().single()
+            assertEquals(PLANNING_SCOPE_ID, extension.scopeId)
+            assertEquals(1_735_689_600_000L, extension.calendarDayStartMillis)
+            assertEquals("MISSED", extension.outcome)
+            assertEquals(420L, extension.plannedBudgetMinutes)
+            assertEquals(9L, extension.version)
+            assertEquals(91L, extension.syncedAt)
+            assertTrue(extension.isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `day planning extension restore rejects missing scope dependency`() = runBlocking {
+        val database = database()
+        try {
+            val failure =
+                runCatching {
+                    restore(
+                        database,
+                        planningBundle(
+                            scopes = emptyList(),
+                            commitments = emptyList(),
+                            dayExtensions = listOf(dayPlanningExtension()),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertTrue(CanonicalDayPlanningScopeExtensionSyncStore(database).loadAll().isEmpty())
+            assertTrue(CanonicalPlanningSyncStore(database).loadAllScopes().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `Tactical planning extension restore preserves typed state and exact metadata`() = runBlocking {
+        val database = database()
+        try {
+            restore(
+                database,
+                planningBundle(
+                    scopes = listOf(planningScope()),
+                    commitments = emptyList(),
+                    tacticalExtensions = listOf(tacticalPlanningExtension()),
+                ),
+            )
+
+            val extension = CanonicalTacticalPlanningScopeExtensionSyncStore(database).loadAll().single()
+            assertEquals(PLANNING_SCOPE_ID, extension.scopeId)
+            assertEquals("TIMEBOXED", extension.iterationType)
+            assertEquals("2026-W41", extension.weekKey)
+            assertEquals(300L, extension.closedAt)
+            assertEquals(10L, extension.version)
+            assertEquals(101L, extension.syncedAt)
+            assertTrue(extension.isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `planning normal merge equal version divergence rolls back`() = runBlocking {
+        val database = database()
+        try {
+            seedPlanningOrientation(database)
+            val store = CanonicalPlanningSyncStore(database)
+            store.mergeIncoming(
+                scopes = listOf(planningScope(version = 4L, title = "local")),
+                commitments = listOf(planningCommitment(version = 4L)),
+            )
+
+            val failure =
+                runCatching {
+                    merge(database).applySnapshotBundle(
+                        planningBundle(
+                            scopes = listOf(planningScope(version = 4L, title = "remote")),
+                            commitments = listOf(planningCommitment(version = 4L)),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertEquals("local", store.loadAllScopes().single().title)
+            assertEquals(4L, store.loadAllScopes().single().version)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `planning normal merge missing orientation dependency rolls back`() = runBlocking {
+        val database = database()
+        try {
+            val failure =
+                runCatching {
+                    merge(database).applySnapshotBundle(
+                        planningBundle(
+                            includeOrientation = false,
+                            scopes = listOf(planningScope()),
+                            commitments =
+                                listOf(
+                                    planningCommitment(
+                                        orientationId = "missing-planning-orientation",
+                                    ),
+                                ),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertTrue(CanonicalPlanningSyncStore(database).loadAllScopes().isEmpty())
+            assertTrue(CanonicalPlanningSyncStore(database).loadAllCommitments().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `canonical sync includes and acknowledges System capability versions without legacy config`() =
         runBlocking {
             val database = database()
@@ -1022,6 +1840,151 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 database.close()
             }
         }
+
+    private suspend fun seedPlanningOrientation(database: AppDatabase) {
+        database.orientationDao().upsertManagedSubjects(listOf(planningManagedSubject()))
+        database.orientationDao().upsertOrientations(listOf(planningOrientation()))
+    }
+
+    private fun planningBundle(
+        includeOrientation: Boolean = true,
+        scopes: List<PlanningScopeSnapshot>? = null,
+        commitments: List<PlanningCommitmentSnapshot>? = null,
+        dayExtensions: List<DayPlanningScopeExtensionSnapshot>? = null,
+        tacticalExtensions: List<TacticalPlanningScopeExtensionSnapshot>? = null,
+        strategicExtensions: List<StrategicPlanningScopeExtensionSnapshot>? = null,
+    ): SnapshotBundle {
+        val planningPresent =
+            scopes != null || commitments != null || dayExtensions != null || tacticalExtensions != null ||
+                strategicExtensions != null
+        return SnapshotBundle(
+            version = 2,
+            contexts = emptyList(),
+            managedSubjects = if (includeOrientation) listOf(planningManagedSubject()) else emptyList(),
+            orientations = if (includeOrientation) listOf(planningOrientation()) else emptyList(),
+            aspects = emptyList(),
+            orientationAssessments = emptyList(),
+            orientationAssessmentRevisions = emptyList(),
+            legacySubjectMappings = emptyList(),
+            orientationRelations = emptyList(),
+            aspectOrientationRefs = emptyList(),
+            workspaces = emptyList(),
+            workspaceBindings = emptyList(),
+            workspaceCapabilityInstances = emptyList(),
+            savedOrientationViews = emptyList(),
+            workspaceBacklogEntries = emptyList(),
+            workspaceInboxRecords = emptyList(),
+            hierarchyPlacements = emptyList(),
+            hierarchyPlacementGroupScopes = emptyList(),
+            hierarchyPlacementLinkedAppearances = emptyList(),
+            planningFormatVersion = if (planningPresent) CURRENT_PLANNING_FORMAT_VERSION else null,
+            planningScopes = scopes,
+            planningCommitments = commitments,
+            dayPlanningScopeExtensions = if (planningPresent) dayExtensions.orEmpty() else null,
+            tacticalPlanningScopeExtensions = if (planningPresent) tacticalExtensions.orEmpty() else null,
+            strategicPlanningScopeExtensions = if (planningPresent) strategicExtensions.orEmpty() else null,
+        )
+    }
+
+    private fun planningManagedSubject() =
+        ManagedSubjectEntity(
+            id = PLANNING_ORIENTATION_ID,
+            subjectType = "ORIENTATION",
+            title = PLANNING_ORIENTATION_ID,
+            description = null,
+            createdAt = 1L,
+            updatedAt = 1L,
+            syncedAt = null,
+            isDeleted = false,
+            version = 1L,
+        )
+
+    private fun planningOrientation() =
+        OrientationEntity(
+            subjectId = PLANNING_ORIENTATION_ID,
+            kind = "GOAL",
+            lifecycle = null,
+            lifecycleOrigin = "UNSET",
+        )
+
+    private fun planningScope(
+        version: Long = 1L,
+        title: String? = null,
+        syncedAt: Long? = 50L,
+        kind: String = "TACTICAL_CYCLE",
+    ) = PlanningScopeSnapshot(
+        id = PLANNING_SCOPE_ID,
+        kind = kind,
+        lifecycle = "ACTIVE",
+        title = title,
+        startsAt = 100L,
+        endsAt = 200L,
+        createdAt = 10L,
+        updatedAt = 20L + version,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = false,
+    )
+
+    private fun planningCommitment(
+        orientationId: String = PLANNING_ORIENTATION_ID,
+        version: Long = 1L,
+        syncedAt: Long? = 60L,
+        deleted: Boolean = false,
+    ) = PlanningCommitmentSnapshot(
+        id = PLANNING_COMMITMENT_ID,
+        scopeId = PLANNING_SCOPE_ID,
+        orientationId = orientationId,
+        role = "DAY.THEME",
+        order = 0L,
+        priorityLevel = null,
+        status = "PLANNED",
+        provenanceKind = "IMPORTED",
+        provenanceSourceType = "transport-test",
+        provenanceSourceId = "source-1",
+        createdAt = 11L,
+        updatedAt = 30L + version,
+        syncedAt = syncedAt,
+        version = version,
+        isDeleted = deleted,
+    )
+
+    private fun dayPlanningExtension() =
+        DayPlanningScopeExtensionSnapshot(
+            scopeId = PLANNING_SCOPE_ID,
+            calendarDayStartMillis = 1_735_689_600_000L,
+            outcome = "MISSED",
+            plannedBudgetMinutes = 420L,
+            createdAt = 12L,
+            updatedAt = 92L,
+            syncedAt = 91L,
+            version = 9L,
+            isDeleted = true,
+        )
+
+    private fun tacticalPlanningExtension() =
+        TacticalPlanningScopeExtensionSnapshot(
+            scopeId = PLANNING_SCOPE_ID,
+            iterationType = "TIMEBOXED",
+            weekKey = "2026-W41",
+            closedAt = 300L,
+            createdAt = 12L,
+            updatedAt = 102L,
+            syncedAt = 101L,
+            version = 10L,
+            isDeleted = true,
+        )
+
+    private fun strategicPlanningExtension() =
+        StrategicPlanningScopeExtensionSnapshot(
+            scopeId = PLANNING_SCOPE_ID,
+            legacyArcKey = " Exact/Arc Key ",
+            createdAt = 12L,
+            updatedAt = 112L,
+            syncedAt = 111L,
+            version = 11L,
+            isDeleted = false,
+        )
 
     private suspend fun assertReservedSystemShellsAbsent(database: AppDatabase) {
         val definitions = SystemOperationalDefinitions.all
@@ -1273,6 +2236,10 @@ class SystemCapabilityTransportRoomAcceptanceTest {
                 },
             dayManagementRuntimeRepository =
                 mockk<DayManagementRuntimeRepository>(relaxed = true),
+            dayPlanningAuthorityActivator = mockk(relaxed = true),
+            tacticalPlanningAuthorityActivator = mockk(relaxed = true),
+            strategicPlanningAuthorityActivator = mockk(relaxed = true),
+            canonicalScoringAuthorityActivator = mockk(relaxed = true),
         ).replaceWith(canonical)
     }
 
@@ -1358,7 +2325,16 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         type: Class<T>,
         overrides: Map<Class<*>, Any>,
     ): T {
-        val constructor = type.declaredConstructors.single()
+        // Ignore Kotlin synthetic/default-argument constructors.
+        // Select the actual injectable constructor, as the Context
+        // transport acceptance harness already does.
+        val constructor =
+            type.declaredConstructors.single { candidate ->
+                !candidate.isSynthetic &&
+                    candidate.parameterTypes.none {
+                        it.name == "kotlin.jvm.internal.DefaultConstructorMarker"
+                    }
+            }
         constructor.isAccessible = true
         val arguments =
             constructor.parameterTypes.map { parameterType ->
@@ -1418,6 +2394,9 @@ class SystemCapabilityTransportRoomAcceptanceTest {
         )
 
     private companion object {
+        const val PLANNING_SCOPE_ID = "transport-planning-scope"
+        const val PLANNING_COMMITMENT_ID = "transport-planning-commitment"
+        const val PLANNING_ORIENTATION_ID = "transport-planning-orientation"
         val SYSTEM_ID: String = SystemContexts.INBOX.raw
         val TACTICAL_SYSTEM_ID: String = SystemContexts.TODAY.raw
         const val TACTICAL_MISSION_ID = 9_001L

@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.decodeOrientationAssessmentJson
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -15,6 +16,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrie
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationAssessment
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import java.util.UUID
@@ -143,6 +145,21 @@ class GoalOrientationBridge
                 )
             }
 
+            orientationDao.getScoringOverride(mapping.subjectId)?.let { override ->
+                if (!override.isDeleted) {
+                    orientationDao.upsertScoringOverrides(
+                        listOf(
+                            override.copy(
+                                updatedAt = now,
+                                syncedAt = null,
+                                isDeleted = true,
+                                version = override.version + 1L,
+                            ),
+                        ),
+                    )
+                }
+            }
+
             val relationChanges =
                 orientationDao.getAllOrientationRelations()
                     .filter {
@@ -202,15 +219,13 @@ class GoalOrientationBridge
             val assessmentCommandChanged =
                 previousGoal.valueImportance != goal.valueImportance ||
                     previousGoal.valueImpact != goal.valueImpact ||
+                    previousGoal.effort != goal.effort ||
+                    previousGoal.cost != goal.cost ||
+                    previousGoal.risk != goal.risk ||
+                    previousGoal.weightEffort != goal.weightEffort ||
+                    previousGoal.weightCost != goal.weightCost ||
+                    previousGoal.weightRisk != goal.weightRisk ||
                     previousGoal.scoringStatus != goal.scoringStatus
-
-            if (
-                !subjectCommandChanged &&
-                !lifecycleCommandChanged &&
-                !assessmentCommandChanged
-            ) {
-                return
-            }
 
             val mapping =
                 orientationDao.getLegacyMapping(
@@ -295,9 +310,9 @@ class GoalOrientationBridge
             val revisionAssessment =
                 requireNotNull(
                     runCatching {
-                        gson.fromJson(
+                        decodeOrientationAssessmentJson(
+                            gson,
                             revision.assessmentJson,
-                            OrientationAssessment::class.java,
                         )
                     }.getOrElse {
                         throw IllegalArgumentException(
@@ -311,18 +326,33 @@ class GoalOrientationBridge
                 "CUT_OVER Goal ${goal.id} current assessment diverges from its immutable revision"
             }
 
-            // Goal compatibility owns only legacy importance/impact projection.
-            // Preserve canonical-only axes such as breadth, expected span,
-            // target window, attention tier, commitment and confidence.
-            val targetAssessment =
+            val scoringProjection =
                 if (assessmentCommandChanged) {
-                    currentAssessment.copy(
-                        importance = projection.orientation.assessment.importance,
-                        impact = projection.orientation.assessment.impact,
+                    projectLegacyScoringToCanonical(
+                        current = currentAssessment,
+                        source =
+                            com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectRef(
+                                LegacyOrientationSourceType.GOAL,
+                                goal.id,
+                            ),
+                        input =
+                            LegacyScoringInput(
+                                importance = goal.valueImportance,
+                                impact = goal.valueImpact,
+                                effort = goal.effort,
+                                cost = goal.cost,
+                                risk = goal.risk,
+                                effortWeight = goal.weightEffort,
+                                costWeight = goal.weightCost,
+                                riskWeight = goal.weightRisk,
+                                scoringStatus = goal.scoringStatus,
+                            ),
+                        preserveCanonicalImportanceImpact = false,
                     )
                 } else {
-                    currentAssessment
+                    null
                 }
+            val targetAssessment = scoringProjection?.assessment ?: currentAssessment
 
             require(
                 validateOrientationAssessment(
@@ -349,8 +379,32 @@ class GoalOrientationBridge
             val assessmentChanged =
                 assessmentCommandChanged &&
                     currentAssessment != targetAssessment
+            val currentOverride =
+                requireNotNull(orientationDao.getScoringOverride(mapping.subjectId)) {
+                    "CUT_OVER Goal ${goal.id} is missing canonical scoring policy state"
+                }
+            val overrideChanged =
+                scoringProjection != null && currentOverride.toModel() != scoringProjection.scoringOverride
 
-            if (!subjectChanged && !orientationChanged && !assessmentChanged) return
+            if (!subjectChanged && !orientationChanged && !assessmentChanged && !overrideChanged) {
+                val currentEvaluation = canonicalEvaluation(current, currentOverride)
+                val value = currentEvaluation.toLegacyProjection()
+                goalDao.projectCanonicalScoring(
+                    goal.id,
+                    value.importance,
+                    value.impact,
+                    value.effort,
+                    value.cost,
+                    value.risk,
+                    value.effortWeight,
+                    value.costWeight,
+                    value.riskWeight,
+                    value.rawScore,
+                    value.displayScore,
+                    value.scoringStatus,
+                )
+                return
+            }
 
             val now = goal.updatedAt ?: System.currentTimeMillis()
 
@@ -421,6 +475,43 @@ class GoalOrientationBridge
                     ),
                 )
             }
+
+            val storedAssessment =
+                if (assessmentChanged) {
+                    requireNotNull(
+                        orientationDao.getAllAssessments().singleOrNull {
+                            it.orientationId == mapping.subjectId
+                        },
+                    )
+                } else {
+                    current
+                }
+            val storedOverride =
+                if (overrideChanged) {
+                    scoringOverrideEntity(
+                        orientationId = mapping.subjectId,
+                        override = requireNotNull(scoringProjection).scoringOverride,
+                        current = currentOverride,
+                        now = now,
+                    ).also { orientationDao.upsertScoringOverrides(listOf(it)) }
+                } else {
+                    currentOverride
+                }
+            val value = canonicalEvaluation(storedAssessment, storedOverride).toLegacyProjection()
+            goalDao.projectCanonicalScoring(
+                goal.id,
+                value.importance,
+                value.impact,
+                value.effort,
+                value.cost,
+                value.risk,
+                value.effortWeight,
+                value.costWeight,
+                value.riskWeight,
+                value.rawScore,
+                value.displayScore,
+                value.scoringStatus,
+            )
         }
 
     }
@@ -435,6 +526,10 @@ private fun OrientationAssessmentEntity.toModel() =
         attentionTier = AxisAssessment(attentionTierValue, ValueOrigin.valueOf(attentionTierOrigin)),
         commitment = AxisAssessment(commitmentValue, ValueOrigin.valueOf(commitmentOrigin)),
         confidence = AxisAssessment(confidenceValue, ValueOrigin.valueOf(confidenceOrigin)),
+        effort = AxisAssessment(effortValue, ValueOrigin.valueOf(effortOrigin)),
+        cost = AxisAssessment(costValue, ValueOrigin.valueOf(costOrigin)),
+        risk = AxisAssessment(riskValue, ValueOrigin.valueOf(riskOrigin)),
+        evaluationState = OrientationEvaluationState.valueOf(evaluationState),
     )
 
 private fun OrientationAssessmentEntity.withAssessment(
@@ -460,6 +555,13 @@ private fun OrientationAssessmentEntity.withAssessment(
     commitmentOrigin = assessment.commitment.origin.name,
     confidenceValue = assessment.confidence.valueCode,
     confidenceOrigin = assessment.confidence.origin.name,
+    effortValue = assessment.effort.valueCode,
+    effortOrigin = assessment.effort.origin.name,
+    costValue = assessment.cost.valueCode,
+    costOrigin = assessment.cost.origin.name,
+    riskValue = assessment.risk.valueCode,
+    riskOrigin = assessment.risk.origin.name,
+    evaluationState = assessment.evaluationState.name,
     provenanceJson =
         gson.toJson(
             listOf(
@@ -471,6 +573,9 @@ private fun OrientationAssessmentEntity.withAssessment(
                 assessment.attentionTier,
                 assessment.commitment,
                 assessment.confidence,
+                assessment.effort,
+                assessment.cost,
+                assessment.risk,
             ).mapNotNull(AxisAssessment::provenance),
         ),
     updatedAt = now,

@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +11,6 @@ import kotlinx.coroutines.launch
  * Управляє тегами та контекстами для автодоповнення
  */
 class TagManager(
-    private val contextRepository: ContextRepository,
     private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     private val scope: CoroutineScope,
 ) {
@@ -28,7 +26,7 @@ class TagManager(
     fun loadTags() {
         scope.launch {
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .observePresentationUniverse()
                 .collect { presentations ->
                     val tags =
                         presentations

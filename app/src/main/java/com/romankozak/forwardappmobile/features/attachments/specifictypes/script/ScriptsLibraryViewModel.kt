@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ScriptRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
@@ -40,7 +39,6 @@ class ScriptsLibraryViewModel
     @Inject
     constructor(
         scriptRepository: ScriptRepository,
-        contextRepository: ContextRepository,
         systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         settingsRepository: SettingsRepository,
     ) : ViewModel() {
@@ -50,7 +48,7 @@ class ScriptsLibraryViewModel
         val uiState: StateFlow<ScriptsLibraryUiState> =
             combine(
                 scriptRepository.getAllScripts(),
-                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextRepository.getAllContextsFlow()),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
                 query,
                 filter,
                 settingsRepository.featureTogglesFlow,

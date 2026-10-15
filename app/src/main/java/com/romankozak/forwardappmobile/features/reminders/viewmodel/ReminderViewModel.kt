@@ -86,11 +86,9 @@ class ReminderViewModel
                                 goal?.let { ReminderListItem.GoalReminder(reminder, it) }
                             }
                             "PROJECT" -> {
-                                val rawContext = contextRepository.getContextById(reminder.entityId)
                                 val project =
                                     systemWorkspacePresentationContextProjector.resolvePresentation(
                                         contextId = reminder.entityId,
-                                        context = rawContext,
                                     )
                                 project?.let { ReminderListItem.ProjectReminder(reminder, it) }
                             }

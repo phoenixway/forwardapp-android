@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -167,10 +166,15 @@ class CanonicalExecutionLogContentRoomTest {
     }
 
     @Test
-    fun `authoring requires active capability and cannot mutate legacy row`() = runBlocking {
+    fun `authoring requires active capability and cannot move another Workspace row`() = runBlocking {
         val database = database()
         try {
-            database.workspaceDao().upsert(listOf(canonicalWorkspace("canonical")))
+            database.workspaceDao().upsert(
+                listOf(
+                    canonicalWorkspace("canonical"),
+                    canonicalWorkspace("other"),
+                ),
+            )
             val repository = repository(database)
             repository.enable("canonical", now = 10L)
             repository.disable("canonical", now = 20L)
@@ -189,44 +193,33 @@ class CanonicalExecutionLogContentRoomTest {
 
             repository.enable("canonical", now = 30L)
 
-            database.contextDao().insert(
-                ContextEntity(
-                    id = "legacy-context",
-                    name = "Legacy",
-                    description = null,
-                    parentId = null,
-                    createdAt = 1L,
-                    updatedAt = 1L,
-                    roleCode = "management",
-                ),
-            )
             database.contextManagementDao().insertLog(
                 ContextLog(
-                    id = "legacy-log",
-                    contextId = "legacy-context",
+                    id = "other-log",
                     timestamp = 2L,
                     type = "COMMENT",
-                    description = "Legacy",
+                    description = "Other owner",
                     updatedAt = 2L,
                     version = 1L,
+                    workspaceId = "other",
                 ),
             )
 
-            val legacyFailure =
+            val ownerFailure =
                 runCatching {
                     repository.updateLog(
                         workspaceId = "canonical",
-                        logId = "legacy-log",
+                        logId = "other-log",
                         type = "COMMENT",
                         description = "Must fail",
                         now = 31L,
                     )
                 }.exceptionOrNull()
 
-            assertTrue(legacyFailure is IllegalArgumentException)
+            assertTrue(ownerFailure is IllegalArgumentException)
             assertEquals(
-                "Legacy",
-                database.contextManagementDao().getLogById("legacy-log")?.description,
+                "Other owner",
+                database.contextManagementDao().getLogById("other-log")?.description,
             )
         } finally {
             database.close()

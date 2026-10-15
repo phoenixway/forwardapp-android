@@ -17,9 +17,8 @@ import javax.inject.Singleton
  *
  * This is neither a runtime mirror nor a Context tag owner. A persisted marker
  * makes the initial import retry-safe, including for an authoritative empty
- * canonical collection. After successful establishment, stale reserved-System
- * context_tag_refs are retired in the same transaction; ordinary Context tag
- * refs remain untouched.
+ * canonical collection. Legacy ingress reads Context.tags directly and writes
+ * only canonical Workspace tag membership.
  */
 @Singleton
 class SystemWorkspaceTagSeed
@@ -112,18 +111,6 @@ class SystemWorkspaceTagSeed
                 StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.write") {
                     if (refs.isNotEmpty()) tagDao.upsert(refs)
                     if (states.isNotEmpty()) database.systemWorkspaceTagSeedStateDao().upsert(states)
-                }
-
-                // Step 9B relational retirement:
-                // once every reserved System tag collection has passed the
-                // fail-closed canonical ownership checks above, its legacy
-                // Context tag index is no longer needed. Keep context_tag_refs
-                // for ordinary Contexts, but deterministically remove residue
-                // for the exact reserved System ids.
-                StartupTrace.measure("Application.systemWorkspaceOwnership.tagSeed.retireLegacyTagRefs") {
-                    definitions.forEach { definition ->
-                        database.contextTagRefDao().deleteForContext(definition.id)
-                    }
                 }
             }
         }

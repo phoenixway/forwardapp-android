@@ -20,10 +20,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalPlanningPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedMainBeaconTopology
@@ -32,12 +33,21 @@ import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonical
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toWorkspaceOwnedEntityOrNull
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspacePresentationPreferencesEntity
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningAuthorityActivator
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAdapter
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
@@ -45,7 +55,6 @@ import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacemen
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
-import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
@@ -83,10 +92,14 @@ class MergeLocalDataSourceImpl
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
+        private val canonicalScoringAuthorityActivator: com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator,
+        private val dayPlanningAuthorityActivator: CanonicalDayPlanningAuthorityActivator,
+        private val tacticalPlanningAuthorityActivator: CanonicalTacticalPlanningAuthorityActivator,
+        private val strategicPlanningAuthorityActivator: CanonicalStrategicPlanningAuthorityActivator,
+        private val strategicPlanningAdapter: CanonicalStrategicPlanningAdapter? = null,
         private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
         private val systemWorkspaceMaterializer: SystemWorkspaceMaterializer,
         private val databaseInitializer: DatabaseInitializer,
-        private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
         private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
         private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
         private val dailyMetricDao: DailyMetricDao,
@@ -126,6 +139,14 @@ class MergeLocalDataSourceImpl
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
         private val tagAssociationHandler: TagAssociationHandler,
     ) : MergeLocalDataSource {
+        private val canonicalPlanningSyncStore =
+            CanonicalPlanningSyncStore(db)
+        private val canonicalDayPlanningScopeExtensionSyncStore =
+            CanonicalDayPlanningScopeExtensionSyncStore(db)
+        private val canonicalTacticalPlanningScopeExtensionSyncStore =
+            CanonicalTacticalPlanningScopeExtensionSyncStore(db)
+        private val canonicalStrategicPlanningScopeExtensionSyncStore =
+            CanonicalStrategicPlanningScopeExtensionSyncStore(db)
         private val canonicalHierarchyPlacementSyncStore =
             CanonicalHierarchyPlacementSyncStore(db)
         private val canonicalHierarchyPlacementGroupScopeSyncStore =
@@ -202,6 +223,7 @@ class MergeLocalDataSourceImpl
         ) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
+            requireValidCanonicalPlanningPayload(bundle)
 
             val contextIngress = partitionSystemContextSnapshotIngress(bundle.contexts)
             val contextSnapshotsForPersistence =
@@ -476,10 +498,12 @@ class MergeLocalDataSourceImpl
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
                 musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
-                legacyNoteDao.insertAll(
-                    bundle.notes
-                        .filterNot { note -> isReservedSystemContextId(note.contextId) }
-                        .map { it.toEntity() },
+                // Selective Import and Normal Merge share canonical Note identity/version policy.
+                // Historical contextId is compatibility evidence, not Note admission authority.
+                applyCanonicalLegacyNotes(
+                    dao = legacyNoteDao,
+                    incoming = bundle.notes.map { it.toEntity() },
+                    restoreExact = contextPersistenceMode == ContextPersistenceMode.RESTORE_COMPATIBILITY,
                 )
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
@@ -603,60 +627,62 @@ class MergeLocalDataSourceImpl
                     validateEmbeddedWorkspaceTopology = false,
                 )
 
+                canonicalPlanningSyncStore.mergeIncoming(
+                    scopes = bundle.planningScopes,
+                    commitments = bundle.planningCommitments,
+                )
+                canonicalDayPlanningScopeExtensionSyncStore.mergeIncoming(
+                    bundle.dayPlanningScopeExtensions,
+                )
+                canonicalTacticalPlanningScopeExtensionSyncStore.mergeIncoming(
+                    bundle.tacticalPlanningScopeExtensions,
+                )
+                canonicalStrategicPlanningScopeExtensionSyncStore.mergeIncoming(
+                    bundle.strategicPlanningScopeExtensions,
+                )
+
                 val contextsById = contextDao.getAllRaw().associateBy { it.id }
                 val workspacesById = db.workspaceDao().getAll().associateBy { it.id }
 
-                fun hasValidNonSystemOperationalProjectOwner(projectId: String): Boolean =
-                    runCatching {
-                        classifyOperationalProjectOwner(
-                            logicalProjectId = projectId,
-                            context = contextsById[projectId],
-                            workspace = workspacesById[projectId],
+                // The wire projectId is a logical owner identity, not
+                // permission to recreate Context-backed DayTask ownership.
+                // Validate against the effective canonical Workspace state.
+                // Rejection rolls back the enclosing Workspace mutation.
+                dayTasksToInsert.forEach { snapshot ->
+                    snapshot.projectId?.let { ownerId ->
+                        requireDayTaskWorkspaceOwner(
+                            ownerId = ownerId,
+                            context = contextsById[ownerId],
+                            workspace = workspacesById[ownerId],
                         )
-                    }.isSuccess
-
-                val routedDayTasksToInsert =
-                    dayTasksToInsert.map { snapshot ->
-                        val projectId = snapshot.projectId
-                        if (
-                            projectId != null &&
-                            !isReservedSystemContextId(projectId) &&
-                            !hasValidNonSystemOperationalProjectOwner(projectId)
-                        ) {
-                            Log.w(
-                                "MergeImport",
-                                "Dropping invalid DayTask operational owner $projectId for ${snapshot.id}",
-                            )
-                            snapshot.copy(projectId = null)
-                        } else {
-                            snapshot
-                        }
                     }
+                }
 
                 dayTaskDao.insertTasks(
-                    routedDayTasksToInsert.map { snapshot ->
+                    dayTasksToInsert.map { snapshot ->
                         com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
                             .dayTaskEntity(snapshot, snapshot.toEntity())
                     },
                 )
 
+                // TacticalMission's wire projectId is an ingress identity,
+                // never authority to persist a Context-backed project owner.
+                //
+                // Normal Merge fails closed on invalid ownership. Full Restore
+                // must normalize unsupported historical owners before using
+                // this same validated writer. The enclosing mutation provides
+                // atomic rollback for both boundaries.
                 val missions =
                     bundle.tacticalMissions.map { snapshot ->
-                        val projectId = snapshot.projectId
-                        if (
-                            projectId != null &&
-                            !isReservedSystemContextId(projectId) &&
-                            !hasValidNonSystemOperationalProjectOwner(projectId)
-                        ) {
-                            Log.w(
-                                "MergeImport",
-                                "Dropping invalid TacticalMission operational owner $projectId for ${snapshot.id}",
+                        snapshot.projectId?.let { ownerId ->
+                            requireDayTaskWorkspaceOwner(
+                                ownerId = ownerId,
+                                context = contextsById[ownerId],
+                                workspace = workspacesById[ownerId],
                             )
-                            snapshot.copy(projectId = null)
-                        } else {
-                            snapshot
                         }
-                    }.map { it.toEntity() }
+                        snapshot.toEntity()
+                    }
                 if (missions.isNotEmpty()) {
                     tacticalMissionDao.insertMissions(missions)
                     Log.d(
@@ -668,33 +694,13 @@ class MergeLocalDataSourceImpl
                     bundle.tacticalMissionAttachments.map { it.toEntity() },
                 )
 
-                when (contextPersistenceMode) {
-                    ContextPersistenceMode.NORMAL_MERGE -> {
-                        val workspaceOwnerRefs =
-                            bundle.mainBeaconContextCrossRefs.map { snapshot ->
-                                val workspace =
-                                    requireNotNull(
-                                        mainBeaconDao.getOperationalOwnerWorkspace(snapshot.contextId),
-                                    ) {
-                                        "Canonical merge Main Beacon owner ${snapshot.contextId} has no Workspace"
-                                    }
-                                require(!workspace.isDeleted) {
-                                    "Canonical merge Main Beacon owner ${snapshot.contextId} is a deleted Workspace"
-                                }
-                                MainBeaconWorkspaceCrossRef(
-                                    beaconId = snapshot.beaconId,
-                                    workspaceId = snapshot.contextId,
-                                    order = snapshot.order,
-                                )
-                            }
-                        mainBeaconDao.insertWorkspaceCrossRefs(workspaceOwnerRefs)
-                    }
-
-                    ContextPersistenceMode.RESTORE_COMPATIBILITY ->
-                        mainBeaconDao.insertContextCrossRefs(
-                            bundle.mainBeaconContextCrossRefs.map { it.toEntity() },
-                        )
-                }
+                // Canonical merge and historical restore both transport
+                // the logical mainBeaconContextCrossRefs property.
+                // Physical persistence is Workspace-only and validated.
+                // The enclosing merge transaction owns rollback.
+                mainBeaconDao.insertContextCrossRefs(
+                    bundle.mainBeaconContextCrossRefs.map { it.toEntity() },
+                )
                 // Legacy Beacon rows have no tombstone of their own. Once the
                 // canonical freshness merge is complete, retire imported
                 // compatibility rows for deleted canonical targets, including
@@ -719,6 +725,7 @@ class MergeLocalDataSourceImpl
                     .map { it.sourceId }
                     .distinct()
                     .forEach { retiredId -> mainBeaconDao.deleteGroup(retiredId) }
+                mergeWorkspacePresentationPreferences(bundle.workspacePresentationPreferences)
                 canonicalWorkspaceTagTransportStore.mergeIncoming(bundle.workspaceTagRefs)
                 bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
                     canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
@@ -728,6 +735,7 @@ class MergeLocalDataSourceImpl
                 canonicalWorkspaceInboxSyncStore.mergeIncoming(bundle.workspaceInboxRecords)
                 canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
                 canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
+                requireCanonicalNotePlacementClosure(db)
                 canonicalHierarchyPlacementSyncStore.mergeIncoming(bundle.hierarchyPlacements)
                 val incomingHierarchyPlacementIds =
                     bundle.hierarchyPlacements
@@ -762,6 +770,12 @@ class MergeLocalDataSourceImpl
                         legacyContextEvidence = contextIngress.systemEvidence,
                     )
                     insertWorkspaceOwnedSystemAppsForMerge(bundle)
+                    if (bundle.hasCanonicalOrientationPayload()) {
+                        // Establish mappings before checking the merged scoring graph.
+                        // Both steps belong to the enclosing Room transaction.
+                        canonicalOrientationBootstrapper.ensureBootstrapped()
+                        canonicalScoringAuthorityActivator.admitMergedState()
+                    }
                 },
             )
             if (bundle.workspaceTagRefs != null) {
@@ -786,7 +800,6 @@ class MergeLocalDataSourceImpl
                     legacyConfigurationEvidence = legacySystemConfigurationEvidence,
                 )
             }
-            executionLogWorkspaceOwnershipBridge.repairUnresolved()
             // InboxRecordLink is a local materialized cache only.
             // Rebuild Goal/Inbox hashtag associations from effective ordinary-Context + canonical-System tag ownership.
             tagAssociationHandler.repairAllAssociations()
@@ -796,9 +809,30 @@ class MergeLocalDataSourceImpl
             // During this explicit legacy import, however, those rows are the
             // migration input and must be materialized into canonical PART_OF
             // relations before compatibility projection runs.
-            canonicalOrientationBootstrapper.ensureBootstrapped(
-                ingestLegacyMainBeaconMemberships = !bundle.hasCanonicalOrientationPayload(),
-            )
+            if (!bundle.hasCanonicalOrientationPayload()) {
+                canonicalOrientationBootstrapper.ensureBootstrapped(
+                    ingestLegacyMainBeaconMemberships = true,
+                )
+            }
+            canonicalScoringAuthorityActivator.ensureActivated()
+            dayPlanningAuthorityActivator.ensureActivated()
+            if (bundle.planningFormatVersion == null) {
+                dayPlanningAuthorityActivator.ingestLegacyCompatibilityProjection()
+            }
+            dayPlanningAuthorityActivator.projectCompatibilityRows()
+
+            if (bundle.planningFormatVersion == null) {
+                tacticalPlanningAuthorityActivator.ensureActivated()
+            } else {
+                tacticalPlanningAuthorityActivator.admitCanonicalIngress()
+            }
+            tacticalPlanningAuthorityActivator.projectCompatibilityRows()
+            if (bundle.planningFormatVersion == CURRENT_PLANNING_FORMAT_VERSION) {
+                strategicPlanningAuthorityActivator.admitCanonicalIngress()
+            } else {
+                strategicPlanningAuthorityActivator.ensureActivated()
+            }
+            strategicPlanningAdapter?.projectCompatibilityRows()
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(
@@ -822,6 +856,55 @@ class MergeLocalDataSourceImpl
             // canonical postcondition. Legacy Context rows from old payloads
             // are bounded ingress evidence, never the returned runtime owner.
             databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+        }
+
+        private suspend fun mergeWorkspacePresentationPreferences(
+            incoming: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot>?,
+        ) {
+            if (incoming == null) return
+
+            val workspaceIds =
+                db.workspaceDao()
+                    .getAll()
+                    .asSequence()
+                    .mapTo(hashSetOf()) { it.id }
+
+            require(incoming.map { it.workspaceId }.distinct().size == incoming.size) {
+                "Workspace presentation preferences payload contains duplicate Workspace ids"
+            }
+
+            incoming.forEach { candidate ->
+                require(candidate.workspaceId in workspaceIds) {
+                    "Workspace presentation preferences target missing Workspace ${candidate.workspaceId}"
+                }
+
+                val local =
+                    db.workspacePresentationPreferencesDao()
+                        .getRaw(candidate.workspaceId)
+
+                val shouldApply =
+                    local == null ||
+                        candidate.version > local.version ||
+                        (
+                            candidate.version == local.version &&
+                                candidate.updatedAt > local.updatedAt
+                        )
+
+                if (shouldApply) {
+                    db.workspacePresentationPreferencesDao().upsert(
+                        WorkspacePresentationPreferencesEntity(
+                            workspaceId = candidate.workspaceId,
+                            defaultViewModeName = candidate.defaultViewModeName,
+                            isAttachmentsExpanded = candidate.isAttachmentsExpanded,
+                            showCheckboxes = candidate.showCheckboxes,
+                            createdAt = candidate.createdAt,
+                            updatedAt = candidate.updatedAt,
+                            syncedAt = null,
+                            version = candidate.version,
+                        ),
+                    )
+                }
+            }
         }
 
         private suspend fun insertWorkspaceOwnedSystemAppsForMerge(bundle: SnapshotBundle) {

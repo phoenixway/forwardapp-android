@@ -71,3 +71,80 @@ data class PlanningCommitmentEntity(
     val version: Long,
     val isDeleted: Boolean,
 )
+
+@Entity(
+    tableName = "day_planning_scope_extensions",
+    foreignKeys = [
+        ForeignKey(
+            entity = PlanningScopeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["scopeId"],
+            onDelete = ForeignKey.NO_ACTION,
+            onUpdate = ForeignKey.NO_ACTION,
+        ),
+    ],
+    indices = [
+        Index(value = ["calendarDayStartMillis", "isDeleted"]),
+        Index("updatedAt"),
+        Index("syncedAt"),
+    ],
+)
+data class DayPlanningScopeExtensionEntity(
+    @PrimaryKey val scopeId: String,
+    val calendarDayStartMillis: Long,
+    val outcome: String?,
+    val plannedBudgetMinutes: Long?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val syncedAt: Long?,
+    val version: Long,
+    val isDeleted: Boolean,
+)
+
+@Entity(
+    tableName = "tactical_planning_scope_extensions",
+    foreignKeys = [
+        ForeignKey(
+            entity = PlanningScopeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["scopeId"],
+            onDelete = ForeignKey.NO_ACTION,
+            onUpdate = ForeignKey.NO_ACTION,
+        ),
+    ],
+    indices = [Index("updatedAt"), Index("syncedAt")],
+)
+data class TacticalPlanningScopeExtensionEntity(
+    @PrimaryKey val scopeId: String,
+    val iterationType: String,
+    val weekKey: String?,
+    val closedAt: Long?,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val syncedAt: Long?,
+    val version: Long,
+    val isDeleted: Boolean,
+)
+
+@Entity(
+    tableName = "strategic_planning_scope_extensions",
+    foreignKeys = [
+        ForeignKey(
+            entity = PlanningScopeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["scopeId"],
+            onDelete = ForeignKey.NO_ACTION,
+            onUpdate = ForeignKey.NO_ACTION,
+        ),
+    ],
+    indices = [Index("updatedAt"), Index("syncedAt")],
+)
+data class StrategicPlanningScopeExtensionEntity(
+    @PrimaryKey val scopeId: String,
+    val legacyArcKey: String,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val syncedAt: Long?,
+    val version: Long,
+    val isDeleted: Boolean,
+)

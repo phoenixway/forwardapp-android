@@ -54,7 +54,85 @@ class SnapshotBundleSelectiveImportFilter {
             source.mainBeacons.map { it.withoutEmbeddedMainBeaconTopology() }
         val validMainBeaconIds = filteredMainBeacons.mapTo(linkedSetOf()) { beacon -> beacon.id }
 
+        // Canonical Selective Import may retain an operational owner ref
+        // only when the corresponding live Workspace is explicitly selected.
+        // A historical Context-shaped ref without canonical transport
+        // evidence is not automatically promoted by matching ids.
+        val selectedOwnerWorkspaces =
+            source.workspaces.orEmpty()
+                .filter { it.id in selectedWorkspaceIds }
+
+        require(
+            selectedOwnerWorkspaces.map { it.id }.distinct().size ==
+                selectedOwnerWorkspaces.size,
+        ) {
+            "Selective MainBeacon owners contain duplicate Workspace identities"
+        }
+
+        val selectedOwnersById =
+            selectedOwnerWorkspaces.associateBy { it.id }
+
+        val selectedMainBeaconOwnerRefs =
+            if (!source.hasCompleteCanonicalHierarchyTransport()) {
+                emptyList()
+            } else {
+                source.mainBeaconContextCrossRefs.filter { ref ->
+                    if (
+                        ref.beaconId !in validMainBeaconIds ||
+                        ref.contextId !in selectedWorkspaceIds
+                    ) {
+                        false
+                    } else {
+                        val workspace =
+                            requireNotNull(selectedOwnersById[ref.contextId]) {
+                                "Selective MainBeacon owner has no selected Workspace: " +
+                                    ref.contextId
+                            }
+
+                        val canonical =
+                            workspace.provenance == "CANONICAL_ONLY" &&
+                                workspace.sourceContextId == null
+                        val standalone =
+                            workspace.provenance == "STANDALONE" &&
+                                workspace.sourceContextId == null
+                        val contextBacked =
+                            workspace.provenance == "CONTEXT_BACKED" &&
+                                workspace.sourceContextId == workspace.id
+
+                        require(
+                            !workspace.isDeleted &&
+                                (canonical || standalone || contextBacked),
+                        ) {
+                            "Selective MainBeacon owner has invalid Workspace provenance: " +
+                                ref.contextId
+                        }
+
+                        true
+                    }
+                }
+            }
+
+        val duplicateSelectedOwner =
+            selectedMainBeaconOwnerRefs
+                .groupingBy { it.beaconId to it.contextId }
+                .eachCount()
+                .entries
+                .firstOrNull { it.value > 1 }
+
+        require(duplicateSelectedOwner == null) {
+            "Selective MainBeacon ownership contains duplicate logical association " +
+                "${duplicateSelectedOwner?.key}"
+        }
+
         val filtered = source.copy(
+            // Canonical Planning has no selective-import selection surface in V3.3.
+            // Selecting an Orientation must never implicitly import its Planning participation.
+            planningFormatVersion = null,
+            planningScopes = null,
+            planningCommitments = null,
+            dayPlanningScopeExtensions = null,
+            tacticalPlanningScopeExtensions = null,
+            strategicPlanningScopeExtensions = null,
             hierarchyFormatVersion = null,
             // Ordinary Context persistence is extinct on current selective import.
             // Historical Context-shaped evidence remains Restore-only.
@@ -101,9 +179,9 @@ class SnapshotBundleSelectiveImportFilter {
                     record.id in selection.selectedActivityRecordIds
                 },
             mainBeacons = filteredMainBeacons,
-            // Ordinary MainBeacon Context ownership still has a physical Context FK.
-            // Current selective import must not recreate that legacy persistence edge.
-            mainBeaconContextCrossRefs = emptyList(),
+            // Logical compatibility property, physically Workspace-owned.
+            // Only explicitly selected, provenance-validated canonical refs.
+            mainBeaconContextCrossRefs = selectedMainBeaconOwnerRefs,
             mainBeaconAttachmentCrossRefs =
                 source.mainBeaconAttachmentCrossRefs.filter { crossRef ->
                     crossRef.beaconId in validMainBeaconIds && crossRef.attachmentId in validAttachmentIds
@@ -143,6 +221,9 @@ class SnapshotBundleSelectiveImportFilter {
             workspaceInboxRecords = null,
             workspaceConnections = null,
             workspaceBacklogEntries = null,
+            // Presentation preferences have no selective-import selection surface.
+            // Never inherit the source-wide canonical collection implicitly.
+            workspacePresentationPreferences = null,
             focusContextIntervals = emptyList(),
             userStateIntervals = emptyList(),
             // Never inherit the full source hierarchy. Selective H1,

@@ -151,17 +151,20 @@ fun ContextLog.toSnapshot(): ContextLogSnapshot = ContextLogSnapshot(
     version,
     isDeleted
 )
-fun ContextLogSnapshot.toEntity(): ContextLog = ContextLog(
-    id,
-    contextId,
-    timestamp,
-    type,
-    description,
-    details,
-    updatedAt,
-    version = version,
-    isDeleted = isDeleted
-)
+/** Selective-import preview projection only; legacy ingress is canonicalized before persistence. */
+fun ContextLogSnapshot.toEntity(): ContextLog =
+    ContextLog(
+        id = id,
+        contextId = contextId,
+        timestamp = timestamp,
+        type = type,
+        description = description,
+        details = details,
+        updatedAt = updatedAt,
+        version = version,
+        isDeleted = isDeleted,
+        workspaceId = contextId,
+    )
 
 fun InboxRecord.toSnapshot(): InboxRecordSnapshot = InboxRecordSnapshot(
     id,

@@ -42,12 +42,9 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                     listOf(
                         canonicalWorkspace(SYSTEM_ID),
                         standaloneWorkspace(STANDALONE_ID),
-                        canonicalWorkspace(ORDINARY_ID),
+                        contextBackedWorkspace(ORDINARY_ID),
                         canonicalWorkspace(RETIRED_ID),
-                        canonicalWorkspace(HISTORICAL_SYS_PREFIX_ID).copy(
-                            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
-                            sourceContextId = HISTORICAL_SYS_PREFIX_ID,
-                        ),
+                        contextBackedWorkspace(HISTORICAL_SYS_PREFIX_ID),
                     ),
                 )
 
@@ -69,13 +66,13 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
                 assertEquals(SYSTEM_ID, systemMission.logicalProjectId)
 
                 val ordinaryMission = requireNotNull(stored[2L])
-                assertEquals(ORDINARY_ID, ordinaryMission.projectId)
-                assertNull(ordinaryMission.projectWorkspaceId)
+                assertNull(ordinaryMission.projectId)
+                assertEquals(ORDINARY_ID, ordinaryMission.projectWorkspaceId)
                 assertEquals(ORDINARY_ID, ordinaryMission.logicalProjectId)
 
                 val historicalMission = requireNotNull(stored[3L])
-                assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalMission.projectId)
-                assertNull(historicalMission.projectWorkspaceId)
+                assertNull(historicalMission.projectId)
+                assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalMission.projectWorkspaceId)
                 assertEquals(HISTORICAL_SYS_PREFIX_ID, historicalMission.logicalProjectId)
 
                 val standaloneMission = requireNotNull(stored[4L])
@@ -152,10 +149,9 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
         }
 
     @Test
-    fun `non-System Workspace routing accepts only live standalone owners`() =
+    fun `invalid non-System Workspace liveness and provenance fail closed`() =
         runBlocking {
             listOf(
-                "canonical-only" to canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID),
                 "deleted-standalone" to standaloneWorkspace(DELETED_STANDALONE_ID).copy(isDeleted = true),
                 "malformed-standalone-source" to
                     standaloneWorkspace(MALFORMED_STANDALONE_ID).copy(
@@ -242,6 +238,145 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
             }
         }
 
+    @Test
+    fun `Context only and equivalent dual owners converge to validated Workspace`() =
+        runBlocking {
+            val db = database()
+            try {
+                val dao = db.tacticalMissionDao()
+                db.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                db.workspaceDao().upsert(listOf(contextBackedWorkspace(ORDINARY_ID)))
+
+                dao.insertMission(mission(61L, ORDINARY_ID))
+                val first = requireNotNull(dao.getMissionById(61L))
+                assertNull(first.projectId)
+                assertEquals(ORDINARY_ID, first.projectWorkspaceId)
+
+                dao.updateMission(
+                    first.copy(
+                        projectId = ORDINARY_ID,
+                        projectWorkspaceId = ORDINARY_ID,
+                        title = "Equivalent update",
+                    ),
+                )
+                val updated = requireNotNull(dao.getMissionById(61L))
+                assertNull(updated.projectId)
+                assertEquals(ORDINARY_ID, updated.projectWorkspaceId)
+                assertEquals("Equivalent update", updated.title)
+
+                // A historical raw Context-only fixture must not be returned
+                // by the ordinary canonical Workspace project reader.
+                dao.insertMissionRaw(mission(62L, ORDINARY_ID))
+                assertEquals(
+                    listOf(61L),
+                    dao.getMissionsForProject(ORDINARY_ID).first().map { it.id },
+                )
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `missing or deleted Workspace rejects Context owned mission`() =
+        runBlocking {
+            listOf(
+                "missing" to null,
+                "deleted" to contextBackedWorkspace(ORDINARY_ID).copy(isDeleted = true),
+                "unproven" to canonicalWorkspace(ORDINARY_ID),
+            ).forEach { (label, workspace) ->
+                val db = database()
+                try {
+                    db.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                    workspace?.let { db.workspaceDao().upsert(listOf(it)) }
+
+                    val failure =
+                        runCatching {
+                            db.tacticalMissionDao().insertMission(
+                                mission(71L, ORDINARY_ID),
+                            )
+                        }.exceptionOrNull()
+
+                    assertTrue("$label must fail closed", failure is IllegalArgumentException)
+                    assertTrue(db.tacticalMissionDao().getAllMissionsSync().isEmpty())
+                } finally {
+                    db.close()
+                }
+            }
+        }
+
+    @Test
+    fun `Contextless canonical only Workspace and no project remain valid`() =
+        runBlocking {
+            val db = database()
+            try {
+                val dao = db.tacticalMissionDao()
+                db.workspaceDao().upsert(
+                    listOf(canonicalWorkspace(ARBITRARY_CANONICAL_ONLY_ID)),
+                )
+
+                dao.insertMission(mission(81L, ARBITRARY_CANONICAL_ONLY_ID))
+                dao.insertMission(mission(82L, null))
+
+                val workspaceOwned = requireNotNull(dao.getMissionById(81L))
+                assertNull(workspaceOwned.projectId)
+                assertEquals(
+                    ARBITRARY_CANONICAL_ONLY_ID,
+                    workspaceOwned.projectWorkspaceId,
+                )
+
+                val ownerless = requireNotNull(dao.getMissionById(82L))
+                assertNull(ownerless.projectId)
+                assertNull(ownerless.projectWorkspaceId)
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun `version guarded mission ACK changes metadata only`() =
+        runBlocking {
+            val db = database()
+            try {
+                val dao = db.tacticalMissionDao()
+                db.workspaceDao().upsert(listOf(standaloneWorkspace(STANDALONE_ID)))
+                dao.insertMission(
+                    mission(91L, STANDALONE_ID).copy(
+                        missionStreamId = "stream-a",
+                        orderInSlot = 7L,
+                    ),
+                )
+
+                val before = requireNotNull(dao.getMissionById(91L))
+
+                assertEquals(
+                    0,
+                    dao.markMissionSyncedIfVersionMatches(
+                        missionId = 91L,
+                        expectedVersion = before.version + 1L,
+                        syncedAt = 100L,
+                    ),
+                )
+                assertEquals(before, dao.getMissionById(91L))
+
+                assertEquals(
+                    1,
+                    dao.markMissionSyncedIfVersionMatches(
+                        missionId = 91L,
+                        expectedVersion = before.version,
+                        syncedAt = 200L,
+                    ),
+                )
+                val after = requireNotNull(dao.getMissionById(91L))
+                assertEquals(before.copy(syncedAt = 200L), after)
+                assertNull(after.projectId)
+                assertEquals(STANDALONE_ID, after.projectWorkspaceId)
+                assertEquals("stream-a", after.missionStreamId)
+                assertEquals(7L, after.orderInSlot)
+            } finally {
+                db.close()
+            }
+        }
+
     private fun mission(
         id: Long,
         projectId: String?,
@@ -280,6 +415,12 @@ class TacticalMissionDaoWorkspaceProjectRoomTest {
             version = 1L,
             provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
             sourceContextId = null,
+        )
+
+    private fun contextBackedWorkspace(id: String) =
+        canonicalWorkspace(id).copy(
+            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+            sourceContextId = id,
         )
 
     private fun standaloneWorkspace(id: String) =

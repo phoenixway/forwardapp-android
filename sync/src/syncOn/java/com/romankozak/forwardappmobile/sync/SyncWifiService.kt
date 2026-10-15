@@ -28,6 +28,8 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesS
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncVersion
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceTagRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
@@ -40,11 +42,19 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSyncVersion
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -60,6 +70,7 @@ import javax.inject.Singleton
 
 internal data class CanonicalWifiPushPlan(
     val snapshotDelta: SnapshotBundle,
+    val planningAck: CanonicalPlanningSyncAck,
     val recurringSeriesAck: List<CanonicalRecurringSeriesSyncVersion>,
     val dayThemesAck: CanonicalDayThemeSyncAck,
     val orientationsAck: CanonicalOrientationSyncAck,
@@ -72,7 +83,30 @@ internal data class CanonicalWifiPushPlan(
     val workspaceBacklogAck: List<WorkspaceBacklogEntrySyncVersion>,
     val workspaceProblemsAck: CanonicalWorkspaceProblemSyncAck,
     val workspaceInboxAck: List<WorkspaceInboxRecordSyncVersion>,
+    val workspacePresentationPreferencesAck: List<WorkspacePresentationPreferencesSyncVersion>,
 )
+
+internal fun CanonicalPlanningSyncPayload.hasChanges(): Boolean =
+    scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
+        tacticalScopeExtensions.isNotEmpty() || strategicScopeExtensions.isNotEmpty()
+
+private fun CanonicalPlanningSyncPayload.toAck() =
+    CanonicalPlanningSyncAck(
+        scopes = scopes.map { PlanningScopeSyncVersion(it.id, it.version) },
+        commitments = commitments.map { PlanningCommitmentSyncVersion(it.id, it.version) },
+        dayScopeExtensions =
+            dayScopeExtensions.map {
+                DayPlanningScopeExtensionSyncVersion(it.scopeId, it.version)
+            },
+        tacticalScopeExtensions =
+            tacticalScopeExtensions.map {
+                TacticalPlanningScopeExtensionSyncVersion(it.scopeId, it.version)
+            },
+        strategicScopeExtensions =
+            strategicScopeExtensions.map {
+                StrategicPlanningScopeExtensionSyncVersion(it.scopeId, it.version)
+            },
+    )
 
 internal fun CanonicalDayThemeSyncPayload.hasChanges(): Boolean =
     themeDefinitions.isNotEmpty() || dayThemes.isNotEmpty() || assignmentDocuments.isNotEmpty()
@@ -95,6 +129,7 @@ internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
         aspects.isNotEmpty() ||
         assessments.isNotEmpty() ||
         assessmentRevisions.isNotEmpty() ||
+        scoringOverrides.isNotEmpty() ||
         legacyMappings.isNotEmpty() ||
         relations.isNotEmpty() ||
         aspectRefs.isNotEmpty() ||
@@ -109,6 +144,7 @@ private fun CanonicalOrientationSyncPayload.toAck() =
         managedSubjects = managedSubjects.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         assessments = assessments.map { CanonicalOrientationSyncVersion(it.orientationId, it.version) },
         assessmentRevisions = assessmentRevisions.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        scoringOverrides = scoringOverrides.map { CanonicalOrientationSyncVersion(it.orientationId, it.version) },
         legacyMappings = legacyMappings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         relations = relations.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         aspectRefs = aspectRefs.map { CanonicalOrientationSyncVersion(it.id, it.version) },
@@ -129,6 +165,7 @@ private fun CanonicalOrientationSyncPayload.toAck() =
 internal fun shouldPushCanonicalWifi(
     databaseIsEmpty: Boolean,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
+    dirtyCanonicalPlanning: CanonicalPlanningSyncPayload = CanonicalPlanningSyncPayload(),
     dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
@@ -141,9 +178,11 @@ internal fun shouldPushCanonicalWifi(
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
     dirtyCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
+    dirtyCanonicalWorkspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot> = emptyList(),
 ): Boolean =
     !databaseIsEmpty ||
         dirtyCanonicalSeries.isNotEmpty() ||
+        dirtyCanonicalPlanning.hasChanges() ||
         dirtyCanonicalDayThemes.hasChanges() ||
         dirtyCanonicalOrientations.hasChanges() ||
         dirtyCanonicalExecutionLogs.isNotEmpty() ||
@@ -154,12 +193,14 @@ internal fun shouldPushCanonicalWifi(
         dirtyCanonicalWorkspaceConnections.isNotEmpty() ||
         dirtyCanonicalWorkspaceBacklog.isNotEmpty() ||
         dirtyCanonicalWorkspaceProblems.hasChanges() ||
-        dirtyCanonicalWorkspaceInbox.isNotEmpty()
+        dirtyCanonicalWorkspaceInbox.isNotEmpty() ||
+        dirtyCanonicalWorkspacePresentationPreferences.isNotEmpty()
 
 internal fun buildCanonicalWifiPushPlan(
     selection: LocalSyncSelection,
     fullSnapshot: SnapshotBundle,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
+    dirtyCanonicalPlanning: CanonicalPlanningSyncPayload = CanonicalPlanningSyncPayload(),
     dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
@@ -172,6 +213,7 @@ internal fun buildCanonicalWifiPushPlan(
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
     dirtyCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
+    dirtyCanonicalWorkspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot> = emptyList(),
 ): CanonicalWifiPushPlan =
     CanonicalWifiPushPlan(
         snapshotDelta =
@@ -180,6 +222,7 @@ internal fun buildCanonicalWifiPushPlan(
                 fullSnapshot = fullSnapshot,
                 explicitCanonicalSeriesIds =
                     dirtyCanonicalSeries.mapTo(hashSetOf()) { it.id },
+                explicitCanonicalPlanning = dirtyCanonicalPlanning,
                 explicitCanonicalDayThemes = dirtyCanonicalDayThemes,
                 explicitCanonicalOrientations = dirtyCanonicalOrientations,
                 explicitCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
@@ -193,7 +236,10 @@ internal fun buildCanonicalWifiPushPlan(
                 explicitCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
                 explicitCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
+                explicitCanonicalWorkspacePresentationPreferences =
+                    dirtyCanonicalWorkspacePresentationPreferences,
             ),
+        planningAck = dirtyCanonicalPlanning.toAck(),
         recurringSeriesAck =
             dirtyCanonicalSeries.map { series ->
                 CanonicalRecurringSeriesSyncVersion(
@@ -254,6 +300,13 @@ internal fun buildCanonicalWifiPushPlan(
         workspaceProblemsAck = dirtyCanonicalWorkspaceProblems.toAck(),
         workspaceInboxAck =
             dirtyCanonicalWorkspaceInbox.map { WorkspaceInboxRecordSyncVersion(it.id, it.version) },
+        workspacePresentationPreferencesAck =
+            dirtyCanonicalWorkspacePresentationPreferences.map {
+                WorkspacePresentationPreferencesSyncVersion(
+                    workspaceId = it.workspaceId,
+                    version = it.version,
+                )
+            },
     )
 
 
@@ -335,6 +388,7 @@ private fun buildSnapshotSelectionDelta(
         workspaces = null,
         workspaceBindings = null,
         workspaceCapabilityInstances = null,
+        workspacePresentationPreferences = null,
         savedOrientationViews = null,
         recurringSeries = emptyList(),
         recurringTasks = emptyList(),
@@ -349,6 +403,7 @@ internal fun buildCanonicalSnapshotDelta(
     baseDelta: SnapshotBundle,
     fullSnapshot: SnapshotBundle,
     explicitCanonicalSeriesIds: Set<String> = emptySet(),
+    explicitCanonicalPlanning: CanonicalPlanningSyncPayload = CanonicalPlanningSyncPayload(),
     explicitCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
     explicitCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     explicitCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
@@ -361,6 +416,7 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
     explicitCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
+    explicitCanonicalWorkspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot> = emptyList(),
     explicitCanonicalWorkspaceTags: List<WorkspaceTagRefEntity> = emptyList(),
 ): SnapshotBundle {
     val dayPlanIds = baseDelta.dayPlans.mapTo(hashSetOf()) { it.id }
@@ -371,6 +427,7 @@ internal fun buildCanonicalSnapshotDelta(
     baseDelta.dayTasks.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrence?.seriesId }
     baseDelta.dayFocusItems.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrence?.seriesId }
 
+    val includeCanonicalPlanning = explicitCanonicalPlanning.hasChanges()
     val includeCanonicalDayThemes = explicitCanonicalDayThemes.hasChanges()
     val includeCanonicalExecutionLogs = explicitCanonicalExecutionLogs.isNotEmpty()
     val includeCanonicalDirectionEntries = explicitCanonicalDirectionEntries.isNotEmpty()
@@ -382,9 +439,12 @@ internal fun buildCanonicalSnapshotDelta(
     val includeCanonicalWorkspaceBacklog = explicitCanonicalWorkspaceBacklog.isNotEmpty()
     val includeCanonicalWorkspaceProblems = explicitCanonicalWorkspaceProblems.hasChanges()
     val includeCanonicalWorkspaceInbox = explicitCanonicalWorkspaceInbox.isNotEmpty()
+    val includeCanonicalWorkspacePresentationPreferences =
+        explicitCanonicalWorkspacePresentationPreferences.isNotEmpty()
     val includeCanonicalWorkspaceTags = explicitCanonicalWorkspaceTags.isNotEmpty()
     val includeCanonicalOrientations =
         explicitCanonicalOrientations.hasChanges() ||
+            includeCanonicalPlanning ||
             includeCanonicalExecutionLogs ||
             includeCanonicalDirectionEntries ||
             includeCanonicalHierarchyBundle ||
@@ -392,6 +452,7 @@ internal fun buildCanonicalSnapshotDelta(
             includeCanonicalWorkspaceBacklog ||
             includeCanonicalWorkspaceProblems ||
             includeCanonicalWorkspaceInbox ||
+            includeCanonicalWorkspacePresentationPreferences ||
             includeCanonicalWorkspaceTags
 
     fun <T> canonicalOrientationDependency(
@@ -401,13 +462,15 @@ internal fun buildCanonicalSnapshotDelta(
     ): List<T>? =
         when {
             !includeCanonicalOrientations -> null
-            includeCanonicalExecutionLogs ||
+            includeCanonicalPlanning ||
+                includeCanonicalExecutionLogs ||
                 includeCanonicalDirectionEntries ||
                 includeCanonicalHierarchyBundle ||
                 includeCanonicalWorkspaceConnections ||
                 includeCanonicalWorkspaceBacklog ||
                 includeCanonicalWorkspaceProblems ||
                 includeCanonicalWorkspaceInbox ||
+                includeCanonicalWorkspacePresentationPreferences ||
                 includeCanonicalWorkspaceTags ->
                 requireNotNull(full) {
                     "Local full snapshot must expose $fieldName before building a canonical capability-content delta."
@@ -551,8 +614,51 @@ internal fun buildCanonicalSnapshotDelta(
             fullSnapshot.linkItemEntities.filter { it.id in backlogDependencies.linkItemIds },
         ) { it.id }
 
+    val selectedPlanningCommitments =
+        if (includeCanonicalPlanning) explicitCanonicalPlanning.commitments else emptyList()
+    val selectedDayPlanningScopeExtensions =
+        if (includeCanonicalPlanning) explicitCanonicalPlanning.dayScopeExtensions else emptyList()
+    val selectedTacticalPlanningScopeExtensions =
+        if (includeCanonicalPlanning) explicitCanonicalPlanning.tacticalScopeExtensions else emptyList()
+    val selectedStrategicPlanningScopeExtensions =
+        if (includeCanonicalPlanning) explicitCanonicalPlanning.strategicScopeExtensions else emptyList()
+    val requiredPlanningScopeIds =
+        selectedPlanningCommitments.mapTo(hashSetOf()) { it.scopeId }
+            .apply {
+                addAll(explicitCanonicalPlanning.scopes.map { it.id })
+                addAll(selectedDayPlanningScopeExtensions.map { it.scopeId })
+                addAll(selectedTacticalPlanningScopeExtensions.map { it.scopeId })
+                addAll(selectedStrategicPlanningScopeExtensions.map { it.scopeId })
+            }
+    val selectedPlanningScopes =
+        if (includeCanonicalPlanning) {
+            val fullScopes =
+                requireNotNull(fullSnapshot.planningScopes) {
+                    "Local full snapshot must expose planningScopes before building a canonical Planning delta."
+                }
+            (explicitCanonicalPlanning.scopes +
+                fullScopes.filter { it.id in requiredPlanningScopeIds })
+                .associateBy { it.id }
+                .values
+                .toList()
+        } else {
+            emptyList()
+        }
+
     val result =
         baseDelta.copy(
+            planningFormatVersion =
+                if (includeCanonicalPlanning) CURRENT_PLANNING_FORMAT_VERSION else null,
+            planningScopes =
+                if (includeCanonicalPlanning) selectedPlanningScopes else null,
+            planningCommitments =
+                if (includeCanonicalPlanning) selectedPlanningCommitments else null,
+            dayPlanningScopeExtensions =
+                if (includeCanonicalPlanning) selectedDayPlanningScopeExtensions else null,
+            tacticalPlanningScopeExtensions =
+                if (includeCanonicalPlanning) selectedTacticalPlanningScopeExtensions else null,
+            strategicPlanningScopeExtensions =
+                if (includeCanonicalPlanning) selectedStrategicPlanningScopeExtensions else null,
             hierarchyFormatVersion =
                 if (includeCanonicalHierarchyBundle) {
                     CURRENT_HIERARCHY_FORMAT_VERSION
@@ -619,6 +725,12 @@ internal fun buildCanonicalSnapshotDelta(
                     fullSnapshot.orientationAssessmentRevisions,
                     explicitCanonicalOrientations.assessmentRevisions,
                     "orientationAssessmentRevisions",
+                ),
+            orientationScoringOverrides =
+                canonicalOrientationDependency(
+                    fullSnapshot.orientationScoringOverrides,
+                    explicitCanonicalOrientations.scoringOverrides,
+                    "orientationScoringOverrides",
                 ),
             legacySubjectMappings =
                 canonicalOrientationDependency(
@@ -715,6 +827,10 @@ internal fun buildCanonicalSnapshotDelta(
                 fullWorkspaceProblemAttachmentRefs.takeIf { includeCanonicalWorkspaceProblems },
             workspaceInboxRecords =
                 explicitCanonicalWorkspaceInbox.takeIf { includeCanonicalWorkspaceInbox },
+            workspacePresentationPreferences =
+                explicitCanonicalWorkspacePresentationPreferences.takeIf {
+                    includeCanonicalWorkspacePresentationPreferences
+                },
         )
 
     if (includeCanonicalDayThemes) {
@@ -761,6 +877,7 @@ class SyncWifiService @Inject constructor(
         try {
             val selection = localDataSource.getUnsyncedSelection()
             val dirtyCanonicalSeries = fullBackupLocalDataSource.loadUnsyncedCanonicalRecurringSeries()
+            val dirtyCanonicalPlanning = fullBackupLocalDataSource.loadUnsyncedCanonicalPlanning()
             val dirtyCanonicalDayThemes = fullBackupLocalDataSource.loadUnsyncedCanonicalDayThemes()
             val dirtyCanonicalOrientations = fullBackupLocalDataSource.loadUnsyncedCanonicalOrientations()
             val dirtyCanonicalExecutionLogs =
@@ -781,12 +898,15 @@ class SyncWifiService @Inject constructor(
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceProblems()
             val dirtyCanonicalWorkspaceInbox =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceInbox()
+            val dirtyCanonicalWorkspacePresentationPreferences =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspacePresentationPreferences()
             val databaseIsEmpty = selection.isEmpty()
 
             if (
                 !shouldPushCanonicalWifi(
                     databaseIsEmpty = databaseIsEmpty,
                     dirtyCanonicalSeries = dirtyCanonicalSeries,
+                    dirtyCanonicalPlanning = dirtyCanonicalPlanning,
                     dirtyCanonicalDayThemes = dirtyCanonicalDayThemes,
                     dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                     dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
@@ -800,6 +920,8 @@ class SyncWifiService @Inject constructor(
                     dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                     dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
                     dirtyCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
+                    dirtyCanonicalWorkspacePresentationPreferences =
+                        dirtyCanonicalWorkspacePresentationPreferences,
                 )
             ) {
                 Result.success(Unit)
@@ -810,6 +932,7 @@ class SyncWifiService @Inject constructor(
                         selection = selection,
                         fullSnapshot = fullSnapshot,
                         dirtyCanonicalSeries = dirtyCanonicalSeries,
+                        dirtyCanonicalPlanning = dirtyCanonicalPlanning,
                         dirtyCanonicalDayThemes = dirtyCanonicalDayThemes,
                         dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                         dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
@@ -823,6 +946,8 @@ class SyncWifiService @Inject constructor(
                         dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                         dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
                         dirtyCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
+                        dirtyCanonicalWorkspacePresentationPreferences =
+                            dirtyCanonicalWorkspacePresentationPreferences,
                     )
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper =
@@ -837,6 +962,9 @@ class SyncWifiService @Inject constructor(
                 }
                 if (response.status.isSuccess()) {
                     localDataSource.acknowledge(selection)
+                    fullBackupLocalDataSource.markCanonicalPlanningSynced(
+                        pushPlan.planningAck,
+                    )
                     fullBackupLocalDataSource.markCanonicalRecurringSeriesSynced(
                         pushPlan.recurringSeriesAck,
                     )
@@ -873,6 +1001,9 @@ class SyncWifiService @Inject constructor(
                     fullBackupLocalDataSource.markCanonicalWorkspaceInboxSynced(
                         pushPlan.workspaceInboxAck,
                     )
+                    fullBackupLocalDataSource.markCanonicalWorkspacePresentationPreferencesSynced(
+                        pushPlan.workspacePresentationPreferencesAck,
+                    )
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Сервер повернув помилку: ${response.status.value}"))
@@ -904,6 +1035,8 @@ class SyncWifiService @Inject constructor(
         val fullSnapshot = fullBackupLocalDataSource.loadFullSnapshotBundle()
         val changedCanonicalSeries =
             fullBackupLocalDataSource.loadCanonicalRecurringSeriesChangedSince(deltaSince)
+        val changedCanonicalPlanning =
+            fullBackupLocalDataSource.loadCanonicalPlanningChangedSince(deltaSince)
         val changedCanonicalDayThemes =
             fullBackupLocalDataSource.loadCanonicalDayThemesChangedSince(deltaSince)
         val changedCanonicalExecutionLogs =
@@ -926,6 +1059,10 @@ class SyncWifiService @Inject constructor(
             fullBackupLocalDataSource.loadCanonicalWorkspaceProblemsChangedSince(deltaSince)
         val changedCanonicalWorkspaceInbox =
             fullBackupLocalDataSource.loadCanonicalWorkspaceInboxChangedSince(deltaSince)
+        val changedCanonicalWorkspacePresentationPreferences =
+            fullBackupLocalDataSource.loadCanonicalWorkspacePresentationPreferencesChangedSince(
+                deltaSince,
+            )
         val changedCanonicalWorkspaceTags =
             fullBackupLocalDataSource.loadCanonicalWorkspaceTagsChangedSince(deltaSince)
         val snapshotDelta =
@@ -934,6 +1071,7 @@ class SyncWifiService @Inject constructor(
                 fullSnapshot = fullSnapshot,
                 explicitCanonicalSeriesIds =
                     changedCanonicalSeries.mapTo(hashSetOf()) { it.id },
+                explicitCanonicalPlanning = changedCanonicalPlanning,
                 explicitCanonicalDayThemes = changedCanonicalDayThemes,
                 explicitCanonicalExecutionLogs = changedCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = changedCanonicalDirectionEntries,
@@ -946,6 +1084,8 @@ class SyncWifiService @Inject constructor(
                 explicitCanonicalWorkspaceBacklog = changedCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = changedCanonicalWorkspaceProblems,
                 explicitCanonicalWorkspaceInbox = changedCanonicalWorkspaceInbox,
+                explicitCanonicalWorkspacePresentationPreferences =
+                    changedCanonicalWorkspacePresentationPreferences,
                 explicitCanonicalWorkspaceTags = changedCanonicalWorkspaceTags,
             )
         val deltaBackup = FullAppBackup(

@@ -139,10 +139,8 @@ internal fun planCanonicalDayThemeRuntimeUpdate(
                 )
         } else {
             val definitionChanged =
-                existingDefinition.title != desiredTitle ||
-                    existingDefinition.colorArgb != uiTheme.colorArgb ||
+                existingDefinition.colorArgb != uiTheme.colorArgb ||
                     existingDefinition.iconKey != desiredIconKey ||
-                    existingDefinition.description != desiredDescription ||
                     existingDefinition.isDeleted
 
             if (definitionChanged) {

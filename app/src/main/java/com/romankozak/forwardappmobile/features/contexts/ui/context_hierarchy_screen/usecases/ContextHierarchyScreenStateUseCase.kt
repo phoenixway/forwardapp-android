@@ -6,7 +6,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
@@ -99,11 +98,9 @@ class ProjectHierarchyScreenStateUseCase
          * Canonical read universe for hierarchy presentation. Exact reserved
          * System Workspaces may exist here without any Context shell.
          */
-        internal fun observeHierarchyPresentationUniverse(
-            contexts: Flow<List<Context>>,
-        ) =
+        internal fun observeHierarchyPresentationUniverse() =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contexts)
+                .observePresentationUniverse()
                 .map { presentations ->
                     presentations.map { presentation ->
                         presentation.toCanonicalV2WorkspacePresentation()
@@ -112,7 +109,6 @@ class ProjectHierarchyScreenStateUseCase
 
         fun initialize(
             scope: CoroutineScope,
-            rawContextsFlat: StateFlow<List<Context>>,
             showRecentListsSheet: StateFlow<Boolean>,
             isBottomNavExpanded: StateFlow<Boolean>,
             showSearchDialog: StateFlow<Boolean>,
@@ -135,7 +131,7 @@ class ProjectHierarchyScreenStateUseCase
                     .onEach { canonicalV2ReadInternal.value = it }
 
             val presentationHierarchyState =
-                observeHierarchyPresentationUniverse(rawContextsFlat)
+                observeHierarchyPresentationUniverse()
                     .map(::buildNonStructuralPresentationUniverse)
                     .stateIn(
                         scope,
@@ -144,12 +140,13 @@ class ProjectHierarchyScreenStateUseCase
                     )
 
             // Canonical V2 is the sole production hierarchy read authority.
-            // Raw Context rows contribute presentation metadata only; structural
-            // occurrence identity, ancestry and ordering come from H1.
+            // Workspace presentation metadata comes through the canonical
+            // projector boundary; occurrence identity, ancestry and ordering
+            // come from H1.
             val orientationHierarchyFlow: Flow<List<OrientationHierarchyItem>> =
                 combine(
                     canonicalV2ReadFlow,
-                    observeHierarchyPresentationUniverse(rawContextsFlat),
+                    observeHierarchyPresentationUniverse(),
                     mainBeaconRepository.observeMainBeaconDetails(),
                 ) { read, workspacePresentations, beacons ->
                     val metadata =

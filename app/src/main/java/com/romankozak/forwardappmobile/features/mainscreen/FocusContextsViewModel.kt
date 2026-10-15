@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +18,6 @@ class FocusContextsViewModel
     @Inject
     constructor(
         private val focusContextRepository: FocusContextRepository,
-        private val contextRepository: ContextRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val activityRepository: ActivityRepository,
     ) : ViewModel() {
@@ -32,9 +30,7 @@ class FocusContextsViewModel
         val focusedContexts: StateFlow<List<FocusedContextUi>> =
             combine(
                 focusContextRepository.observeActiveFocusContexts(),
-                systemWorkspacePresentationContextProjector.observePresentationUniverse(
-                    contextRepository.getAllContextsFlow(),
-                ),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
             ) { focused, contexts ->
                 val nameById = contexts.associateBy({ it.id }, { it.name })
                 focused.mapNotNull { row ->

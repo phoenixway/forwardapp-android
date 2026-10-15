@@ -136,12 +136,16 @@ class CanonicalAspectRepository
             id: String,
             title: String,
             description: String?,
+            expectedVersion: Long? = null,
             now: Long = System.currentTimeMillis(),
         ) = database.withTransaction {
             val normalizedTitle = title.trim()
             require(normalizedTitle.isNotEmpty()) { "Aspect title must not be blank" }
             val current = requireActiveSubject(id)
             require(dao.getAspect(id) != null) { "Aspect node does not exist" }
+            require(expectedVersion == null || current.version == expectedVersion) {
+                "Aspect changed after the editor loaded it"
+            }
             dao.upsertManagedSubjects(
                 listOf(
                     current.bump(now).copy(

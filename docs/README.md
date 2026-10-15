@@ -104,6 +104,42 @@ The following directories contain subsystem documentation:
   contract acceptance is complete; persistence and production migration remain
   separately authorized.
 
+`architecture/CANONICAL-TACTICAL-PLANNING-CENSUS-V3.md`
+- `CURRENT`; V3.5a-c `COMPLETE / HOST VERIFIED`; V3.5d QUEST prerequisite
+  `COMPLETE / SCOPED HOST VERIFIED`; V3.5e typed Tactical extension
+  persistence/transport `COMPLETE / HOST VERIFIED`
+- Evidence-backed Tactical scope and participant authority map. Records the
+  identity-preserving TacticalIteration scope mapping, deterministic
+  MANUAL -> INTENT adoption, canonical QUEST authority for MANUAL ArcQuest,
+  typed Tactical extension boundary, and the remaining persistence/transport
+  plus marker-last activation frontier.
+
+`architecture/CANONICAL-STRATEGIC-PLANNING-CENSUS-V3.md`
+- `CURRENT`; V3.6a-V3.6d and overall V3.6 `COMPLETE / HOST VERIFIED / DURABLE`
+- Evidence-backed Strategic authority map and pure deterministic mapping
+  contract: exact `arcKey` grouping to independent STRATEGIC_ARC scope ids,
+  typed Strategic extension ownership, FOCUS commitment participation,
+  canonical QUEST/source-Orientation reuse, and explicit specialized/runtime
+  stop boundaries. Schema 192 and Planning transport v4 provide typed Strategic
+  extension persistence; schema 193 adds local marker-last activation after
+  set-exact eligible/deferred parity, then ordinary canonical Strategic runtime
+  admission with no legacy fallback or competing planning dual-write.
+
+`architecture/CANONICAL-PRODUCT-READ-CENSUS-V3.md`
+- `CURRENT`; V3.7a-V3.7c and overall V3.7 `COMPLETE / HOST VERIFIED / DURABLE`
+- Product-facing ownership matrix and pure canonical graph projection contract.
+  Orientation remains the unique semantic node; Planning, Workspace, Aspect,
+  relation and hierarchy state remain independent edges. Records the bulk
+  reactive/no-N+1 assembly boundary and zero ordinary legacy semantic or
+  hierarchy-authority reads after consumer closure.
+
+`architecture/CANONICAL-COMPATIBILITY-RETIREMENT-V3.md`
+- `CURRENT`; V3.8a `COMPLETE / READ-ONLY / UNKNOWN=0`, V3.8b
+  `COMPLETE / HOST VERIFIED / DURABLE`
+- Tracks schema-194 retirement of `list_items` and `backlog_orders`,
+  canonical Workspace BACKLOG authority, historical Restore-only
+  compatibility and remaining Context-FK stop boundary.
+
 ### Orientation and Workspace refactor
 
 `architecture/orientation-workspace-refactor/PROPOSAL.md`

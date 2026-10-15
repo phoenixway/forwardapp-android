@@ -94,15 +94,8 @@ class ContextLogRepository
             }
 
         suspend fun updateContextExecutionLog(log: ContextLog) {
-            val workspaceId =
-                requireNotNull(log.workspaceId) {
-                    "EXECUTION_LOG row has no Workspace owner"
-                }
-            require(log.contextId == null) {
-                "Legacy Context EXECUTION_LOG row must be canonicalized before mutation"
-            }
             canonicalExecutionLogRepository.updateLog(
-                workspaceId = workspaceId,
+                workspaceId = log.workspaceId,
                 logId = log.id,
                 type = log.type,
                 description = log.description,
@@ -112,15 +105,8 @@ class ContextLogRepository
         }
 
         suspend fun deleteContextExecutionLog(log: ContextLog) {
-            val workspaceId =
-                requireNotNull(log.workspaceId) {
-                    "EXECUTION_LOG row has no Workspace owner"
-                }
-            require(log.contextId == null) {
-                "Legacy Context EXECUTION_LOG row must be canonicalized before mutation"
-            }
             canonicalExecutionLogRepository.deleteLog(
-                workspaceId = workspaceId,
+                workspaceId = log.workspaceId,
                 logId = log.id,
             )
         }

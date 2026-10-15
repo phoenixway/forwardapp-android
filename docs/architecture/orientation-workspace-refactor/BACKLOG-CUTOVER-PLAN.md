@@ -1,5 +1,12 @@
 # BACKLOG canonical persistence and cutover plan
 
+> **V3.8b CURRENT CHECKPOINT (2026-10-09):** Room schema 194
+> physically retired `list_items` and `backlog_orders`. Earlier stages
+> below describe historical coexistence, not current Room persistence.
+> Canonical `workspace_backlog_entries` remains authoritative; old backup
+> data is interpreted only at the historical Restore boundary.
+
+
 Status: CURRENT / VERIFIED ON ANDROID
 
 This plan continues the verified shared BACKLOG contract recorded in
@@ -354,14 +361,14 @@ The post-transport reachability census removed the dead legacy mutation/order
 repository surface, generic merge writers, legacy sync selection/delta/ACK
 branches, obsolete mixed-attachments ViewModels, and unused `list_items`
 queries. `ListItemRepository` is now a canonical compatibility read facade.
-The retained DAOs expose only the operations required by migration fixtures,
-the guarded pre-cutover full-backup planner fallback, and whole-database clear.
+At that historical Stage-8 checkpoint, retained DAOs exposed only the
+operations needed by migration fixtures, guarded pre-cutover full-backup
+fallback, and whole-database clear. They were removed at schema 194.
 
-The physical `list_items` and `backlog_orders` tables remain intentionally.
-They are not runtime or transport authority: they are the lossless evidence
-format consumed by the accepted old-full-backup fallback and historical Room
-migrations. Dropping them would first require retiring that compatibility
-decision with a new accepted backup policy and schema migration.
+V3.8b physically retires `list_items` and `backlog_orders` at schema 194.
+Historical payload DTOs and immutable migrations remain, and old full backups
+are translated directly into canonical Workspace backlog state without
+recreating local legacy tables.
 
 BACKLOG is complete only when:
 

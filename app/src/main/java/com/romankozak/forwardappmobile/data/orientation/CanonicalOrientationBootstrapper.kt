@@ -8,9 +8,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceT
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.ThemeDefinitionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
 import com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
@@ -24,6 +26,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.EffectiveOrientation
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -53,6 +56,18 @@ class CanonicalOrientationBootstrapper
                 database.withTransaction {
                     val now = System.currentTimeMillis()
                     val state = orientationDao.getBootstrapState()
+                    if (
+                        !ingestLegacyMainBeaconMemberships &&
+                        state?.version == CURRENT_BOOTSTRAP_VERSION &&
+                        state.status == STATUS_COMPLETE
+                    ) {
+                        return@withTransaction OrientationBootstrapReport(
+                            performed = false,
+                            materialized = 0,
+                            compared = 0,
+                            issues = emptyList(),
+                        )
+                    }
                     val legacy =
                         StartupTrace.measure("Application.orientationBootstrap.loadLegacy") {
                             loadLegacyInput()
@@ -89,6 +104,10 @@ class CanonicalOrientationBootstrapper
                                     mergeById(canonical.assessments, plan.rows.map { it.assessment }) {
                                         it.orientationId
                                     },
+                                revisions =
+                                    mergeById(canonical.revisions, plan.rows.map { it.revision }) {
+                                        it.id
+                                    },
                             )
                     }
 
@@ -113,6 +132,60 @@ class CanonicalOrientationBootstrapper
                         canonical.copy(
                             mappings = mergeById(canonical.mappings, cutover.mappings) { it.id },
                             relations = mergeById(canonical.relations, cutover.relationChanges) { it.id },
+                        )
+
+                    val themeCutover =
+                        planThemeOrientationCutover(
+                            projections = legacy.projections,
+                            mappings = canonical.mappings,
+                            subjects = canonical.subjects,
+                            orientations = canonical.orientations,
+                            assessments = canonical.assessments,
+                            revisions = canonical.revisions,
+                            now = now,
+                            migrationVersion = CURRENT_BOOTSTRAP_VERSION,
+                        )
+                    if (themeCutover.subjects.isNotEmpty()) {
+                        orientationDao.upsertManagedSubjects(themeCutover.subjects)
+                    }
+                    if (themeCutover.orientations.isNotEmpty()) {
+                        orientationDao.upsertOrientations(themeCutover.orientations)
+                    }
+                    if (themeCutover.mappings.isNotEmpty()) {
+                        orientationDao.upsertLegacyMappings(themeCutover.mappings)
+                    }
+                    canonical =
+                        canonical.copy(
+                            subjects = mergeById(canonical.subjects, themeCutover.subjects) { it.id },
+                            orientations = mergeById(canonical.orientations, themeCutover.orientations) { it.subjectId },
+                            mappings = mergeById(canonical.mappings, themeCutover.mappings) { it.id },
+                        )
+
+                    val questCutover =
+                        planQuestOrientationCutover(
+                            projections = legacy.projections,
+                            mappings = canonical.mappings,
+                            subjects = canonical.subjects,
+                            orientations = canonical.orientations,
+                            assessments = canonical.assessments,
+                            revisions = canonical.revisions,
+                            now = now,
+                            migrationVersion = CURRENT_BOOTSTRAP_VERSION,
+                        )
+                    if (questCutover.subjects.isNotEmpty()) {
+                        orientationDao.upsertManagedSubjects(questCutover.subjects)
+                    }
+                    if (questCutover.orientations.isNotEmpty()) {
+                        orientationDao.upsertOrientations(questCutover.orientations)
+                    }
+                    if (questCutover.mappings.isNotEmpty()) {
+                        orientationDao.upsertLegacyMappings(questCutover.mappings)
+                    }
+                    canonical =
+                        canonical.copy(
+                            subjects = mergeById(canonical.subjects, questCutover.subjects) { it.id },
+                            orientations = mergeById(canonical.orientations, questCutover.orientations) { it.subjectId },
+                            mappings = mergeById(canonical.mappings, questCutover.mappings) { it.id },
                         )
 
                     val compatibilitySubjectChanges =
@@ -140,6 +213,17 @@ class CanonicalOrientationBootstrapper
                             groups = legacy.groups,
                             legacyMembers = legacy.groupMembers,
                         )
+                        repairThemeCompatibilityProjections(
+                            canonicalDayThemeDao = canonicalDayThemeDao,
+                            mappings = canonical.mappings,
+                            subjects = canonical.subjects,
+                            definitions = legacy.themeDefinitions,
+                        )
+                        repairArcQuestCompatibilityProjections(
+                            arcQuestDao = arcQuestDao,
+                            mappings = canonical.mappings,
+                            subjects = canonical.subjects,
+                        )
                     }
 
                     val comparisonIssues =
@@ -152,7 +236,12 @@ class CanonicalOrientationBootstrapper
                                 mappings = canonical.mappings,
                             )
                         }
-                    val issues = plan.issues + cutover.issues + comparisonIssues
+                    val issues =
+                        plan.issues +
+                            cutover.issues +
+                            themeCutover.issues +
+                            questCutover.issues +
+                            comparisonIssues
                     orientationDao.resolveOpenBootstrapIssues(now)
                     if (issues.isNotEmpty()) orientationDao.upsertBootstrapIssues(issues)
                     orientationDao.upsertBootstrapState(
@@ -166,6 +255,12 @@ class CanonicalOrientationBootstrapper
                     OrientationBootstrapReport(
                         performed =
                             plan.rows.isNotEmpty() ||
+                                themeCutover.subjects.isNotEmpty() ||
+                                themeCutover.orientations.isNotEmpty() ||
+                                themeCutover.mappings.isNotEmpty() ||
+                                questCutover.subjects.isNotEmpty() ||
+                                questCutover.orientations.isNotEmpty() ||
+                                questCutover.mappings.isNotEmpty() ||
                                 state == null ||
                                 state.version != CURRENT_BOOTSTRAP_VERSION ||
                                 state.status != STATUS_COMPLETE ||
@@ -221,6 +316,7 @@ class CanonicalOrientationBootstrapper
                 beacons = beacons,
                 groups = groups,
                 groupMembers = groupMembers,
+                themeDefinitions = dayThemes,
                 projections = projections,
             )
         }
@@ -230,6 +326,7 @@ class CanonicalOrientationBootstrapper
                 subjects = orientationDao.getAllManagedSubjects(),
                 orientations = orientationDao.getAllOrientations(),
                 assessments = orientationDao.getAllAssessments(),
+                revisions = orientationDao.getAllAssessmentRevisions(),
                 relations = orientationDao.getAllOrientationRelations(),
             )
 
@@ -245,6 +342,7 @@ private data class LegacyOrientationBootstrapInput(
     val beacons: List<MainBeacon>,
     val groups: List<MainBeaconGroup>,
     val groupMembers: List<MainBeaconGroupMember>,
+    val themeDefinitions: List<ThemeDefinitionEntity>,
 )
 
 private data class CanonicalOrientationBootstrapSnapshot(
@@ -252,6 +350,7 @@ private data class CanonicalOrientationBootstrapSnapshot(
     val subjects: List<ManagedSubjectEntity>,
     val orientations: List<OrientationEntity>,
     val assessments: List<OrientationAssessmentEntity>,
+    val revisions: List<OrientationAssessmentRevisionEntity>,
     val relations: List<OrientationRelationEntity>,
 )
 
@@ -353,12 +452,31 @@ private suspend fun compareCanonicalRows(
         val isCutOverGoal =
             expected.source.sourceType == LegacyOrientationSourceType.GOAL &&
                 mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val isCutOverTheme =
+            expected.source.sourceType == LegacyOrientationSourceType.THEME_DEFINITION &&
+                mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val isCutOverQuest =
+            expected.source.sourceType == LegacyOrientationSourceType.ARC_QUEST &&
+                mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val expectedKind =
+            when {
+                isCutOverTheme -> OrientationKind.THEME.name
+                isCutOverQuest -> OrientationKind.QUEST.name
+                else -> expected.orientation.kind.name
+            }
         val identityMismatch =
             subject == null || orientation == null || assessment == null ||
                 subject.subjectType != expected.subject.subjectType.name ||
-                orientation.kind != expected.orientation.kind.name
+                orientation.kind != expectedKind
         val shadowOnlyMismatch =
-            if (isCutOverMainBeacon || subject == null || orientation == null || assessment == null) {
+            if (
+                isCutOverMainBeacon ||
+                isCutOverTheme ||
+                isCutOverQuest ||
+                subject == null ||
+                orientation == null ||
+                assessment == null
+            ) {
                 false
             } else {
                 subject.title != expected.subject.title ||
@@ -373,7 +491,9 @@ private suspend fun compareCanonicalRows(
                             orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name
                     ) ||
                     subject.createdAt != expected.subject.createdAt ||
-                    subject.updatedAt != expected.subject.updatedAt ||
+                    // After Goal CUT_OVER, canonical scoring may advance the
+                    // subject timestamp without changing the legacy Goal timestamp.
+                    (!isCutOverGoal && subject.updatedAt != expected.subject.updatedAt) ||
                     (
                         isCutOverGoal &&
                             assessment.isDeleted != expected.subject.isDeleted
@@ -397,11 +517,13 @@ private suspend fun compareCanonicalRows(
                         if (subject.description != expected.subject.description) add("subject.description")
                         if (subject.isDeleted != expected.subject.isDeleted) add("subject.isDeleted")
                         if (subject.createdAt != expected.subject.createdAt) add("subject.createdAt")
-                        if (subject.updatedAt != expected.subject.updatedAt) add("subject.updatedAt")
+                        if (!isCutOverGoal && subject.updatedAt != expected.subject.updatedAt) {
+                            add("subject.updatedAt")
+                        }
                     }
 
                     if (orientation != null) {
-                        if (orientation.kind != expected.orientation.kind.name) add("orientation.kind")
+                        if (orientation.kind != expectedKind) add("orientation.kind")
                         if (
                             !isCutOverGoal &&
                                 orientation.lifecycle != expected.orientation.lifecycle?.name
@@ -505,6 +627,81 @@ private suspend fun repairMainBeaconCompatibilityProjections(
             if (canonicalMembers.isNotEmpty()) mainBeaconDao.insertGroupMembers(canonicalMembers)
         }
     }
+}
+
+private suspend fun repairThemeCompatibilityProjections(
+    canonicalDayThemeDao: CanonicalDayThemeDao,
+    mappings: List<LegacySubjectMappingEntity>,
+    subjects: List<ManagedSubjectEntity>,
+    definitions: List<ThemeDefinitionEntity>,
+) {
+    val subjectsById = subjects.associateBy { it.id }
+    val definitionsById = definitions.associateBy { it.id }
+    mappings.asSequence()
+        .filter {
+            it.sourceType == LegacyOrientationSourceType.THEME_DEFINITION.name &&
+                it.state == LegacySubjectMappingState.CUT_OVER.name
+        }.forEach { mapping ->
+            val subject = requireNotNull(subjectsById[mapping.subjectId]) {
+                "CUT_OVER Theme ${mapping.sourceId} is missing canonical subject ${mapping.subjectId}"
+            }
+            val definition = requireNotNull(definitionsById[mapping.sourceId]) {
+                "CUT_OVER Theme ${mapping.sourceId} is missing its extension projection"
+            }
+            val description = subject.description.orEmpty()
+            if (
+                definition.title != subject.title ||
+                definition.description != description ||
+                definition.isDeleted != subject.isDeleted
+            ) {
+                canonicalDayThemeDao.projectThemeCommonFields(
+                    id = definition.id,
+                    title = subject.title,
+                    description = description,
+                    isDeleted = subject.isDeleted,
+                )
+            }
+        }
+}
+
+private suspend fun repairArcQuestCompatibilityProjections(
+    arcQuestDao: ArcQuestDao,
+    mappings: List<LegacySubjectMappingEntity>,
+    subjects: List<ManagedSubjectEntity>,
+) {
+    val subjectsById = subjects.associateBy { it.id }
+    val questsById = arcQuestDao.getAllSync().associateBy { it.id }
+
+    mappings.asSequence()
+        .filter {
+            it.sourceType == LegacyOrientationSourceType.ARC_QUEST.name &&
+                it.state == LegacySubjectMappingState.CUT_OVER.name
+        }.forEach { mapping ->
+            val subject =
+                requireNotNull(subjectsById[mapping.subjectId]) {
+                    "CUT_OVER ArcQuest ${mapping.sourceId} is missing canonical subject ${mapping.subjectId}"
+                }
+            val quest =
+                requireNotNull(questsById[mapping.sourceId]) {
+                    "CUT_OVER ArcQuest ${mapping.sourceId} is missing its compatibility row"
+                }
+            require(quest.sourceType == ArcQuestSourceType.MANUAL.name) {
+                "ARC_QUEST mapping ${mapping.sourceId} points to a non-MANUAL ArcQuest"
+            }
+
+            if (
+                quest.title != subject.title ||
+                quest.description != subject.description ||
+                quest.isDeleted != subject.isDeleted
+            ) {
+                arcQuestDao.projectCommonFields(
+                    questId = quest.id,
+                    title = subject.title,
+                    description = subject.description,
+                    isDeleted = subject.isDeleted,
+                )
+            }
+        }
 }
 
 private fun planNewerMainBeaconCompatibilityWrites(

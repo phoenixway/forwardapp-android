@@ -26,8 +26,8 @@ internal fun PlanningScopeEntity.toPlanningScopeStrict(): PlanningScope =
     try {
         PlanningScope(
             id = PlanningScopeId(id),
-            kind = PlanningScopeKind.valueOf(kind),
-            lifecycle = PlanningScopeLifecycle.valueOf(lifecycle),
+            kind = kind.toPlanningScopeKindStable(),
+            lifecycle = lifecycle.toPlanningScopeLifecycleStable(),
             title = title,
             startsAt = startsAt,
             endsAt = endsAt,
@@ -51,8 +51,8 @@ internal fun PlanningScopeEntity.toPlanningScopeStrict(): PlanningScope =
 internal fun PlanningScope.toPlanningScopeEntity(): PlanningScopeEntity =
     PlanningScopeEntity(
         id = id.value,
-        kind = kind.name,
-        lifecycle = lifecycle.name,
+        kind = kind.toStableCode(),
+        lifecycle = lifecycle.toStableCode(),
         title = title,
         startsAt = startsAt,
         endsAt = endsAt,
@@ -73,11 +73,11 @@ internal fun PlanningCommitmentEntity.toPlanningCommitmentStrict(
             orientationId = orientationId,
             role = PlanningRoleCode.fromStableCode(role),
             order = commitmentOrder,
-            priorityLevel = priorityLevel?.let(PlanningPriorityLevel::valueOf),
-            status = PlanningCommitmentStatus.valueOf(status),
+            priorityLevel = priorityLevel?.toPlanningPriorityLevelStable(),
+            status = status.toPlanningCommitmentStatusStable(),
             provenance =
                 PlanningProvenance(
-                    kind = PlanningProvenanceKind.valueOf(provenanceKind),
+                    kind = provenanceKind.toPlanningProvenanceKindStable(),
                     sourceType = provenanceSourceType,
                     sourceId = provenanceSourceId,
                 ),
@@ -105,9 +105,9 @@ internal fun PlanningCommitment.toPlanningCommitmentEntity(): PlanningCommitment
         orientationId = orientationId,
         role = role.value,
         commitmentOrder = order,
-        priorityLevel = priorityLevel?.name,
-        status = status.name,
-        provenanceKind = provenance.kind.name,
+        priorityLevel = priorityLevel?.toStableCode(),
+        status = status.toStableCode(),
+        provenanceKind = provenance.kind.toStableCode(),
         provenanceSourceType = provenance.sourceType,
         provenanceSourceId = provenance.sourceId,
         createdAt = createdAt,

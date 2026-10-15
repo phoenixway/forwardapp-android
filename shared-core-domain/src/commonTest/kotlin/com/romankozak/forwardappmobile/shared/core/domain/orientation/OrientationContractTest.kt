@@ -49,6 +49,38 @@ class OrientationContractTest {
     }
 
     @Test
+    fun themeKeepsLegacyDayThemeAssessmentApplicability() {
+        val canonical = initialOrientationAssessment(OrientationKind.THEME)
+        val compatibility = initialOrientationAssessment(OrientationKind.DAY_THEME)
+
+        assertEquals(OrientationKind.THEME, resolveOrientationKind("theme").known)
+        assertEquals(compatibility, canonical)
+        assertTrue(validateOrientationAssessment(OrientationKind.THEME, canonical).isEmpty())
+    }
+
+    @Test
+    fun intentIsStableReusableSemanticVocabulary() {
+        val assessment = initialOrientationAssessment(OrientationKind.INTENT)
+
+        assertEquals(OrientationKind.INTENT, resolveOrientationKind("intent").known)
+        assertTrue(validateOrientationAssessment(OrientationKind.INTENT, assessment).isEmpty())
+        OrientationAxis.entries.forEach { axis ->
+            assertEquals(ValueOrigin.UNSET, assessment.valueFor(axis).origin)
+        }
+    }
+
+    @Test
+    fun questIsStableReusableSemanticVocabulary() {
+        val assessment = initialOrientationAssessment(OrientationKind.QUEST)
+
+        assertEquals(OrientationKind.QUEST, resolveOrientationKind("quest").known)
+        assertTrue(validateOrientationAssessment(OrientationKind.QUEST, assessment).isEmpty())
+        OrientationAxis.entries.forEach { axis ->
+            assertEquals(ValueOrigin.UNSET, assessment.valueFor(axis).origin)
+        }
+    }
+
+    @Test
     fun legacyNumericMappingIsExplicitAndDoesNotClampUnknowns() {
         val source = LegacySubjectRef(LegacyOrientationSourceType.GOAL, "g1")
         val known = projectLegacyImportance(10f, "ASSESSED", source)
@@ -109,6 +141,29 @@ class OrientationContractTest {
             preservedSpecializedFields = emptyList(),
             diagnostics = emptyList(),
         )
+    }
+
+
+    @Test
+    fun `scoring assessment axes use semantic codes and start unset`() {
+        val assessment = initialOrientationAssessment(OrientationKind.GOAL)
+
+        assertEquals(ValueOrigin.UNSET, assessment.effort.origin)
+        assertEquals(ValueOrigin.UNSET, assessment.cost.origin)
+        assertEquals(ValueOrigin.UNSET, assessment.risk.origin)
+        assertEquals(
+            listOf("NONE", "MINIMAL", "LOW", "MODERATE", "HIGH", "VERY_HIGH", "EXTREME", "MASSIVE"),
+            axisValueCodes(OrientationAxis.EFFORT),
+        )
+        assertEquals(
+            listOf("NONE", "VERY_LOW", "LOW", "MODERATE", "HIGH", "VERY_HIGH"),
+            axisValueCodes(OrientationAxis.COST),
+        )
+        assertEquals(
+            listOf("NONE", "MINIMAL", "LOW", "MODERATE", "HIGH", "VERY_HIGH", "EXTREME", "CRITICAL"),
+            axisValueCodes(OrientationAxis.RISK),
+        )
+        assertTrue(validateOrientationAssessment(OrientationKind.GOAL, assessment).isEmpty())
     }
 
 

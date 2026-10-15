@@ -7,13 +7,17 @@ import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEnt
  * Адаптер для перетворення застарілих нотаток у нову модель `NoteDocument`.
  * Використовуємо, коли потрібно відобразити legacy-нотатки в оновленому UI.
  */
-fun LegacyNoteEntity.toNoteDocument(): NoteDocumentEntity =
-    NoteDocumentEntity(
-        id = id,
-        contextId = contextId,
-        name = title,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        content = content,
-        lastCursorPosition = 0,
-    )
+// Legacy projection only. A standalone Note has no Context-backed
+// NoteDocument representation and must not receive a fabricated owner.
+fun LegacyNoteEntity.toNoteDocument(): NoteDocumentEntity? =
+    contextId?.let { historicalContextId ->
+        NoteDocumentEntity(
+            id = id,
+            contextId = historicalContextId,
+            name = title,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            content = content,
+            lastCursorPosition = 0,
+        )
+    }

@@ -6,6 +6,11 @@ import androidx.room.Upsert
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity
 import kotlinx.coroutines.flow.Flow
 
+data class HierarchyPlacedTargetRow(
+    val targetType: String,
+    val targetId: String,
+)
+
 @Dao
 interface HierarchyPlacementDao {
     @Query(
@@ -54,6 +59,23 @@ interface HierarchyPlacementDao {
         """,
     )
     fun observeLiveHierarchy(hierarchyId: String): Flow<List<HierarchyPlacementEntity>>
+
+    /**
+     * Narrow typed-target presence read.
+     * Both PRIMARY and LINK count as occurrences.
+     * Live ancestor closure is guaranteed by canonical validation.
+     */
+    @Query(
+        """
+        SELECT DISTINCT targetType, targetId
+        FROM hierarchy_placements
+        WHERE hierarchyId = :hierarchyId
+          AND isDeleted = 0
+        """,
+    )
+    fun observeVisiblePlacedTargets(
+        hierarchyId: String,
+    ): Flow<List<HierarchyPlacedTargetRow>>
 
     @Query(
         """

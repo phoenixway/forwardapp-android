@@ -13,6 +13,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.dao.DayTaskOwnerRejection
+import com.romankozak.forwardappmobile.data.dao.DayTaskWorkspaceOwnerRejected
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceFrequency
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceRule
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
@@ -74,7 +76,7 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
                 version = 1,
             )
         db.dayPlanDao().insert(plan)
-        db.contextDao().insert(contextFixture("project:alpha"))
+        seedContextBackedWorkspace("project:alpha")
 
         val created =
             authoring.createSeriesForPlan(
@@ -109,7 +111,9 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals(1L, created.recurrenceSourceSeriesVersion)
         assertEquals("Canonical create", created.title)
         assertEquals("series description", created.description)
-        assertEquals("project:alpha", created.projectId)
+        assertNull(created.projectId)
+        assertEquals("project:alpha", created.projectWorkspaceId)
+        assertEquals("project:alpha", created.logicalProjectId)
         assertEquals("SUBLIST", created.taskType)
         assertEquals(listOf("project:alpha", "project:beta"), created.linkedProjectIds)
         assertEquals(listOf("attachment:1"), created.linkedAttachmentIds)
@@ -169,7 +173,7 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
                 version = 1,
             )
         db.dayPlanDao().insert(plan)
-        db.contextDao().insert(contextFixture("project:converted"))
+        seedContextBackedWorkspace("project:converted")
 
         val source =
             DayTask(
@@ -209,7 +213,9 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals(1L, converted.recurrenceSourceSeriesVersion)
         assertEquals("Converted series", converted.title)
         assertEquals("recurring description", converted.description)
-        assertEquals("project:converted", converted.projectId)
+        assertNull(converted.projectId)
+        assertEquals("project:converted", converted.projectWorkspaceId)
+        assertEquals("project:converted", converted.logicalProjectId)
         assertEquals("SUBLIST", converted.taskType)
         assertEquals(TaskPriority.HIGH, converted.priority)
         assertEquals(30L, converted.estimatedDurationMinutes)
@@ -335,8 +341,8 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
                 DayPlan(id = "plan-23", date = day23, createdAt = 1_000L, updatedAt = 1_000L, version = 1),
             )
         plans.forEach { db.dayPlanDao().insert(it) }
-        db.contextDao().insert(contextFixture("project:initial"))
-        db.contextDao().insert(contextFixture("project:updated"))
+        seedContextBackedWorkspace("project:initial")
+        seedContextBackedWorkspace("project:updated")
 
         val selected =
             authoring.createSeriesForPlan(
@@ -444,7 +450,9 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
             )
 
         assertEquals("Updated series", selectedAfterSeriesEdit.title)
-        assertEquals("project:updated", selectedAfterSeriesEdit.projectId)
+        assertNull(selectedAfterSeriesEdit.projectId)
+        assertEquals("project:updated", selectedAfterSeriesEdit.projectWorkspaceId)
+        assertEquals("project:updated", selectedAfterSeriesEdit.logicalProjectId)
         assertNull(selectedAfterSeriesEdit.taskType)
         assertEquals(2L, selectedAfterSeriesEdit.recurrenceSourceSeriesVersion)
 
@@ -473,7 +481,9 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
             )
         assertEquals("Updated series", clean22After.title)
         assertEquals("updated description", clean22After.description)
-        assertEquals("project:updated", clean22After.projectId)
+        assertNull(clean22After.projectId)
+        assertEquals("project:updated", clean22After.projectWorkspaceId)
+        assertEquals("project:updated", clean22After.logicalProjectId)
         assertNull(clean22After.taskType)
         assertEquals(TaskPriority.HIGH, clean22After.priority)
         assertEquals(50L, clean22After.estimatedDurationMinutes)
@@ -833,7 +843,7 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
                 ),
             ),
         )
-        db.contextDao().insert(contextFixture(ordinaryId))
+        seedContextBackedWorkspace(ordinaryId)
         db.dayPlanDao().insert(
             DayPlan(
                 id = "system-owner-plan-20",
@@ -900,15 +910,15 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
             )
 
         assertEquals(ordinaryId, ordinarySelected.logicalProjectId)
-        assertEquals(ordinaryId, ordinarySelected.projectId)
-        assertNull(ordinarySelected.projectWorkspaceId)
+        assertNull(ordinarySelected.projectId)
+        assertEquals(ordinaryId, ordinarySelected.projectWorkspaceId)
 
         val futureOrdinary =
             requireNotNull(db.dayTaskDao().getByIdForCanonicalRecurrenceSync(futureId))
         assertEquals("Ordinary template", futureOrdinary.title)
         assertEquals(ordinaryId, futureOrdinary.logicalProjectId)
-        assertEquals(ordinaryId, futureOrdinary.projectId)
-        assertNull(futureOrdinary.projectWorkspaceId)
+        assertNull(futureOrdinary.projectId)
+        assertEquals(ordinaryId, futureOrdinary.projectWorkspaceId)
         assertEquals(2L, futureOrdinary.recurrenceSourceSeriesVersion)
 
         val systemSelectedAgain =
@@ -1034,6 +1044,199 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertNull(
             db.dayTaskDao().getByIdForCanonicalRecurrenceSync(
                 "recurrence:TASK:$seriesId:2026-08-24",
+            ),
+        )
+    }
+
+    @Test
+    fun `series update rejects missing Workspace atomically`() = runTest {
+        val (first, future) = ownerlessRecurringFixture("reject-update")
+        val seriesId = requireNotNull(first.recurrenceSeriesId)
+        val seriesDao = db.canonicalRecurringSeriesDao()
+        val taskDao = db.dayTaskDao()
+
+        val seriesBefore = requireNotNull(seriesDao.getById(seriesId))
+        val firstBefore = requireNotNull(
+            taskDao.getByIdForCanonicalRecurrenceSync(first.id),
+        )
+        val futureBefore = requireNotNull(
+            taskDao.getByIdForCanonicalRecurrenceSync(future.id),
+        )
+
+        val failure = runCatching {
+            authoring.updateSeriesTemplate(
+                task = first,
+                title = "Rejected series update",
+                description = null,
+                goalId = null,
+                projectId = "project:missing-update",
+                taskType = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                priority = TaskPriority.HIGH,
+                estimatedDurationMinutes = 45L,
+                points = 9,
+                executionStrictness = TaskExecutionStrictness.NORMAL,
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is DayTaskWorkspaceOwnerRejected)
+        assertEquals(
+            DayTaskOwnerRejection.MISSING_WORKSPACE,
+            (failure as DayTaskWorkspaceOwnerRejected).reason,
+        )
+
+        val seriesAfter = requireNotNull(seriesDao.getById(seriesId))
+        assertEquals(seriesBefore.version, seriesAfter.version)
+        assertEquals(seriesBefore.updatedAt, seriesAfter.updatedAt)
+        assertEquals(seriesBefore.endDayKey, seriesAfter.endDayKey)
+        assertEquals(1, seriesDao.getAllSync().size)
+
+        assertEquals(
+            firstBefore,
+            taskDao.getByIdForCanonicalRecurrenceSync(first.id),
+        )
+        assertEquals(
+            futureBefore,
+            taskDao.getByIdForCanonicalRecurrenceSync(future.id),
+        )
+    }
+
+    @Test
+    fun `series split rejects missing Workspace and rolls back tombstones`() = runTest {
+        val (first, future) = ownerlessRecurringFixture("reject-split")
+        val seriesId = requireNotNull(first.recurrenceSeriesId)
+        val seriesDao = db.canonicalRecurringSeriesDao()
+        val taskDao = db.dayTaskDao()
+
+        val seriesBefore = requireNotNull(seriesDao.getById(seriesId))
+        val firstBefore = requireNotNull(
+            taskDao.getByIdForCanonicalRecurrenceSync(first.id),
+        )
+        val futureBefore = requireNotNull(
+            taskDao.getByIdForCanonicalRecurrenceSync(future.id),
+        )
+
+        val failure = runCatching {
+            authoring.splitSeriesFromOccurrence(
+                task = future,
+                title = "Rejected split series",
+                description = null,
+                goalId = null,
+                projectId = "project:missing-split",
+                taskType = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                priority = TaskPriority.HIGH,
+                estimatedDurationMinutes = 45L,
+                points = 9,
+                executionStrictness = TaskExecutionStrictness.NORMAL,
+                rule = dailyRule(),
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is DayTaskWorkspaceOwnerRejected)
+        assertEquals(
+            DayTaskOwnerRejection.MISSING_WORKSPACE,
+            (failure as DayTaskWorkspaceOwnerRejected).reason,
+        )
+
+        val seriesAfter = requireNotNull(seriesDao.getById(seriesId))
+        assertEquals(seriesBefore.version, seriesAfter.version)
+        assertEquals(seriesBefore.updatedAt, seriesAfter.updatedAt)
+        assertEquals(seriesBefore.endDayKey, seriesAfter.endDayKey)
+        assertEquals(1, seriesDao.getAllSync().size)
+
+        assertEquals(
+            firstBefore,
+            taskDao.getByIdForCanonicalRecurrenceSync(first.id),
+        )
+        assertEquals(
+            futureBefore,
+            taskDao.getByIdForCanonicalRecurrenceSync(future.id),
+        )
+        assertFalse(
+            requireNotNull(
+                taskDao.getByIdForCanonicalRecurrenceSync(future.id),
+            ).isDeleted,
+        )
+    }
+
+    private suspend fun ownerlessRecurringFixture(
+        prefix: String,
+    ): Pair<DayTask, DayTask> {
+        val day20 = localDayStart(2026, 8, 20)
+        val day21 = localDayStart(2026, 8, 21)
+
+        db.dayPlanDao().insert(
+            DayPlan(
+                id = "$prefix-20",
+                date = day20,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                version = 1L,
+            ),
+        )
+        db.dayPlanDao().insert(
+            DayPlan(
+                id = "$prefix-21",
+                date = day21,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                version = 1L,
+            ),
+        )
+
+        val first = authoring.createSeriesForPlan(
+            dayPlanId = "$prefix-20",
+            title = "Original ownerless series",
+            description = null,
+            goalId = null,
+            projectId = null,
+            taskType = null,
+            linkedProjectIds = emptyList(),
+            linkedAttachmentIds = emptyList(),
+            priority = TaskPriority.MEDIUM,
+            estimatedDurationMinutes = 30L,
+            points = 5,
+            executionStrictness = TaskExecutionStrictness.NORMAL,
+            rule = dailyRule(),
+        )
+
+        val seriesId = requireNotNull(first.recurrenceSeriesId)
+        materializer.materializeForDate(day21, 20_000L)
+
+        val future = requireNotNull(
+            db.dayTaskDao().getByIdForCanonicalRecurrenceSync(
+                "recurrence:TASK:$seriesId:2026-08-21",
+            ),
+        )
+
+        assertNull(first.projectId)
+        assertNull(first.projectWorkspaceId)
+        assertNull(future.projectId)
+        assertNull(future.projectWorkspaceId)
+
+        return first to future
+    }
+
+    private suspend fun seedContextBackedWorkspace(id: String) {
+        db.contextDao().insert(contextFixture(id))
+        db.workspaceDao().upsert(
+            listOf(
+                WorkspaceEntity(
+                    id = id,
+                    nameOverride = id,
+                    descriptionOverride = null,
+                    roleCode = null,
+                    createdAt = 100L,
+                    updatedAt = 100L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                    provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                    sourceContextId = id,
+                ),
             ),
         )
     }

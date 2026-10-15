@@ -245,6 +245,9 @@ fun MagicBoxScreen(
 
     fun openDataResultPrimary(result: GlobalSearchResultItem) {
         when (result) {
+            is GlobalSearchResultItem.OrientationItem -> {
+                viewModel.openSemanticEntity(result)
+            }
             is GlobalSearchResultItem.GoalItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
                 viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
@@ -280,6 +283,9 @@ fun MagicBoxScreen(
             }
             is GlobalSearchResultItem.AttachmentItem -> {
                 viewModel.openAttachmentResult(result)
+            }
+            is GlobalSearchResultItem.NoteItem -> {
+                viewModel.openNoteResult(result)
             }
         }
     }

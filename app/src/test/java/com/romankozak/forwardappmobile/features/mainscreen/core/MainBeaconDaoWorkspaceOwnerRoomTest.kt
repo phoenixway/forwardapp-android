@@ -10,6 +10,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -22,64 +29,133 @@ class MainBeaconDaoWorkspaceOwnerRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `typed routing stores exact reserved owner only in Workspace branch and exports logical union`() =
+    fun `logical Context refs persist exclusively as validated Workspace refs`() =
         runBlocking {
             val database = database()
             try {
                 val dao = database.mainBeaconDao()
-                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon", createdAt = 1L, updatedAt = 1L))
+                dao.insertBeacon(
+                    MainBeacon(
+                        id = BEACON_ID,
+                        title = "Beacon",
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                    ),
+                )
                 database.contextDao().insertContexts(
                     listOf(context(ORDINARY_ID), context(HISTORICAL_SYS_PREFIX_ID)),
                 )
-                database.workspaceDao().upsert(listOf(canonicalWorkspace(SYSTEM_ID)))
+                database.workspaceDao().upsert(
+                    listOf(
+                        canonicalWorkspace(SYSTEM_ID),
+                        contextBackedWorkspace(ORDINARY_ID),
+                        contextBackedWorkspace(HISTORICAL_SYS_PREFIX_ID),
+                    ),
+                )
 
                 dao.insertContextCrossRefs(
                     listOf(
-                        MainBeaconContextCrossRef(BEACON_ID, SYSTEM_ID, order = 4L),
-                        MainBeaconContextCrossRef(BEACON_ID, ORDINARY_ID, order = 2L),
-                        MainBeaconContextCrossRef(BEACON_ID, HISTORICAL_SYS_PREFIX_ID, order = 3L),
+                        MainBeaconContextCrossRef(BEACON_ID, SYSTEM_ID, 4L),
+                        MainBeaconContextCrossRef(BEACON_ID, ORDINARY_ID, 2L),
+                        MainBeaconContextCrossRef(BEACON_ID, HISTORICAL_SYS_PREFIX_ID, 3L),
                     ),
                 )
 
-                assertEquals(
-                    listOf(SYSTEM_ID),
-                    dao.getAllWorkspaceCrossRefsSync().map { it.workspaceId },
-                )
                 assertEquals(
                     listOf(ORDINARY_ID, HISTORICAL_SYS_PREFIX_ID, SYSTEM_ID),
-                    dao.getAllContextCrossRefsSync().map { it.contextId },
+                    dao.getAllWorkspaceCrossRefsSync().map { it.workspaceId },
                 )
-                assertEquals(
-                    0L,
-                    scalarLong(
-                        database,
-                        "SELECT COUNT(*) FROM main_beacon_context_cross_ref WHERE context_id = '$SYSTEM_ID'",
-                    ),
-                )
-                assertEquals(
-                    1L,
-                    scalarLong(
-                        database,
-                        """
-                        SELECT COUNT(*) FROM main_beacon_context_cross_ref
-                        WHERE context_id = '$HISTORICAL_SYS_PREFIX_ID'
-                        """.trimIndent(),
-                    ),
-                )
+                assertTrue(retiredMainBeaconContextTableAbsent(database))
 
-                dao.updateContextCrossRefOrder(BEACON_ID, SYSTEM_ID, order = 0L)
-                dao.updateContextCrossRefOrder(BEACON_ID, ORDINARY_ID, order = 1L)
+                dao.updateContextCrossRefOrder(BEACON_ID, SYSTEM_ID, 0L)
+                dao.updateContextCrossRefOrder(BEACON_ID, ORDINARY_ID, 1L)
+
                 assertEquals(
                     listOf(SYSTEM_ID, ORDINARY_ID, HISTORICAL_SYS_PREFIX_ID),
                     dao.getAllContextCrossRefsSync().map { it.contextId },
                 )
 
                 dao.deleteContextCrossRefsForContexts(setOf(SYSTEM_ID))
-                assertTrue(dao.getAllWorkspaceCrossRefsSync().isEmpty())
+
                 assertEquals(
                     listOf(ORDINARY_ID, HISTORICAL_SYS_PREFIX_ID),
-                    dao.getAllContextCrossRefsSync().map { it.contextId },
+                    dao.getAllWorkspaceCrossRefsSync().map { it.workspaceId },
                 )
+                assertTrue(retiredMainBeaconContextTableAbsent(database))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `repeated logical insertion preserves one canonical Workspace association`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon"))
+                database.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                database.workspaceDao().upsert(
+                    listOf(contextBackedWorkspace(ORDINARY_ID)),
+                )
+
+                val ref = MainBeaconContextCrossRef(BEACON_ID, ORDINARY_ID, 7L)
+
+                dao.insertContextCrossRefs(listOf(ref))
+                dao.insertContextCrossRefs(listOf(ref))
+
+                assertEquals(
+                    listOf(ref),
+                    dao.getAllContextCrossRefsSync(),
+                )
+                assertEquals(
+                    listOf(
+                        com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef(
+                            BEACON_ID,
+                            ORDINARY_ID,
+                            7L,
+                        ),
+                    ),
+                    dao.getAllWorkspaceCrossRefsSync(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `divergent logical insertion rejects without modifying canonical order`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon"))
+                database.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                database.workspaceDao().upsert(
+                    listOf(contextBackedWorkspace(ORDINARY_ID)),
+                )
+
+                val originalRef = MainBeaconContextCrossRef(
+                    BEACON_ID,
+                    ORDINARY_ID,
+                    4L,
+                )
+                dao.insertContextCrossRefs(listOf(originalRef))
+
+                val before = dao.getAllWorkspaceCrossRefsSync()
+
+                val failure = runCatching {
+                    dao.insertContextCrossRefs(
+                        listOf(originalRef.copy(order = 3L)),
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(
+                    "Expected canonical order conflict",
+                    failure is IllegalArgumentException,
+                )
+                assertEquals(before, dao.getAllWorkspaceCrossRefsSync())
+                assertEquals(listOf(originalRef), dao.getAllContextCrossRefsSync())
             } finally {
                 database.close()
             }
@@ -123,9 +199,153 @@ class MainBeaconDaoWorkspaceOwnerRoomTest {
                     0L,
                     scalarLong(
                         database,
-                        "SELECT COUNT(*) FROM main_beacon_context_cross_ref WHERE context_id = '$ORDINARY_ID'",
+                        "SELECT COUNT(*) FROM sqlite_master " +
+                            "WHERE type = 'table' " +
+                            "AND name = 'main_beacon_context_cross_ref'",
                     ),
                 )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `logical export and observation project canonical Workspace associations`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon"))
+                database.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                database.workspaceDao().upsert(
+                    listOf(contextBackedWorkspace(ORDINARY_ID)),
+                )
+
+                val logical = MainBeaconContextCrossRef(
+                    BEACON_ID,
+                    ORDINARY_ID,
+                    7L,
+                )
+                val canonical =
+                    com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef(
+                        BEACON_ID,
+                        ORDINARY_ID,
+                        7L,
+                    )
+
+                dao.insertWorkspaceCrossRefs(listOf(canonical))
+
+                assertEquals(listOf(logical), dao.getAllContextCrossRefsSync())
+                assertEquals(listOf(logical), dao.observeContextCrossRefs().first())
+                assertEquals(listOf(canonical), dao.getAllWorkspaceCrossRefsSync())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `logical export rejects invalid owner provenance without ref mutation`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon"))
+                database.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+
+                val originalOwner = contextBackedWorkspace(ORDINARY_ID)
+                database.workspaceDao().upsert(listOf(originalOwner))
+
+                val ref = MainBeaconContextCrossRef(
+                    BEACON_ID,
+                    ORDINARY_ID,
+                    7L,
+                )
+                dao.insertContextCrossRefs(listOf(ref))
+
+                val before = dao.getAllWorkspaceCrossRefsSync()
+
+                database.workspaceDao().upsert(
+                    listOf(
+                        originalOwner.copy(
+                            provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                            sourceContextId = null,
+                        ),
+                    ),
+                )
+
+                val exportFailure = runCatching {
+                    dao.getAllContextCrossRefsSync()
+                }.exceptionOrNull()
+
+                val observeFailure = runCatching {
+                    dao.observeContextCrossRefs().first()
+                }.exceptionOrNull()
+
+                assertTrue(exportFailure is IllegalArgumentException)
+                assertTrue(observeFailure is IllegalArgumentException)
+                assertEquals(before, dao.getAllWorkspaceCrossRefsSync())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `logical observer invalidates when Workspace provenance changes without crossref writes`() =
+        runBlocking {
+            val database = database()
+            try {
+                val dao = database.mainBeaconDao()
+                val owner = contextBackedWorkspace(ORDINARY_ID)
+                val ref = MainBeaconContextCrossRef(BEACON_ID, ORDINARY_ID, 7L)
+
+                dao.insertBeacon(MainBeacon(id = BEACON_ID, title = "Beacon"))
+                database.contextDao().insertContexts(listOf(context(ORDINARY_ID)))
+                database.workspaceDao().upsert(listOf(owner))
+                dao.insertContextCrossRefs(listOf(ref))
+
+                val firstEmission =
+                    CompletableDeferred<List<MainBeaconContextCrossRef>>()
+
+                val observer =
+                    async(Dispatchers.Default) {
+                        runCatching {
+                            dao.observeContextCrossRefs()
+                                .onEach { rows -> firstEmission.complete(rows) }
+                                .collect()
+                        }.exceptionOrNull()
+                    }
+
+                try {
+                    assertEquals(
+                        listOf(ref),
+                        withTimeout(10_000L) { firstEmission.await() },
+                    )
+
+                    // No association-table write occurs after observation
+                    // starts. Only the Workspace owner authority changes.
+                    database.workspaceDao().upsert(
+                        listOf(
+                            owner.copy(
+                                provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                                sourceContextId = null,
+                            ),
+                        ),
+                    )
+
+                    val failure = withTimeout(10_000L) { observer.await() }
+
+                    assertTrue(
+                        "Expected live owner revalidation, got $failure",
+                        failure is IllegalArgumentException,
+                    )
+                    assertEquals(
+                        1,
+                        dao.getAllWorkspaceCrossRefsSync().size,
+                    )
+                    assertTrue(retiredMainBeaconContextTableAbsent(database))
+                } finally {
+                    observer.cancel()
+                }
             } finally {
                 database.close()
             }
@@ -139,6 +359,12 @@ class MainBeaconDaoWorkspaceOwnerRoomTest {
             parentId = null,
             createdAt = 1L,
             updatedAt = 1L,
+        )
+
+    private fun contextBackedWorkspace(id: String) =
+        canonicalWorkspace(id).copy(
+            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+            sourceContextId = id,
         )
 
     private fun canonicalWorkspace(id: String) =
@@ -177,3 +403,14 @@ class MainBeaconDaoWorkspaceOwnerRoomTest {
         const val HISTORICAL_SYS_PREFIX_ID = "sys_strategic-beacons"
     }
 }
+
+private fun retiredMainBeaconContextTableAbsent(
+    database: AppDatabase,
+): Boolean =
+    database.openHelper.writableDatabase.query(
+        "SELECT COUNT(*) FROM sqlite_master " +
+            "WHERE type = 'table' AND name = 'main_beacon_context_cross_ref'",
+    ).use { cursor ->
+        check(cursor.moveToFirst())
+        cursor.getLong(0) == 0L
+    }

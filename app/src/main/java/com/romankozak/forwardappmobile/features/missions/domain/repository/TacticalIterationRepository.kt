@@ -3,7 +3,7 @@ package com.romankozak.forwardappmobile.features.missions.domain.repository
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationType
-import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAdapter
 import kotlinx.coroutines.flow.Flow
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -19,50 +19,63 @@ import javax.inject.Singleton
 class TacticalIterationRepository
     @Inject
     constructor(
-        private val tacticalIterationDao: TacticalIterationDao,
+        private val canonicalAdapter: CanonicalTacticalPlanningAdapter,
     ) {
-        fun observeIterations(): Flow<List<TacticalIteration>> = tacticalIterationDao.observeIterations()
+        fun observeIterations(): Flow<List<TacticalIteration>> =
+            canonicalAdapter.observeIterations()
 
-        suspend fun getCurrentIteration(): TacticalIteration? = tacticalIterationDao.getActiveIteration()
+        suspend fun getCurrentIteration(): TacticalIteration? =
+            canonicalAdapter.getCurrentIteration()
 
         suspend fun ensureActiveIteration(currentWeekKey: String): TacticalIteration =
-            tacticalIterationDao.getActiveIteration() ?: createTimeboxedIteration(currentWeekKey)
+            canonicalAdapter.getCurrentIteration()
+                ?: createTimeboxedIteration(currentWeekKey)
 
-        suspend fun getById(iterationId: String): TacticalIteration? = tacticalIterationDao.getById(iterationId)
+        suspend fun getById(iterationId: String): TacticalIteration? =
+            canonicalAdapter.getById(iterationId)
 
         suspend fun ensureDraftTimeboxed(currentWeekKey: String): TacticalIteration =
-            tacticalIterationDao.getActiveIteration() ?: createTimeboxedIteration(
-                weekKey = currentWeekKey,
-                status = TacticalIterationStatus.DRAFT,
-            )
+            canonicalAdapter.getCurrentIteration()
+                ?: createTimeboxedIteration(
+                    weekKey = currentWeekKey,
+                    status = TacticalIterationStatus.DRAFT,
+                )
 
         suspend fun startCurrentOrCreateTimeboxed(currentWeekKey: String): TacticalIteration {
-            val current = tacticalIterationDao.getActiveIteration()
+            val current = canonicalAdapter.getCurrentIteration()
             if (current?.status == TacticalIterationStatus.DRAFT) {
                 val now = System.currentTimeMillis()
-                tacticalIterationDao.startIteration(current.id, now)
-                return current.copy(
+                val started =
+                    current.copy(
+                        status = TacticalIterationStatus.ACTIVE,
+                        startedAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = current.version + 1L,
+                    )
+                canonicalAdapter.saveIteration(started)
+                return started
+            }
+            return current
+                ?: createTimeboxedIteration(
+                    currentWeekKey,
                     status = TacticalIterationStatus.ACTIVE,
-                    startedAt = now,
+                )
+        }
+
+        suspend fun finishCurrentIteration(): TacticalIteration? {
+            val current = canonicalAdapter.getCurrentIteration() ?: return null
+            val now = System.currentTimeMillis()
+            val closed =
+                current.copy(
+                    status = TacticalIterationStatus.CLOSED,
+                    closedAt = now,
                     updatedAt = now,
                     syncedAt = null,
                     version = current.version + 1L,
                 )
-            }
-            return current ?: createTimeboxedIteration(currentWeekKey, status = TacticalIterationStatus.ACTIVE)
-        }
-
-        suspend fun finishCurrentIteration(): TacticalIteration? {
-            val current = tacticalIterationDao.getActiveIteration() ?: return null
-            val now = System.currentTimeMillis()
-            tacticalIterationDao.closeIteration(current.id, now)
-            return current.copy(
-                status = TacticalIterationStatus.CLOSED,
-                closedAt = now,
-                updatedAt = now,
-                syncedAt = null,
-                version = current.version + 1L,
-            )
+            canonicalAdapter.saveIteration(closed)
+            return closed
         }
 
         suspend fun finishCurrentAndCreateDraft(currentWeekKey: String): TacticalIteration {
@@ -74,10 +87,8 @@ class TacticalIterationRepository
         }
 
         suspend fun closeActiveAndStartOpenEnded(title: String? = null): TacticalIteration {
+            closeCurrentIfPresent()
             val now = System.currentTimeMillis()
-            tacticalIterationDao.getActiveIteration()?.let { active ->
-                tacticalIterationDao.closeIteration(active.id, now)
-            }
             val iteration =
                 TacticalIteration(
                     id = UUID.randomUUID().toString(),
@@ -91,20 +102,32 @@ class TacticalIterationRepository
                     updatedAt = now,
                     version = 1L,
                 )
-            tacticalIterationDao.insert(iteration)
+            canonicalAdapter.saveIteration(iteration)
             return iteration
         }
 
         suspend fun closeActiveAndStartTimeboxed(currentWeekKey: String): TacticalIteration {
             val now = System.currentTimeMillis()
-            tacticalIterationDao.getActiveIteration()?.let { active ->
-                tacticalIterationDao.closeIteration(active.id, now)
-            }
+            closeCurrentIfPresent(now)
             return createTimeboxedIteration(
                 weekKey = currentWeekKey,
                 now = now,
                 status = TacticalIterationStatus.DRAFT,
             )
+        }
+
+        private suspend fun closeCurrentIfPresent(now: Long = System.currentTimeMillis()) {
+            canonicalAdapter.getCurrentIteration()?.let { current ->
+                val closed =
+                    current.copy(
+                        status = TacticalIterationStatus.CLOSED,
+                        closedAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = current.version + 1L,
+                    )
+                canonicalAdapter.saveIteration(closed)
+            }
         }
 
         private suspend fun createTimeboxedIteration(
@@ -114,7 +137,7 @@ class TacticalIterationRepository
         ): TacticalIteration {
             val start = weekStartMillis(weekKey) ?: now
             val iterationId =
-                if (tacticalIterationDao.getById(weekKey) == null) {
+                if (canonicalAdapter.getById(weekKey) == null) {
                     weekKey
                 } else {
                     "${weekKey}-${UUID.randomUUID()}"
@@ -132,13 +155,15 @@ class TacticalIterationRepository
                     updatedAt = now,
                     version = 1L,
                 )
-            tacticalIterationDao.insert(iteration)
+            canonicalAdapter.saveIteration(iteration)
             return iteration
         }
 
         private fun weekStartMillis(weekKey: String): Long? =
             runCatching {
-                val match = Regex("""^(\d{4})-W(\d{2})$""").matchEntire(weekKey) ?: error("Invalid week key")
+                val match =
+                    Regex("""^(\d{4})-W(\d{2})$""").matchEntire(weekKey)
+                        ?: error("Invalid week key")
                 val year = match.groupValues[1].toInt()
                 val week = match.groupValues[2].toInt()
                 LocalDate.now()
@@ -152,7 +177,10 @@ class TacticalIterationRepository
 
         private fun formatWeekTitle(weekKey: String): String {
             val start = weekStartMillis(weekKey) ?: return weekKey
-            val date = java.time.Instant.ofEpochMilli(start).atZone(ZoneId.systemDefault()).toLocalDate()
+            val date =
+                java.time.Instant.ofEpochMilli(start)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
             val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
             return "$weekKey · ${date.format(formatter)} - ${date.plusDays(DAYS_PER_WEEK - 1).format(formatter)}"
         }

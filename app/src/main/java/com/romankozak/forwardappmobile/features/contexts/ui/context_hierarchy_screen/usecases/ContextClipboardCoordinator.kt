@@ -422,32 +422,34 @@ class ContextClipboardCoordinator
             }
 
             val addedCount =
-                withContext(ioDispatcher) {
-                    when (current.operation) {
-                        ContextOperation.CUT -> {
-                            val occurrences =
-                                contextIds.map { contextId ->
-                                    current.occurrences[contextId]
-                                        ?: return@withContext null
-                                }
-                            occurrences.forEach { occurrence ->
-                                hierarchyOccurrenceCommandService.removeOccurrence(
-                                    HierarchyOccurrenceCommand.RemoveOccurrence(
-                                        placementId = occurrence.placementId,
-                                    ),
+                try {
+                    withContext(ioDispatcher) {
+                        when (current.operation) {
+                            ContextOperation.CUT -> {
+                                val selected =
+                                    contextIds.associateWith { contextId ->
+                                        current.occurrences[contextId]
+                                            ?: return@withContext null
+                                    }
+                                mainBeaconRepository.moveRelatedContextsToBeaconWithOccurrences(
+                                    beaconId = beaconNode.id,
+                                    occurrencesByContextId = selected,
                                 )
                             }
-                            mainBeaconRepository.moveRelatedContextsToBeacon(
-                                beaconId = beaconNode.id,
-                                contextIds = contextIds,
-                            )
+                            ContextOperation.LINK ->
+                                mainBeaconRepository.addRelatedContexts(
+                                    beaconId = beaconNode.id,
+                                    contextIds = contextIds,
+                                )
                         }
-                        ContextOperation.LINK ->
-                            mainBeaconRepository.addRelatedContexts(
-                                beaconId = beaconNode.id,
-                                contextIds = contextIds,
-                            )
                     }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    return ContextClipboardResult(
+                        toast = error.message
+                            ?: "Не вдалося змінити зв'язки головного орієнтира",
+                    )
                 }
 
             if (addedCount == null) {

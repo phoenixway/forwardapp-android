@@ -111,6 +111,7 @@ private fun buildSearchResultCardSpec(
 ): SearchResultCardSpec {
     val spec =
         when (result) {
+        is GlobalSearchResultItem.OrientationItem -> orientationCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.GoalItem -> goalCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.LinkItem -> linkCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.SubcontextItem -> subcontextCardSpec(result, typePresentation, renderContext)
@@ -118,9 +119,40 @@ private fun buildSearchResultCardSpec(
         is GlobalSearchResultItem.ActivityItem -> activityCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.InboxItem -> inboxCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.AttachmentItem -> attachmentCardSpec(result, typePresentation, renderContext)
+        is GlobalSearchResultItem.NoteItem -> noteCardSpec(result, typePresentation, renderContext)
     }
     return spec.copy(matchedTags = result.matchedTags)
 }
+
+private fun orientationCardSpec(
+    result: GlobalSearchResultItem.OrientationItem,
+    typePresentation: ResultTypePresentation,
+    renderContext: SearchResultRenderContext,
+): SearchResultCardSpec =
+    SearchResultCardSpec(
+        presentation = typePresentation,
+        isSelected = result.uniqueId == renderContext.selectedResultUniqueId,
+        query = renderContext.query,
+        title = result.title,
+        subtitle = result.description,
+        supporting = result.workspaceName?.let { "Простір: $it" },
+        onClick = {
+            renderContext.haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            renderContext.viewModel.openSemanticEntity(result)
+        },
+        secondaryActionIcon =
+            if (result.workspaceId != null) Icons.Default.Navigation else null,
+        secondaryActionDescription =
+            if (result.workspaceId != null) "Відкрити в навігації" else null,
+        onSecondaryAction =
+            result.workspaceId?.let { workspaceId ->
+                {
+                    renderContext.haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    renderContext.viewModel.onDataResultOpened(result.uniqueId)
+                    renderContext.viewModel.goBackToRevealProject(workspaceId)
+                }
+            },
+    )
 
 private fun goalCardSpec(
     result: GlobalSearchResultItem.GoalItem,
@@ -312,6 +344,32 @@ private fun inboxCardSpec(
             renderContext.viewModel.onDataResultOpened(result.uniqueId)
             renderContext.viewModel.navigateToProjectForResult(result.record.contextId, null)
         },
+    )
+
+private fun noteCardSpec(
+    result: GlobalSearchResultItem.NoteItem,
+    typePresentation: ResultTypePresentation,
+    renderContext: SearchResultRenderContext,
+): SearchResultCardSpec =
+    SearchResultCardSpec(
+        presentation = typePresentation,
+        isSelected = result.uniqueId == renderContext.selectedResultUniqueId,
+        query = renderContext.query,
+        title = result.note.title,
+        subtitle =
+            buildMatchingSnippet(
+                text = result.note.content,
+                rawQuery = renderContext.query,
+                matchedTags = result.matchedTags,
+            ) ?: result.note.content.take(160).takeIf { it.isNotBlank() },
+        supporting = null,
+        onClick = {
+            renderContext.haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            renderContext.viewModel.openNoteResult(result)
+        },
+        secondaryActionIcon = null,
+        secondaryActionDescription = null,
+        onSecondaryAction = null,
     )
 
 private fun attachmentCardSpec(

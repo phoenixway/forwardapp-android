@@ -1,12 +1,16 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,48 +19,55 @@ import io.mockk.mockk
 import io.mockk.slot
 import javax.inject.Provider
 import kotlinx.coroutines.test.runTest
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ContextRepositoryHierarchyMutationTest {
     @Test
-    fun `shared state update changes only its explicitly owned fields`() = runTest {
+    fun `direction auto-links derive children from canonical H1 not Context parentId`() = runTest {
         val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = scalarWriteThrough()
-        val persisted = scalarContext(id = "context", isCompleted = false, isAttachmentsExpanded = true)
-        coEvery { contextDao.getContextById(persisted.id) } returns persisted
-        val written = slot<Context>()
-        coEvery { contextDao.update(capture(written)) } returns Unit
-
-        repository(
-            contextDao,
-            writeThrough,
-            systemWorkspaceTagAuthority = passthroughTagAuthority(),
-        ).updateContextSharedState(
-            contextId = persisted.id,
-            update =
-                ContextSharedStateUpdate(
-                    name = "Updated name",
-                    description = "Updated description",
-                    contextStatus = "updated-status",
-                    defaultViewModeName = "DASHBOARD",
-                    isCompleted = true,
+        val hierarchy = mockk<CanonicalHierarchyPlacementRepository>()
+        val projector = mockk<SystemWorkspacePresentationContextProjector>()
+        val directionAccess = mockk<SystemContextCanonicalInboxDirectionAccess>()
+        val parent = placement("parent-placement", "parent", null)
+        val child = placement("child-placement", "child", parent.id)
+        coEvery {
+            hierarchy.getPrimaryAppearance(HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "parent"), any())
+        } returns parent
+        coEvery { hierarchy.getLiveChildren(parent.id, any()) } returns listOf(child)
+        coEvery { projector.projectPresentationUniverse() } returns
+            listOf(
+                ContextPresentation(
+                    id = "child",
+                    name = "Canonical child",
+                    description = null,
+                    parentId = null,
+                    roleCode = null,
+                    order = 0L,
+                    tags = emptyList(),
                 ),
-        )
+            )
+        coEvery { directionAccess.directionAutoLinkEnabled("parent") } returns true
 
-        val actual = written.captured
-        assertEquals("Updated name", actual.name)
-        assertEquals("Updated description", actual.description)
-        assertEquals("updated-status", actual.contextStatus)
-        assertEquals("DASHBOARD", actual.defaultViewModeName)
-        assertTrue(actual.isCompleted)
-        assertEquals(persisted.parentId, actual.parentId)
-        assertEquals(persisted.order, actual.order)
-        assertEquals(persisted.tags, actual.tags)
-        assertEquals(persisted.roleCode, actual.roleCode)
-        assertEquals(persisted.isAttachmentsExpanded, actual.isAttachmentsExpanded)
-        assertEquals(persisted.rawScore, actual.rawScore)
+        val repository =
+            repository(
+                contextDao = contextDao,
+                workspaceWriteThrough = mockk(relaxed = true),
+                hierarchyPlacementRepository = hierarchy,
+                presentationProjector = projector,
+                directionAccess = directionAccess,
+            )
+
+        repository.ensureDirectionFrontLinksForExistingChildren("parent")
+
+        coVerify(exactly = 0) { contextDao.getActiveContextsByParentId(any()) }
     }
 
     @Test
@@ -79,10 +90,7 @@ class ContextRepositoryHierarchyMutationTest {
                     name = "Settings name",
                     description = "Settings description",
                     relatedLinks = emptyList(),
-                    showCheckboxes = true,
                     isContextManagementEnabled = true,
-                    valueImportance = 1f,
-                    valueImpact = 2f,
                     effort = 3f,
                     cost = 4f,
                     risk = 5f,
@@ -99,7 +107,7 @@ class ContextRepositoryHierarchyMutationTest {
         assertEquals("Settings name", actual.name)
         assertEquals("Settings description", actual.description)
         assertEquals(emptyList<Any>(), actual.relatedLinks)
-        assertTrue(actual.showCheckboxes)
+        assertEquals(persisted.showCheckboxes, actual.showCheckboxes)
         assertEquals(true, actual.isContextManagementEnabled)
         assertEquals(9f, actual.rawScore)
         assertEquals(10, actual.displayScore)
@@ -146,31 +154,6 @@ class ContextRepositoryHierarchyMutationTest {
         repository(contextDao, mockk(relaxed = true)).updateContextCompleted(persisted.id, true)
 
         coVerify(exactly = 0) { contextDao.update(any<Context>()) }
-    }
-
-    @Test
-    fun `attachments toggle uses current persisted value`() = runTest {
-        val contextDao = mockk<ContextDao>(relaxed = true)
-        val writeThrough = scalarWriteThrough()
-        val persisted = scalarContext(id = "context", isCompleted = true, isAttachmentsExpanded = true)
-        coEvery { contextDao.getContextById(persisted.id) } returns persisted
-        val written = slot<Context>()
-        coEvery { contextDao.update(capture(written)) } returns Unit
-
-        repository(
-            contextDao,
-            writeThrough,
-            systemWorkspaceTagAuthority = passthroughTagAuthority(),
-        ).toggleContextAttachmentsExpanded(persisted.id)
-
-        assertScalarMutation(
-            actual = written.captured,
-            persisted = persisted,
-            expectedCompleted = persisted.isCompleted,
-            expectedAttachmentsExpanded = false,
-            expectedRoleCode = persisted.roleCode,
-        )
-        coVerify(exactly = 1) { contextDao.getContextById(persisted.id) }
     }
 
     @Test
@@ -235,6 +218,9 @@ class ContextRepositoryHierarchyMutationTest {
         workspaceWriteThrough: ContextWorkspaceWriteThrough,
         canonicalWorkspaceRepository: CanonicalWorkspaceRepository = mockk(relaxed = true),
         systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority = passthroughTagAuthority(),
+        hierarchyPlacementRepository: CanonicalHierarchyPlacementRepository = mockk(relaxed = true),
+        presentationProjector: SystemWorkspacePresentationContextProjector = mockk(relaxed = true),
+        directionAccess: SystemContextCanonicalInboxDirectionAccess = mockk(relaxed = true),
     ): ContextRepository =
         ContextRepository(
             contextDao = contextDao,
@@ -262,14 +248,34 @@ class ContextRepositoryHierarchyMutationTest {
             canonicalWorkspaceRepository = canonicalWorkspaceRepository,
             canonicalWorkspaceTagRepository = mockk(relaxed = true),
             systemWorkspaceTagAuthority = systemWorkspaceTagAuthority,
-            systemContextCanonicalInboxDirectionAccess = mockk(relaxed = true),
+            systemContextCanonicalInboxDirectionAccess = directionAccess,
             canonicalKeyProblemsRepository = mockk(relaxed = true),
             canonicalInboxRepository = mockk(relaxed = true),
             canonicalConnectionsRepository = mockk(relaxed = true),
             canonicalBacklogRepository = mockk(relaxed = true),
             backlogPresentationLifecycle = mockk(relaxed = true),
             hierarchyPlacementLifecycleCoordinator = mockk(relaxed = true),
+            hierarchyPlacementRepository = hierarchyPlacementRepository,
+            systemWorkspacePresentationContextProjector = presentationProjector,
         )
+
+    private fun placement(
+        id: String,
+        workspaceId: String,
+        parentId: PlacementId?,
+    ) = HierarchyPlacement(
+        id = PlacementId(id),
+        hierarchyId = HierarchyId.GENERAL,
+        target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, workspaceId),
+        parentPlacementId = parentId,
+        placementKind = PlacementKind.PRIMARY,
+        siblingOrder = 0L,
+        createdAt = 1L,
+        updatedAt = 1L,
+        syncedAt = null,
+        isDeleted = false,
+        version = 1L,
+    )
 
     private fun context(
         id: String,

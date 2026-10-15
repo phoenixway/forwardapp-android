@@ -71,12 +71,9 @@ class NoteEditViewModel
                         _uiState.update { it.copy(isReady = true, error = "Note not found") }
                     }
                 } else {
+                    // Optional initiating Workspace placement, not Note ownership.
                     projectId = savedStateHandle.get<String>("projectId")
-                    if (projectId != null) {
-                        _uiState.update { it.copy(isReady = true, isNewNote = true) }
-                    } else {
-                        _uiState.update { it.copy(isReady = true, error = "Project ID is required for a new note") }
-                    }
+                    _uiState.update { it.copy(isReady = true, isNewNote = true) }
                 }
             }
         }
@@ -109,16 +106,11 @@ class NoteEditViewModel
                     return@launch
                 }
 
-                if (projectId == null) {
-                    _uiState.update { it.copy(error = "Cannot determine which project to save to.") }
-                    return@launch
-                }
-
                 val noteToSave =
                     if (_uiState.value.isNewNote) {
                         LegacyNoteEntity(
                             id = UUID.randomUUID().toString(),
-                            contextId = projectId!!,
+                            contextId = null,
                             title = title,
                             content = content,
                         )
@@ -131,8 +123,17 @@ class NoteEditViewModel
                         )
                     }
 
-                noteRepository.saveNote(noteToSave)
-                _events.send(NoteEditEvent.NavigateBack("Note saved"))
+                try {
+                    noteRepository.saveNote(
+                        note = noteToSave,
+                        initialWorkspaceId = if (_uiState.value.isNewNote) projectId else null,
+                    )
+                    _events.send(NoteEditEvent.NavigateBack("Note saved"))
+                } catch (error: Exception) {
+                    _uiState.update {
+                        it.copy(error = error.message ?: "Cannot save Note")
+                    }
+                }
             }
         }
     }

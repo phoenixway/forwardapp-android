@@ -709,7 +709,13 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
     }
 
     private fun createSubject(db: AppDatabase): MergeLocalDataSourceImpl {
-        val constructor = MergeLocalDataSourceImpl::class.java.declaredConstructors.single()
+        val constructor =
+            MergeLocalDataSourceImpl::class.java.declaredConstructors.single { candidate ->
+                !candidate.isSynthetic &&
+                    candidate.parameterTypes.none {
+                        it.name == "kotlin.jvm.internal.DefaultConstructorMarker"
+                    }
+            }
         constructor.isAccessible = true
 
         val arguments =

@@ -5,7 +5,6 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchContextPresentation
@@ -13,6 +12,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchRes
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.data.product.CanonicalProductReadRepository
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyPresentationProvenance
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2HierarchyReadSnapshotAssembler
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalV2ProductionHierarchyRead
@@ -25,12 +26,15 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTar
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.hierarchyPlacementSiblingComparator
+import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadResult
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
@@ -43,6 +47,15 @@ private const val TYPE_ORDER_CONTEXT = 0
 private const val TYPE_ORDER_GOAL = 1
 private const val TYPE_ORDER_ATTACHMENT = 2
 private const val TYPE_ORDER_OTHER = 3
+
+private data class SemanticLegacySuppression(
+    val contextIds: Set<String>,
+)
+
+private data class SemanticSearchFrame(
+    val productRead: CanonicalProductReadResult,
+    val suppression: SemanticLegacySuppression,
+)
 
 private data class SearchContextPresentationNode(
     val presentation: GlobalSearchContextPresentation,
@@ -215,8 +228,12 @@ private val GlobalSearchResultItem.typeOrder: Int
             is GlobalSearchResultItem.ContextItem,
             is GlobalSearchResultItem.SubcontextItem,
             -> TYPE_ORDER_CONTEXT
-            is GlobalSearchResultItem.GoalItem -> TYPE_ORDER_GOAL
-            is GlobalSearchResultItem.AttachmentItem -> TYPE_ORDER_ATTACHMENT
+            is GlobalSearchResultItem.OrientationItem,
+            is GlobalSearchResultItem.GoalItem,
+            -> TYPE_ORDER_GOAL
+            is GlobalSearchResultItem.AttachmentItem,
+            is GlobalSearchResultItem.NoteItem,
+            -> TYPE_ORDER_ATTACHMENT
             else -> TYPE_ORDER_OTHER
         }
 
@@ -225,9 +242,7 @@ class SearchRepository
     @Inject
     @Suppress("LongParameterList")
     constructor(
-        private val goalDao: GoalDao,
         private val contextDao: ContextDao,
-        private val listItemRepository: ListItemRepository,
         private val linkItemDao: LinkItemDao,
         private val activityRepository: ActivityRepository,
         private val inboxRecordDao: InboxRecordDao,
@@ -236,27 +251,38 @@ class SearchRepository
         private val workspaceDao: WorkspaceDao,
         private val database: AppDatabase,
         private val canonicalV2ReadAssembler: CanonicalV2HierarchyReadSnapshotAssembler,
+        private val canonicalProductReadRepository: CanonicalProductReadRepository,
     ) {
         /** Test seam: production always assembles from persisted canonical V2 state. */
         internal var canonicalV2SearchReadProvider: (suspend (List<ContextPresentation>) ->
             CanonicalV2ProductionHierarchyRead)? = null
 
+        /** Test seam: production reads the shared bulk canonical product frame. */
+        internal var canonicalProductSearchReadProvider: (suspend () -> CanonicalProductReadResult)? = null
+
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
             val structuredQuery = StructuredSearchQuery.parse(query)
             val contextPresentation = loadContextPresentation()
+            val semanticFrame = loadSemanticSearchFrame()
             if (structuredQuery.hasTags) {
-                return searchStructured(structuredQuery, contextPresentation)
+                return searchStructured(structuredQuery, contextPresentation, semanticFrame)
             }
             val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
             val activityQuery = buildSafeActivityFtsQuery(query)
-            val combinedResults =
-                buildGoalResults(query, contextPresentation) +
-                    buildLinkResults(query, contextPresentation) +
+            val legacyResults =
+                buildLinkResults(query, contextPresentation) +
                     buildSubcontextResults(query, contextPresentation) +
                     buildContextResults(query, contextPresentation) +
                     buildActivityResults(activityQuery) +
                     buildInboxResults(query) +
                     buildAttachmentResults(sanitizedQuery, contextPresentation)
+            val combinedResults =
+                buildCanonicalOrientationResults(query, semanticFrame.productRead) +
+                    suppressLegacySemanticDuplicates(
+                        legacyResults,
+                        semanticFrame.suppression,
+                    ) +
+                    buildNoteResults(sanitizedQuery)
 
             return combinedResults.sortedWith(
                 compareBy<GlobalSearchResultItem> { it.typeOrder }
@@ -267,16 +293,23 @@ class SearchRepository
         private suspend fun searchStructured(
             query: StructuredSearchQuery,
             contextPresentation: SearchContextPresentationSnapshot,
+            semanticFrame: SemanticSearchFrame,
         ): List<GlobalSearchResultItem> {
             val allQuery = "%%"
-            val candidates =
-                buildGoalResults(allQuery, contextPresentation) +
-                    buildLinkResults(allQuery, contextPresentation) +
+            val legacyCandidates =
+                buildLinkResults(allQuery, contextPresentation) +
                     buildSubcontextResults(allQuery, contextPresentation) +
                     buildContextResults(allQuery, contextPresentation) +
                     buildAllActivityResults() +
                     buildInboxResults(allQuery) +
                     buildAttachmentResults("", contextPresentation)
+            val candidates =
+                buildCanonicalOrientationResults(allQuery, semanticFrame.productRead) +
+                    suppressLegacySemanticDuplicates(
+                        legacyCandidates,
+                        semanticFrame.suppression,
+                    ) +
+                    buildNoteResults("")
 
             return candidates
                 .asSequence()
@@ -291,32 +324,87 @@ class SearchRepository
                 .toList()
         }
 
-        private suspend fun buildGoalResults(
+        private suspend fun loadSemanticSearchFrame(): SemanticSearchFrame {
+            val productRead =
+                canonicalProductSearchReadProvider?.invoke()
+                    ?: canonicalProductReadRepository.observe().first()
+            val mappings = database.orientationDao().getAllLegacyMappings()
+            return SemanticSearchFrame(
+                productRead = productRead,
+                suppression = semanticLegacySuppression(mappings),
+            )
+        }
+
+        private fun buildCanonicalOrientationResults(
             query: String,
-            contextPresentation: SearchContextPresentationSnapshot,
-        ): List<GlobalSearchResultItem.GoalItem> {
-            val results = mutableListOf<GlobalSearchResultItem.GoalItem>()
-            for (searchResult in goalDao.searchGoalsGlobal(query)) {
-                val context = contextPresentation.presentation(searchResult.contextId) ?: continue
-                val path = contextPresentation.pathSegments(context.id) ?: continue
-                val listItem =
-                    listItemRepository.getRuntimeItemForEntityInContext(
-                        entityId = searchResult.goal.id,
-                        itemType = BacklogItemTypeValues.GOAL,
-                        contextId = searchResult.contextId,
+            productRead: CanonicalProductReadResult,
+        ): List<GlobalSearchResultItem.OrientationItem> {
+            if (productRead !is CanonicalProductReadResult.Ready) return emptyList()
+
+            val normalizedQuery = normalizeSearchQuery(query)
+            return productRead.orientations
+                .asSequence()
+                .distinctBy { projection -> projection.subject.id }
+                .filter { projection ->
+                    normalizedQuery.isBlank() ||
+                        projection.subject.title.contains(normalizedQuery, ignoreCase = true) ||
+                        projection.subject.description
+                            ?.contains(normalizedQuery, ignoreCase = true) == true
+                }
+                .map { projection ->
+                    val embodiment =
+                        projection.workspaceMemberships
+                            .firstOrNull { membership ->
+                                membership.binding.bindingType == WorkspaceBindingType.EMBODIES &&
+                                    membership.binding.isPrimary
+                            }
+                            ?: projection.workspaceMemberships.firstOrNull { membership ->
+                                membership.binding.bindingType == WorkspaceBindingType.EMBODIES
+                            }
+
+                    GlobalSearchResultItem.OrientationItem(
+                        orientationId = projection.subject.id,
+                        title = projection.subject.title,
+                        description = projection.subject.description,
+                        workspaceId = embodiment?.workspace?.id,
+                        workspaceName = embodiment?.workspace?.nameOverride,
+                        updatedAt = projection.subject.updatedAt,
                     )
-                if (listItem != null) {
-                    results +=
-                        GlobalSearchResultItem.GoalItem(
-                            goal = searchResult.goal,
-                            backlogItem = listItem,
-                            projectName = context.name,
-                            pathSegments = path,
-                        )
+                }
+                .toList()
+        }
+
+        private fun semanticLegacySuppression(
+            mappings: List<LegacySubjectMappingEntity>,
+        ): SemanticLegacySuppression {
+            val liveCutOver =
+                mappings.filter { mapping ->
+                    !mapping.isDeleted &&
+                        mapping.state == LegacySubjectMappingState.CUT_OVER.name
+                }
+            return SemanticLegacySuppression(
+                contextIds =
+                    liveCutOver
+                        .filter { it.sourceType == LegacyOrientationSourceType.CONTEXT.name }
+                        .mapTo(linkedSetOf()) { it.sourceId },
+            )
+        }
+
+        private fun suppressLegacySemanticDuplicates(
+            items: List<GlobalSearchResultItem>,
+            suppression: SemanticLegacySuppression,
+        ): List<GlobalSearchResultItem> =
+            items.filterNot { item ->
+                when (item) {
+                    is GlobalSearchResultItem.ContextItem ->
+                        item.searchResult.presentation.id in suppression.contextIds
+
+                    is GlobalSearchResultItem.SubcontextItem ->
+                        item.searchResult.presentation.id in suppression.contextIds
+
+                    else -> false
                 }
             }
-            return results
-        }
 
         private suspend fun buildLinkResults(
             query: String,
@@ -361,6 +449,26 @@ class SearchRepository
 
         private suspend fun buildInboxResults(query: String): List<GlobalSearchResultItem.InboxItem> =
             inboxRecordDao.searchInboxRecordsGlobal(query).map { GlobalSearchResultItem.InboxItem(it) }
+
+        /**
+         * Read Notes from their own table, not from Context or placements.
+         * Raw reads are intentional: tombstones must be filtered explicitly.
+         */
+        private suspend fun buildNoteResults(
+            sanitizedQuery: String,
+        ): List<GlobalSearchResultItem.NoteItem> =
+            database.legacyNoteDao()
+                .getAllRaw()
+                .asSequence()
+                .filterNot { it.isDeleted }
+                .filter { note ->
+                    sanitizedQuery.isBlank() ||
+                        note.title.contains(sanitizedQuery, ignoreCase = true) ||
+                        note.content.contains(sanitizedQuery, ignoreCase = true)
+                }
+                .distinctBy { it.id }
+                .map { note -> GlobalSearchResultItem.NoteItem(note) }
+                .toList()
 
         private suspend fun buildAttachmentResults(
             sanitizedQuery: String,
@@ -533,6 +641,11 @@ class SearchRepository
 
         private fun GlobalSearchResultItem.searchableTexts(): List<String> =
             when (this) {
+                is GlobalSearchResultItem.OrientationItem ->
+                    listOf(
+                        title,
+                        description.orEmpty(),
+                    )
                 is GlobalSearchResultItem.GoalItem ->
                     listOf(
                         goal.text,
@@ -565,6 +678,7 @@ class SearchRepository
                 is GlobalSearchResultItem.ActivityItem ->
                     listOf(record.text, record.noteText.orEmpty(), record.rawNoteText.orEmpty())
                 is GlobalSearchResultItem.InboxItem -> listOf(record.text)
+                is GlobalSearchResultItem.NoteItem -> listOf(note.title, note.content)
                 is GlobalSearchResultItem.AttachmentItem ->
                     listOf(
                         searchResult.title,
@@ -576,6 +690,7 @@ class SearchRepository
 
         private fun GlobalSearchResultItem.withMatchedTags(tags: List<String>): GlobalSearchResultItem =
             when (this) {
+                is GlobalSearchResultItem.OrientationItem -> copy(matchedTags = tags)
                 is GlobalSearchResultItem.GoalItem -> copy(matchedTags = tags)
                 is GlobalSearchResultItem.LinkItem -> copy(matchedTags = tags)
                 is GlobalSearchResultItem.SubcontextItem -> copy(matchedTags = tags)
@@ -586,6 +701,7 @@ class SearchRepository
                     )
                 is GlobalSearchResultItem.ActivityItem -> copy(matchedTags = tags)
                 is GlobalSearchResultItem.InboxItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.NoteItem -> copy(matchedTags = tags)
                 is GlobalSearchResultItem.AttachmentItem -> copy(matchedTags = tags)
             }
     }

@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
 import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemBacklogLifecycleOverrides
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemInboxDirectionOverrides
 import com.romankozak.forwardappmobile.data.workspace.canonicalSystemRemainingCapabilityOverrides
@@ -43,7 +44,11 @@ class ContextScreenDataMapper {
         val support = snapshot.toMappingSupport()
 
         return ContextData.Loaded(
-            context = snapshot.context,
+            context =
+                snapshot.context.withCanonicalPresentation(
+                    presentation = snapshot.presentation,
+                    canonicalOwnerAvailable = snapshot.hasCanonicalWorkspaceOwner,
+                ),
             items = snapshot.toBacklogItems(support),
             attachmentItems = snapshot.toAttachmentItems(contextId, support),
             config = snapshot.config ?: ContextConfiguration.default(contextId),
@@ -72,8 +77,29 @@ class ContextScreenDataMapper {
                 snapshot.hasCanonicalOrdinaryCapabilityAuthority(contextId) ||
                     snapshot.hasPromotedSystemCapabilityAuthority(contextId),
             presentation = snapshot.presentation,
+            presentationPreferences = snapshot.presentationPreferences,
         )
     }
+}
+
+private fun Context?.withCanonicalPresentation(
+    presentation: ContextPresentation?,
+    canonicalOwnerAvailable: Boolean,
+): Context? {
+    val legacy = this ?: return null
+    if (!canonicalOwnerAvailable) return legacy
+    val canonical = requireNotNull(presentation) {
+        "Context compatibility carrier ${legacy.id} has no canonical Workspace presentation"
+    }
+    require(legacy.id == canonical.id) {
+        "Context compatibility carrier ${legacy.id} does not match Workspace ${canonical.id}"
+    }
+    return legacy.copy(
+        name = canonical.name,
+        description = canonical.description,
+        tags = canonical.tags,
+        roleCode = canonical.roleCode,
+    )
 }
 
 internal data class ContextScreenContextReadModel(
@@ -168,6 +194,7 @@ data class ContextScreenDataSnapshot(
     val systemInboxDirectionState: SystemInboxDirectionState?,
     val systemRemainingCapabilityState: SystemRemainingCapabilityLifecycleState? = null,
     val systemBacklogLifecycleState: SystemBacklogLifecycleState? = null,
+    val presentationPreferences: WorkspacePresentationPreferences = WorkspacePresentationPreferences(),
     val presentation: ContextPresentation? = null,
     val presentationUniverse: List<ContextPresentation> = emptyList(),
     val rawContexts: List<Context> = emptyList(),
@@ -201,6 +228,10 @@ data class ContextScreenDataSnapshot(
                 systemBacklogLifecycleState =
                     args.getOrNull(SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX)
                         as? SystemBacklogLifecycleState,
+                presentationPreferences =
+                    args.getOrNull(PRESENTATION_PREFERENCES_INDEX)
+                        as? WorkspacePresentationPreferences
+                        ?: WorkspacePresentationPreferences(),
                 presentation = contextReadModel?.presentation,
                 presentationUniverse = contextReadModel?.presentationUniverse.orEmpty(),
                 rawContexts = contextReadModel?.rawContexts.orEmpty(),
@@ -451,6 +482,7 @@ private const val WORKSPACE_CAPABILITIES_INDEX = 15
 private const val SYSTEM_INBOX_DIRECTION_STATE_INDEX = 16
 private const val SYSTEM_REMAINING_CAPABILITY_STATE_INDEX = 17
 private const val SYSTEM_BACKLOG_LIFECYCLE_STATE_INDEX = 18
+private const val PRESENTATION_PREFERENCES_INDEX = 19
 private const val PROJECT_ITEM_TYPE = "PROJECT"
 private const val LEGACY_LINK_ITEM_TYPE = "LINK"
 private const val DEFAULT_CONTEXT_NAME = "Context"

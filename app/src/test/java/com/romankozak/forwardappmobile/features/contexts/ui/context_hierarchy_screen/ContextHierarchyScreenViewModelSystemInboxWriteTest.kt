@@ -146,7 +146,7 @@ class ContextHierarchyScreenViewModelSystemInboxWriteTest {
         val hierarchyStateUseCase = mockk<ProjectHierarchyScreenStateUseCase>(relaxed = true)
         every { hierarchyStateUseCase.uiState } returns MutableStateFlow(ProjectHierarchyScreenUiState())
         every { hierarchyStateUseCase.canonicalV2Read } returns MutableStateFlow(null)
-        every { hierarchyStateUseCase.observeHierarchyPresentationUniverse(any()) } returns
+        every { hierarchyStateUseCase.observeHierarchyPresentationUniverse() } returns
             flowOf(listOf(inboxPresentation.toCanonicalV2WorkspacePresentation()))
         val navigationUseCase = mockk<NavigationUseCase>(relaxed = true)
         every { navigationUseCase.isProcessingReveal } returns MutableStateFlow(false)

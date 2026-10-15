@@ -11,6 +11,13 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayFocusI
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningScopeSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedTacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedStrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.hasCanonicalPlanningTransport
+import com.romankozak.forwardappmobile.shared.contracts.contexts.requireValidCanonicalPlanningTransport
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -25,6 +32,17 @@ class DesktopAndroidSyncPayloadFactory(
 ) {
     fun createDeltaBackupJsonString(since: Long?): String? {
         val snapshot = json.decodeFromString(DesktopWorkspaceSnapshot.serializer(), fileStore.readSnapshot())
+        snapshot.requireValidCanonicalPlanningTransport()
+        val includePlanning =
+            snapshot.hasCanonicalPlanningTransport() &&
+                (
+                    since == null ||
+                        snapshot.planningScopes.orEmpty().any { scope -> scope.changedAfter(since) } ||
+                        snapshot.planningCommitments.orEmpty().any { commitment -> commitment.changedAfter(since) }
+                        || snapshot.dayPlanningScopeExtensions.orEmpty().any { extension -> extension.changedAfter(since) } ||
+                        snapshot.tacticalPlanningScopeExtensions.orEmpty().any { extension -> extension.changedAfter(since) }
+                        || snapshot.strategicPlanningScopeExtensions.orEmpty().any { extension -> extension.changedAfter(since) }
+                )
         val changedContexts = snapshot.contexts.filter { context -> context.sync.changedAfter(since) }
         val changedBacklogItems = snapshot.backlogItems.filter { item -> item.sync.changedAfter(since) }
         val changedDayPlans = snapshot.dayPlans.filter { plan -> plan.sync.changedAfter(since) }
@@ -35,7 +53,8 @@ class DesktopAndroidSyncPayloadFactory(
             changedBacklogItems.isEmpty() &&
             changedDayPlans.isEmpty() &&
             changedDayFocusItems.isEmpty() &&
-            changedDayTasks.isEmpty()
+            changedDayTasks.isEmpty() &&
+            !includePlanning
         ) {
             return null
         }
@@ -62,6 +81,35 @@ class DesktopAndroidSyncPayloadFactory(
                 put("dayPlans", JsonArray(changedDayPlans.map { plan -> plan.toSnapshotJson(exportedAt) }))
                 put("dayFocusItems", JsonArray(changedDayFocusItems.map { item -> item.toSnapshotJson(exportedAt) }))
                 put("dayTasks", JsonArray(changedDayTasks.map { task -> task.toSnapshotJson(exportedAt) }))
+                if (includePlanning) {
+                    put("planningFormatVersion", snapshot.planningFormatVersion!!)
+                    put(
+                        "planningScopes",
+                        JsonArray(snapshot.planningScopes.orEmpty().map { scope -> scope.toPlanningJson() }),
+                    )
+                    put(
+                        "planningCommitments",
+                        JsonArray(snapshot.planningCommitments.orEmpty().map { commitment -> commitment.toPlanningJson() }),
+                    )
+                    snapshot.dayPlanningScopeExtensions?.let { extensions ->
+                        put(
+                            "dayPlanningScopeExtensions",
+                            JsonArray(extensions.map { extension -> extension.toPlanningJson() }),
+                        )
+                    }
+                    snapshot.tacticalPlanningScopeExtensions?.let { extensions ->
+                        put(
+                            "tacticalPlanningScopeExtensions",
+                            JsonArray(extensions.map { extension -> extension.toPlanningJson() }),
+                        )
+                    }
+                    snapshot.strategicPlanningScopeExtensions?.let { extensions ->
+                        put(
+                            "strategicPlanningScopeExtensions",
+                            JsonArray(extensions.map { extension -> extension.toPlanningJson() }),
+                        )
+                    }
+                }
             }
         val backup =
             buildJsonObject {
@@ -124,6 +172,92 @@ private fun SharedContextSummary.resolvedCapabilityIds(): Set<String> =
             "dashboard"
     ).let { capabilityIds -> SharedContextCapabilityCatalog.normalizeCapabilityIds(capabilityIds) }
         .toSet()
+
+private fun SharedPlanningScopeSnapshot.changedAfter(since: Long?): Boolean =
+    since == null || (updatedAt ?: createdAt) > since
+
+private fun SharedPlanningCommitmentSnapshot.changedAfter(since: Long?): Boolean =
+    since == null || (updatedAt ?: createdAt) > since
+
+private fun SharedDayPlanningScopeExtensionSnapshot.changedAfter(since: Long?): Boolean =
+    since == null || (updatedAt ?: createdAt) > since
+
+private fun SharedTacticalPlanningScopeExtensionSnapshot.changedAfter(since: Long?): Boolean =
+    since == null || (updatedAt ?: createdAt) > since
+
+private fun SharedStrategicPlanningScopeExtensionSnapshot.changedAfter(since: Long?): Boolean =
+    since == null || (updatedAt ?: createdAt) > since
+
+private fun SharedPlanningScopeSnapshot.toPlanningJson(): JsonObject =
+    buildJsonObject {
+        put("id", id)
+        put("kind", kind)
+        put("lifecycle", lifecycle)
+        put("title", title?.let(::JsonPrimitive) ?: JsonNull)
+        put("startsAt", startsAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("endsAt", endsAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("createdAt", createdAt)
+        put("updatedAt", updatedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("syncedAt", syncedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("version", version)
+        put("isDeleted", isDeleted)
+    }
+
+private fun SharedPlanningCommitmentSnapshot.toPlanningJson(): JsonObject =
+    buildJsonObject {
+        put("id", id)
+        put("scopeId", scopeId)
+        put("orientationId", orientationId)
+        put("role", role)
+        put("order", order)
+        put("priorityLevel", priorityLevel?.let(::JsonPrimitive) ?: JsonNull)
+        put("status", status)
+        put("provenanceKind", provenanceKind)
+        put("provenanceSourceType", provenanceSourceType?.let(::JsonPrimitive) ?: JsonNull)
+        put("provenanceSourceId", provenanceSourceId?.let(::JsonPrimitive) ?: JsonNull)
+        put("createdAt", createdAt)
+        put("updatedAt", updatedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("syncedAt", syncedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("version", version)
+        put("isDeleted", isDeleted)
+    }
+
+private fun SharedDayPlanningScopeExtensionSnapshot.toPlanningJson(): JsonObject =
+    buildJsonObject {
+        put("scopeId", scopeId)
+        put("calendarDayStartMillis", calendarDayStartMillis)
+        put("outcome", outcome?.let(::JsonPrimitive) ?: JsonNull)
+        put("plannedBudgetMinutes", plannedBudgetMinutes?.let(::JsonPrimitive) ?: JsonNull)
+        put("createdAt", createdAt)
+        put("updatedAt", updatedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("syncedAt", syncedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("version", version)
+        put("isDeleted", isDeleted)
+    }
+
+private fun SharedTacticalPlanningScopeExtensionSnapshot.toPlanningJson(): JsonObject =
+    buildJsonObject {
+        put("scopeId", scopeId)
+        put("iterationType", iterationType)
+        put("weekKey", weekKey?.let(::JsonPrimitive) ?: JsonNull)
+        put("closedAt", closedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("createdAt", createdAt)
+        put("updatedAt", updatedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("syncedAt", syncedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("version", version)
+        put("isDeleted", isDeleted)
+    }
+
+private fun SharedStrategicPlanningScopeExtensionSnapshot.toPlanningJson(): JsonObject =
+    buildJsonObject {
+        put("scopeId", scopeId)
+        put("legacyArcKey", legacyArcKey)
+        put("createdAt", createdAt)
+        put("updatedAt", updatedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("syncedAt", syncedAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("version", version)
+        put("isDeleted", isDeleted)
+    }
 
 private fun SharedSyncMetadata.changedAfter(since: Long?): Boolean =
     updatedAt > 0L && (since == null || updatedAt > since)

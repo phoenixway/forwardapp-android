@@ -5,4 +5,6 @@ data class ParameterSliderConfig(
     val value: Float,
     val scale: List<Float>,
     val valueLabels: List<String>? = null,
+    val unsetValue: Float? = null,
+    val unsetLabel: String = "Unset",
 )

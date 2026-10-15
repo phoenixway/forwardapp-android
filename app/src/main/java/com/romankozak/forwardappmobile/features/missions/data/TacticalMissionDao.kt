@@ -11,8 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.logicalProjectId
-import com.romankozak.forwardappmobile.data.dao.OperationalProjectOwnerStorage
-import com.romankozak.forwardappmobile.data.dao.classifyOperationalProjectOwner
+import com.romankozak.forwardappmobile.data.dao.requireDayTaskWorkspaceOwner
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -44,7 +43,7 @@ interface TacticalMissionDao {
     @Query(
         """
         SELECT * FROM tactical_missions
-        WHERE (projectId = :projectId OR project_workspace_id = :projectId)
+        WHERE project_workspace_id = :projectId
             AND is_deleted = 0
         ORDER BY mission_order ASC, deadline DESC
         """,
@@ -53,6 +52,9 @@ interface TacticalMissionDao {
 
     @Query("SELECT * FROM tactical_missions WHERE is_deleted = 0 ORDER BY mission_order ASC, deadline DESC")
     fun getAllMissions(): Flow<List<TacticalMission>>
+
+    @Query("SELECT * FROM tactical_missions ORDER BY id ASC")
+    fun observeAllMissionRows(): Flow<List<TacticalMission>>
 
     @Query("SELECT * FROM tactical_missions WHERE id = :missionId")
     suspend fun getMissionById(missionId: Long): TacticalMission?
@@ -110,6 +112,16 @@ interface TacticalMissionDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM attachments WHERE id = :attachmentId)")
     suspend fun attachmentExists(attachmentId: String): Boolean
+
+    @Query(
+        "UPDATE tactical_missions SET synced_at = :syncedAt " +
+            "WHERE id = :missionId AND version = :expectedVersion",
+    )
+    suspend fun markMissionSyncedIfVersionMatches(
+        missionId: Long,
+        expectedVersion: Long,
+        syncedAt: Long,
+    ): Int
 
     // --- Backup Methods ---
     @Query("SELECT * FROM tactical_missions")
@@ -174,17 +186,14 @@ private suspend fun TacticalMissionDao.routeProjectForPersistence(
                 projectWorkspaceId = null,
             )
 
-    return when (
-        classifyOperationalProjectOwner(
-            logicalProjectId = logicalProjectId,
-            context = getOperationalProjectContext(logicalProjectId),
-            workspace = getOperationalProjectWorkspace(logicalProjectId),
-        )
-    ) {
-        OperationalProjectOwnerStorage.CONTEXT ->
-            mission.copy(projectId = logicalProjectId, projectWorkspaceId = null)
+    requireDayTaskWorkspaceOwner(
+        ownerId = logicalProjectId,
+        context = getOperationalProjectContext(logicalProjectId),
+        workspace = getOperationalProjectWorkspace(logicalProjectId),
+    )
 
-        OperationalProjectOwnerStorage.WORKSPACE ->
-            mission.copy(projectId = null, projectWorkspaceId = logicalProjectId)
-    }
+    return mission.copy(
+        projectId = null,
+        projectWorkspaceId = logicalProjectId,
+    )
 }

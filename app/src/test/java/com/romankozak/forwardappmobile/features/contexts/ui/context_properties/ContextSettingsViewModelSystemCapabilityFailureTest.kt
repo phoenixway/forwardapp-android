@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
@@ -20,6 +21,7 @@ import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspacePresenta
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInboxDirectionAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
@@ -223,8 +225,8 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 advanceUntilIdle()
 
                 coVerify(exactly = 1) {
-                    fixture.contextRepository.updateContextPresentation(
-                        contextId = SystemContexts.INBOX.raw,
+                    fixture.contextRepository.updateSystemWorkspacePresentation(
+                        workspaceId = SystemContexts.INBOX.raw,
                         name = any(),
                         description = any(),
                     )
@@ -462,11 +464,16 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 tags = presentedContext.tags,
             )
         coEvery { presentationProjector.resolvePresentation(id, any()) } returns presented
-        every { presentationProjector.observePresentationUniverse(any()) } returns flowOf(listOf(presented))
+        every { presentationProjector.observePresentationUniverse() } returns flowOf(listOf(presented))
+
+        val canonicalOrientationRepository =
+            mockk<CanonicalOrientationRepository>(relaxed = true)
+        coEvery { canonicalOrientationRepository.getContextAssessment(id) } returns null
 
         val viewModel =
             ContextSettingsViewModel(
                 contextRepository = contextRepository,
+                canonicalOrientationRepository = canonicalOrientationRepository,
                 reminderRepository = reminderRepository,
                 savedStateHandle = SavedStateHandle(mapOf("projectId" to id)),
                 structurePresetDao = structurePresetDao,
@@ -482,6 +489,8 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                 checklistRepository = mockk<ChecklistRepository>(relaxed = true),
                 canonicalOrdinaryCapabilitySettings = canonicalOrdinaryCapabilitySettings,
+                workspacePresentationPreferencesRepository =
+                    mockk<WorkspacePresentationPreferencesRepository>(relaxed = true),
                 canonicalDashboardCapabilityRepository = dashboard,
                 canonicalExecutionLogRepository = executionLog,
                 systemCapabilityAccess = access,

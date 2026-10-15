@@ -2,12 +2,11 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -17,35 +16,29 @@ import org.junit.Test
 
 class TagCatalogSystemTagAuthorityTest {
     @Test
-    fun `catalog uses effective canonical System tags plus ordinary Context tags and ignores stale System shell tags`() =
+    fun `catalog uses canonical owner tags and projected descriptions without stale System shell tags`() =
         runTest {
             val activityDao = mockk<ActivityRecordDao>()
-            val goalDao = mockk<GoalDao>()
+            val goalRepository = mockk<GoalRepository>()
             val dayTaskDao = mockk<DayTaskDao>()
-            val contextDao = mockk<ContextDao>()
+            val projector = mockk<SystemWorkspacePresentationContextProjector>()
             val authority = mockk<SystemWorkspaceTagAuthority>()
 
             val systemId = SystemContexts.INBOX.raw
-            val contextFlow =
-                flowOf(
-                    listOf(
-                        context(
-                            id = systemId,
-                            tags = listOf("stale-system-shell"),
-                        ),
-                        context(
-                            id = "ordinary-context",
-                            tags = listOf("ordinary"),
-                        ),
-                    ),
-                )
 
             every { activityDao.getAllRecordsStream() } returns flowOf(emptyList())
-            every { goalDao.getAllVisibleGoalsFlow() } returns flowOf(emptyList())
+            every { goalRepository.getAllGoalsFlow() } returns flowOf(emptyList())
             every { dayTaskDao.getAllVisibleTasksFlow() } returns flowOf(emptyList())
-            every { contextDao.getAllContexts() } returns contextFlow
+            every { projector.observePresentationUniverse() } returns
+                flowOf(
+                    listOf(
+                        mockk<ContextPresentation>().also { presentation ->
+                            every { presentation.description } returns "description-tag #from-description"
+                        },
+                    ),
+                )
             every {
-                authority.observeEffectiveOwners(any())
+                authority.observeEffectiveOwners()
             } returns
                 flowOf(
                     listOf(
@@ -63,9 +56,9 @@ class TagCatalogSystemTagAuthorityTest {
             val tags =
                 TagCatalogRepository(
                     activityRecordDao = activityDao,
-                    goalDao = goalDao,
+                    goalRepository = goalRepository,
                     dayTaskDao = dayTaskDao,
-                    contextDao = contextDao,
+                    systemWorkspacePresentationContextProjector = projector,
                     systemWorkspaceTagAuthority = authority,
                 ).tags.first()
 
@@ -74,20 +67,7 @@ class TagCatalogSystemTagAuthorityTest {
 
             assertThat(normalized).contains("canonical-system")
             assertThat(normalized).contains("ordinary")
+            assertThat(normalized).contains("from-description")
             assertThat(normalized).doesNotContain("stale-system-shell")
         }
-
-    private fun context(
-        id: String,
-        tags: List<String>?,
-    ): Context =
-        Context(
-            id = id,
-            name = id,
-            description = null,
-            parentId = null,
-            createdAt = 1L,
-            updatedAt = 1L,
-            tags = tags,
-        )
 }

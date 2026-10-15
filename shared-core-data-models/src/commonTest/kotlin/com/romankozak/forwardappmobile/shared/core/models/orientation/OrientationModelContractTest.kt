@@ -12,14 +12,20 @@ class OrientationModelContractTest {
         assertEquals(ValueOrigin.UNSET, assessment.importance.origin)
         assertNull(assessment.importance.valueCode)
         assertEquals(ValueOrigin.NOT_APPLICABLE, assessment.targetWindow.origin)
-        assertEquals(ORIENTATION_MODEL_VERSION, 1)
+        assertEquals(ValueOrigin.UNSET, assessment.effort.origin)
+        assertEquals(ValueOrigin.UNSET, assessment.cost.origin)
+        assertEquals(ValueOrigin.UNSET, assessment.risk.origin)
+        assertEquals(OrientationEvaluationState.UNASSESSED, assessment.evaluationState)
+        assertEquals(ORIENTATION_MODEL_VERSION, 2)
     }
 
     @Test
     fun contractContainsAcceptedKindAndAxisSets() {
-        assertEquals(9, OrientationKind.entries.size)
-        assertEquals(8, OrientationAxis.entries.size)
-        assertEquals(13, WorkspaceCapabilityType.entries.size)
+        assertEquals(12, OrientationKind.entries.size)
+        assertEquals("INTENT", OrientationKind.INTENT.name)
+        assertEquals("QUEST", OrientationKind.QUEST.name)
+        assertEquals(11, OrientationAxis.entries.size)
+        assertEquals(11, WorkspaceCapabilityType.entries.size)
         assertEquals(1, ORIENTATION_FILTER_AST_VERSION)
     }
 }

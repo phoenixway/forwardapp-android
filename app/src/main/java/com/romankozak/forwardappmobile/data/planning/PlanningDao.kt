@@ -12,11 +12,35 @@ interface PlanningDao {
     @Query("SELECT * FROM planning_scopes WHERE id = :id LIMIT 1")
     suspend fun getScope(id: String): PlanningScopeEntity?
 
+    @Query("SELECT * FROM planning_scopes ORDER BY id ASC")
+    suspend fun getAllScopes(): List<PlanningScopeEntity>
+
+    @Query("SELECT * FROM planning_scopes ORDER BY id ASC")
+    fun observeAllScopes(): Flow<List<PlanningScopeEntity>>
+
+    @Query("SELECT * FROM planning_scopes WHERE syncedAt IS NULL ORDER BY id ASC")
+    suspend fun getUnsyncedScopes(): List<PlanningScopeEntity>
+
+    @Query("SELECT * FROM planning_scopes WHERE COALESCE(updatedAt, createdAt) > :timestamp ORDER BY id ASC")
+    suspend fun getScopesChangedSince(timestamp: Long): List<PlanningScopeEntity>
+
     @Query("SELECT * FROM planning_scopes WHERE id = :id LIMIT 1")
     fun observeScope(id: String): Flow<PlanningScopeEntity?>
 
     @Query("SELECT * FROM planning_commitments WHERE id = :id LIMIT 1")
     suspend fun getCommitment(id: String): PlanningCommitmentEntity?
+
+    @Query("SELECT * FROM planning_commitments ORDER BY id ASC")
+    suspend fun getAllCommitments(): List<PlanningCommitmentEntity>
+
+    @Query("SELECT * FROM planning_commitments ORDER BY id ASC")
+    fun observeAllCommitments(): Flow<List<PlanningCommitmentEntity>>
+
+    @Query("SELECT * FROM planning_commitments WHERE syncedAt IS NULL ORDER BY id ASC")
+    suspend fun getUnsyncedCommitments(): List<PlanningCommitmentEntity>
+
+    @Query("SELECT * FROM planning_commitments WHERE COALESCE(updatedAt, createdAt) > :timestamp ORDER BY id ASC")
+    suspend fun getCommitmentsChangedSince(timestamp: Long): List<PlanningCommitmentEntity>
 
     @Query(
         """
@@ -87,8 +111,37 @@ interface PlanningDao {
     )
     suspend fun isOrientationLive(orientationId: String): Boolean
 
+    @Query(
+        """
+        UPDATE planning_scopes
+        SET syncedAt = :syncedAt
+        WHERE id = :id AND version = :version
+        """,
+    )
+    suspend fun markScopeSyncedIfVersionMatches(
+        id: String,
+        version: Long,
+        syncedAt: Long,
+    )
+
     @Upsert
     suspend fun upsertScope(scope: PlanningScopeEntity)
+
+    @Upsert
+    suspend fun upsertScopes(scopes: List<PlanningScopeEntity>)
+
+    @Query(
+        """
+        UPDATE planning_commitments
+        SET syncedAt = :syncedAt
+        WHERE id = :id AND version = :version
+        """,
+    )
+    suspend fun markCommitmentSyncedIfVersionMatches(
+        id: String,
+        version: Long,
+        syncedAt: Long,
+    )
 
     @Upsert
     suspend fun upsertCommitment(commitment: PlanningCommitmentEntity)

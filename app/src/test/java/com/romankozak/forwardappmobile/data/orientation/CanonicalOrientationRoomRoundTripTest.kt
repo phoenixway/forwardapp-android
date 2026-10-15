@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Man
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationScoringOverrideEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
@@ -53,6 +54,7 @@ class CanonicalOrientationRoomRoundTripTest {
             assertEquals(first.orientationDao().getAllManagedSubjects(), second.orientationDao().getAllManagedSubjects())
             assertEquals(first.workspaceDao().getAll(), second.workspaceDao().getAll())
             assertEquals(first.orientationDao().getAllAssessments(), second.orientationDao().getAllAssessments())
+            assertEquals(first.orientationDao().getAllScoringOverrides(), second.orientationDao().getAllScoringOverrides())
             assertEquals(first.orientationDao().getAllLegacyMappings(), second.orientationDao().getAllLegacyMappings())
         } finally {
             first.close()
@@ -182,6 +184,25 @@ class CanonicalOrientationRoomRoundTripTest {
                         version = version,
                     ),
                 ),
+            orientationScoringOverrides =
+                listOf(
+                    OrientationScoringOverrideEntity(
+                        orientationId = SUBJECT_ID,
+                        policyId = "orientation-default",
+                        policyVersion = 1,
+                        formulaVersion = 1,
+                        importanceCoordinate = 2.5f,
+                        impactCoordinate = 11f,
+                        effortWeight = 1.2f,
+                        costWeight = null,
+                        riskWeight = null,
+                        createdAt = 10,
+                        updatedAt = updatedAt,
+                        syncedAt = null,
+                        isDeleted = deleted,
+                        version = version,
+                    ),
+                ),
             legacySubjectMappings =
                 listOf(
                     LegacySubjectMappingEntity(
@@ -241,6 +262,7 @@ class CanonicalOrientationRoomRoundTripTest {
             aspects = getAllAspects(),
             orientationAssessments = getAllAssessments(),
             orientationAssessmentRevisions = getAllAssessmentRevisions(),
+            orientationScoringOverrides = getAllScoringOverrides(),
             legacySubjectMappings = getAllLegacyMappings(),
             orientationRelations = getAllOrientationRelations(),
             aspectOrientationRefs = getAllAspectOrientationRefs(),

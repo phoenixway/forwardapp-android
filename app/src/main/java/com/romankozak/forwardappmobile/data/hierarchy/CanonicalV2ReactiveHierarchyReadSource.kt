@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import com.romankozak.forwardappmobile.StartupTrace
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementGroupScopeEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
@@ -48,7 +48,6 @@ class CanonicalV2ReactiveHierarchyReadSource
     @Inject
     constructor(
         private val database: AppDatabase,
-        private val contextRepository: ContextRepository,
         private val systemWorkspacePresentationContextProjector:
             SystemWorkspacePresentationContextProjector,
         private val assembler: CanonicalV2HierarchyReadSnapshotAssembler,
@@ -101,7 +100,7 @@ class CanonicalV2ReactiveHierarchyReadSource
 
             val workspaces =
                 systemWorkspacePresentationContextProjector
-                    .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                    .observePresentationUniverse()
                     .map { presentations ->
                         presentations.map { it.toCanonicalV2WorkspacePresentation() }
                     }
@@ -122,23 +121,25 @@ class CanonicalV2ReactiveHierarchyReadSource
                 orientation,
                 presentation,
             ) { structuralState, orientationState, presentationState ->
-                assembler.assemble(
-                    placements = structuralState.placements,
-                    admittedWorkspacePresentations = presentationState.workspaces,
-                    managedSubjects = orientationState.managedSubjects,
-                    legacySubjectMappings = orientationState.mappings,
-                    relations = orientationState.relations,
-                    groupScopes = structuralState.groupScopes,
-                    legacyGroups = presentationState.groups,
-                    presentationProvenance = structuralState.presentationProvenance,
-                    hierarchyId = hierarchyId,
-                )
+                StartupTrace.measureSync("Hierarchy.project") {
+                    assembler.assemble(
+                        placements = structuralState.placements,
+                        admittedWorkspacePresentations = presentationState.workspaces,
+                        managedSubjects = orientationState.managedSubjects,
+                        legacySubjectMappings = orientationState.mappings,
+                        relations = orientationState.relations,
+                        groupScopes = structuralState.groupScopes,
+                        legacyGroups = presentationState.groups,
+                        presentationProvenance = structuralState.presentationProvenance,
+                        hierarchyId = hierarchyId,
+                    )
+                }
             }
         }
 
         fun observeCanonicalWorkspacePresentations(): Flow<List<CanonicalV2WorkspacePresentation>> =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRepository.getAllContextsFlow())
+                .observePresentationUniverse()
                 .map { presentations ->
                     presentations.map { it.toCanonicalV2WorkspacePresentation() }
                 }

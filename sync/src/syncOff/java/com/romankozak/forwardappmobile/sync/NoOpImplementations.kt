@@ -34,6 +34,16 @@ import javax.inject.Singleton
 class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataSource {
     override suspend fun getSettingsSnapshot(): Map<String, String> = emptyMap()
 
+    override suspend fun loadUnsyncedCanonicalPlanning() =
+        com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncPayload()
+
+    override suspend fun loadCanonicalPlanningChangedSince(timestamp: Long) =
+        com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncPayload()
+
+    override suspend fun markCanonicalPlanningSynced(
+        ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalPlanningSyncAck,
+    ) { /* no-op */ }
+
     override suspend fun loadUnsyncedCanonicalRecurringSeries() =
         emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
 
@@ -107,6 +117,16 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalWorkspaceInboxSynced(
         records: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion>,
     ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalWorkspacePresentationPreferences() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot>()
+
+    override suspend fun loadCanonicalWorkspacePresentationPreferencesChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot>()
+
+    override suspend fun markCanonicalWorkspacePresentationPreferencesSynced(
+        entries: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSyncVersion>,
+    ) { /* no-op */ }
+
     override suspend fun loadUnsyncedCanonicalWorkspaceConnections() =
         emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot>()
     override suspend fun loadCanonicalWorkspaceConnectionsChangedSince(timestamp: Long) =

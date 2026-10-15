@@ -4,12 +4,13 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
-import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.ThemeOrientationBridge
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayThemePlanningAdapter
 import com.romankozak.forwardappmobile.database.AppDatabase
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -22,28 +23,47 @@ class DayThemeRepository
     constructor(
         private val database: AppDatabase,
         private val dao: CanonicalDayThemeDao,
-        private val bootstrapper: CanonicalDayThemeBootstrapper,
+        private val themeOrientationBridge: ThemeOrientationBridge,
+        private val planningAdapter: CanonicalDayThemePlanningAdapter,
     ) {
         private val mutex = Mutex()
 
         fun observe(dayPlanId: String): Flow<DayThemeDocument> =
             flow {
-                bootstrapper.ensureBootstrapped()
+                themeOrientationBridge.ensureCutOver()
                 emitAll(
-                    combine(
-                        dao.observeAllThemeDefinitions(),
-                        dao.observeDayThemesForDay(dayPlanId),
-                        dao.observeAssignmentDocumentByDayPlanId(dayPlanId),
-                    ) { definitions, dayThemes, assignmentDocument ->
-                        projectCanonicalDayThemeDocument(
-                            dayPlanId = dayPlanId,
-                            themeDefinitions = definitions.map { it.toCanonicalSnapshot() },
-                            dayThemes = dayThemes.map { it.toCanonicalSnapshot() },
-                            assignmentDocument = assignmentDocument?.toCanonicalSnapshot(),
-                        )
-                    },
+                    database.invalidationTracker
+                        .createFlow(
+                            "theme_definitions",
+                            "day_themes",
+                            "day_theme_assignment_documents",
+                            "planning_commitments",
+                            "managed_subjects",
+                            "legacy_subject_mappings",
+                            "orientations",
+                            emitInitialState = true,
+                        ).map {
+                            database.withTransaction {
+                                projectCanonicalDayThemeDocument(
+                                    dayPlanId = dayPlanId,
+                                    themeDefinitions =
+                                        themeOrientationBridge
+                                            .projectCanonicalDefinitions(dao.getAllThemeDefinitionsSync())
+                                            .map { it.toCanonicalSnapshot() },
+                                    dayThemes =
+                                        planningAdapter.applyCanonicalProjection(
+                                            dao.getDayThemesForDay(dayPlanId)
+                                                .map { it.toCanonicalSnapshot() },
+                                            planningAdapter.getDayThemeCommitments(dayPlanId),
+                                        ),
+                                    assignmentDocument =
+                                        dao.getAssignmentDocumentByDayPlanId(dayPlanId)
+                                            ?.toCanonicalSnapshot(),
+                                )
+                            }
+                        }.distinctUntilChanged(),
                 )
-            }.catch { emit(DayThemeDocument()) }
+            }
 
         /**
          * Compatibility entry point retained for the existing ViewModel.
@@ -51,21 +71,26 @@ class DayThemeRepository
          */
         suspend fun migrateLegacyDayIfNeeded(dayPlanId: String) {
             require(dayPlanId.isNotBlank())
-            bootstrapper.ensureBootstrapped()
+            themeOrientationBridge.ensureCutOver()
         }
 
         suspend fun update(
             dayPlanId: String,
             transform: (DayThemeDocument) -> DayThemeDocument,
         ) {
-            bootstrapper.ensureBootstrapped()
+            themeOrientationBridge.ensureCutOver()
 
             mutex.withLock {
                 database.withTransaction {
+                    val rawDefinitions = dao.getAllThemeDefinitionsSync()
                     val definitions =
-                        dao.getAllThemeDefinitionsSync().map { it.toCanonicalSnapshot() }
+                        themeOrientationBridge.projectCanonicalDefinitions(rawDefinitions)
+                            .map { it.toCanonicalSnapshot() }
                     val dayThemes =
-                        dao.getDayThemesForDay(dayPlanId).map { it.toCanonicalSnapshot() }
+                        planningAdapter.applyCanonicalProjection(
+                            dao.getDayThemesForDay(dayPlanId).map { it.toCanonicalSnapshot() },
+                            planningAdapter.getDayThemeCommitments(dayPlanId),
+                        )
                     val assignmentDocument =
                         dao.getAssignmentDocumentByDayPlanId(dayPlanId)?.toCanonicalSnapshot()
 
@@ -78,10 +103,11 @@ class DayThemeRepository
                         )
 
                     val transformed = transform(current).normalizedForDay(dayPlanId)
+                    val now = System.currentTimeMillis()
                     val plan =
                         planCanonicalDayThemeRuntimeUpdate(
                             dayPlanId = dayPlanId,
-                            now = System.currentTimeMillis(),
+                            now = now,
                             localThemeDefinitions = definitions,
                             localDayThemes = dayThemes,
                             localAssignmentDocument = assignmentDocument,
@@ -93,7 +119,26 @@ class DayThemeRepository
                             plan.themeDefinitions.map { it.toCanonicalEntity() },
                         )
                     }
+                    val definitionUpsertsById =
+                        plan.themeDefinitions.associateBy { it.id }
+                    val existingDefinitionsById = rawDefinitions.associateBy { it.id }
+                    val existingDayThemesById = dayThemes.associateBy { it.id }
+                    transformed.themes.forEach { theme ->
+                        val definitionId = existingDayThemesById[theme.id]?.themeId ?: theme.id
+                        val definition =
+                            definitionUpsertsById[definitionId]?.toCanonicalEntity()
+                                ?: requireNotNull(existingDefinitionsById[definitionId]) {
+                                    "Day Theme $definitionId has no Theme extension row"
+                                }
+                        themeOrientationBridge.writeCommon(
+                            definition = definition,
+                            title = theme.title.trim(),
+                            description = theme.comment.trim(),
+                            now = now,
+                        )
+                    }
                     if (plan.dayThemes.isNotEmpty()) {
+                        planningAdapter.applyProjectionChanges(plan.dayThemes)
                         dao.upsertDayThemes(
                             plan.dayThemes.map { it.toCanonicalEntity() },
                         )

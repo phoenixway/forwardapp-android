@@ -13,8 +13,18 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayFocusI
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedRecurringTask
+import com.romankozak.forwardappmobile.shared.contracts.contexts.CURRENT_SHARED_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.shared.contracts.contexts.TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.shared.contracts.contexts.DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.shared.contracts.contexts.LEGACY_SHARED_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningScopeSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedTacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedStrategicPlanningScopeExtensionSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
+import com.romankozak.forwardappmobile.shared.contracts.contexts.requireValidCanonicalPlanningTransport
 import kotlin.math.roundToInt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -79,8 +89,23 @@ class AndroidWorkspaceSnapshotImporter(
         val dayPlans = parseDayPlans(source)
         val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
         val dayFocusItems = parseDayFocusItems(source = source, validDayPlanIds = dayPlanIds)
-        val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
+        val hasWorkspaceEvidence = source["workspaces"] is JsonArray
+        val ownerIds =
+            if (hasWorkspaceEvidence) {
+                admittedCanonicalDayTaskOwnerIds(source)
+            } else {
+                // Pre-canonical snapshots retain historical Context ingress.
+                contextIds
+            }
+        val dayTasks =
+            parseDayTasks(
+                source = source,
+                validDayPlanIds = dayPlanIds,
+                validOwnerIds = ownerIds,
+                requireWorkspaceEvidence = hasWorkspaceEvidence,
+            )
         val recurringTasks = parseRecurringTasks(source)
+        val planning = parseCanonicalPlanningTransport(source)
 
         return ResolvedWorkspaceSnapshot(
             snapshot =
@@ -91,7 +116,13 @@ class AndroidWorkspaceSnapshotImporter(
                     dayFocusItems = dayFocusItems,
                     dayTasks = dayTasks,
                     recurringTasks = recurringTasks,
-                ),
+                    planningFormatVersion = planning.formatVersion,
+                    planningScopes = planning.scopes,
+                    planningCommitments = planning.commitments,
+                    dayPlanningScopeExtensions = planning.dayScopeExtensions,
+                    tacticalPlanningScopeExtensions = planning.tacticalScopeExtensions,
+                    strategicPlanningScopeExtensions = planning.strategicScopeExtensions,
+                ).also { it.requireValidCanonicalPlanningTransport() },
             format = format,
         )
     }
@@ -112,7 +143,13 @@ class AndroidWorkspaceSnapshotImporter(
         val dayPlans = parseDayPlans(source)
         val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
         val dayFocusItems = parseDayFocusItems(source = source, validDayPlanIds = dayPlanIds)
-        val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
+        val dayTasks =
+            parseDayTasks(
+                source = source,
+                validDayPlanIds = dayPlanIds,
+                validOwnerIds = contextIds,
+                requireWorkspaceEvidence = false,
+            )
         val recurringTasks = parseRecurringTasks(source)
 
         return ResolvedWorkspaceSnapshot(
@@ -126,6 +163,136 @@ class AndroidWorkspaceSnapshotImporter(
                     recurringTasks = recurringTasks,
                 ),
             format = format,
+        )
+    }
+
+    private fun parseCanonicalPlanningTransport(source: JsonObject): ParsedPlanningTransport {
+        val formatVersion = source.long("planningFormatVersion")?.toInt()
+        val scopesElement = source["planningScopes"]
+        val commitmentsElement = source["planningCommitments"]
+        val dayExtensionsElement = source["dayPlanningScopeExtensions"]
+        val tacticalExtensionsElement = source["tacticalPlanningScopeExtensions"]
+        val strategicExtensionsElement = source["strategicPlanningScopeExtensions"]
+
+        val scopesPresent = scopesElement is JsonArray
+        val commitmentsPresent = commitmentsElement is JsonArray
+        val dayExtensionsPresent = dayExtensionsElement is JsonArray
+        val tacticalExtensionsPresent = tacticalExtensionsElement is JsonArray
+        val strategicExtensionsPresent = strategicExtensionsElement is JsonArray
+
+        if (
+            formatVersion == null &&
+            !scopesPresent &&
+            !commitmentsPresent &&
+            !dayExtensionsPresent &&
+            !tacticalExtensionsPresent &&
+            !strategicExtensionsPresent
+        ) {
+            return ParsedPlanningTransport()
+        }
+
+        require(
+            formatVersion == LEGACY_SHARED_PLANNING_FORMAT_VERSION ||
+                formatVersion == DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
+                formatVersion == TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
+                formatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION,
+        ) {
+            "Unsupported canonical Planning format version: $formatVersion"
+        }
+
+        require(scopesPresent && commitmentsPresent) {
+            "Canonical Planning format requires both planningScopes and planningCommitments."
+        }
+
+        when (formatVersion) {
+            LEGACY_SHARED_PLANNING_FORMAT_VERSION -> {
+                require(!dayExtensionsPresent) {
+                    "Planning format v1 must not carry Day scope extensions."
+                }
+                require(!tacticalExtensionsPresent) {
+                    "Planning format v1 must not carry Tactical scope extensions."
+                }
+                require(!strategicExtensionsPresent) {
+                    "Planning format v1 must not carry Strategic scope extensions."
+                }
+            }
+
+            DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION -> {
+                require(dayExtensionsPresent) {
+                    "Planning format v2 requires dayPlanningScopeExtensions."
+                }
+                require(!tacticalExtensionsPresent) {
+                    "Planning format v2 must not carry Tactical scope extensions."
+                }
+                require(!strategicExtensionsPresent) {
+                    "Planning format v2 must not carry Strategic scope extensions."
+                }
+            }
+
+            TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION -> {
+                require(dayExtensionsPresent) {
+                    "Planning format v3 requires dayPlanningScopeExtensions."
+                }
+                require(tacticalExtensionsPresent) {
+                    "Planning format v3 requires tacticalPlanningScopeExtensions."
+                }
+                require(!strategicExtensionsPresent) {
+                    "Planning format v3 must not carry Strategic scope extensions."
+                }
+            }
+
+            CURRENT_SHARED_PLANNING_FORMAT_VERSION -> {
+                require(dayExtensionsPresent) {
+                    "Planning format v4 requires dayPlanningScopeExtensions."
+                }
+                require(tacticalExtensionsPresent) {
+                    "Planning format v4 requires tacticalPlanningScopeExtensions."
+                }
+                require(strategicExtensionsPresent) {
+                    "Planning format v4 requires strategicPlanningScopeExtensions."
+                }
+            }
+
+            else -> error("Unsupported canonical Planning format version: $formatVersion")
+        }
+
+        return ParsedPlanningTransport(
+            formatVersion = formatVersion,
+            scopes =
+                (scopesElement as JsonArray).map { element ->
+                    json.decodeFromJsonElement(
+                        SharedPlanningScopeSnapshot.serializer(),
+                        element,
+                    )
+                },
+            commitments =
+                (commitmentsElement as JsonArray).map { element ->
+                    json.decodeFromJsonElement(
+                        SharedPlanningCommitmentSnapshot.serializer(),
+                        element,
+                    )
+                },
+            dayScopeExtensions =
+                (dayExtensionsElement as? JsonArray)?.map { element ->
+                    json.decodeFromJsonElement(
+                        SharedDayPlanningScopeExtensionSnapshot.serializer(),
+                        element,
+                    )
+                },
+            tacticalScopeExtensions =
+                (tacticalExtensionsElement as? JsonArray)?.map { element ->
+                    json.decodeFromJsonElement(
+                        SharedTacticalPlanningScopeExtensionSnapshot.serializer(),
+                        element,
+                    )
+                },
+            strategicScopeExtensions =
+                (strategicExtensionsElement as? JsonArray)?.map { element ->
+                    json.decodeFromJsonElement(
+                        SharedStrategicPlanningScopeExtensionSnapshot.serializer(),
+                        element,
+                    )
+                },
         )
     }
 
@@ -371,21 +538,86 @@ class AndroidWorkspaceSnapshotImporter(
                 )
             }.sortedWith(compareBy({ item -> item.dayPlanId }, { item -> item.order }, { item -> item.title.lowercase() }))
 
+    /**
+     * DayTask owner admission for canonical Android Workspace transport.
+     *
+     * This validates explicit provenance, not merely same-id equality.
+     * A missing Context row is allowed for an explicitly mapped
+     * CONTEXT_BACKED Workspace because incremental transport can omit
+     * unchanged Context records.
+     */
+    private fun admittedCanonicalDayTaskOwnerIds(source: JsonObject): Set<String> {
+        val contextRows = source.fieldArray("contexts")
+        val workspaceRows = source.fieldArray("workspaces")
+
+        require(contextRows.mapNotNull { it.string("id") }.distinct().size == contextRows.size) {
+            "Duplicate or missing Context identity in DayTask owner evidence"
+        }
+        require(workspaceRows.mapNotNull { it.string("id") }.distinct().size == workspaceRows.size) {
+            "Duplicate or missing Workspace identity in DayTask owner evidence"
+        }
+
+        val contexts = contextRows.associateBy { requireNotNull(it.string("id")) }
+
+        return workspaceRows.mapNotNull { workspace ->
+            val ownerId = requireNotNull(workspace.string("id"))
+            if (ownerId.isBlank() || workspace.boolean("isDeleted") != false) {
+                return@mapNotNull null
+            }
+
+            val context = contexts[ownerId]
+            val liveContext = context != null && context.boolean("isDeleted") != true
+            val deletedContext = context?.boolean("isDeleted") == true
+            val sourceContextId = workspace.string("sourceContextId")
+
+            val admitted =
+                when (workspace.string("provenance")) {
+                    "CONTEXT_BACKED" ->
+                        sourceContextId == ownerId && !deletedContext
+
+                    "CANONICAL_ONLY" ->
+                        sourceContextId == null && !liveContext
+
+                    "STANDALONE" ->
+                        sourceContextId == null && context == null
+
+                    else -> false
+                }
+
+            ownerId.takeIf { admitted }
+        }.toSet()
+    }
+
     private fun parseDayTasks(
         source: JsonObject,
         validDayPlanIds: Set<String>,
-        validContextIds: Set<String>,
+        validOwnerIds: Set<String>,
+        requireWorkspaceEvidence: Boolean,
     ): List<SharedDayTask> =
         source.fieldArray("dayTasks")
             .mapNotNull { entry ->
                 val dayPlanId = entry.string("dayPlanId") ?: return@mapNotNull null
                 val isDeleted = entry.boolean("isDeleted") ?: false
                 if (!isDeleted && dayPlanId !in validDayPlanIds) return@mapNotNull null
-                val projectId = entry.string("projectId")?.takeIf { contextId -> contextId in validContextIds }
+
+                val rawProjectId = entry.string("projectId")
+                val projectId = rawProjectId?.takeIf { it in validOwnerIds }
+                val rawLinkedProjectIds = entry.stringArray("linkedProjectIds")
+
+                if (requireWorkspaceEvidence) {
+                    require(rawProjectId == null || projectId != null) {
+                        "DayTask ${entry.string("id")} has no admitted canonical Workspace owner: $rawProjectId"
+                    }
+                    require(rawLinkedProjectIds.all { it in validOwnerIds }) {
+                        "DayTask ${entry.string("id")} has unproven linked Workspace owners"
+                    }
+                }
+
                 val linkedProjectIds =
-                    entry.stringArray("linkedProjectIds")
-                        .filter { contextId -> contextId in validContextIds }
+                    rawLinkedProjectIds
+                        .filter { it in validOwnerIds }
                         .distinct()
+
                 SharedDayTask(
                     id = entry.string("id") ?: return@mapNotNull null,
                     dayPlanId = dayPlanId,
@@ -514,6 +746,15 @@ class AndroidWorkspaceSnapshotImporter(
         return NamedItem(title = fallbackTitle, details = null, isDone = false)
     }
 }
+
+private data class ParsedPlanningTransport(
+    val formatVersion: Int? = null,
+    val scopes: List<SharedPlanningScopeSnapshot>? = null,
+    val commitments: List<SharedPlanningCommitmentSnapshot>? = null,
+    val dayScopeExtensions: List<SharedDayPlanningScopeExtensionSnapshot>? = null,
+    val tacticalScopeExtensions: List<SharedTacticalPlanningScopeExtensionSnapshot>? = null,
+    val strategicScopeExtensions: List<SharedStrategicPlanningScopeExtensionSnapshot>? = null,
+)
 
 private data class ParsedContext(
     val id: String,

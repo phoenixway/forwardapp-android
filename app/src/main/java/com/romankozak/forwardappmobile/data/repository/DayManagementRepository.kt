@@ -27,6 +27,10 @@ import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningAdapter
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.product.CanonicalGoalSemanticReadRepository
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ImportanceValue
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
@@ -55,6 +59,7 @@ class DayManagementRepository
         private val dayFocusItemDao: DayFocusItemDao,
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
+        private val canonicalDayPlanningAdapter: CanonicalDayPlanningAdapter,
         private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
         private val contextDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao,
         private val canonicalRecurrenceMaterializationAdapter: com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceMaterializationAdapter,
@@ -64,6 +69,8 @@ class DayManagementRepository
         private val taskExecutionAlarmCoordinator: TaskExecutionAlarmCoordinator,
         private val aiEventRepository: AiEventRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
+        private val canonicalOrientationRepository: CanonicalOrientationRepository,
+        private val canonicalGoalSemanticReadRepository: CanonicalGoalSemanticReadRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         private companion object {
@@ -98,14 +105,15 @@ class DayManagementRepository
         @Volatile
         private var cachedBestCompletedPoints: Int? = null
 
-        fun getPlanByIdStream(planId: String): Flow<DayPlan?> = dayPlanDao.getPlanByIdStream(planId)
+        fun getPlanByIdStream(planId: String): Flow<DayPlan?> = canonicalDayPlanningAdapter.observe(planId)
 
         suspend fun getPlanById(planId: String): DayPlan? =
             withContext(ioDispatcher) {
-                dayPlanDao.getPlanById(planId)
+                canonicalDayPlanningAdapter.get(planId)
             }
 
-        fun getPlanForDate(date: Long): Flow<DayPlan?> = dayPlanDao.getPlanForDate(getDayStart(date))
+        fun getPlanForDate(date: Long): Flow<DayPlan?> =
+            canonicalDayPlanningAdapter.observeForCalendarDay(getDayStart(date))
 
         suspend fun getPlanIdForDate(date: Long): String? =
             withContext(ioDispatcher) {
@@ -118,42 +126,18 @@ class DayManagementRepository
             name: String? = null,
         ): DayPlan =
             withContext(ioDispatcher) {
-                val dayStart = getDayStart(date)
-                val existingPlan = dayPlanDao.getPlanForDateSync(dayStart)
-
-                if (existingPlan != null) {
-                    val now = System.currentTimeMillis()
-                    val updated =
-                        existingPlan.copy(
-                            name = name ?: existingPlan.name,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = existingPlan.version + 1,
-                        )
-                    dayPlanDao.update(updated)
-                    updated
-                } else {
-                    val now = System.currentTimeMillis()
-                    val newPlan =
-                        DayPlan(
-                            date = dayStart,
-                            name = name,
-                            status = DayStatus.PLANNED,
-                            createdAt = now,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = 1,
-                    )
-                    dayPlanDao.insert(newPlan)
-                    newPlan
-                }
+                canonicalDayPlanningAdapter.createOrUpdate(
+                    calendarDayStartMillis = getDayStart(date),
+                    title = name,
+                    now = System.currentTimeMillis(),
+                )
             }
 
         suspend fun updatePlanStatus(
             planId: String,
             status: DayStatus,
         ) = withContext(ioDispatcher) {
-            dayPlanDao.updatePlanStatus(planId, status, System.currentTimeMillis())
+            canonicalDayPlanningAdapter.updateStatus(planId, status, System.currentTimeMillis())
         }
 
         suspend fun updatePredictedDurationMinutes(
@@ -161,10 +145,10 @@ class DayManagementRepository
             minutes: Long?,
         ) = withContext(ioDispatcher) {
             val normalizedMinutes = minutes?.takeIf { it > 0L }
-            dayPlanDao.updatePredictedDurationMinutes(
+            canonicalDayPlanningAdapter.updatePlannedBudget(
                 planId = planId,
                 minutes = normalizedMinutes,
-                updatedAt = System.currentTimeMillis(),
+                now = System.currentTimeMillis(),
             )
         }
 
@@ -235,15 +219,21 @@ class DayManagementRepository
                         version = 1,
                 )
                 dayTaskDao.insert(task)
-                taskExecutionAlarmCoordinator.sync(task)
                 reorderTasksByPriority(params.dayPlanId)
+                // DAO admission may move a legacy projectId into projectWorkspaceId.
+                // Downstream consumers must see the canonical persisted entity.
+                val persistedTask =
+                    requireNotNull(dayTaskDao.getTaskById(task.id)) {
+                        "DayTask ${task.id} missing after canonical insert"
+                    }
+                taskExecutionAlarmCoordinator.sync(persistedTask)
                 aiEventRepository.emit(
                     TaskCreatedEvent(
                         timestamp = java.time.Instant.ofEpochMilli(System.currentTimeMillis()),
                         effort = params.estimatedDurationMinutes?.toInt(),
                     ),
                 )
-                task
+                persistedTask
             }
         }
 
@@ -263,6 +253,7 @@ class DayManagementRepository
 
                 val goal =
                     goalDao.getGoalById(goalId)
+                        ?.let { canonicalGoalSemanticReadRepository.projectGoal(it) }
                         ?: throw NoSuchElementException("Goal with id $goalId not found")
 
                 val taskParams =
@@ -302,7 +293,14 @@ class DayManagementRepository
                         projectId = projectId,
                         linkedProjectIds = listOf(projectId),
                         scheduledTime = scheduledTime,
-                        priority = mapImportanceToPriority(rawProject?.valueImportance ?: 0f),
+                        priority =
+                            mapImportanceToPriority(
+                                canonicalOrientationRepository
+                                    .getContextAssessment(projectId)
+                                    ?.importance
+                                    ?.valueCode
+                                    .toLegacyImportanceRepresentative(),
+                            ),
                         taskType = BacklogItemTypeValues.SUBLIST,
                     )
                 addTaskToDayPlan(taskParams)
@@ -474,7 +472,11 @@ class DayManagementRepository
                     version = task.version + 1,
                 )
             dayTaskDao.update(updatedTask)
-            taskExecutionAlarmCoordinator.sync(updatedTask)
+            val persistedTask =
+                requireNotNull(dayTaskDao.getTaskById(updatedTask.id)) {
+                    "DayTask ${updatedTask.id} missing after canonical update"
+                }
+            taskExecutionAlarmCoordinator.sync(persistedTask)
             reorderTasksByPriority(task.dayPlanId)
         }
 
@@ -543,7 +545,7 @@ class DayManagementRepository
             endDate: Long,
         ): Flow<List<DailyAnalytics>> {
             return combine(
-                dayPlanDao.getPlansForDateRange(startDate, endDate),
+                canonicalDayPlanningAdapter.observeRange(startDate, endDate),
                 dailyMetricDao.getMetricsForDateRange(startDate, endDate),
             ) { plans, metrics ->
                 plans.map { plan ->
@@ -563,7 +565,7 @@ class DayManagementRepository
                 cachedBestCompletedPoints = null
 
                 val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
-                val plan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
+                val plan = canonicalDayPlanningAdapter.get(dayPlanId) ?: return@withContext
 
                 val completedTasks = tasks.count { it.completed }
                 val totalTasks = tasks.size
@@ -681,7 +683,11 @@ class DayManagementRepository
                     version = task.version + 1,
                 )
             dayTaskDao.update(updatedTask)
-            taskExecutionAlarmCoordinator.sync(updatedTask)
+            val persistedTask =
+                requireNotNull(dayTaskDao.getTaskById(updatedTask.id)) {
+                    "DayTask ${updatedTask.id} missing after timing update"
+                }
+            taskExecutionAlarmCoordinator.sync(persistedTask)
         }
 
         private suspend fun reorderTasksByPriority(dayPlanId: String) {
@@ -725,16 +731,14 @@ class DayManagementRepository
 
         suspend fun getGoal(id: String): Goal? {
             return withContext(ioDispatcher) {
-                goalDao.getGoalById(id)
+                goalDao.getGoalById(id)?.let { canonicalGoalSemanticReadRepository.projectGoal(it) }
             }
         }
 
         suspend fun getProjectPresentation(id: String): ContextPresentation? {
             return withContext(ioDispatcher) {
-                val context = contextDao.getContextById(id)
                 systemWorkspacePresentationContextProjector.resolvePresentation(
                     contextId = id,
-                    context = context,
                 )
             }
         }
@@ -826,4 +830,13 @@ class DayManagementRepository
 
                 recalculateDayProgress(taskId)
             }
+    }
+
+private fun String?.toLegacyImportanceRepresentative(): Float =
+    when (this) {
+        ImportanceValue.LOW.name -> 1f
+        ImportanceValue.MEDIUM.name -> 4f
+        ImportanceValue.HIGH.name -> 7f
+        ImportanceValue.CRITICAL.name -> 10f
+        else -> 0f
     }

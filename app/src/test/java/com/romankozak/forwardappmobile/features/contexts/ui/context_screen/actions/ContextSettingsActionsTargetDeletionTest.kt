@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyChildPolicyRejectedException
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,9 +16,15 @@ import org.junit.Test
 class ContextSettingsActionsTargetDeletionTest {
     private val contexts = mockk<ContextRepository>(relaxed = true)
     private val workspaces = mockk<CanonicalWorkspaceRepository>(relaxed = true)
+    private val presentationPreferences =
+        mockk<WorkspacePresentationPreferencesRepository>(relaxed = true)
 
     private fun actions() =
-        ContextSettingsActions(contexts, workspaces)
+        ContextSettingsActions(
+            contextRepository = contexts,
+            canonicalWorkspaceRepository = workspaces,
+            workspacePresentationPreferencesRepository = presentationPreferences,
+        )
 
     @Test
     fun `V2 settings deletes live Workspace target without subtree or Context fallback`() = runBlocking {

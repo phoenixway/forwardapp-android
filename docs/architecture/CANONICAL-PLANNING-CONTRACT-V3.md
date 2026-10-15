@@ -648,8 +648,12 @@ Source adapters must preserve existing source identity. Carry-forward creates
 a new commitment identity in the new scope with provenance pointing to the
 prior commitment/legacy row; it does not mutate the old scope membership.
 
-Manual free-form TacticalMission migration is gated by the product decision in
-section 20. It must not manufacture an arbitrary GOAL/QUEST/DIRECTION kind.
+Legacy manual TacticalMission migration uses one deterministic dedicated
+Orientation identity per mission. Finite migration adopts that identity as
+`OrientationKind.INTENT`. New post-cutover manual authoring must explicitly
+select an existing Orientation or create one with an explicit semantic kind.
+GOAL, QUEST, DIRECTION, or another stronger kind must not be manufactured merely
+to satisfy Planning persistence.
 
 ### 17.3 Strategic adapter
 
@@ -725,13 +729,20 @@ selective closure, sync ACKs, Desktop parity, and each legacy adapter.
 
 ## 20. Finite unresolved decisions
 
-The shared contract is implementable once accepted. Three bounded product/data
-migration decisions remain before their corresponding domain cutovers:
+The shared contract is implementable. The legacy manual TacticalMission
+semantic-kind decision is now resolved; two other bounded product/data decisions
+remain before their corresponding domain cutovers:
 
-1. **Manual TacticalMission adoption.** Decide whether each free-form mission
-   requires user selection of an existing Orientation, offers explicit
-   creation with a chosen semantic kind, or remains specialized compatibility
-   data. No automatic kind inference is allowed.
+1. **Legacy manual TacticalMission semantic kind — RESOLVED.**
+   `OrientationKind.INTENT` is the accepted reusable semantic kind for standalone
+   purposeful intent that is meaningful enough to participate in Planning without
+   being forced into GOAL, PROJECT, QUEST, THEME, or another stronger semantic
+   category. Finite legacy migration adopts each MANUAL TacticalMission
+   deterministically one-to-one into its own dedicated INTENT Orientation through
+   `LegacySubjectRef(TACTICAL_MISSION, mission.id)` and canonical UUIDv5 identity,
+   with a `CUT_OVER` legacy-subject mapping. New post-cutover authoring still
+   requires explicit existing/new Orientation selection. `MISSION` remains a
+   Planning role and is not an Orientation kind.
 2. **Free-form Day item adoption.** Decide which free-form DayFocusItem and
    DayTask records should remain execution/domain content and which receive an
    explicit create/select-Orientation workflow. Existing Goal/Orientation
@@ -768,37 +779,170 @@ execution boundaries defined above.
   validation;
 - keep all domain readers on their current authority.
 
-### V3.3 — Cross-client transport — NEXT
+### V3.3 — Cross-client transport — COMPLETE
 
 - add shared DTOs, backup/Restore/merge/selective/Wi-Fi/ACK behavior;
 - land Desktop/shared compatibility and generation routing;
 - prove null-versus-empty and malformed-input behavior.
 
-### V3.4 — Day adapter and cutover
+### V3.4 — Day adapter and cutover — COMPLETE / HOST VERIFIED
 
-- map DayPlan and resolved semantic participants;
-- coordinate with Track B THEME work without absorbing execution;
-- prove parity, then cut Day planning reads/writes.
+Implementation status:
+
+- V3.4a Day census + pure scope mapping — COMPLETE / HOST VERIFIED
+- Theme Orientation authority prerequisite — COMPLETE / HOST VERIFIED
+- V3.4b typed Day scope extension persistence + transport — COMPLETE / HOST VERIFIED
+- V3.4c deterministic migration + authority cutover — COMPLETE / HOST VERIFIED
+
+Runtime planning authority is now canonical:
+
+- `PlanningScope(DAY)` owns Day planning identity, title and lifecycle;
+- `DayPlanningScopeExtension` owns calendar-day association, Day outcome and
+  planned budget;
+- eligible Day Theme participation is represented by
+  `PlanningCommitment(role=DAY.THEME)`;
+- Theme-specific budget/assignment metadata remains Day-owned extension state;
+- DayFocusItem, DayTask and execution/evidence remain specialized state;
+- current-day selection remains application/domain state.
+
+V3.4 activation is finite, transactional and fail-closed. Deterministic
+materialization and parity validation occur before the authority marker is
+written. Established runtime reads require canonical scope/extension and do not
+silently rematerialize or fall back to legacy planning state. Ordinary planning
+writers route through canonical Day adapters.
+
+Canonical Planning transport carries the resulting canonical rows directly;
+backup does not synthesize canonical Day planning from legacy DayPlan state.
+
+The next bounded Canonical V3 frontier is **V3.5 Tactical adapter/cutover**.
 
 ### V3.5 — Tactical adapter and cutover
 
-- map TacticalIteration;
-- resolve/adopt participant Orientations;
-- split mission core from stream/slot/routing/evidence extensions;
-- prove carry-forward and ordering parity before cutover.
+Implementation status:
+
+- V3.5a Tactical authority census + pure scope foundation —
+  **COMPLETE / HOST VERIFIED**;
+- V3.5b typed mission source-resolution foundation —
+  **COMPLETE / HOST VERIFIED**;
+- V3.5c reusable INTENT semantic authority + deterministic legacy MANUAL
+  adoption — **COMPLETE / HOST VERIFIED**;
+- canonical QUEST semantic authority for manual `ARC_QUEST` —
+  **COMPLETE / SCOPED HOST VERIFIED**;
+- V3.5e typed Tactical scope-extension persistence and transport —
+  **COMPLETE / HOST VERIFIED**;
+- V3.5f deterministic Tactical materialization, exact aggregate parity and
+  marker-last activation boundary — **COMPLETE / HOST VERIFIED**;
+- V3.5g ordinary Tactical runtime reader/writer cutover —
+  **COMPLETE / HOST VERIFIED / DURABLE**.
+
+V3.5a confirms identity-preserving `TacticalIteration.id` →
+`PlanningScopeId(TACTICAL_CYCLE)`, direct lifecycle/horizon mapping, and the
+typed `TacticalPlanningScopeExtension` boundary for iteration type, week key,
+and close-audit time.
+
+V3.5b establishes typed fail-closed source resolution with `UNKNOWN=0`.
+Free-form text, Context ids, Workspace ids, and operational project routing are
+not promoted to semantic Orientation identity.
+
+V3.5c accepts `OrientationKind.INTENT` as reusable semantic vocabulary and
+provides finite deterministic adoption for legacy MANUAL TacticalMission rows:
+
+```text
+LegacySubjectRef(TACTICAL_MISSION, mission.id)
+    -> canonical UUIDv5 subject/orientation id
+    -> Orientation(kind = INTENT)
+    -> LegacySubjectMapping(state = CUT_OVER)
+```
+
+The adoption primitive creates the complete canonical Orientation aggregate,
+is idempotent after valid CUT_OVER, does not overwrite later canonical semantic
+edits, and fails closed on competing provenance, divergent deterministic
+occupancy, unsupported mapping state, deleted legacy input, or tombstoned
+canonical target.
+
+V3.5c activates no `PlanningScope(TACTICAL_CYCLE)`, `PlanningCommitment`,
+Tactical Planning authority marker, runtime reader/writer cutover, or dual-write.
+Specialized Tactical runtime authority therefore remains current.
+
+Canonical QUEST authority for manual `ARC_QUEST` is now
+**COMPLETE / SCOPED HOST VERIFIED**. Manual ArcQuest uses deterministic
+`LegacySubjectRef(ARC_QUEST, ArcQuest.id)` UUIDv5 identity and CUT_OVER mapping
+to `OrientationKind.QUEST`; source-backed ArcQuest continues to reuse its source
+Orientation. Canonical common semantic state wins after cutover, while ArcQuest
+order/status and other arc-local fields remain specialized.
+
+V3.5e adds schema 190 dormant typed extension storage and canonical Planning
+transport format v3.
+
+V3.5f adds schema 191 local activation-marker storage and completes deterministic
+finite materialization of Tactical scopes, extensions and eligible MISSION
+commitments. Semantic preparation and planning writes share one Room
+transaction; exact Tactical-owned aggregate parity is required before the marker
+is written last. Marker insertion failure rolls the transaction back.
+
+The marker is local control state and is not canonical Planning transport.
+
+V3.5g completes the runtime authority cutover. Ordinary Tactical planning reads
+and writes now route through canonical adapters after activation. Required
+canonical misses fail closed; there is no specialized planning fallback or
+dual-write. Existing TacticalMission rows remain bounded Tactical-only and
+transport compatibility carriers, with canonical common fields projected from
+Planning plus Orientation after canonical ingress. Missing required carriers are
+not synthesized. Typed heterogeneous unresolved backlog rows remain explicit
+specialized-only deferrals.
+
+Full Android transport retains both canonical Planning and TacticalMission
+compatibility rows. Desktop/shared Planning transport has no TacticalMission
+carrier, so live MISSION commitments are rejected at the Desktop conversion
+boundary until a typed compatible carrier exists.
 
 ### V3.6 — Strategic adapter and cutover
 
 - introduce durable Strategic Arc scope identity;
-- coordinate with Track B QUEST work;
-- map manual and source-backed ArcQuest without duplicate identity;
+- reuse the completed canonical QUEST authority boundary;
+- map manual and source-backed ArcQuest into Strategic commitments without
+  duplicate semantic identity;
 - prove legacy `arcKey`, order, status, and source parity.
+
+V3.6a freezes deterministic scope/commitment mapping without persistence.
+V3.6b adds schema 192 dormant typed Strategic extension persistence and
+Planning transport format v4. V4 requires
+`strategicPlanningScopeExtensions`; an explicit empty list is authoritative,
+whereas v1-v3 do not claim Strategic extension authority. Canonical backup,
+Restore, merge, Wi-Fi and Desktop/shared transport carry persisted extension
+records directly and never synthesize them from ArcQuest rows. Strategic
+runtime authority remained specialized through V3.6b.
+
+V3.6c adds schema 193 local-only Strategic authority state and performs finite
+transactional establishment. Exact `arcKey` groups materialize deterministic
+STRATEGIC_ARC scopes/extensions, eligible ArcQuest rows materialize deterministic
+FOCUS commitments, and legitimate unresolved sources remain explicitly
+deferred. Semantic preparation and materialization roll back together;
+Strategic-owned scope/extension/commitment parity is set-exact before the marker
+is inserted last. The marker is not transported. Ordinary Strategic runtime
+reader/writer admission is completed by V3.6d: scopes/extensions, eligible
+FOCUS participation and Orientation semantics are canonical-only runtime
+owners. Explicit source-adoption deferrals and Strategic-only carrier fields
+remain specialized. ArcQuest canonical-owned fields are one-way compatibility
+projection; there is no canonical-owned legacy fallback or competing
+dual-write. Planning v4 ingress validates/adopts canonical state before that
+projection and never rematerializes canonical facts from stale carriers.
 
 ### V3.7 — Product and read integration
 
 - add relationship-centric planning reads, search/navigation context, and
   authoring commands over canonical authority;
 - preserve existing UI behavior until separately authorized product changes.
+
+V3.7a product-read census and pure canonical projection foundation are
+**COMPLETE / HOST VERIFIED**. `Orientation` is the sole semantic product node;
+Planning, Workspace, Aspect, semantic-relation and hierarchy participation are
+independent edges. `projectCanonicalProductRead` derives those edges from one
+bulk canonical frame, preserves typed Day/Tactical/Strategic extension context,
+accepts current-scope selection only as application input, and fails closed on
+broken canonical references. It performs no writes and has no compatibility
+fallback. The evidence matrix and remaining compatibility reads are recorded in
+`CANONICAL-PRODUCT-READ-CENSUS-V3.md` with `UNKNOWN=0`.
 
 ### V3.8 — Compatibility retirement
 

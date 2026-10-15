@@ -40,6 +40,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -69,6 +71,22 @@ internal fun MainBeaconEditorState.matchesCanonicalV2Occurrence(
     placementId == occurrence.placementId.value &&
         parentPlacementId == occurrence.parentPlacementId?.value &&
         parentBeaconId == occurrence.parentBeaconPresentationId
+
+internal fun observeReadyCoreLevelPresentationPairs(
+    details: Flow<List<MainBeaconWithRelations>>,
+    occurrences: Flow<List<CanonicalV2CoreLevelOccurrence>>,
+): Flow<List<Pair<CanonicalV2CoreLevelOccurrence, MainBeaconWithRelations>>> =
+    combine(details, occurrences) { beacons, items ->
+        val detailsByBeaconId = beacons.associateBy { it.beacon.id }
+        items.map { occurrence ->
+            occurrence to
+                requireNotNull(detailsByBeaconId[occurrence.beaconPresentationId]) {
+                    "V2 CoreLevel occurrence ${occurrence.placementId.value} " +
+                        "references missing MainBeacon presentation " +
+                        occurrence.beaconPresentationId
+                }
+        }
+    }
 
 private fun MainBeaconWithRelations.toCoreLevelCard(
     placementId: String? = null,
@@ -127,9 +145,7 @@ class CoreLevelViewModel
         private val canonicalV2HierarchyConsumerReadiness =
             CanonicalV2HierarchyConsumerReadiness()
         private val allContexts =
-            systemWorkspacePresentationContextProjector.observePresentationUniverse(
-                contextRepository.getAllContextsFlow(),
-            )
+            systemWorkspacePresentationContextProjector.observePresentationUniverse()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
@@ -137,19 +153,28 @@ class CoreLevelViewModel
                 )
 
         private val ownerLabels =
-            systemWorkspacePresentationContextProjector.observeOwnerLabels(contextRepository.getAllContextsFlow())
+            systemWorkspacePresentationContextProjector.observeOwnerLabels()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                     initialValue = emptyMap(),
                 )
 
+        // Keep editor-facing state updated from real repository emissions.
+        // A synthetic empty initial value must never enter the UI integrity join.
+        private val mainBeaconDetailsCache =
+            MutableStateFlow<List<MainBeaconWithRelations>>(emptyList())
+
         val mainBeaconDetails: StateFlow<List<MainBeaconWithRelations>> =
+            mainBeaconDetailsCache.asStateFlow()
+
+        private val readyMainBeaconDetails =
             mainBeaconRepository.observeMainBeaconDetails()
-                .stateIn(
+                .onEach { mainBeaconDetailsCache.value = it }
+                .shareIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
-                    initialValue = emptyList(),
+                    replay = 1,
                 )
 
         private val mainBeaconGroups: StateFlow<List<MainBeaconGroup>> =
@@ -160,29 +185,40 @@ class CoreLevelViewModel
                     initialValue = emptyList(),
                 )
 
+        private val coreLevelOccurrencesCache =
+            MutableStateFlow<List<CanonicalV2CoreLevelOccurrence>>(emptyList())
+
         private val coreLevelOccurrences: StateFlow<List<CanonicalV2CoreLevelOccurrence>> =
+            coreLevelOccurrencesCache.asStateFlow()
+
+        private val readyCoreLevelOccurrences =
             canonicalV2ReactiveHierarchyReadSource
                 .observe()
                 .map(canonicalV2HierarchyConsumerReadiness::coreLevelOccurrences)
-                .stateIn(
+                .onEach { coreLevelOccurrencesCache.value = it }
+                .shareIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
-                    initialValue = emptyList(),
+                    replay = 1,
                 )
+
+        private val readyCoreLevelPresentations =
+            observeReadyCoreLevelPresentationPairs(
+                readyMainBeaconDetails,
+                readyCoreLevelOccurrences,
+            )
 
         val uiState: StateFlow<CoreLevelUiState> =
             combine(
                 allContexts,
                 ownerLabels,
-                mainBeaconDetails,
                 mainBeaconGroups,
-                coreLevelOccurrences,
+                readyCoreLevelPresentations,
             ) {
                     projects,
                     labels,
-                    beacons,
                     groups,
-                    occurrences,
+                    matchedPresentations,
                 ->
                 val coreProjects =
                     projects.filter {
@@ -201,25 +237,13 @@ class CoreLevelViewModel
                             )
                         },
                     beacons =
-                        run {
-                            val detailsByBeaconId =
-                                beacons.associateBy { details -> details.beacon.id }
-                            occurrences.map { occurrence ->
-                                val details =
-                                    requireNotNull(
-                                        detailsByBeaconId[occurrence.beaconPresentationId],
-                                    ) {
-                                        "V2 CoreLevel occurrence ${occurrence.placementId.value} " +
-                                            "references missing MainBeacon presentation " +
-                                            occurrence.beaconPresentationId
-                                    }
-                                details.toCoreLevelCard(
-                                    placementId = occurrence.placementId.value,
-                                    parentPlacementId = occurrence.parentPlacementId?.value,
-                                    parentBeaconPresentationId = occurrence.parentBeaconPresentationId,
-                                    structuralGroupId = occurrence.groupPresentationId,
-                                )
-                            }
+                        matchedPresentations.map { (occurrence, details) ->
+                            details.toCoreLevelCard(
+                                placementId = occurrence.placementId.value,
+                                parentPlacementId = occurrence.parentPlacementId?.value,
+                                parentBeaconPresentationId = occurrence.parentBeaconPresentationId,
+                                structuralGroupId = occurrence.groupPresentationId,
+                            )
                         },
                 )
             }.stateIn(

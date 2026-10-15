@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
@@ -19,6 +21,10 @@ import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTarg
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
+import com.romankozak.forwardappmobile.features.semanticcreation.SemanticEntityCreationDialog
+import com.romankozak.forwardappmobile.features.semanticcreation.SemanticEntityCreationEvent
+import com.romankozak.forwardappmobile.features.semanticcreation.SemanticEntityCreationViewModel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import kotlinx.coroutines.launch
@@ -29,8 +35,11 @@ fun GlobalCreateActionsHost(
     onDismissCreateSheet: () -> Unit,
     onCreateContext: (String) -> Unit,
     onCreateDocument: suspend (NewDocumentDraft) -> String?,
+    onCreateCanonicalNote: () -> Unit,
+    onSemanticEntityCreated: (String) -> Unit,
     onCreateReminder: (Long) -> Unit,
     snackbarHostState: SnackbarHostState,
+    semanticEntityCreationViewModel: SemanticEntityCreationViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
     var newContextName by remember { mutableStateOf("") }
@@ -38,6 +47,29 @@ fun GlobalCreateActionsHost(
     var showDocumentCreateActionsDialog by remember { mutableStateOf(false) }
     var pendingDocumentCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showCreateReminderDialog by remember { mutableStateOf(false) }
+    var showSemanticEntityDialog by remember { mutableStateOf(false) }
+    val semanticEntityState by semanticEntityCreationViewModel.uiState.collectAsStateWithLifecycle()
+
+    androidx.compose.runtime.LaunchedEffect(semanticEntityCreationViewModel) {
+        semanticEntityCreationViewModel.events.collect { event ->
+            when (event) {
+                is SemanticEntityCreationEvent.Created -> {
+                    showSemanticEntityDialog = false
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            message =
+                                when (event.entityClass) {
+                                    SemanticEntityClass.ORIENTATION -> "Орієнтир створено"
+                                    SemanticEntityClass.ASPECT -> "Аспект створено"
+                                },
+                            duration = SnackbarDuration.Short,
+                        )
+                    }
+                    onSemanticEntityCreated(event.id)
+                }
+            }
+        }
+    }
 
     if (showCreateSheet) {
         CreateFromSearchBottomSheet(
@@ -54,6 +86,11 @@ fun GlobalCreateActionsHost(
                 onDismissCreateSheet()
                 showCreateReminderDialog = true
             },
+            onCreateSemanticEntity = {
+                onDismissCreateSheet()
+                semanticEntityCreationViewModel.reset()
+                showSemanticEntityDialog = true
+            },
             onDismiss = onDismissCreateSheet,
         )
     }
@@ -63,6 +100,7 @@ fun GlobalCreateActionsHost(
             onActionSelected = { type ->
                 showDocumentCreateActionsDialog = false
                 when (type) {
+                    CreateConnectionType.NOTE_DOCUMENT -> onCreateCanonicalNote()
                     CreateConnectionType.CONTEXT -> {
                         newContextName = ""
                         showCreateContextDialog = true
@@ -149,6 +187,19 @@ fun GlobalCreateActionsHost(
                 TextButton(onClick = { showCreateContextDialog = false }) {
                     Text("Скасувати")
                 }
+            },
+        )
+    }
+    if (showSemanticEntityDialog) {
+        SemanticEntityCreationDialog(
+            state = semanticEntityState,
+            onNameChange = semanticEntityCreationViewModel::setName,
+            onEntityClassChange = semanticEntityCreationViewModel::setEntityClass,
+            onOrientationKindChange = semanticEntityCreationViewModel::setOrientationKind,
+            onCreate = semanticEntityCreationViewModel::create,
+            onDismiss = {
+                semanticEntityCreationViewModel.reset()
+                showSemanticEntityDialog = false
             },
         )
     }

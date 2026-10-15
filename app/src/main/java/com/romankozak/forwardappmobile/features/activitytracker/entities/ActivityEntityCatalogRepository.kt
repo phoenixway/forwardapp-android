@@ -6,8 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.product.CanonicalGoalSemanticReadRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -21,8 +20,7 @@ class ActivityEntityCatalogRepository
         dayTaskDao: DayTaskDao,
         dayFocusItemDao: DayFocusItemDao,
         dayThemeDao: CanonicalDayThemeDao,
-        contextDao: ContextDao,
-        goalDao: GoalDao,
+        canonicalGoalSemanticReadRepository: CanonicalGoalSemanticReadRepository,
         systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         private val dayEntities =
@@ -73,8 +71,8 @@ class ActivityEntityCatalogRepository
 
         private val backlogEntities =
             combine(
-                systemWorkspacePresentationContextProjector.observePresentationUniverse(contextDao.getAllContexts()),
-                goalDao.getAllVisibleGoalsFlow(),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
+                canonicalGoalSemanticReadRepository.observeAll(),
             ) { contexts, goals ->
                 buildList {
                     contexts.forEach { context ->
@@ -89,8 +87,8 @@ class ActivityEntityCatalogRepository
                     goals.forEach { goal ->
                         add(
                             ActivityEntityDescriptor(
-                                link = ActivityEntityLink(goal.id, ActivityEntityType.GOAL),
-                                title = goal.text,
+                                link = ActivityEntityLink(goal.goalId, ActivityEntityType.GOAL),
+                                title = goal.title,
                                 typeLabel = ActivityEntityType.GOAL.displayName(),
                             ),
                         )

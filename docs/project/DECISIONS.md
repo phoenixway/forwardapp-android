@@ -2,8 +2,960 @@
 
 Status: CANONICAL
 
+<!-- R2E2_ENTITY_LIBRARY_UNPLACED_2026_10_16 -->
+## 2026-10-16 - Unplaced is derived hierarchy presentation state
+
+**Decision: Unplaced is live canonical Library identity minus visible
+canonical hierarchy occurrence identity.**
+
+For the selected hierarchy scope, currently GENERAL:
+
+    Unplaced =
+        admitted live canonical Library identities
+        MINUS
+        identities having at least one visible hierarchy occurrence
+
+Presence comes from hierarchy_placements using hierarchyId,
+targetType and targetId with isDeleted = 0.
+
+PRIMARY and LINK both count. Multiple occurrences count as one
+placed target identity.
+
+HierarchyTargetType.MANAGED_SUBJECT maps to canonical Orientation
+or Aspect through R2B catalog identity; WORKSPACE maps to Workspace.
+Never collapse target identities by raw ID alone.
+
+Canonical hierarchy validation enforces live parent closure and
+rejects malformed hierarchy topology. The narrow presence query
+assumes this established invariant rather than projecting a full tree.
+
+Unplaced is not:
+- a persisted entity property;
+- WorkspaceBinding or missing Workspace ownership;
+- NoBeacon;
+- Aspect membership or semantic graph relation;
+- Planning participation;
+- legacy Context state.
+
+The read-only implementation combines a narrow indexed Room presence
+Flow with the lightweight R2B catalog. It introduces no ProductRead,
+full hierarchy projection, N+1 lookup, schema migration or mutation.
+
+Catalog and presence must both emit before Unplaced can be shown.
+Read errors are explicit and must not appear as an empty hierarchy.
+
+R2E.2 is complete with 41/41 focused HOST tests passing.
+Placement creation, deletion, movement and hierarchy interaction
+remain outside this slice.
+
+<!-- R2C2_CANONICAL_ORIENTATION_RELATIONS_2026_10_15 -->
+## 2026-10-15 - Orientation graph editing preserves hierarchy authority
+
+**Decision: semantic graph editing uses the existing canonical Orientation
+graph repository and does not take ownership of hierarchy PART_OF membership.**
+
+CanonicalOrientationGraphRepository provides transactional commands for seven
+independently editable Orientation relation types. Their validation includes
+live typed endpoints, no self-relations, canonical CONFLICTS_WITH ordering,
+duplicate identity, per-type acyclicity, tombstone resurrection and expected
+version on removal.
+
+PART_OF remains visible but read-only in the Universal Semantic Editor.
+CanonicalV2HierarchyOccurrenceWriter and GroupScope provenance retain authority
+for Beacon Group PART_OF membership and its sibling ordering. General semantic
+editing must never independently change that state.
+
+The R2B typed picker remains identity-only. Relation type and directed-edge
+orientation are explicitly confirmed after picker return. Picker results are
+consumed before dispatch. Subject-filtered graph reads plus the lightweight
+catalog replace any need for ProductRead or hierarchy projection in this UI.
+
+R2C.2 does not merge Aspect, WorkspaceBinding, Planning, Context, or
+HierarchyPlacement mutations into one service. No schema migration is needed.
+
+<!-- R2C1_CANONICAL_RELATION_EDITING_2026_10_15 -->
+## 2026-10-15 - Canonical relation editing keeps family-specific authorities
+
+**Decision: canonical relation editing does not use one universal mutation
+service.**
+
+R2C.1 preserves separate authorities:
+
+- Aspect association -> `CanonicalAspectLinksRepository`;
+- Workspace binding -> `CanonicalWorkspaceBindingRepository`;
+- typed entity selection -> R2B canonical picker.
+
+The picker performs no domain mutation.
+
+Aspect associations and Workspace bindings retain their different type,
+primary, validation, and persistence semantics.
+
+Picker results are consumed before mutation dispatch so process/back-stack
+recreation cannot replay an add action.
+
+Removing a relation removes or tombstones that relation only. It does not
+delete semantic identity, Workspace identity, Planning participation, or a
+HierarchyPlacement occurrence.
+
+General Orientation-to-Orientation graph editing remains R2C.2 and must
+preserve its own graph-specific invariants.
+
+
+<!-- R2E1_ENTITY_LIBRARY_SHELL_2026_10_15 -->
+## 2026-10-15 - Entity Library is a browse shell, not a relation or placement surface
+
+**Decision: R2E.1 is a dedicated Library orchestration shell over the R2B
+catalog, with no ProductRead, hierarchy, Planning, Context or mutation
+dependency.**
+
+The Library owns search/filter browse state and canonical row opening. Picker
+selection state remains in the separate picker shell. Orientation and Aspect
+open the Universal Semantic Editor by canonical subject identity.
+
+There is currently no honest canonical Workspace destination. Workspace rows
+therefore remain inventory-visible and report opening as unavailable instead
+of routing through legacy Context identity. A future Workspace product surface
+must establish its own canonical destination.
+
+Unplaced, archived browsing, Add to Big Picture, bulk operations and relation
+editing remain outside R2E.1.
+
+<!-- R2B_FINAL_ACCEPTANCE_R2E1_PRIORITY_2026_10_15 -->
+## 2026-10-15 - Thin Entity Library shell precedes relation editing
+
+**Decision: after R2B, implement the thin Entity Library shell before R2C.**
+
+Reason:
+
+R2B has already established the expensive shared infrastructure required by
+both pickers and Library:
+- lightweight canonical Orientation / Aspect / Workspace inventory;
+- typed identity;
+- search and class filtering;
+- reusable rows/list presentation;
+- reactive catalog ownership independent of ProductRead and hierarchy.
+
+A thin Library shell therefore has low incremental architectural cost and high
+immediate product value: standalone canonical entities become discoverable
+without requiring prior knowledge of their name or location.
+
+This does not move relation ownership into Library.
+
+R2E.1 may browse and open canonical identity only.
+
+R2C remains responsible for atomic relation mutation.
+
+Unplaced derivation, Big Picture placement actions, bulk operations and richer
+archive management remain later bounded Library/Big Picture work.
+
+
+<!-- R2B_CANONICAL_ENTITY_BROWSER_2026_10_15 -->
+
+## 2026-10-15 - Canonical entity browsing uses one typed lightweight inventory
+
+**Decision: Orientation, Aspect and Workspace browsing shares one identity-only
+catalog, while picker and Entity Library remain separate orchestration shells.**
+
+The Android catalog is one reactive Room union over canonical identity tables.
+It returns typed references and minimal summaries, excludes tombstones, and
+performs search/filter/order without per-row reads. Equal string IDs in
+different entity classes remain distinct typed identities.
+
+Picker owns constraints and selection only. It does not mutate
+WorkspaceBinding, semantic relations, Planning or HierarchyPlacement. Entity
+Library-specific Unplaced/archive behavior stays outside the picker/catalog
+base and remains R2E work.
+
+<!-- R2A3P_DEVICE_PERF_ACCEPTED_2026_10_15 -->
+
+## 2026-10-15 - Browser/catalog UX must not depend on full ProductRead
+
+**Decision: reusable canonical browsing and picking use a lightweight entity
+catalog boundary rather than the complete CanonicalProductRead frame.**
+
+Physical profiling proved that full canonical Product assembly remains
+meaningfully more expensive than identity browsing requires, even after major
+projection optimization.
+
+Therefore R2B is broadened from Canonical Picker Foundation to Canonical Entity
+Browser Foundation.
+
+The shared foundation owns:
+- lightweight canonical entity summaries;
+- canonical identity references;
+- search/query/filter behavior;
+- reusable entity row/card presentation;
+- reusable browse/list content.
+
+Picker and Entity Library are separate UX shells over this shared foundation.
+
+They must not be implemented as one god-screen controlled by a growing set of
+mode flags.
+
+Picker owns constrained selection and return-to-caller behavior.
+
+Entity Library owns persistent browsing, discovery, inventory-oriented
+filters, and later Unplaced/Big Picture actions.
+
+Both surfaces resolve the same canonical identities.
+
+The initial catalog covers Orientation, Aspect and Workspace. It does not
+create a universal persistence entity table and introduces no Room migration.
+
+<!-- ENTITY_LIBRARY_BIG_PICTURE_DECISION_2026_10_15 -->
+
+## 2026-10-15 - Entity Library inventory is separate from Big Picture placement
+
+**Decision: canonical entity inventory and hierarchy presentation are separate
+product surfaces with separate meanings.**
+
+Entity Library answers what exists.
+
+Big Picture / Hierarchy answers how the user wants to arrange and see it.
+
+Library identity is canonical entity identity.
+
+Big Picture entries are HierarchyPlacement occurrences.
+
+A placement is presentation structure only. It does not silently author
+semantic relation, WorkspaceBinding, Aspect membership, Planning participation
+or target ownership.
+
+Orientation, Aspect and Workspace may exist without any hierarchy placement.
+
+A semantic entity with no visible hierarchy occurrence is classified as
+Unplaced for Library presentation regardless of whether it has Workspace
+bindings or other relations.
+
+NoBeacon is not the generic unplaced semantic bucket. Existing NoBeacon
+Workspace/Beacon semantics remain presentation-only and unchanged.
+
+Deleting or removing a Big Picture occurrence must not delete the underlying
+canonical entity unless a separate explicit domain command is invoked.
+
+The same canonical target may appear through PRIMARY and supported LINK
+occurrences without cloning identity.
+
+The full accepted product contract is:
+docs/architecture/orientation-workspace-refactor/ENTITY-LIBRARY-BIG-PICTURE-UX.md
+
+This decision changes no Room schema and creates no new persistence authority.
+
+<!-- CANONICAL_PRODUCT_UX_PHASE_2026_10_15 -->
+
+## 2026-10-15 - R2A.2 edits semantic identity in place
+
+**Decision: the first universal semantic editor is a typed canonical-subject
+surface; it does not perform semantic class or OrientationKind conversion.**
+
+Orientation reads use the canonical product projection and Orientation writes
+use `CanonicalOrientationRepository.updateOrientationSemantics`. Aspect reads
+and writes use `CanonicalAspectRepository`. Both rename the existing
+ManagedSubject under an expected-version check, so an edit preserves identity
+and cannot silently overwrite a newer record.
+
+The typed navigation target carries only canonical subject identity. Semantic
+creation success and Global Search Orientation primary action open the editor;
+Workspace navigation stays an independent secondary action. Core editing does not create or mutate
+Context, Workspace, hierarchy, Planning, or relation edges.
+
+Entity class and OrientationKind are displayed as immutable metadata because
+the canonical ordinary runtime API contains no accepted conversion command.
+Aspect/Workspace relation mutation remains deferred to R2B/R2C, and future
+Goal-specific or other specialized editors may reuse the generic identity
+section without moving specialized state into this screen.
+
+## 2026-10-15 - R2A authors standalone semantic identity first
+
+**Decision: R2A creates only the canonical semantic aggregate; optional graph
+edges wait for the reusable picker and relation-editing slices.**
+
+The main global creation menu exposes `Semantic entity`. Orientation creation
+uses `CanonicalOrientationRepository.createOrientation`; Aspect creation uses
+`CanonicalAspectRepository.create`. Both are valid without Workspace,
+hierarchy, Planning, or legacy Context state.
+
+New Orientation authoring exposes the current canonical `OrientationKind`
+vocabulary except the historical compatibility kinds `DAY_THEME` and
+`ARC_QUEST`.
+
+Canonical Aspect membership and Workspace binding commands already exist, but
+R2A has no accepted reusable picker and no atomic create-plus-multiple-edges
+command. The UI therefore omits those optional controls rather than creating a
+partial graph or substituting tags, Context IDs, BACKLOG placement, or
+HierarchyPlacement. R2B/R2C own that follow-up.
+
+## 2026-10-15 - Canonical product UX starts from semantic identity
+
+**Decision: semantic entity creation is the primary foundation of the next
+ForwardApp UI/UX phase.**
+
+The canonical UI must treat semantic identity as primary and operational or
+planning relations as explicit independent edges.
+
+The main product creation flow should expose:
+
+`Main screen -> + -> Semantic entity`
+
+followed by a focused creation dialog.
+
+The dialog distinguishes two levels that must not be collapsed:
+- semantic entity class: `Orientation` or `Aspect`;
+- when the class is Orientation, its canonical `OrientationKind`.
+
+Minimum creation state is name plus required semantic type information.
+
+Optional progressive-disclosure sections may add:
+- associated Aspects;
+- linked Workspaces;
+- other supported canonical semantic relations.
+
+These selections create explicit canonical relations. They do not make
+Workspace the semantic owner, do not create implicit hierarchy placement,
+and do not automatically add the entity to Planning.
+
+A canonical Orientation or Aspect may exist with:
+- no Workspace relation;
+- no hierarchy placement;
+- no Planning participation.
+
+Such an entity remains valid.
+
+For hierarchy presentation, semantic identity and Big Picture placement are
+independent. A canonical Orientation or Aspect may have zero hierarchy
+occurrences and remains valid.
+
+Such entities are discoverable through the derived Entity Library `Unplaced`
+view. `Unplaced` means no visible Big Picture occurrence and does not mean
+missing Workspace ownership.
+
+`NoBeacon` retains its existing Workspace/Beacon presentation semantics and
+must not be used as the generic bucket for standalone semantic entities.
+
+Workspace creation is a separate operational-entity action. Workspace is a
+capability host, not a semantic-entity subtype.
+
+Planning consumes semantic identity downstream. Creating an Orientation is
+not the same operation as committing it to Strategic, Tactical or Day
+Planning.
+
+Canonical picker components should therefore select canonical identities and
+be reusable across:
+- semantic creation;
+- Workspace relation editing;
+- semantic relation editing;
+- Planning participation.
+
+The legacy Context-oriented screen is expected to evolve into a
+Workspace-oriented product surface. Context compatibility must not regain
+semantic or operational authority as part of that UI transition.
+
+The product shell direction is also accepted:
+- merge Recent and MagicBox;
+- place direct Hierarchy access in the released navigation slot;
+- hide/remove the main-screen Context Markers action for now;
+- hide Structure Presets for now because they remain coupled to legacy-model
+  semantics.
+
+Conversation shorthand such as `простір` for Workspace or `СОА` for
+Orientation/Aspect does not rename canonical source-code or architecture
+terms.
+
+This decision activates canonical UI/UX work that earlier roadmap entries
+described as postponed. Those older entries remain historical checkpoints.
+
+## 2026-10-14 - R11.31 offline recovery acceptance and safety boundary
+
+**Decision: accept the historical EXP recovery OFFLINE ONLY.**
+
+- Evidence: R11.31C.4 HOST XML PASS, all 20 synchronous startup stages,
+  S0 baseline and S0/S1/S2 preservation markers, negative Goal drift check,
+  and unchanged original SQLite/WAL/SHM and rescue archive hashes.
+- Historical deleted Strategic participation retains canonical provenance:
+  deleted ArcQuest + valid tombstoned CUT_OVER mapping may resolve to a
+  deleted/DROPPED FOCUS. Projection and repeated admission support aligned
+  deletion without weakening live Orientation-target admission.
+- Room stays at version 198. No new versioned database migration is part
+  of R11.31. This acceptance does not certify every table byte-for-byte
+  or establish full physical-device UI/runtime behavior.
+- Physical device deployment is a separate safety and product decision.
+  Shared EXP/PROD applicationId and existing on-device data require an
+  explicit authorization, readiness audit, backup and rollback plan.
+  Do not install, uninstall, clear data or mutate the phone by inference.
+- Preserve pre-existing dirty/untracked repository changes and parallel
+  work. This checkpoint neither commits work nor decides FK.10B,
+  R1.13 or overall V3.8 closure.
+
+## 2026-10-13 - R1.13 standalone global Note creation
+
+Decision: global New document -> Note targets canonical
+LegacyNote persistence instead of historical NoteDocument.
+
+A new Note needs no Context, Workspace or Inbox owner.
+Auto-save and explicit save must retain one Note identity.
+
+Existing NoteDocument records and compatibility paths remain intact.
+Notes Model Consolidation is deferred to a separate architecture,
+migration and acceptance task. R1.13 does not consolidate models.
+
+## 2026-10-13 - FK.10B.4 Note runtime compatibility closure
+
+**Decision: FK.10B.4 COMPLETE / HOST VERIFIED / DURABLE.**
+
+- Historical notes.contextId is optional compatibility metadata, not
+  Note identity, admission authority, current Context owner or BACKLOG
+  membership. Never reject a Note content edit because that stored
+  historical locator names a System Context.
+- Canonical Workspace membership is the live BACKLOG LEGACY_NOTE
+  target relation; render by Note ID and preserve 0..N placements.
+- Open canonical Note by NavTarget.LegacyNote(noteId, workspaceId?);
+  do not route Note clicks to obsolete editor-disabled messages.
+- Active registered editor: NoteEditorScreen/NoteEditorViewModel.
+  Unreferenced NoteEditViewModel is legacy/dead code, not another
+  content authority. Context hierarchy's similarly named create method
+  creates NoteDocument, a distinct persistence model.
+- Evidence: HOST XML **33/33 PASS** across five App test suites;
+  git diff --check PASS.
+- FK.10A already removed the physical Notes Context FK in Room 198.
+  Retain nullable notes.contextId as historical metadata. No FK.11
+  migration is required for Notes; cleanup requires separate authority.
+- Remaining physical Context FK: tactical_activity_slots.context_id.
+  Standalone direct Selective Import Note selection is additional
+  product scope. Overall FK.10B/V3.8 completion is not implied.
+
+## 2026-10-13 - FK.10B.3c canonical Note Wi-Fi transport contract
+
+**Decision: FK.10B.3c COMPLETE / HOST VERIFIED / DURABLE.**
+
+- `LegacyNote.id` and `version` govern Note content identity
+  and synchronization. Historical `contextId` remains
+  non-authoritative compatibility metadata.
+- Timestamp deltas include changed standalone Notes and
+  tombstones. Dirty selection uses Note-specific syncedAt
+  convergence instead of permanently selecting deleted rows.
+- Preserve the shared legacy `isUnsynced` deletion policy
+  for other entities; do not broaden this Note-only cutover.
+- Note ACK updates synchronization metadata only when the
+  selected ID and version still match the persisted row.
+- Wi-Fi requires successful HTTP response before ACK.
+  Canonical BACKLOG may require Note payload dependencies,
+  but Note content and placement remain independent.
+- Desktop historical Note JSON mapping is a compatibility
+  projection, not a second Note persistence authority.
+- Evidence: App Room 40/40 and Sync Wi-Fi push 5/5 PASS
+  (eleven new FK.10B.3c cases); six cross-module HOST
+  compilation tasks PASS; scoped transport UNKNOWN=0.
+- No Room migration: schema 198. FK.11 and broader FK.10B
+  completion are not implicitly authorized by this decision.
+
+## 2026-10-13 - Context-FK.10B.3b Selective Import Note authority
+
+**ACCEPTED / IMPLEMENTED / HOST VERIFIED** for canonical
+placement-driven Note Selective Import.
+
+Canonical BACKLOG placement IDs, not historical Context references,
+select Note dependencies. Each live selected `LEGACY_NOTE`
+placement requires one live authoritative Note by `LegacyNote.id`.
+Multiple selected placements may reference the same Note without
+duplicating content. Unselected placements remain independent.
+
+Selective Import must use the same canonical Note version,
+conflict and idempotent replay policy as Normal Merge.
+The selective hierarchy-delta flag is not permission to bypass
+Note authority or Note-placement integrity checks.
+
+Historical nullable `contextId` is compatibility locator evidence
+only. It must neither suppress Note admission nor synthesize
+Context, Workspace ownership or additional placements.
+
+Missing/tombstoned Note targets for live placements fail closed.
+Note and BACKLOG writes are transactionally validated; rejected
+content and invalid placement graphs roll back together.
+
+The existing Snapshot selective selection contract has no direct
+standalone Note ID selection. This decision does not introduce
+a new UI or selection contract. Such expansion requires separate
+product scope.
+
+Evidence: App Room 34/34 PASS; Sync filter 11/11 PASS, including
+nine new FK.10B.3b tests. HOST compilation and additional
+regression GREEN. Room schema remains 198.
+
+Wi-Fi timestamp delta/ACK, compatibility transport, FK.11
+residual retirement and V3.8 closure are not authorized by
+this bounded decision.
+
+## 2026-10-13 - Context-FK.10B.3a Restore and Merge Note authority
+
+**ACCEPTED / IMPLEMENTED / HOST VERIFIED** for Historical Restore
+and Normal Merge only.
+
+Canonical Note identity is `LegacyNote.id`. Authoritative content
+consists of title, body, createdAt, updatedAt, isDeleted and version.
+Nullable historical `contextId` is not identity or ownership and does
+not participate in same-version content equivalence.
+
+Restore persists exact Notes, including standalone records,
+tombstones and locators referencing missing/deleted historical
+Contexts, without rebuilding Context ownership.
+
+Normal Merge compares Note record versions, not timestamps.
+Higher-version content wins; lower-version content is ignored.
+Equal-version identical authoritative content replays idempotently,
+preserving local `contextId` and ACK metadata. Equal-version divergent
+content is rejected.
+
+Workspace BACKLOG remains the independent zero-to-many placement
+authority for target kind `LEGACY_NOTE`. A live placement requires a
+live Note target. Invalid Note/placement graphs fail transactionally.
+
+The existing Selective Import branch is intentionally unchanged by
+this implementation; Selective Import Note convergence remains
+unverified here. Wi-Fi timestamp delta/ACK and compatibility transport
+require independent acceptance. No Room schema change or remaining
+Context FK retirement is authorized by this decision.
+
+Evidence: primary 29/29 Room PASS, eight new acceptance cases;
+independent 45/45 regression PASS; Kotlin/JS and Android production/
+test compilation PASS. Room 198 unchanged.
+
+## 2026-10-12 - Context-FK.10B standalone Note search and navigation
+
+**ACCEPTED / IMPLEMENTED / HOST VERIFIED** for FK.10B.1/2a/2b.
+
+The canonical search identity of an independent Legacy Note is
+`note_<LegacyNote.id>`; title/content and liveness come from Note
+authority, not a Context presentation or BACKLOG placement read.
+Historical `contextId` is inert compatibility evidence.
+`WorkspaceBacklogEntryEntity` with target kind `LEGACY_NOTE` remains
+the independent zero-to-many placement authority.
+
+Global Search presents Notes as a distinct result type and opens
+`NavTarget.LegacyNote(noteId)` directly. No Workspace/Context/
+Orientation owner is inferred from historical IDs or placement count.
+`LegacyNote` and `NoteDocument` remain distinct content types.
+
+Saved all-types filters from before the Notes type was introduced
+are extended to include Notes; saved partial selections are retained.
+Ordinary, structured and fuzzy search consume Note title/content;
+tombstoned Notes are suppressed. A search result remains a single
+Note identity with zero, one or many BACKLOG placements.
+
+Evidence: Kotlin/JS and Android/test compilation PASS, 51/51 focused
+prior suite cases PASS, and 26/26 SearchRepositoryTest cases PASS
+after adding the zero/one/three-placement regression (52 cumulative
+focused cases across runs). Room remains 198.
+
+This decision is limited to FK.10B.1 and FK.10B.2a/2b.
+It does not assert FK.10B transport convergence, FK.11 residual
+retirement or overall V3.8 completion.
+
+## 2026-10-12 - Context-FK.10A storage implementation decision
+
+**ACCEPTED / IMPLEMENTED / HOST VERIFIED / DURABLE**.
+
+Implement standalone Legacy Note storage through Room **198**
+without prematurely performing FK.10B runtime convergence.
+
+For the enabling migration, retain the existing serialized
+column name `notes.contextId` but make it nullable and remove
+its physical Context FK/CASCADE. This is transitional historical
+locator evidence, NOT canonical ownership.
+
+The FK.9 contract proposed a future `legacy_context_id` name.
+FK.10A deliberately retains `contextId` for compatibility and
+minimal migration scope. A field rename or broader transport
+normalization is NOT claimed complete.
+
+Preserve `LegacyNote.id`, title/content, created/updated/synced
+timestamps, tombstone and version; preserve independent
+BACKLOG placements, FTS4 and the historical locator index.
+Deleting Context must not delete independent Note content.
+No direct Workspace owner or Orientation subject is introduced.
+
+Context-bound legacy creation remains guarded. Conversion to
+legacy NoteDocument produces no projection for a standalone Note;
+the legacy importer rejects that unsupported conversion explicitly.
+No fake Context or silent skip is authorized.
+
+FK.8 version-guarded ACK remains metadata-only.
+HOST compilation and six focused Room tests PASS;
+exported schema and remaining Context FK census PASS.
+
+The original FK.10 schema-gate checkpoint remains historical.
+FK.10B must establish canonical runtime behavior independently.
+FK.11 residual retirement and V3.8 closure remain deferred.
+
+## 2026-10-12 - Context-FK.9 canonical standalone Note
+
+Decision: approve Model A, **STANDALONE LEGACY NOTE**.
+
+`LegacyNote.id` is canonical Note content identity.
+The Note owns its own title/content, lifecycle and version.
+Workspace is classified NO DIRECT CONTENT OWNER.
+Orientation is classified NO SUBJECT RELATION.
+BACKLOG placements are independently versioned zero-to-many
+operational occurrences, never Note content ownership.
+
+Remove placement, move placement, delete Note, delete Workspace,
+delete Context and tombstone Orientation are distinct commands.
+Deleting the final placement leaves a live standalone Note.
+Deleting Note tombstones content and all its live placements
+atomically. Deleting historical Context cannot erase Note
+content by cascading persistence coupling.
+
+Modern navigation and search resolve Note independently by ID;
+an initiating placement is optional presentation context.
+Historical Context is preserved only as inert locator evidence.
+No matching-ID inference or synthesized Context/Workspace/subject.
+
+Choose a future nullable, non-FK `legacy_context_id` Note field
+to retain historical evidence while retiring the mandatory
+`notes.contextId` Context FK/column. Do not create a generic
+content table, mandatory Workspace owner or subject-ref table.
+
+Full Backup/Restore, Normal Merge, Selective Import, Wi-Fi
+Push/timestamp delta and ACK must preserve Note authority
+independently of placement and Context. Version conflicts,
+dangling authoritative placements, ambiguous mutations and
+unexplained migration losses fail closed with rollback.
+Exact-version, metadata-only Note ACK remains the FK.8 invariant.
+
+Detailed scenarios, persistence shape, historical row classes,
+transaction boundaries and physical retirement readiness gates:
+`docs/architecture/orientation-workspace-refactor/LEGACY-NOTE-PERSISTENCE-CONTRACT.md`.
+
+This approves a contract, not implementation. Room remains
+**197**, Context FK count remains **2**, and retirement is
+**NOT READY**. Context-FK.10 convergence and Context-FK.11
+physical retirement remain separately authorized future work.
+
+## 2026-10-12 - Context-FK.8 Legacy Notes authority boundary
+
+Decision:
+
+Classify `notes.contextId` as **D. MIXED_ROLE_REQUIRES_SPLIT**.
+Legacy Note is an independently identified content entity, not a
+NoteDocument alias or an implicitly mapped Orientation subject.
+Its current Context FK supplies historical persistence,
+grouping and navigation compatibility. Canonical BACKLOG placement
+is independently Workspace-owned and targets `LEGACY_NOTE` by
+Note identity; placement is not Note content ownership.
+
+Do not replace the physical Context FK with a same-ID Workspace
+or Orientation reference, invent a default placement/owner or
+synthesize compatibility Context shells. Zero or multiple
+placements, soft-deleted/missing Contexts, divergent canonical
+Workspace state and physical CASCADE require explicit semantics.
+
+Retain Room **197** and both remaining Context foreign keys.
+No Context-FK.8 migration or physical retirement is authorized.
+Normal Merge, Restore and Selective Import need explicit Note
+parent/owner admission and rollback acceptance before a
+persistence cutover. Ordinary Wi-Fi Push already exports selected
+Notes, while timestamp-delta coverage for standalone Note edits
+remains open.
+
+Approve only metadata-only, version-guarded Legacy Note ACK:
+`LegacyNoteDao.markSyncedIfVersionMatches` sets `syncedAt`
+for matching `id` and `version`, preserving Note payload,
+Context reference, lifecycle and version without REPLACE.
+The Room acceptance harness must use the real LegacyNoteDao.
+
+Verification: focused HOST acceptance **21/21 PASS**, including
+fresh/stale Note ACK; required Kotlin/JS and ProdDebug compile
+tasks PASS; structural diff check PASS.
+
+The next canonical Note persistence contract, comprehensive
+transport convergence, migration and any FK retirement require
+a separate Project Orchestrator scope decision. Neither
+Context-FK.7 nor Context-FK.8 closes Canonical V3.8 overall.
+
+## 2026-10-11 - Context-FK.7 TacticalActivitySlot authority boundary
+
+Decision:
+
+Classify `TacticalActivitySlot` as a specialized Tactical activity
+mode with its own UUID. Its `context_id` currently combines routing,
+historical target identity and presentation lookup. This is not
+TacticalMission project ownership, which remains canonical
+Workspace-only through `project_workspace_id`.
+
+Do not migrate `context_id` to a Workspace or Orientation ID merely
+because IDs match. Same-ID equivalence does not prove Workspace
+provenance, Orientation kind, Context liveness or slot-target validity.
+Physical slot Context FK retirement is **BLOCKED** until a separate
+canonical target contract and migration scope are authorized.
+
+Preserve current Room **197** and both remaining physical Context
+foreign keys. Do not synthesize Context shells or canonical target
+rows. Full Restore, Normal Merge, tombstones, missing/divergent
+targets, source routing and historical transport require explicit
+fail-closed admission and acceptance in the follow-on scope.
+
+Approve only version-guarded, metadata-only TacticalActivitySlot
+sync ACK in Context-FK.7. ACK does not alter slot routing identity,
+ordering, lifecycle, version or other payload. It does not by itself
+resolve Merge/Restore canonical admission.
+
+Evidence: focused HOST XML **21/21 PASS**, required compile gates
+PASS, Room 197 FK census PASS and `git diff --check` PASS.
+This checkpoint does not approve physical FK retirement or declare
+the complete Canonical V3.8 program finished.
+
+## 2026-10-11 - Context-FK.6 physical TacticalMission owner retirement
+
+Decision:
+
+Retire physical `tactical_missions.projectId`, its Context foreign key
+and index through Room migration **196 -> 197**. Persist operational
+TacticalMission project ownership exclusively through canonical
+`project_workspace_id`.
+
+Retain ignored Kotlin/Gson `projectId` compatibility and the historical
+`TacticalMissionSnapshot.projectId` wire field. Export ownership via
+`logicalProjectId`; route incoming logical ownership through validated
+Workspace persistence, never through Context persistence authority.
+
+Historical migration must validate Workspace identity, liveness and
+frozen provenance before dropping the legacy owner column. Invalid,
+missing, deleted, divergent and unproven owners fail closed with
+transaction rollback. Preserve all unrelated mission payload, source
+lineage, streams, slots, attachments, deferred/tombstone state,
+ordering, sync metadata and SQLite sequence continuity.
+
+Preserve historical migration implementations and references required
+to reproduce older Room schemas. Do not remove compatibility APIs
+merely because the physical column has been retired.
+
+Verification: exported Room 197 schema audit PASS; HOST compile PASS;
+migration/DAO/Planning regression **21/21 PASS**; Restore and App
+transport **74/74 PASS**; sync/Wi-Fi/Desktop **17/17 PASS**;
+structural diff PASS. Existing App transport tests cover full
+TacticalMission backup/restore and Merge round trips.
+
+The remaining physical Context FKs are `notes.contextId` and
+`tactical_activity_slots.context_id`. Both require independently
+scoped decisions and verification. Context-FK.6 does not close the
+overall Canonical V3.8 integration program.
+
+## 2026-10-11 - Context-FK.5 TacticalMission logical Workspace authority
+
+Decision:
+
+Use canonical `project_workspace_id` as the exclusive operational
+TacticalMission project owner. Treat logical incoming `projectId` as
+compatibility evidence, never independent Context persistence authority.
+
+Require valid Workspace identity and provenance in ordinary writes and
+normal Merge. Reject missing, deleted, divergent or unproven owners;
+preserve transaction rollback. Restore-only historical normalization may
+clear unsupported owner references without inventing canonical identities.
+
+Preserve `TacticalMissionSnapshot.projectId` compatibility and independent
+mission source fields, ordering, iteration, streams, slots, attachments
+and deferred status. WiFi ACK must update only `syncedAt` when the selected
+version still matches. Deferred canonicalization must not manufacture
+Planning Commitments.
+
+Verification: HOST focused DAO/restore/activator PASS; integration
+transport **54/54 PASS**; selected sync, desktop-data and shared-core-domain
+contracts PASS.
+
+Do not drop the physical TacticalMission Context FK or change Room schema
+in FK.5. Keep Room **196** and **3** physical Context FKs. Physical
+TacticalMission retirement requires distinct Context-FK.6 scope and
+migration verification; FK.6 remains **NOT STARTED**.
+
+## 2026-10-11 - Context-FK.4 physical DayTask owner retirement
+
+Decision:
+
+Retire the physical `day_tasks.projectId` column, Context foreign key
+and dedicated index in Room migration **195 -> 196**. Persist DayTask
+project ownership exclusively through `project_workspace_id`.
+
+Keep legacy Kotlin `projectId` as an ignored compatibility constructor
+field. Provide a separate Room persistence constructor so KSP reads
+the 38 surviving columns. Preserve the logical `projectId` wire
+contract through `DayTaskSnapshot.projectId`, with outbound mapping
+from `logicalProjectId`.
+
+Historical migration 195-to-196 must fail closed unless every
+non-null project owner has valid canonical Workspace identity and
+frozen provenance evidence. Reject divergent, missing, deleted and
+unproven mappings before dropping the legacy column. Preserve all
+non-owner payload, recurrence state, sync metadata and transaction
+rollback semantics.
+
+Keep historical 193-to-195 acceptance contracts version-specific
+using explicit SQLite helper upgrade callbacks rather than treating
+the current AppDatabase 196 as historical Room 195. Historical
+migration implementations are unchanged.
+
+Verification: exported schema delta PASS; HOST KSP/compile PASS;
+20/20 historical migration and DAO tests PASS; 62/62 recurrence,
+transport, restore and historical DayTask tests PASS in a separate
+HOST run; structural diff PASS.
+
+Three physical Context FK carriers remain: `notes`,
+`tactical_missions`, `tactical_activity_slots`. Their retirement
+is separately scoped. Overall V3.8 closure remains an Orchestrator
+decision.
+
+## 2026-10-11 - Context-FK.3 DayTask owner admission
+
+Decision:
+
+Canonical Workspace is the authority for DayTask project ownership.
+Legacy logical `projectId` is preserved for compatibility at the
+ingress and snapshot transport boundary, never as independent
+permission to restore persisted Context ownership.
+
+Require Workspace existence, liveness and valid provenance for new
+DayTask ownership writes. Validate Context mapping where present;
+reject missing, deleted, divergent or unproven owners. DAO, recurrence
+and normal Merge must fail closed, with transactional rollback.
+
+Full Restore is a distinct compatibility boundary. It may neutralize
+an unsupported historical DayTask owner without deleting the task.
+This must not weaken normal Merge admission or synthesize Workspace
+or Context rows.
+
+Sync acknowledgment must be metadata-only and version-guarded.
+It must not use DayTask replacement/upsert that rewrites ownership,
+including historical Context-only records.
+
+Retain physical Context-FK retirement as a separate decision and
+migration. Context-FK.3 does not remove the `day_tasks` Context FK,
+change Room schema **195**, or reduce the four remaining Context FKs.
+
+Verification:
+
+Consolidated five-suite app HOST acceptance: **88/88 PASS**,
+zero failures/errors/skips; ProdDebug Kotlin and unit-test Kotlin
+compilation PASS. Structural diff check PASS.
+
+## 2026-10-10 - Context-FK.2 MainBeacon physical retirement
+
+Decision:
+
+`main_beacon_workspace_cross_ref` is the only current
+physical MainBeacon owner association. Room schema **195**
+does not contain `main_beacon_context_cross_ref`.
+
+Preserve `MainBeaconContextCrossRef` as a logical compatibility
+DTO and retain the historical
+`SnapshotBundle.mainBeaconContextCrossRefs` contract.
+Do not restore physical Context association writes through
+DAO, Restore, Merge, backup or sync.
+
+The immutable 194 -> 195 migration must validate historical
+Context-to-Workspace lineage and owner liveness before
+convergence. Equivalent canonical rows remain idempotent;
+divergent ordering, invalid provenance and missing or deleted
+Workspace owners fail closed. A rejected migration must not
+partially alter the historical database.
+
+Keep historical schema-specific migration SQL and the
+schema-aware hierarchy evidence reader. Their references to
+the retired table do not authorize current-schema persistence.
+
+Verification:
+
+Room 195 exported schema shows Context FK **5 -> 4**, with
+only the retired MainBeacon table removed. HOST migration
+acceptance **7/7 PASS**; scoped regression **59/59 PASS**;
+ProdDebug and unit-test Kotlin compilation PASS.
+
+The other four Context FK carriers remain separate Epic A
+work units. This decision does not change Epic C Planning
+authority or Planning transport.
+
 Record decisions that future work could otherwise accidentally reopen or
 contradict.
+
+## 2026-10-10 - Planning multiplicity is membership, not identity cloning
+
+Decision:
+
+One canonical Orientation can participate concurrently in Strategic,
+Tactical and Day planning. Each participation is a separate
+PlanningCommitment attached to its PlanningScope. These memberships
+must not create duplicate semantic Orientation or subject identities.
+
+The canonical product read combines the shared semantic subject
+with independent Planning memberships. Local ordering and state
+must not overwrite the semantic subject or another horizon.
+Tombstoning one membership must not delete the shared subject.
+Restoring membership and reopening Room must preserve these
+invariants; duplicate live participation must fail closed.
+
+Verification:
+
+Epic C Android file-backed Room acceptance passed 1/1 test on
+API 35 x86_64. Focused app JVM and shared-domain regressions and
+required compile gates also passed. This records an accepted
+invariant, not a new schema or transport migration.
+
+## 2026-10-09 - Context-FK.1 MainBeacon associations use Workspace authority
+
+Decision:
+
+All ordinary MainBeacon owner associations are physical Workspace
+crossrefs. Legacy Context-shaped APIs and the named SnapshotBundle
+field are logical compatibility contracts only. A coincident Workspace
+id does not establish ownership: admission must validate live
+Workspace provenance against any original Context identity. Ordinary
+Create/Edit, ADD/CUT, Merge and Restore share this authority boundary.
+
+Historical Context-era Restore must authenticate the original live
+Context. Mixed historical sources additionally require a matching
+`CONTEXT_BACKED.sourceContextId`; modern canonical sources may be
+Workspace-only. Dual physical references with conflicting order
+must fail closed, and atomic replacement must roll back on failure.
+Reactive reads must invalidate on owner-authority mutations.
+
+Reason:
+
+A Context-shaped locator can outlive or collide with its original
+owner. Physical Workspace FK storage, provenance validation and
+transactional convergence prevent accidental ownership resurrection
+without breaking historical logical transport.
+
+Consequence:
+
+Context-FK.1 is HOST VERIFIED without a Room version increment.
+Schema remains 194 with five physical Context FKs. The legacy
+MainBeacon crossref FK is retained until a separately scoped physical
+retirement. Canonical V3.8c is not marked complete by this decision.
+
+## 2026-10-09 - Retire local legacy BACKLOG persistence at schema 194
+
+Decision:
+
+Physically retire Context-era `backlog_orders` and `list_items` together
+at Room schema 194 after canonical BACKLOG runtime/transport cutover.
+Canonical placement identity and lifecycle remain with
+`workspace_backlog_entries` and the owning Workspace BACKLOG capability.
+Retain historical Room migration SQL and Restore-only legacy payload
+decoding without recreating retired local tables.
+
+Reason:
+
+Ordinary runtime no longer depends on the legacy tables. Keeping their
+physical storage and two Context foreign keys would preserve dead
+compatibility dependencies without adding authoritative behavior.
+
+Consequence:
+
+Context FK count falls from seven to five. Current Android full backup,
+merge, Wi-Fi delta/ACK and selective import do not emit or persist
+legacy BACKLOG authority. Historical full-backup Restore canonicalizes
+legacy rows before persistence. Desktop Workspace JSON import via ordinary
+merge is distinct from Restore and can reject legacy-only BACKLOG payload.
+Remaining Context FK carriers and MainBeacon/V3.8c need separate work;
+overall V3.8 is still in progress.
 
 ## 2026-09-02 - Canonical BACKLOG selective import is placement-id based
 
@@ -4691,3 +5643,1066 @@ The next Canonical V3 frontier is **V3.3 cross-client transport**.
 
 Epic A Step 12D remains independently `CURRENT / IN PROGRESS`; Step 12E remains
 `DECIDED / NOT STARTED`.
+
+## 2026-10-02 - Canonical V3.3 cross-client transport established
+
+**DECIDED / COMPLETE / HOST VERIFIED.**
+
+Canonical V3 Planning transport is now established across Android,
+shared/Desktop and Wi-Fi boundaries without activating Day, Tactical or
+Strategic canonical planning authority.
+
+The transport envelope is explicitly versioned:
+
+    planningFormatVersion = 1
+    planningScopes
+    planningCommitments
+
+The contract distinguishes:
+
+- absent marker plus absent collections:
+  canonical Planning is not provided by that source generation;
+- marker 1 plus explicit empty collections:
+  canonical Planning is provided and authoritatively empty.
+
+Partial collection presence, unsupported versions and malformed stable codes
+fail closed.
+
+Full backup exports canonical Planning only from canonical V3 persistence.
+Specialized Day/Tactical/Strategic stores are not synthesized into V3 records.
+
+Restore validates Planning before destructive replacement. When Planning is
+absent, existing canonical Planning is preserved as required by the Restore
+boundary. Explicit empty clears canonical Planning authoritatively. Populated
+input validates PlanningScope and Orientation dependency closure.
+
+Normal merge uses deterministic record-version semantics:
+
+- missing local record -> incoming accepted;
+- newer incoming version -> incoming accepted;
+- older incoming version -> local retained;
+- equal version and identical content -> idempotent;
+- equal version and divergent content -> fail closed.
+
+Live commitments require a live PlanningScope, live canonical Orientation,
+valid stable role code and unique live `(scopeId, orientationId, role)`.
+
+Wi-Fi transport includes Planning dirty state, tombstones and required
+dependency closure. ACK identity is exact durable PlanningScopeId or
+PlanningCommitmentId plus captured version. Closure-only dependencies are not
+spuriously acknowledged, and stale ACK cannot mark a newer local version as
+synced.
+
+Planning persistence and transport use explicit stable scalar codes rather than
+enum ordinals or enum-name reflection for scope kind, lifecycle, priority,
+commitment status and provenance.
+
+Shared/Desktop contracts preserve the Planning marker, nullable collections,
+stable scalar fields, provenance, priority and tombstones without silent field
+loss.
+
+Selective import deliberately strips the Planning marker and collections until
+a dedicated Planning selection surface is accepted. It does not implicitly
+import Planning participation through Orientation selection.
+
+V3.3 introduces no Day, Tactical or Strategic adapter/cutover, no runtime
+dual-write and no migration from specialized planning stores.
+
+The next Canonical V3 frontier is **V3.4 Day adapter/cutover**.
+
+Epic A Step 12D remains independently `CURRENT / IN PROGRESS`; Step 12E remains
+`DECIDED / NOT STARTED`.
+
+## 2026-10-03 - V3.4a Day authority census and Theme prerequisite established
+
+**DECIDED / V3.4a COMPLETE / HOST VERIFIED / V3.4 CUTOVER NOT ACTIVATED.**
+
+The V3.4 Day authority census is complete with `UNKNOWN=0`.
+
+`DayPlan.id` is the durable canonical `PlanningScopeId` for the future DAY
+scope. Day calendar date remains Day-specific state and may initialize the
+shared scope horizon without becoming scope identity.
+
+The accepted lifecycle projection is:
+
+- `PLANNED -> DRAFT`;
+- `IN_PROGRESS -> ACTIVE`;
+- `COMPLETED -> CLOSED`;
+- `MISSED -> CLOSED`;
+- `ARCHIVED -> ARCHIVED`.
+
+`COMPLETED` versus `MISSED` remains a Day-domain outcome rather than shared
+PlanningScope lifecycle.
+
+The V3.4a pure mapper is verified but intentionally has no production caller and
+performs no persistence. Schema remains 181 and specialized Day stores remain
+runtime authority.
+
+The Theme prerequisite is now precisely classified.
+
+`ThemeDefinitionEntity` already projects deterministically through
+`LegacyOrientationSourceType.THEME_DEFINITION` to a canonical Orientation
+shadow. Canonical bootstrap persists ManagedSubject, Orientation, assessment
+and durable legacy-source mapping for this projection.
+
+However, ThemeDefinition mappings are materialized as `MATERIALIZED`, not
+`CUT_OVER`, and there is no Theme-specific authority bridge. Current Day Theme
+runtime writes continue to author Theme common fields through
+`ThemeDefinitionEntity`.
+
+Therefore the missing prerequisite is not Theme identity creation. It is
+identity-preserving Theme semantic-authority cutover.
+
+The accepted semantic target is reusable `OrientationKind.THEME`, not a
+Day-owned semantic kind. Theme authority cutover must preserve the existing
+canonical subject identity, establish canonical Orientation ownership of common
+semantic fields, and retain Theme-specific state such as color/icon,
+carry-forward and archived/presentation behavior in typed Theme extension
+ownership.
+
+Only after Theme authority is established may V3.4 safely materialize
+`DAY.THEME` PlanningCommitments against those semantic identities.
+
+A further V3.4 prerequisite remains: typed Day scope extension
+persistence/transport for calendar association, Day-specific outcome, planned
+budget and any other parity-proven Day-only planning state.
+
+Free-form DayFocusItem and DayTask Orientation adoption remains explicitly
+deferred. No hidden Orientation or commitment may be created for those records.
+
+V3.4 remains CURRENT / IN PROGRESS with runtime cutover not activated.
+V3.5 Tactical adapter/cutover remains NOT STARTED.
+
+Epic A Step 12D remains independently CURRENT / IN PROGRESS; Step 12E remains
+DECIDED / NOT STARTED.
+
+## 2026-10-03 - Reusable Theme semantic authority cut over to canonical Orientation
+
+**DECIDED / COMPLETE / HOST VERIFIED.**
+
+Reusable Theme semantic authority is now canonical Orientation authority.
+
+Existing `THEME_DEFINITION:<id>` deterministic semantic identities are preserved.
+No replacement ManagedSubject or Orientation identity is created.
+
+The finite authority transition is:
+
+    MATERIALIZED -> CUT_OVER
+    DAY_THEME -> THEME
+
+performed in place on the existing canonical subject identity. `DAY_THEME`
+remains accepted compatibility input vocabulary; `OrientationKind.THEME` is the
+post-cutover canonical semantic kind.
+
+Canonical Orientation owns common Theme semantic facts:
+
+- identity;
+- title;
+- description;
+- semantic liveness/deletion;
+- semantic version/sync authority.
+
+ThemeDefinition remains typed Theme extension and compatibility projection for
+Theme-specific state including color, icon, carry-forward and archived behavior.
+Compatibility common-field projection does not become an independent semantic
+version or sync authority.
+
+Day-local Theme participation remains independently owned by Day Theme state,
+including budget, ordering and active state. Assignment documents remain
+Day-domain state. Existing activity references remain execution-reference
+identity and are not rewritten as Orientation ids.
+
+`ThemeOrientationBridge` is the runtime authority seam. Reads compose canonical
+semantic fields with Theme extension state. Common-field writes update canonical
+semantic authority and project compatibility columns only as a derived copy.
+New Themes establish deterministic canonical `THEME` rows and a `CUT_OVER`
+mapping immediately in the caller transaction.
+
+Canonical bootstrap performs guarded, idempotent promotion of existing Theme
+shadows and recognizes already cut-over Themes without reasserting stale
+ThemeDefinition common fields. Ambiguous/missing/conflicting identity state
+fails closed.
+
+Canonical Orientation transport/merge/sync owns semantic Theme conflict
+resolution after cutover. Theme extension transport remains responsible only for
+extension/Day-domain state and cannot overwrite the canonical semantic winner.
+
+No PlanningScope, PlanningCommitment or DAY planning authority is activated by
+this Track B slice. H1 identities require no rewrite because subject identity is
+unchanged.
+
+The Theme prerequisite for V3.4 is therefore closed.
+
+The next V3.4 slice is **V3.4b typed Day scope extension persistence +
+transport**, followed by deterministic DAY scope migration, eligible
+`DAY.THEME` commitments, parity proof and atomic Day read/write cutover.
+
+V3.5 Tactical adapter/cutover remains NOT STARTED.
+
+Epic A Step 12D remains independently CURRENT / IN PROGRESS; Step 12E remains
+DECIDED / NOT STARTED.
+
+## 2026-10-03 - Epic A Step 12D Android-local Context consumer boundary is closed
+
+**DECIDED / COMPLETE / HOST VERIFIED / DURABLE.**
+
+Epic A Step 12D closes at an ownership boundary, not at zero textual Context
+references.
+
+The final Android-local production census has `UNKNOWN=0`. Every surviving
+Context dependency has an explicit reason to exist: compatibility,
+external ingress, migration/retirement machinery, owner migration, or future
+physical 12E residue.
+
+The ordinary creator frontier remains closed. Production caller counts are zero
+for:
+
+    createContextWithId()
+    ensureSubcontextByRole()
+
+The final retired-API caller frontier is also zero for:
+
+    getContextByIdFlow()
+    getContextByIdStream()
+    getSubprojectsByParentIdFlow()
+
+Canonical presentation/projector seams now own the migrated local presentation
+surface. GENERAL hierarchy remains H1-owned. Workspace tags remain canonical
+Workspace/WorkspaceTagRef authority. Exact reserved System operational identity
+remains shell-free Workspace authority.
+
+Known safe local dead APIs and dependencies have been removed. No remaining
+evidence-proven `MIGRATE_NOW` Android-local cut is known.
+
+Surviving Context mutation is intentional and classified. It includes live
+compatibility mutation, explicit owner-migration fields, lifecycle/tombstone
+machinery, canonical facades with legacy names, and external ingress storage.
+
+The ContextSettings census remains authoritative and has no blanket retirement
+cut. Additional owner-migration prerequisites include
+`defaultViewModeName`, `isAttachmentsExpanded`,
+`contextStatus`/`contextStatusText`, `isCompleted`, the ContextScreen legacy
+project read model, ContextStructure/ContextConfiguration ownership, and the
+DayManagement `valueImportance` compatibility read.
+
+External Context ingress is explicitly handed forward as a physical-retirement
+gate. Backup, Restore, merge, sync, Wi-Fi, selective import and related
+Context-shaped ingress surfaces must be retired or translated before the
+physical Context schema disappears.
+
+Therefore Step 12D is complete even though Context persistence still exists.
+Its completion criterion is exhausted safe Android-local migration plus complete
+ownership classification, not premature table deletion.
+
+Step 12E is **NEXT / NOT STARTED**. It owns the physical persistence/FK/schema
+extinction boundary and must begin with a gate census before destructive schema
+work.
+
+Canonical V3 remains an independent parallel track. V3.4 is still in progress,
+with V3.4b typed Day scope extension persistence + transport as its next bounded
+slice.
+
+## 2026-10-03 - V3.4b typed Day scope extension established
+
+**DECIDED / COMPLETE / HOST VERIFIED.**
+
+Canonical V3.4b establishes typed Day-specific PlanningScope extension
+persistence and transport without activating Day runtime authority.
+
+Database schema 182 adds `day_planning_scope_extensions`, keyed by the same
+durable `PlanningScopeId` and FK-constrained to `planning_scopes`.
+
+The extension owns only Day-specific scope facts:
+
+- normalized calendar-day start millis;
+- nullable Day outcome `COMPLETED` / `MISSED`;
+- nullable planned budget in minutes;
+- canonical record timestamps/version/tombstone/sync metadata.
+
+Shared PlanningScope continues to own common identity, kind, lifecycle, title
+and horizon. Current-day selection remains application state. Execution
+evidence remains outside canonical Planning. Day Theme participation,
+assignments, free-form focus items and free-form tasks are not absorbed into the
+extension.
+
+Planning transport advances from format v1 to format v2:
+
+- v1 carries authoritative scopes + commitments and no Day extension authority;
+- v2 carries scopes + commitments + typed Day extension collection;
+- explicit empty collections are authoritative empty;
+- malformed partial v2 envelopes fail closed.
+
+Backup exports only canonical extension rows and does not synthesize them from
+legacy DayPlan. Restore persists scopes before extensions and validates DAY
+scope dependency. Merge uses deterministic record-version semantics with
+equal-version divergence failing closed. Wi-Fi carries required scope closure
+and ACKs Day extension by exact scope-id/version without spuriously ACKing
+dependency-only scopes. Shared/Desktop transport preserves the extension without
+requiring Day UI. Selective import continues to strip all canonical Planning
+state.
+
+The 181->182 migration is additive and dormant. It creates no PlanningScope,
+PlanningCommitment or extension rows. Existing DayPlan remains current runtime
+authority after V3.4b.
+
+The next V3.4 slice is **V3.4c deterministic DAY scope + extension migration,
+eligible `DAY.THEME` commitment migration, parity proof and atomic Day
+read/write authority cutover**.
+
+Free-form DayFocusItem and DayTask Orientation adoption remains deferred.
+
+Epic A remains independent: Step 12D is COMPLETE / HOST VERIFIED / DURABLE and
+Step 12E is NEXT / NOT STARTED.
+
+## 2026-10-03 - Epic A Step 12E.0 physical Context extinction gate map established
+
+**DECIDED / CENSUS COMPLETE / UNKNOWN=0 / PHYSICAL REMOVAL NOT STARTED.**
+
+The current Room baseline is schema 182.
+
+The current Context-family physical persistence set is:
+
+    contexts
+    context_tag_refs
+    context_structures
+    context_structure_items
+    contexts_fts
+
+The physical database dependency graph is narrower than the runtime semantic
+graph. `context_tag_refs.context_id` has a real FK to `contexts.id`;
+`context_structure_items.contextStructureId` has a real FK to
+`context_structures.id`; `contexts_fts` is FTS4 external-content storage backed
+by `contexts`.
+
+`contexts_fts` has no production runtime consumer and no semantic owner
+migration requirement. It is the first safe physical-retirement candidate.
+
+`context_tag_refs` is not yet removable because `SystemWorkspaceTagSeed` still
+consumes legacy System Context tags and retires reserved-System ContextTagRef
+rows as part of finite migration behavior.
+
+`context_structures` and `context_structure_items` remain live runtime and
+transport state. Canonical System capability ownership has not yet eliminated
+legacy ContextConfiguration compatibility outputs, ordinary structure/config
+ownership, structure-item consumers or their backup/merge/sync contracts.
+
+`contexts` remains the final physical drop. It still participates in live scalar
+compatibility ownership, DayManagement valueImportance lookup, transitional
+presentation/tombstone evidence, canonical migration/bootstrap machinery, and
+inbound Context-shaped compatibility.
+
+Current Android full backup no longer authors ordinary Context rows, but
+ContextSnapshot remains live as inbound compatibility shape. Restore/merge
+canonicalization still consumes it, and Desktop/shared can still produce legacy
+Context-shaped payload. Wire compatibility must therefore be separated from
+local physical Context persistence before the table can disappear.
+
+The dependency-ordered implementation plan is:
+
+    12E.1  retire contexts_fts
+    12E.2  close ordinary Context scalar ownership
+    12E.3  retire ContextConfiguration compatibility/runtime ownership
+    12E.4  retire ContextStructureItem product/runtime semantics
+    12E.5  retire Context projector/bootstrap/migration dependence
+    12E.6  retire Context-family local transport persistence
+    12E.7  retire Context tag physical state
+    12E.8  drop context_structure_items -> context_structures
+    12E.9  final ContextDao/entity/contexts extinction
+
+Historical immutable migrations are not treated as live blockers merely because
+they mention Context.
+
+Schema numbers are not reserved ahead of implementation. Each physical
+migration slice must refresh AppDatabase, migration registration, exported
+schemas and parallel Canonical V3 work before choosing the next free version.
+
+The immediate Epic A frontier is **12E.1 retire dead Context FTS**.
+
+Canonical V3 remains independent. V3.4b is complete / HOST verified and V3.4c
+deterministic Day authority migration/cutover is the current V3 frontier.
+
+## 2026-10-04 - Epic A 12E.1 through 12E.2c authority checkpoint
+
+**DECIDED / COMPLETE THROUGH 12E.2c / HOST VERIFIED.**
+
+Epic A Step 12E remains in progress. Current Room schema is 187.
+
+12E.1 retired dead `contexts_fts` physical storage and synchronization triggers.
+
+12E.2a established canonical Workspace Presentation Preferences authority for
+`defaultViewModeName`, `isAttachmentsExpanded`, and `showCheckboxes`. Legacy
+Context copies are compatibility/Restore residue only.
+
+12E.2b established canonical Orientation Assessment runtime authority for
+importance/impact. Workspace-only, Aspect, deleted, non-cut-over and
+MATERIALIZED Context mappings do not expose fabricated Orientation assessment
+authority.
+
+12E.2c establishes the final scoring ownership model:
+
+    OrientationAssessment
+        importance / impact / effort / cost / risk / evaluationState
+
+    ScoringPolicy
+        policy + formula version
+        semantic coordinates
+        default weights
+
+    OrientationScoringOverride
+        exact legacy importance/impact coordinates
+        per-subject weights
+
+    OrientationScore
+        benefit / penalty / raw / display
+        DERIVED ONLY
+
+`calculateOrientationScoreFromCoordinates()` is the sole mathematical scoring
+authority.
+
+Legacy Goal and Context scalar scoring fields may remain physically and may be
+read by compatibility UI or transport projections. They are not canonical
+semantic authority.
+
+Workspace-only and Aspect Contexts must not receive a fake Orientation scoring
+aggregate.
+
+Canonical scoring activation is finite and fail-closed. Canonical scoring
+transport covers backup, sync payload, ACK, merge, Restore, Wi-Fi, selective
+import and payload validation.
+
+Schema progression for these current slices is:
+
+    182 -> 183   contexts_fts retirement
+    184 -> 185   Workspace Presentation Preferences
+    185 -> 186   Orientation effort/cost/risk/evaluationState
+    186 -> 187   scoring overrides + scoring authority state
+
+Schema 183 -> 184 belongs to the independent Canonical V3 Day-planning track.
+
+The next Epic A slice must begin from a fresh remaining-Context authority and
+blocker census. Candidate domains include project-realization state,
+completion/lifecycle, `relatedLinks`, ContextConfiguration/ContextStructure,
+Context-shaped transport residue, Context tags, structure tables and final
+Context persistence.
+
+Do not combine those domains solely to reduce Context column count.
+
+The known `HierarchyPlacementCanonicalDeltaTest` failure concerning
+`projected.order == 0L` is unrelated hierarchy-contract drift and is not
+evidence against the 12E.2 authority migrations.
+
+
+## 2026-10-05 - Schema-189 authority integration checkpoint
+
+**DECIDED / CURRENT SOURCE INTEGRATED.**
+
+Canonical V3.4 Day planning authority cutover is **COMPLETE / HOST VERIFIED**.
+
+After activation:
+
+    PlanningScope(DAY)
+        identity / title / lifecycle
+
+    DayPlanningScopeExtension
+        calendar association / Day outcome / planned budget
+
+    PlanningCommitment(DAY.THEME)
+        eligible Theme membership / order / active planning state
+
+Free-form DayFocusItem and DayTask remain specialized Day state. Reflection,
+actual progress, activity records, metrics and other execution/evidence remain
+outside canonical Planning. Missing required canonical state after activation is
+an integrity failure rather than a silent fallback.
+
+The next Canonical V3 frontier is **V3.5 Tactical adapter/cutover**.
+
+Epic A authority work is HOST verified through 12E.2c. The current repository
+has additionally advanced to Room schema **189**.
+
+Schema 187->188 retires normalized Context tag compatibility persistence:
+
+    DROP TABLE IF EXISTS context_tag_refs
+
+Canonical tag authority remains `workspace_tag_refs`. Historical `Context.tags`
+may still exist as explicit compatibility/Restore ingress, but no local
+`context_tag_refs` table remains in schema 188+.
+
+Schema 188->189 retires Context ownership from local EXECUTION_LOG persistence.
+The migration first proves that every legacy locator has a valid non-conflicting
+Workspace owner, converges eligible legacy rows, validates canonical Workspace
+ownership, then rebuilds `context_execution_logs` with:
+
+    workspaceId TEXT NOT NULL
+    FOREIGN KEY(workspaceId) REFERENCES workspaces(id)
+
+and no persisted `contextId` column.
+
+The migration fails closed before authority conversion when a legacy
+EXECUTION_LOG owner is missing, locators conflict, or a live row would be owned
+by a deleted Workspace. The source acceptance contract also verifies rollback
+to schema 188 on those invalid inputs.
+
+These schema-188/189 facts are current source truth. This checkpoint inspection
+did not find current XML execution reports for the corresponding acceptance
+tests, so this decision does not manufacture a new `HOST VERIFIED` claim for
+those two migrations. That status requires explicit host evidence.
+
+Physical table names do not themselves define semantic authority.
+`context_execution_logs` may retain its historical table name while its persisted
+owner is exclusively Workspace-native.
+
+Current physical Context-family core remaining after the FTS and normalized-tag
+retirements includes:
+
+    contexts
+    context_structures
+    context_structure_items
+
+Further Context extinction must continue from fresh semantic/dependency evidence.
+Do not delete compatibility locators merely because their names contain
+`contextId`, and do not preserve Context-row ownership merely because an old
+wire/UI shape still uses Context vocabulary.
+
+The known `HierarchyPlacementCanonicalDeltaTest` projected-order regression is
+unrelated hierarchy-contract drift and is not evidence against these authority
+cuts.
+
+## 2026-10-05 - V3.5a Tactical scope foundation and mission adoption boundary
+
+**DECIDED / V3.5a COMPLETE / HOST VERIFIED / V3.5 CUTOVER NOT ACTIVATED.**
+
+The Tactical planning census is complete with `UNKNOWN=0`.
+`TacticalIteration.id` is preserved as the durable canonical
+`PlanningScopeId(TACTICAL_CYCLE)`. Its title, lifecycle, horizon and common
+metadata map directly to `PlanningScope`; iteration type, `weekKey`, and
+`closedAt` belong to typed `TacticalPlanningScopeExtension` state.
+
+The shared extension contract, pure mapping, validation, and focused tests are
+implemented. Schema remains 189. No Tactical scope, commitment, authority
+marker, runtime reader/writer, or transport authority is activated by V3.5a.
+
+Complete Tactical mission commitment migration requires an explicit semantic
+target boundary. Manual missions remain subject to the already accepted
+select/create-Orientation-or-retain-specialized product decision. Backlog
+sources are heterogeneous and do not persist participant kind/Orientation id;
+ARC_QUEST sources depend on QUEST semantic authority; PREVIOUS_WEEK can inherit
+only an already resolved prior target. Title, Context id, Workspace id,
+operational project routing, and legacy mission id are not accepted substitutes
+for Orientation identity.
+
+The next V3.5 work must resolve that bounded adoption/source contract, add
+typed Tactical extension persistence/transport, and only then perform finite,
+transactional, marker-last scope and eligible-commitment activation. Until
+then specialized Tactical storage remains production authority.
+
+## 2026-10-05 - V3.5b legacy TacticalMission adoption identity and typed source resolution
+
+**DECIDED / IMPLEMENTATION PARTIAL / HOST VERIFIED / CUTOVER NOT ACTIVATED.**
+
+Finite legacy migration will adopt every MANUAL TacticalMission into its own
+dedicated canonical Orientation. Identity is deterministic and one-to-one:
+
+    LegacySubjectRef(TACTICAL_MISSION, mission.id)
+        -> canonical UUIDv5 subject id
+
+New post-cutover manual mission authoring must explicitly select an existing
+Orientation or create a new Orientation with an explicit semantic kind. It must
+not silently create hidden subjects.
+
+The identity/provenance and typed source-resolution layer is implemented. It
+resolves canonical Orientation backlog targets, validates slot ownership,
+inherits PREVIOUS_WEEK identity without cloning, and resolves source-backed
+ArcQuest through canonical source mappings. Non-Orientation backlog content is
+explicitly unadopted, and manual ArcQuest remains a QUEST prerequisite.
+
+Automatic MANUAL Orientation creation is intentionally not implemented yet.
+The current Orientation vocabulary has no neutral mission/intent kind, while
+GOAL, DIRECTION, PROJECT, and QUEST carry different accepted semantics. Picking
+one merely to satisfy the Planning FK would violate the canonical contract.
+That semantic vocabulary decision is the next bounded V3.5 prerequisite.
+
+Schema remains 189. No Tactical Planning rows, authority marker, dual-write,
+runtime reader/writer cutover, or UI behavior is introduced.
+
+## 2026-10-05 - V3.5c INTENT semantic authority accepted
+
+**DECIDED / COMPLETE / HOST VERIFIED / TACTICAL PLANNING CUTOVER NOT ACTIVATED.**
+
+`OrientationKind.INTENT` is accepted as reusable canonical semantic vocabulary
+for standalone purposeful intent. It is not Tactical-specific.
+`PlanningRole.MISSION` remains a separate planning axis.
+
+Finite legacy MANUAL TacticalMission migration adopts each mission one-to-one
+into its own deterministic canonical INTENT Orientation:
+
+    LegacySubjectRef(TACTICAL_MISSION, mission.id)
+        -> canonical UUIDv5 subject/orientation id
+        -> Orientation(kind = INTENT)
+        -> LegacySubjectMapping(
+               sourceType = TACTICAL_MISSION,
+               sourceId = mission.id,
+               state = CUT_OVER
+           )
+
+The operation creates the complete canonical Orientation aggregate when absent
+and is idempotent for an already-valid deterministic CUT_OVER aggregate.
+Rerunning migration does not overwrite later canonical semantic edits.
+
+Competing provenance, divergent deterministic occupancy, unsupported mapping
+state, deleted legacy input, tombstoned canonical target, or a non-INTENT target
+at the deterministic MANUAL identity fail closed.
+
+`TacticalMissionOrientationResolver` remains read-only. A MANUAL mission that
+still needs finite migration is represented by `MANUAL_ADOPTION_REQUIRED`;
+adoption is not hidden inside normal reads.
+
+No ordinary production Tactical runtime caller invokes the adoption primitive.
+V3.5c activates no `PlanningScope(TACTICAL_CYCLE)`, no `PlanningCommitment`,
+no Tactical Planning authority marker, no dual-write, and no reader/writer
+cutover. Specialized Tactical runtime authority remains current.
+
+Generic canonical Orientation transport preserves the stable kind string and
+requires no Tactical-specific INTENT transport branch. Room schema remains 189.
+
+HOST verification is green for the resolver/adopter boundary and for
+`:app:compileExpLocalKotlin`, `:shared-core-data-models:compileKotlinJs`, and
+`:shared-core-domain:compileKotlinJs`.
+
+The next bounded V3.5 semantic prerequisite is canonical QUEST authority for
+manual `ARC_QUEST`. Tactical extension persistence/transport and deterministic
+marker-last scope/eligible-commitment activation follow that prerequisite.
+
+
+## 2026-10-06 - V3.5d reusable QUEST semantic authority cut over from manual ARC_QUEST
+
+**DECIDED / COMPLETE / SCOPED HOST VERIFIED / TACTICAL PLANNING CUTOVER NOT ACTIVATED.**
+
+Reusable `OrientationKind.QUEST` semantic authority is now canonical
+Orientation authority for MANUAL ArcQuest identity.
+
+The finite authority transition preserves the existing deterministic identity:
+
+    LegacySubjectRef(ARC_QUEST, quest.id)
+        -> same canonical subject/orientation id
+        -> ARC_QUEST -> QUEST
+        -> MATERIALIZED -> CUT_OVER
+
+`LegacyOrientationSourceType.ARC_QUEST` remains durable provenance and
+`OrientationKind.ARC_QUEST` remains compatibility vocabulary. Neither is
+post-cutover semantic authority.
+
+Canonical QUEST owns common semantic identity, title, description, semantic
+liveness/deletion, Orientation lifecycle and assessment authority. ArcQuest
+retains Strategic-specific extension state including `arcKey`, ordering,
+Strategic status and source-link metadata. ArcQuest status is not promoted into
+canonical Orientation lifecycle; initial QUEST lifecycle is unset.
+
+`QuestOrientationBridge` is the runtime authority seam for MANUAL ArcQuest.
+New MANUAL rows establish canonical QUEST plus CUT_OVER mapping immediately.
+Common-field edits and deletion follow canonical semantic authority. Source-
+backed ArcQuest rows continue to reference their existing semantic source and
+must not manufacture duplicate QUEST identities.
+
+Canonical bootstrap performs guarded idempotent promotion of existing
+MATERIALIZED ArcQuest shadows. Identity, assessment and revision history are
+preserved. After CUT_OVER, canonical common fields, lifecycle and assessment
+win; compatibility common-field drift is repaired from canonical state rather
+than reasserted into it.
+
+`TacticalMissionOrientationResolver` now resolves MANUAL ArcQuest through its
+durable `ARC_QUEST` source mapping and requires canonical
+`OrientationKind.QUEST`. The former `QUEST_AUTHORITY_REQUIRED` semantic
+prerequisite is retired. Source-backed ArcQuest resolution remains source-
+specific and does not clone semantic identity.
+
+No Room schema change is required for this semantic-authority cutover. Generic
+canonical Orientation transport continues to carry the stable kind string and
+existing canonical aggregate state.
+
+Focused host evidence is green:
+
+- `QuestOrientationBridgeRoomTest`: 5/5;
+- `QuestOrientationCutoverTest`: 6/6;
+- `TacticalMissionOrientationResolverTest`: 8/8;
+- total focused app coverage: 19/19;
+- `:shared-core-data-models:jvmTest`: PASS;
+- `:shared-core-domain:jvmTest`: PASS.
+
+The broader `:app:testProdDebugUnitTest` gate compiles the QUEST slice but is not
+globally green: 1281 tests ran with 76 failures outside the three focused
+QUEST/Tactical suites. This decision therefore records scoped host verification
+rather than claiming a full-suite green baseline.
+
+V3.5 remains IN PROGRESS. The QUEST semantic prerequisite is closed. The next
+bounded Tactical frontier is typed Tactical extension persistence/transport,
+followed by deterministic finite migration, parity proof and marker-last
+PlanningScope/eligible-commitment authority activation. Specialized Tactical
+planning remains current until that explicit cutover.
+
+
+## 2026-10-06 - V3.5e Tactical scope-extension persistence and transport
+
+**DECIDED / COMPLETE / HOST VERIFIED / TACTICAL PLANNING CUTOVER NOT ACTIVATED.**
+
+Tactical-cycle-only scope state is canonically represented by the typed
+one-to-one `TacticalPlanningScopeExtension`:
+
+    scopeId -> PlanningScope(kind = TACTICAL_CYCLE)
+    type    -> TIMEBOXED | OPEN_ENDED
+    weekKey
+    closedAt
+    independent canonical record metadata
+
+`weekKey` is a calendar/compatibility locator, never scope identity.
+`closedAt` is Tactical audit state and does not replace shared scope lifecycle.
+Mission participation, streams, slots, project routing, attachments, execution,
+metrics, and current-cycle UI selection remain outside this extension.
+
+Schema 190 adds `tactical_planning_scope_extensions` with a non-cascading FK to
+`planning_scopes`. Migration 189->190 is additive and dormant: it reads no
+`TacticalIteration`, creates no canonical Tactical scope or commitment, and
+writes no authority marker.
+
+Canonical Planning transport format v3 adds
+`tacticalPlanningScopeExtensions`. V1 common-only and V2 Day-extension payloads
+remain supported. V3 requires an explicit Tactical extension collection:
+`null` is unsupported/absent and `[]` is authoritative empty. Restore orders
+scope before extension; merge uses record versions and rejects equal-version
+divergence; Wi-Fi includes required scope dependency closure while ACK remains
+exact to extension id/version and does not ACK closure-only scopes. Planning
+remains excluded from selective import.
+
+No production Tactical planning reader or writer consumes the new repository,
+and no legacy-to-canonical export synthesis exists. Specialized Tactical
+runtime authority remains current until deterministic materialization, parity
+proof, and finite marker-last activation complete V3.5.
+
+## 2026-10-06 - V3.5f Tactical Planning materialization is finite, exact and marker-last
+
+**DECIDED / COMPLETE / HOST VERIFIED / ORDINARY RUNTIME CUTOVER PENDING.**
+
+Room schema 191 adds `tactical_planning_authority_state` as local cutover
+control state. It is not Planning domain data and must not participate in
+backup, Restore, merge, Wi-Fi, selective import, or cross-client transport.
+
+Finite activation materializes canonical Tactical Planning from the current
+specialized source picture:
+
+- `TacticalIteration.id` is reused as `PlanningScopeId(TACTICAL_CYCLE)`;
+- each scope receives its typed `TacticalPlanningScopeExtension`;
+- each eligible resolved TacticalMission receives one deterministic UUIDv5
+  `PlanningCommitment(role=MISSION)`;
+- commitment provenance is `TACTICAL_MISSION / mission.id`;
+- legitimate heterogeneous unresolved source rows remain explicit typed
+  deferrals rather than receiving fabricated semantic identities.
+
+MANUAL INTENT adoption and QUEST preparation execute inside the same outer Room
+transaction. Planning writes are parity-checked before the marker is inserted.
+The marker is the terminal write. If marker insertion fails, all preceding
+semantic/planning mutations in that activation transaction roll back.
+
+Parity is whole-set exact for Tactical-owned canonical state. Extra
+`TACTICAL_CYCLE` scopes, Tactical extension rows, MISSION-role commitments, or
+`TACTICAL_MISSION`-provenance commitments fail closed. A marker-present rerun is
+inert only after the same exact parity proof.
+
+V3.5f does not route ordinary Tactical readers or writers through canonical
+Planning and therefore does not create a runtime dual-write phase. Specialized
+Tactical persistence remains runtime authority until V3.5g explicitly admits
+canonical adapters.
+
+HOST evidence is 23/23 focused PASS. App production Kotlin, shared-core-domain
+JS, and desktop-data compile gates pass. The unrelated broad app unit baseline
+remains 1306 tests / 78 failures / 4 skipped.
+
+## 2026-10-06 - V3.5g Tactical runtime canonical authority cutover
+
+**DECIDED / COMPLETE / HOST VERIFIED / DURABLE.**
+
+V3.5g completes Canonical V3.5 without changing Room schema 191.
+
+After the local V3.5f authority marker is present, ordinary Tactical planning
+runtime authority is canonical:
+
+- Tactical cycle identity/title/lifecycle/horizon -> `PlanningScope(TACTICAL_CYCLE)`;
+- cycle-only metadata -> `TacticalPlanningScopeExtension`;
+- eligible mission participant identity -> canonical Orientation;
+- eligible mission membership/order/priority/status/tombstone ->
+  `PlanningCommitment(role=MISSION)`.
+
+Ordinary runtime readers and writers route through canonical Tactical adapters.
+Missing required canonical state is an integrity failure. There is no
+post-activation specialized planning fallback and no planning dual-write phase.
+
+Typed heterogeneous unresolved `CONTEXT_BACKLOG_ITEM` and
+`SLOT_BACKLOG_ITEM` cases remain explicit specialized-only deferrals. This does
+not authorize fallback for canonical-eligible missions.
+
+Fresh MANUAL mission authoring creates an explicit reusable INTENT Orientation.
+The finite legacy MANUAL adopter is migration-only and is not part of normal
+runtime authoring.
+
+Deleting an eligible mission tombstones its commitment and does not delete its
+Orientation. Mission reorder authority is commitment `order`; `orderInWeek` is
+the compatibility projection. Legacy `mission_order` is not canonical planning
+authority.
+
+`TacticalMission` remains a required bounded compatibility/domain carrier for
+Tactical-only state and Android full-snapshot compatibility. Canonical
+Planning/Orientation common fields are projected back into existing carrier rows
+after canonical Restore/merge ingress. Projection preserves Tactical-only fields
+and never fabricates a missing TacticalMission carrier. Canonical MISSION state
+without the required carrier fails closed.
+
+The local Tactical authority marker is control-plane state only and is not
+backup, Restore, merge, Wi-Fi, shared or Desktop transport.
+
+Full Android `SnapshotBundle` transports both canonical Planning and specialized
+TacticalMission carrier rows, so Android Restore/merge/Wi-Fi can admit canonical
+Planning and then refresh the carrier.
+
+Desktop/shared Planning transport has no TacticalMission carrier. Therefore the
+Desktop-to-Android conversion seam rejects live MISSION commitments fail-closed
+instead of inventing an incomplete TacticalMission row. Shared Android planning
+import preserves V1 common-only, V2 Day-extension and V3 Tactical-extension
+generation semantics.
+
+Verification boundary:
+
+- focused Tactical authority suites: 45/45 PASS;
+- shared Android Planning importer V1/V2/V3 regression: PASS;
+- Desktop Planning transport regression and live-MISSION carrier rejection: PASS;
+- `:app:compileProdDebugKotlin`: PASS;
+- `:app:compileProdDebugUnitTestKotlin`: PASS;
+- broad app unit baseline: 1323 tests / 78 failures / 4 skipped, unchanged
+  historical failure count after adding two V3.5g projection regressions.
+
+Consequence:
+
+Canonical V3.5 Tactical adapter/cutover is closed. The next Canonical V3
+frontier is V3.6 Strategic adapter/cutover. Tactical specialized persistence may
+be physically retired only under a future explicit V3.8 compatibility-retirement
+decision.
+
+## 2026-10-06 - V3.6a Strategic identity and participation mapping
+
+**DECIDED / COMPLETE / HOST VERIFIED / STRATEGIC RUNTIME NOT ACTIVATED.**
+
+There is no legacy StrategicArc aggregate or durable arc id. An exact nonblank
+`arcKey` group therefore deterministically initializes one independent
+`PlanningScopeId(STRATEGIC_ARC)` using a dedicated UUIDv5 namespace. `arcKey`
+is retained in typed `StrategicPlanningScopeExtension` compatibility/horizon
+state and is not an alternate scope identity.
+
+Legacy groups initialize a live ACTIVE scope with nullable title and horizon.
+This is an explicit migration initialization, not an inference that `arcKey`
+means active. No calendar bounds are fabricated because existing month-shaped
+keys have no accepted timezone boundary and future arcs may be non-month-shaped.
+
+ArcQuest participation uses common role `FOCUS`. MANUAL rows reuse their
+deterministic CUT_OVER QUEST Orientation. CONTEXT, MISSION, BEACON and
+BEACON_GROUP rows reuse their existing source Orientation; missing source
+adoption remains typed deferred state. ArcQuest status maps only to commitment
+status and never to Orientation lifecycle.
+
+Commitment identity is deterministic UUIDv5 over scope id, ArcQuest id and
+FOCUS. Multiple live rows resolving to the same `(scope, orientation, FOCUS)`
+are integrity failures and are not collapsed. Current-arc selection remains
+ViewModel/application state. Linked ids, generated artifacts, tags,
+presentation, routing and execution/evidence remain specialized.
+
+V3.6a adds pure models, validation, mapping and tests only. Room schema remains
+191 and no Strategic persistence, marker, transport, runtime cutover,
+dual-write or fallback is introduced.
+
+## 2026-10-07 - V3.6b Strategic extension persistence is dormant and Planning transport v4 is explicit
+
+**DECIDED / COMPLETE / HOST VERIFIED / STRATEGIC RUNTIME NOT ACTIVATED.**
+
+Room schema 192 adds `strategic_planning_scope_extensions`, keyed by canonical
+Strategic PlanningScope id and retaining the exact unnormalized
+`legacyArcKey`. The physical FK guarantees scope existence; canonical
+repository/transport validation additionally requires a live
+`PlanningScope(kind=STRATEGIC_ARC)`.
+
+Canonical Planning transport format v4 adds the nullable wire member
+`strategicPlanningScopeExtensions`. For a v4 payload the member is mandatory:
+`[]` means supported and authoritatively empty. V1-v3 remain readable and do
+not claim Strategic extension authority. This preserves the distinction between
+unsupported absence and exact empty replacement.
+
+Full backup exports persisted canonical Strategic extensions only and never
+derives them from ArcQuest. Restore replaces the collection exactly after its
+PlanningScope dependencies; merge uses canonical version ordering and rejects
+equal-version divergence. Wi-Fi delta includes required scope closure, while
+ACK marks only the exact extension scope-id/version and never ACKs a closure-only
+scope. Shared/Desktop transport preserves the typed record; selective import
+continues to strip all Planning state.
+
+This slice creates no Strategic scopes, commitments or authority marker and
+does not alter ordinary Strategic readers/writers. Specialized Strategic
+runtime authority remains current until deterministic materialization, parity
+and marker-last activation.
+
+## 2026-10-07 - V3.6c Strategic establishment is deterministic, set-exact, transactional and marker-last
+
+**DECIDED / COMPLETE / HOST VERIFIED / ORDINARY RUNTIME CUTOVER PENDING.**
+
+Schema 193 adds the singleton local-only
+`strategic_planning_authority_state`. It is control-plane state and is not part
+of backup, Restore, merge, Wi-Fi, shared/Desktop, or selective-import payload.
+
+The finite establishment transaction groups exact nonblank ArcQuest `arcKey`
+values and uses the V3.6a deterministic mapping unchanged. It materializes one
+STRATEGIC_ARC scope plus typed extension per group and one FOCUS commitment per
+eligible participation. Semantic targets are existing canonical Orientations;
+QUEST/Tactical prerequisite preparation occurs inside the same outer Room
+transaction. Supported missing source adoption remains typed deferred state;
+malformed/conflicting state and duplicate live `(scope, orientation, FOCUS)`
+participation fail closed.
+
+Parity is set-exact over all STRATEGIC_ARC scopes, all Strategic extensions,
+and Strategic-owned FOCUS/ARC_QUEST-provenance commitments. Unexpected owned
+rows fail activation. Semantic preparation, canonical writes, parity, and
+marker insertion are one transaction, with marker insertion the final mutation.
+Any later failure rolls back preparation and materialization. Marker-present
+reruns first prove exact parity and never overwrite divergence.
+
+Restore and merge continue transporting only canonical Planning data and invoke
+the same local establishment/admission boundary inside their transactions. The
+ordinary Strategic read/write path remains specialized until V3.6d; V3.6c adds
+no ordinary dual-write, read repair, or legacy fallback.
+
+## 2026-10-07 - Strategic runtime authority is canonical with explicit deferred composition
+
+After the local Strategic marker is active, ordinary Strategic scope reads use
+`PlanningScope(STRATEGIC_ARC)` plus `StrategicPlanningScopeExtension`; eligible
+participation uses `PlanningCommitment(role=FOCUS)`; semantic common fields use
+Orientation. `ArcQuest` remains only a required compatibility/Strategic-only
+carrier and an explicit owner for legitimately deferred participation.
+
+Canonical facts project one-way to the carrier. Missing canonical state fails
+closed and is never rebuilt from ArcQuest during a read. Participation removal
+does not delete semantic Orientation. `currentArcKey`, operational links,
+artifacts, execution/evidence and presentation remain outside Planning.
+
+Planning v4 Restore/merge establishes or revalidates the local-only marker from
+canonical structure, then refreshes compatibility projection. Post-activation
+admission intentionally does not compare mutable canonical facts to stale
+legacy copies as if those copies remained authority.
+
+## 2026-10-07 - Product reads use one Orientation node with independent canonical edges
+
+**DECIDED / V3.7a COMPLETE / HOST VERIFIED.**
+
+Product read identity is the live canonical Orientation, never a Planning
+commitment, Workspace, hierarchy occurrence or compatibility carrier. Planning
+membership, Workspace binding, Aspect membership, semantic relation and
+hierarchy appearance are separate edges that may all describe the same
+Orientation without duplicating it.
+
+The shared product projector consumes one bulk canonical snapshot and performs
+no writes. It requires typed extension closure for every live Planning scope,
+validates all live endpoints and fails closed on missing or divergent canonical
+references. Current Day/Tactical/Strategic selection enters only as application
+state and derives `isCurrentScope`; no persisted current/badge Boolean is added.
+
+Android already has bulk reactive sources for every input. The next runtime
+slice must combine them once per revision and share the result, rather than
+performing per-card DAO reads. Domain adapters remain authoritative where Day,
+Tactical or Strategic specialized carrier state is required. Context-shaped
+search/presentation and other compatibility reads are catalogued for bounded
+consumer cutover and later V3.8 physical retirement.
+
+## 2026-10-08 - V3.7b product reads are bulk reactive and semantic search is Orientation-owned
+
+**DECIDED / COMPLETE / HOST VERIFIED.**
+
+Android product-facing canonical reads use one shared bulk reactive seam:
+`CanonicalProductReadRepository`. The Room source subscribes once to each
+canonical collection needed by the V3.7a snapshot, constructs one persistence
+frame, and shares it through application scope. Per-Orientation convenience
+reads and Planning-membership indicators derive from that shared state; they do
+not introduce N+1 DAO queries.
+
+`currentScopeIds` remains application/domain selection state. It is supplied to
+the product read at projection time and derives `isCurrentScope`; no persisted
+current-scope or membership-badge Boolean is authorized.
+
+The universal product read does not absorb specialized Day, Tactical or
+Strategic authority. `CanonicalDayPlanningAdapter`,
+`CanonicalTacticalPlanningAdapter`, `CanonicalTacticalMissionAdapter`, and
+`CanonicalStrategicPlanningAdapter` remain the correct seams for specialized
+carrier, execution, routing, evidence and other domain-only state.
+
+Global Search semantic Orientation results are owned by canonical
+`ManagedSubject + OrientationNode`. Search result identity is Orientation id.
+Title and description are semantic searchable content. Workspace name/id may
+decorate a result and provide navigation but do not create a semantic match.
+Planning, Workspace, hierarchy, Aspect and relation multiplicity never duplicate
+the Orientation result.
+
+CUT_OVER legacy GOAL and CONTEXT mappings suppress their corresponding legacy
+semantic search representations. If canonical product state is broken or a
+canonical semantic node is tombstoned, search fails closed for that semantic
+identity rather than falling back to legacy Goal/Context authority. Specialized
+non-semantic search records such as attachments continue independently.
+
+No Room schema or Planning transport change is required. Room remains schema
+193 and Planning transport remains v4. Remaining Goal/Context search paths and
+Context-shaped presentation are compatibility/physical-retirement concerns for
+later bounded work, not competing semantic authority.
+
+Final HOST evidence is green. One combined focused app run passes the product
+Room source/N+1 contract, product repository and Planning-membership behavior,
+and bounded semantic `SearchRepositoryTest`. The final mandatory compile bundle
+passes `:shared-core-domain:compileKotlinJs`, `:app:compileProdDebugKotlin`, and
+`:app:compileProdDebugUnitTestKotlin`.
+
+Earlier host-memory resource-admission refusals happened before Gradle startup
+and therefore remain infrastructure history rather than code/test failures.
+V3.7b is closed. V3.7c is a separate future bounded slice.
+
+## 2026-10-09 - Ordinary product semantic reads are canonical-only
+
+**DECIDED / V3.7c AND OVERALL V3.7 COMPLETE / HOST VERIFIED / DURABLE.**
+
+Ordinary semantic product reads resolve through canonical Orientation. A
+Goal-shaped DTO may survive for command/domain compatibility, but its common
+meaning is projected one-way from the unique live CUT_OVER GOAL Orientation;
+missing, deleted, duplicate or wrong-kind canonical state fails closed and may
+not fall back to the Goal copy.
+
+Global Search does not query Goal as a semantic result source. Orientation id
+is the only semantic result identity, while attachments, Links and other
+specialized records remain independently searchable. Link hierarchy
+decoration comes from canonical H1; `Context.parentId` is not ordinary product
+hierarchy authority. Context-shaped UI presentation may survive only as a
+one-way projection from canonical Workspace/common owners plus specialized
+carrier state.
+
+The Android read architecture remains bulk and shared: consumer projections do
+not add per-item Orientation, Workspace, Planning or hierarchy DAO queries.
+Day, Tactical and Strategic domain adapters remain authoritative for their
+specialized state. Physical compatibility/FK retirement is explicitly deferred
+to V3.8. Schema remains 193 and Planning transport remains v4.
+
+## 2026-10-16 - CREATE-CRASH reactive snapshot boundary accepted
+
+**DECIDED / EXP RUNTIME ACCEPTED.** Where a canonical UI projection joins
+several Room tables, independent Flow payloads are not a valid coherent
+snapshot. The Quest and Day Theme creation paths now use Room table
+invalidation as the observation signal and read all required projection
+inputs inside one `AppDatabase.withTransaction`. Structural integrity
+requirements remain strict; missing canonical rows or compatibility
+carriers must not be disguised by fallback or relaxed checks.
+
+This stabilization did not modify authoritative write ownership or
+schema 198. UI input-focus dismissal after Strategic Quest submission
+is a presentation behavior, independent of persistence success; the
+ViewModel's write remains asynchronous.
+
+Completed Orientation bootstrap short-circuiting is **not** accepted as
+a general waiver of compatibility-repair requirements. Its independently
+failing Theme repair contract remains unresolved and requires a
+separate bounded task that accounts for startup performance.

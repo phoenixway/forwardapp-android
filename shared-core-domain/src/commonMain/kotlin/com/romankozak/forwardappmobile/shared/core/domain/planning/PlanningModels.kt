@@ -141,6 +141,22 @@ data class PlanningScope(
     val isDeleted: Boolean,
 )
 
+/**
+ * Strategic-only compatibility/horizon state keyed by the canonical scope.
+ *
+ * [legacyArcKey] remains a locator for the pre-V3 month-grouped model. It is
+ * never an alternate PlanningScope identity.
+ */
+data class StrategicPlanningScopeExtension(
+    val scopeId: PlanningScopeId,
+    val legacyArcKey: String,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val syncedAt: Long?,
+    val version: Long,
+    val isDeleted: Boolean,
+)
+
 data class PlanningCommitment(
     val id: PlanningCommitmentId,
     val scopeId: PlanningScopeId,

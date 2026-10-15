@@ -43,6 +43,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInbo
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -85,13 +86,23 @@ class ContextScreenViewModelNavigationTest {
     fun `onProjectViewChange persists resolved view mode`() =
         runTest {
             val fixture = createFixture()
+            fixture.contextSessionStore.syncFromConfig(
+                contextId = contextId,
+                config = createConfig(),
+                preferredViewName = null,
+                currentView = ContextViewMode.BACKLOG,
+            )
             val resolved = fixture.contextSessionStore.selectView(ContextViewMode.INBOX)
             assertThat(resolved).isEqualTo(ContextViewMode.BACKLOG)
 
             fixture.viewModel.onProjectViewChange(ContextViewMode.INBOX)
 
             coVerify {
-                fixture.contextRepository.updateContextViewMode(contextId, ContextViewMode.BACKLOG)
+                fixture.presentationPreferences.setDefaultViewMode(
+                    workspaceId = contextId,
+                    defaultViewModeName = ContextViewMode.BACKLOG.name,
+                    now = any(),
+                )
             }
         }
 
@@ -155,7 +166,7 @@ class ContextScreenViewModelNavigationTest {
             assertThat(retired.description).isEqualTo("Canonical description")
             assertThat(retired.parentId).isNull()
             assertThat(retired.roleCode).isEqualTo("canonical-role")
-            assertThat(retired.order).isEqualTo(7L)
+            assertThat(retired.order).isEqualTo(0L)
             assertThat(retired.tags).containsExactly("canonical-tag")
         }
 
@@ -166,6 +177,12 @@ class ContextScreenViewModelNavigationTest {
         pickerTagsByWorkspace: Map<String, List<String>> = emptyMap(),
     ): Fixture {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
+        val presentationPreferences =
+            mockk<WorkspacePresentationPreferencesRepository>(relaxed = true)
+        every {
+            presentationPreferences.observeCanonicalOrNull(contextId)
+        } returns flowOf(null)
+
         val config = createConfig()
         stubFlows(contextRepository, config)
         every { contextRepository.getAllContextsFlow() } returns
@@ -179,6 +196,8 @@ class ContextScreenViewModelNavigationTest {
         val workspaceDao = mockk<WorkspaceDao>(relaxed = true)
         every { workspaceDao.observeAll() } returns flowOf(pickerWorkspaces)
         val presentationContextDao = mockk<ContextDao>(relaxed = true)
+        every { presentationContextDao.getAllContexts() } returns
+            flowOf(pickerActiveContexts)
         every { presentationContextDao.getAllContextsFlow() } returns
             flowOf(pickerAllContextRows)
 
@@ -251,9 +270,10 @@ class ContextScreenViewModelNavigationTest {
                         every { observeState(any()) } returns flowOf(null)
                     },
                 canonicalWorkspaceRepository = mockk(relaxed = true),
+                workspacePresentationPreferencesRepository = presentationPreferences,
                 systemWorkspacePresentationContextProjector = presentationProjector,
             )
-        return Fixture(viewModel, contextSessionStore, contextRepository)
+        return Fixture(viewModel, contextSessionStore, presentationPreferences)
     }
 
     private val listItemRepository = mockk<ListItemRepository>(relaxed = true)
@@ -288,19 +308,6 @@ class ContextScreenViewModelNavigationTest {
         contextRepository: ContextRepository,
         config: ContextConfiguration,
     ) {
-        every { contextRepository.getContextByIdFlow(contextId) } returns
-            flowOf(
-                com.romankozak.forwardappmobile.core.data.models.entities.Context(
-                    id = contextId,
-                    name = "Test",
-                    description = null,
-                    parentId = null,
-                    createdAt = 0L,
-                    updatedAt = 0L,
-                    tags = emptyList(),
-                    relatedLinks = emptyList(),
-                ),
-            )
         every { listItemRepository.getItemsForContextStream(contextId) } returns flowOf(emptyList())
         every { contextStructureRepository.observeStructureOnly(contextId) } returns flowOf(config)
         every { contextLogRepository.getContextLogsStream(contextId) } returns flowOf(emptyList())
@@ -309,9 +316,8 @@ class ContextScreenViewModelNavigationTest {
         every { directionRepository.getDirectionItemsForContext(contextId) } returns flowOf(emptyList())
         every { reminderRepository.getRemindersForEntityFlow(contextId) } returns flowOf(emptyList())
         every { recentItemsRepository.getRecentItemsForContextFlow(contextId) } returns flowOf(emptyList())
-        every { noteRepository.getNotesForContext(contextId) } returns flowOf(emptyList())
+        every { noteRepository.observePlacedNotesForWorkspace(contextId) } returns flowOf(emptyList())
         every { goalRepository.getGoalsByContextIdFlow(contextId) } returns flowOf(emptyList())
-        every { contextRepository.getSubprojectsByParentIdFlow(contextId) } returns flowOf(emptyList())
         every { contextRepository.getAttachmentLibraryItemsFlow() } returns flowOf(emptyList())
         every { contextKeyProblemsRepository.observe(contextId) } returns
             flowOf(ContextKeyProblemsRepository.KeyProblemsData())
@@ -335,6 +341,6 @@ class ContextScreenViewModelNavigationTest {
     private data class Fixture(
         val viewModel: ContextScreenViewModel,
         val contextSessionStore: ContextSessionStore,
-        val contextRepository: ContextRepository,
+        val presentationPreferences: WorkspacePresentationPreferencesRepository,
     )
 }

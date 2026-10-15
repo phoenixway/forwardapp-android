@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.data.models.entities.day_management
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
@@ -110,12 +111,6 @@ data class DayThemeDocumentEntity(
             onDelete = ForeignKey.SET_NULL,
         ),
         ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
             entity = WorkspaceEntity::class,
             parentColumns = ["id"],
             childColumns = ["project_workspace_id"],
@@ -131,20 +126,21 @@ data class DayThemeDocumentEntity(
     indices = [
         Index("dayPlanId"),
         Index("goalId"),
-        Index("projectId"),
         Index("project_workspace_id"),
         Index("activityRecordId"),
         Index("scheduledTime"),
         Index(value = ["recurrenceSeriesId", "recurrenceOccurrenceDayKey"]),
     ],
 )
-data class DayTask(
+data class DayTask @Ignore constructor(
     @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("dayPlanId") val dayPlanId: String,
     @SerializedName("title") val title: String,
     @SerializedName("description") val description: String? = null,
     @SerializedName("goalId") val goalId: String? = null,
-    @SerializedName(value = "projectId", alternate = ["contextId"]) val projectId: String? = null,
+    @Ignore
+    @SerializedName(value = "projectId", alternate = ["contextId"])
+    val projectId: String? = null,
     @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>? = emptyList(),
     @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("activityRecordId") val activityRecordId: String? = null,
@@ -180,7 +176,92 @@ data class DayTask(
     @ColumnInfo(name = "project_workspace_id")
     @SerializedName("projectWorkspaceId")
     val projectWorkspaceId: String? = null,
-)
+) {
+    /**
+     * Room-only constructor for physical persistence.
+     * Legacy projectId is compatibility input, never a Room column.
+     */
+    constructor(
+        id: String,
+        dayPlanId: String,
+        title: String,
+        description: String?,
+        goalId: String?,
+        linkedProjectIds: List<String>?,
+        linkedAttachmentIds: List<String>?,
+        activityRecordId: String?,
+        recurrenceSeriesId: String?,
+        recurrenceOccurrenceDayKey: String?,
+        recurrenceSourceSeriesVersion: Long?,
+        taskType: String?,
+        entityId: String?,
+        order: Long,
+        priority: TaskPriority,
+        status: TaskStatus,
+        completed: Boolean,
+        scheduledTime: Long?,
+        estimatedDurationMinutes: Long?,
+        actualDurationMinutes: Long?,
+        dueTime: Long?,
+        executionStrictness: TaskExecutionStrictness,
+        valueImportance: Float,
+        valueImpact: Float,
+        effort: Float,
+        cost: Float,
+        risk: Float,
+        location: String?,
+        tags: List<String>?,
+        notes: String?,
+        createdAt: Long,
+        updatedAt: Long?,
+        syncedAt: Long?,
+        isDeleted: Boolean,
+        version: Long,
+        completedAt: Long?,
+        points: Int,
+        projectWorkspaceId: String?,
+    ) : this(
+        id = id,
+        dayPlanId = dayPlanId,
+        title = title,
+        description = description,
+        goalId = goalId,
+        linkedProjectIds = linkedProjectIds,
+        linkedAttachmentIds = linkedAttachmentIds,
+        activityRecordId = activityRecordId,
+        recurrenceSeriesId = recurrenceSeriesId,
+        recurrenceOccurrenceDayKey = recurrenceOccurrenceDayKey,
+        recurrenceSourceSeriesVersion = recurrenceSourceSeriesVersion,
+        taskType = taskType,
+        entityId = entityId,
+        order = order,
+        priority = priority,
+        status = status,
+        completed = completed,
+        scheduledTime = scheduledTime,
+        estimatedDurationMinutes = estimatedDurationMinutes,
+        actualDurationMinutes = actualDurationMinutes,
+        dueTime = dueTime,
+        executionStrictness = executionStrictness,
+        valueImportance = valueImportance,
+        valueImpact = valueImpact,
+        effort = effort,
+        cost = cost,
+        risk = risk,
+        location = location,
+        tags = tags,
+        notes = notes,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+        completedAt = completedAt,
+        points = points,
+        projectWorkspaceId = projectWorkspaceId,
+        projectId = null,
+    )
+}
 
 val DayTask.logicalProjectId: String?
     get() = projectWorkspaceId ?: projectId

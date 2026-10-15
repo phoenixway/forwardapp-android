@@ -120,7 +120,7 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE goalId = :goalId ORDER BY createdAt DESC")
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE (projectId = :projectId OR project_workspace_id = :projectId) ORDER BY createdAt DESC")
+    @Query("SELECT * FROM day_tasks WHERE project_workspace_id = :projectId ORDER BY createdAt DESC")
     fun getTasksForProject(projectId: String): Flow<List<DayTask>>
 
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND status = :status AND isDeleted = 0 ORDER BY `order` ASC")
@@ -261,6 +261,24 @@ interface DayTaskDao {
         updatedAt: Long,
     )
 
+    /**
+     * Sync ACK is metadata-only. Never rewrite DayTask ownership or recurrence
+     * state while acknowledging a previously selected entity version.
+     */
+    @Query(
+        """
+        UPDATE day_tasks
+        SET syncedAt = :syncedAt
+        WHERE id = :taskId
+          AND version = :expectedVersion
+        """,
+    )
+    suspend fun markSyncedIfVersionMatches(
+        taskId: String,
+        expectedVersion: Long,
+        syncedAt: Long,
+    ): Int
+
     // --- Backup Methods ---
     @Query("SELECT * FROM day_tasks")
     suspend fun getAllTasksSync(): List<DayTask>
@@ -307,17 +325,14 @@ internal suspend fun routeDayTaskProjectForPersistence(
                 projectWorkspaceId = null,
             )
 
-    return when (
-        classifyOperationalProjectOwner(
-            logicalProjectId = logicalProjectId,
-            context = contextLookup(logicalProjectId),
-            workspace = workspaceLookup(logicalProjectId),
-        )
-    ) {
-        OperationalProjectOwnerStorage.CONTEXT ->
-            task.copy(projectId = logicalProjectId, projectWorkspaceId = null)
+    requireDayTaskWorkspaceOwner(
+        ownerId = logicalProjectId,
+        context = contextLookup(logicalProjectId),
+        workspace = workspaceLookup(logicalProjectId),
+    )
 
-        OperationalProjectOwnerStorage.WORKSPACE ->
-            task.copy(projectId = null, projectWorkspaceId = logicalProjectId)
-    }
+    return task.copy(
+        projectId = null,
+        projectWorkspaceId = logicalProjectId,
+    )
 }

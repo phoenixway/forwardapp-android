@@ -4,11 +4,22 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalPlanningPayload
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAdapter
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.sync.datasource.SnapshotRestoreLocalDataSource
@@ -41,6 +52,11 @@ class SnapshotRestoreLocalDataSourceImpl
         private val database: AppDatabase,
         private val writer: CanonicalSnapshotTransactionWriter,
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
+        private val dayPlanningAuthorityActivator: CanonicalDayPlanningAuthorityActivator,
+        private val tacticalPlanningAuthorityActivator: CanonicalTacticalPlanningAuthorityActivator,
+        private val strategicPlanningAuthorityActivator: CanonicalStrategicPlanningAuthorityActivator,
+        private val canonicalScoringAuthorityActivator: CanonicalScoringAuthorityActivator,
+        private val strategicPlanningAdapter: CanonicalStrategicPlanningAdapter? = null,
     ) : SnapshotRestoreLocalDataSource {
         override suspend fun replaceWith(bundle: SnapshotBundle) {
             validateBeforeClear(bundle)
@@ -77,11 +93,65 @@ class SnapshotRestoreLocalDataSourceImpl
                     placements = decodedHierarchy,
                 )
 
-            // H1 restore is explicit: peer merge correctly resets syncedAt, while
-            // full backup/restore must preserve it exactly.
+            val planningStore = CanonicalPlanningSyncStore(database)
+            val planningScopeSnapshots =
+                bundle.planningScopes ?: planningStore.loadAllScopes()
+            val planningCommitmentSnapshots =
+                bundle.planningCommitments ?: planningStore.loadAllCommitments()
+
+            val liveOrientationIds =
+                requireNotNull(bundle.managedSubjects)
+                    .asSequence()
+                    .filter { it.subjectType == "ORIENTATION" && !it.isDeleted }
+                    .map { it.id }
+                    .toSet()
+                    .intersect(
+                        requireNotNull(bundle.orientations)
+                            .mapTo(hashSetOf()) { it.subjectId },
+                    )
+
+            val decodedPlanning =
+                planningStore.decodeAndValidateForRestore(
+                    scopes = planningScopeSnapshots,
+                    commitments = planningCommitmentSnapshots,
+                    liveOrientationIds = liveOrientationIds,
+                )
+            val dayExtensionStore = CanonicalDayPlanningScopeExtensionSyncStore(database)
+            val dayExtensionSnapshots =
+                bundle.dayPlanningScopeExtensions ?: dayExtensionStore.loadAll()
+            val decodedDayExtensions =
+                dayExtensionStore.decodeAndValidateForRestore(
+                    snapshots = dayExtensionSnapshots,
+                    scopes = decodedPlanning.scopes,
+                )
+            val tacticalExtensionStore = CanonicalTacticalPlanningScopeExtensionSyncStore(database)
+            val tacticalExtensionSnapshots =
+                bundle.tacticalPlanningScopeExtensions ?: tacticalExtensionStore.loadAll()
+            val decodedTacticalExtensions =
+                tacticalExtensionStore.decodeAndValidateForRestore(
+                    snapshots = tacticalExtensionSnapshots,
+                    scopes = decodedPlanning.scopes,
+                )
+            val strategicExtensionStore = CanonicalStrategicPlanningScopeExtensionSyncStore(database)
+            val strategicExtensionSnapshots =
+                bundle.strategicPlanningScopeExtensions ?: strategicExtensionStore.loadAll()
+            val decodedStrategicExtensions =
+                strategicExtensionStore.decodeAndValidateForRestore(
+                    snapshots = strategicExtensionSnapshots,
+                    scopes = decodedPlanning.scopes,
+                )
+
+            // H1 and Planning restore are explicit: peer merge correctly resets
+            // syncedAt, while full backup/restore must preserve it exactly.
             val roomBundle =
                 bundle.copy(
                     dayManagementRuntimeState = null,
+                    planningFormatVersion = null,
+                    planningScopes = null,
+                    planningCommitments = null,
+                    dayPlanningScopeExtensions = null,
+                    tacticalPlanningScopeExtensions = null,
+                    strategicPlanningScopeExtensions = null,
                     hierarchyPlacements = null,
                     hierarchyPlacementGroupScopes = null,
                     hierarchyPlacementLinkedAppearances = null,
@@ -90,12 +160,33 @@ class SnapshotRestoreLocalDataSourceImpl
             database.withTransaction {
                 TransactionAwareRoomClearer(database).clearAllApplicationTables()
                 writer.apply(roomBundle)
+                planningStore.restoreExactDecoded(decodedPlanning)
+                dayExtensionStore.restoreExactDecoded(decodedDayExtensions)
+                tacticalExtensionStore.restoreExactDecoded(decodedTacticalExtensions)
+                strategicExtensionStore.restoreExactDecoded(decodedStrategicExtensions)
                 hierarchyStore.restoreExactDecoded(decodedHierarchy)
                 groupScopeStore.restoreExactDecoded(
                     scopes = decodedGroupScopes,
                     requireComplete = bundle.hierarchyPlacementGroupScopes != null,
                 )
                 linkedAppearanceStore.restoreExactDecoded(decodedLinkedAppearances)
+                canonicalScoringAuthorityActivator.ensureActivated()
+                dayPlanningAuthorityActivator.ensureActivated()
+                dayPlanningAuthorityActivator.projectCompatibilityRows()
+
+                if (bundle.planningFormatVersion == null) {
+                    tacticalPlanningAuthorityActivator.ensureActivated()
+                } else {
+                    tacticalPlanningAuthorityActivator.admitCanonicalIngress()
+                }
+                tacticalPlanningAuthorityActivator.projectCompatibilityRows()
+                if (bundle.planningFormatVersion == CURRENT_PLANNING_FORMAT_VERSION) {
+                    strategicPlanningAuthorityActivator.admitCanonicalIngress()
+                } else {
+                    strategicPlanningAuthorityActivator.ensureActivated()
+                }
+                strategicPlanningAdapter?.projectCompatibilityRows()
+
                 assertRestoreInvariants(bundle)
             }
             bundle.dayManagementRuntimeState?.let { dayManagementRuntimeRepository.importSnapshot(it) }
@@ -104,6 +195,7 @@ class SnapshotRestoreLocalDataSourceImpl
         private fun validateBeforeClear(bundle: SnapshotBundle) {
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
+            requireValidCanonicalPlanningPayload(bundle)
             require(bundle.workspaces != null) {
                 "Restore replacement requires a canonical Workspace payload"
             }

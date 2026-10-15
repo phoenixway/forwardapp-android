@@ -62,16 +62,17 @@ Status: CURRENT / IN PROGRESS.
 
 The Context extinction program remains unfinished.
 
-Step 12D is still in progress.
+Step 12D is COMPLETE / HOST VERIFIED / DURABLE.
 
-Step 12E is DECIDED / NOT STARTED.
+Step 12E is IN PROGRESS and verified through 12E.2c. Remaining Context
+persistence and compatibility retirement continues in bounded slices.
 
-Starting Canonical V2 work does not complete, supersede, cancel, or silently
-postpone this migration.
+Starting Canonical V2 or Canonical V3 work does not complete, supersede,
+cancel, or silently postpone this migration.
 
 ### Epic B: Canonical V1 -> Canonical V2 hierarchy
 
-Status: DECIDED / NOT YET CUT OVER.
+Status: H0-H6 COMPLETE / HOST VERIFIED / DURABLE.
 
 This migration introduces canonical hierarchy placement without reopening
 already accepted V1 semantic or operational ownership decisions.

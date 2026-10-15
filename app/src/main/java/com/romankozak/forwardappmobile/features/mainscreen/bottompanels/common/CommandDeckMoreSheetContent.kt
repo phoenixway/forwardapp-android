@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -46,6 +47,7 @@ internal fun MoreBottomSheetContent(
     onShowImportExportSheet: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onNavigateToEntityLibrary: () -> Unit,
     onShowAbout: () -> Unit,
     additionalActions: List<MoreSheetAction>,
     onNavigateToSettings: () -> Unit,
@@ -103,6 +105,7 @@ internal fun MoreBottomSheetContent(
             }
             MoreSheetLibraryItems(
                 featureToggles = featureToggles,
+                onNavigateToEntityLibrary = onNavigateToEntityLibrary,
                 onNavigateToAttachments = onNavigateToAttachments,
                 onNavigateToScripts = onNavigateToScripts,
             )
@@ -159,9 +162,15 @@ private fun MoreSheetAiItems(
 @Composable
 private fun MoreSheetLibraryItems(
     featureToggles: Map<FeatureFlag, Boolean>,
+    onNavigateToEntityLibrary: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
 ) {
+    MoreSheetMenuItem(
+        icon = Icons.Default.CollectionsBookmark,
+        label = "Entity Library",
+        onClick = onNavigateToEntityLibrary,
+    )
     if (featureToggles[FeatureFlag.AttachmentsLibrary] == true) {
         MoreSheetMenuItem(
             icon = Icons.Default.Description,

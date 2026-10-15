@@ -10,7 +10,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalTaskRecurrenceAuthoringAdapter
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,7 +55,6 @@ class EditTaskViewModel
     constructor(
         private val dayManagementRepository: DayManagementRepository,
         private val canonicalTaskRecurrenceAuthoringAdapter: CanonicalTaskRecurrenceAuthoringAdapter,
-        private val contextRepository: ContextRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -176,11 +174,9 @@ class EditTaskViewModel
             viewModelScope.launch {
                 val currentLinks = _uiState.value.contextLinks
                 if (currentLinks.any { it.id == normalizedId }) return@launch
-                val rawContext = contextRepository.getContextById(normalizedId)
                 val presentation =
                     systemWorkspacePresentationContextProjector.resolvePresentation(
                         contextId = normalizedId,
-                        context = rawContext,
                     ) ?: return@launch
                 _uiState.value =
                     _uiState.value.copy(
@@ -329,11 +325,9 @@ class EditTaskViewModel
         private suspend fun List<String>.resolveContextLinks(): List<TaskContextLinkUi> {
             val resolved = mutableListOf<TaskContextLinkUi>()
             for (id in this) {
-                val rawContext = contextRepository.getContextById(id)
                 val presentation =
                     systemWorkspacePresentationContextProjector.resolvePresentation(
                         contextId = id,
-                        context = rawContext,
                     ) ?: continue
                 resolved +=
                     TaskContextLinkUi(

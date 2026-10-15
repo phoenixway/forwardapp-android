@@ -117,7 +117,6 @@ private fun BeaconProgressSection(
                         EvaluationTabs(
                             uiState = uiState,
                             onViewModelAction = onViewModelAction,
-                            isEnabled = uiState.isScoringEnabled,
                         )
                     }
                 }
@@ -272,17 +271,15 @@ private fun relativeSizeLabel(value: Int): String =
 fun EvaluationTabs(
     uiState: EvaluationTabUiState,
     onViewModelAction: EvaluationTabActions,
-    isEnabled: Boolean,
 ) {
     val tabTitles = listOf("Gain", "Loss", "Weights")
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else DISABLED_CONTENT_ALPHA)) {
+    Column {
         TabRow(selectedTabIndex = pagerState.currentPage) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
-                    enabled = isEnabled,
                     selected = pagerState.currentPage == index,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     text = { Text(title) },
@@ -296,7 +293,6 @@ fun EvaluationTabs(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
-            userScrollEnabled = isEnabled,
         ) { page ->
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -306,7 +302,6 @@ fun EvaluationTabs(
                     page = page,
                     uiState = uiState,
                     onViewModelAction = onViewModelAction,
-                    isEnabled = isEnabled,
                 )
             }
         }
@@ -318,12 +313,23 @@ private fun EvaluationTabPage(
     page: Int,
     uiState: EvaluationTabUiState,
     onViewModelAction: EvaluationTabActions,
-    isEnabled: Boolean,
 ) {
     when (page) {
-        0 -> GainTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
-        1 -> LossTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
-        2 -> WeightsTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
+        0 -> GainTab(
+            uiState = uiState,
+            onViewModelAction = onViewModelAction,
+            isEnabled = uiState.isAssessmentEnabled,
+        )
+        1 -> LossTab(
+            uiState = uiState,
+            onViewModelAction = onViewModelAction,
+            isEnabled = uiState.isScoringEnabled,
+        )
+        2 -> WeightsTab(
+            uiState = uiState,
+            onViewModelAction = onViewModelAction,
+            isEnabled = uiState.isScoringEnabled,
+        )
     }
 }
 
@@ -339,6 +345,7 @@ private fun GainTab(
                 label = "Value importance",
                 value = uiState.valueImportance,
                 scale = Scales.importance,
+                unsetValue = 0f.takeIf { uiState.supportsAssessmentUnset },
             ),
         onValueChange = onViewModelAction::onValueImportanceChange,
         enabled = isEnabled,
@@ -349,6 +356,7 @@ private fun GainTab(
                 label = "Value gain impact",
                 value = uiState.valueImpact,
                 scale = Scales.impact,
+                unsetValue = 0f.takeIf { uiState.supportsAssessmentUnset },
             ),
         onValueChange = onViewModelAction::onValueImpactChange,
         enabled = isEnabled,

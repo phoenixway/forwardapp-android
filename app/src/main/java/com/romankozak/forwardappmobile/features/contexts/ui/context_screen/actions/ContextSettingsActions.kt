@@ -5,10 +5,12 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 
 class ContextSettingsActions(
     private val contextRepository: ContextRepository,
     private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+    private val workspacePresentationPreferencesRepository: WorkspacePresentationPreferencesRepository,
 ) {
     suspend fun deleteCurrentProject(contextId: String) {
         require(!SystemContexts.isSystem(ContextId(contextId))) {
@@ -25,11 +27,15 @@ class ContextSettingsActions(
         mode: ContextViewMode,
     ) {
         if (contextId.isBlank()) return
-        contextRepository.updateContextViewMode(contextId, mode)
+        workspacePresentationPreferencesRepository.setDefaultViewMode(
+            workspaceId = contextId,
+            defaultViewModeName = mode.name,
+        )
     }
 
     suspend fun toggleAttachmentsExpanded(contextId: String) {
-        contextRepository.toggleContextAttachmentsExpanded(contextId)
+        if (contextId.isBlank()) return
+        workspacePresentationPreferencesRepository.toggleAttachmentsExpanded(contextId)
     }
 
     suspend fun toggleProjectManagement(

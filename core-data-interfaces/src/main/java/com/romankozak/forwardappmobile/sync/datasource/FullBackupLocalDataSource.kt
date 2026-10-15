@@ -8,6 +8,16 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
@@ -23,6 +33,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
@@ -33,6 +45,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Leg
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationScoringOverrideEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
@@ -43,6 +56,22 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 data class CanonicalExecutionLogSyncVersion(
     val id: String,
     val version: Long,
+)
+
+data class CanonicalPlanningSyncPayload(
+    val scopes: List<PlanningScopeSnapshot> = emptyList(),
+    val commitments: List<PlanningCommitmentSnapshot> = emptyList(),
+    val dayScopeExtensions: List<DayPlanningScopeExtensionSnapshot> = emptyList(),
+    val tacticalScopeExtensions: List<TacticalPlanningScopeExtensionSnapshot> = emptyList(),
+    val strategicScopeExtensions: List<StrategicPlanningScopeExtensionSnapshot> = emptyList(),
+)
+
+data class CanonicalPlanningSyncAck(
+    val scopes: List<PlanningScopeSyncVersion> = emptyList(),
+    val commitments: List<PlanningCommitmentSyncVersion> = emptyList(),
+    val dayScopeExtensions: List<DayPlanningScopeExtensionSyncVersion> = emptyList(),
+    val tacticalScopeExtensions: List<TacticalPlanningScopeExtensionSyncVersion> = emptyList(),
+    val strategicScopeExtensions: List<StrategicPlanningScopeExtensionSyncVersion> = emptyList(),
 )
 
 data class CanonicalRecurringSeriesSyncVersion(
@@ -73,6 +102,7 @@ data class CanonicalOrientationSyncPayload(
     val aspects: List<AspectEntity> = emptyList(),
     val assessments: List<OrientationAssessmentEntity> = emptyList(),
     val assessmentRevisions: List<OrientationAssessmentRevisionEntity> = emptyList(),
+    val scoringOverrides: List<OrientationScoringOverrideEntity> = emptyList(),
     val legacyMappings: List<LegacySubjectMappingEntity> = emptyList(),
     val relations: List<OrientationRelationEntity> = emptyList(),
     val aspectRefs: List<AspectOrientationRefEntity> = emptyList(),
@@ -95,6 +125,7 @@ data class CanonicalOrientationSyncAck(
     val managedSubjects: List<CanonicalOrientationSyncVersion> = emptyList(),
     val assessments: List<CanonicalOrientationSyncVersion> = emptyList(),
     val assessmentRevisions: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val scoringOverrides: List<CanonicalOrientationSyncVersion> = emptyList(),
     val legacyMappings: List<CanonicalOrientationSyncVersion> = emptyList(),
     val relations: List<CanonicalOrientationSyncVersion> = emptyList(),
     val aspectRefs: List<CanonicalOrientationSyncVersion> = emptyList(),
@@ -123,6 +154,12 @@ interface FullBackupLocalDataSource {
 
     suspend fun getSettingsSnapshot(): Map<String, String>
 
+    suspend fun loadUnsyncedCanonicalPlanning(): CanonicalPlanningSyncPayload
+
+    suspend fun loadCanonicalPlanningChangedSince(timestamp: Long): CanonicalPlanningSyncPayload
+
+    suspend fun markCanonicalPlanningSynced(ack: CanonicalPlanningSyncAck)
+
     suspend fun loadUnsyncedCanonicalRecurringSeries(): List<CanonicalRecurringSeriesSnapshot>
 
     suspend fun loadCanonicalRecurringSeriesChangedSince(timestamp: Long): List<CanonicalRecurringSeriesSnapshot>
@@ -144,6 +181,17 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalExecutionLogsChangedSince(timestamp: Long): List<CanonicalExecutionLogSnapshot>
 
     suspend fun markCanonicalExecutionLogsSynced(logs: List<CanonicalExecutionLogSyncVersion>)
+
+    suspend fun loadUnsyncedCanonicalWorkspacePresentationPreferences():
+        List<WorkspacePresentationPreferencesSnapshot>
+
+    suspend fun loadCanonicalWorkspacePresentationPreferencesChangedSince(
+        timestamp: Long,
+    ): List<WorkspacePresentationPreferencesSnapshot>
+
+    suspend fun markCanonicalWorkspacePresentationPreferencesSynced(
+        entries: List<WorkspacePresentationPreferencesSyncVersion>,
+    )
 
     suspend fun loadUnsyncedCanonicalWorkspaceDirectionEntries(): List<WorkspaceDirectionEntrySnapshot>
 

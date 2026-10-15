@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ChecklistSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
@@ -131,6 +132,118 @@ class CanonicalBacklogSelectiveImportFilterTest {
 
         assertNull(filtered.workspaceBacklogEntries)
     }
+
+    @Test
+    fun `FK10B3b selected Note placement includes content without historical Context`() {
+        val note = legacyNote("note-a", "absent-historical-context")
+        val placement = entry("note-placement", targetKind = "LEGACY_NOTE", targetId = note.id)
+        val source =
+            checklistSource(entries = listOf(placement))
+                .copy(notes = listOf(note, legacyNote("unselected-note", note.contextId)))
+
+        val filtered = filter.filter(source, selection(placement.id))
+
+        assertEquals(listOf(placement.id), filtered.workspaceBacklogEntries?.map { it.id })
+        assertEquals(listOf(note.id), filtered.notes.map { it.id })
+        assertEquals(note.contextId, filtered.notes.single().contextId)
+        assertTrue(filtered.contexts.isEmpty())
+        assertTrue(filtered.managedSubjects.orEmpty().isEmpty())
+        assertTrue(filtered.orientations.orEmpty().isEmpty())
+    }
+
+    @Test
+    fun `FK10B3b multi placement Note has one identity and independently selected occurrences`() {
+        val note = legacyNote("shared-note", "missing-context")
+        val first = entry("note-a", targetKind = "LEGACY_NOTE", targetId = note.id)
+        val second =
+            entry("note-b", targetKind = "LEGACY_NOTE", targetId = note.id)
+                .copy(workspaceId = "workspace-b", capabilityInstanceId = "backlog-b")
+
+        val source =
+            checklistSource(
+                entries = listOf(first, second),
+                capabilities = listOf(capability(), capability("backlog-b", "workspace-b")),
+            ).copy(
+                notes = listOf(note),
+                workspaces = listOf(workspace("workspace-owner"), workspace("workspace-b")),
+            )
+
+        val single = filter.filter(source, selection(first.id))
+
+        assertEquals(listOf(note.id), single.notes.map { it.id })
+        assertEquals(listOf(first.id), single.workspaceBacklogEntries?.map { it.id })
+        assertEquals(listOf("workspace-owner"), single.workspaces?.map { it.id })
+
+        val both =
+            filter.filter(
+                source,
+                WorkspaceSelectiveImportSelection(
+                    selectedWorkspaceBacklogEntryIds = setOf(first.id, second.id),
+                ),
+            )
+
+        assertEquals(1, both.notes.count { it.id == note.id })
+        assertEquals(setOf(first.id, second.id), both.workspaceBacklogEntries?.map { it.id }?.toSet())
+        assertEquals(setOf("workspace-owner", "workspace-b"), both.workspaces?.map { it.id }?.toSet())
+    }
+
+    @Test
+    fun `FK10B3b live placement requires live Note but tombstone does not resurrect target`() {
+        val placement = entry("live-note", targetKind = "LEGACY_NOTE", targetId = "target-note")
+        val missing = checklistSource(entries = listOf(placement)).copy(notes = emptyList())
+
+        assertThrows(IllegalArgumentException::class.java) {
+            filter.filter(missing, selection(placement.id))
+        }
+
+        val deletedNote = legacyNote("target-note", "missing-context", deleted = true)
+        val source = missing.copy(notes = listOf(deletedNote))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            filter.filter(source, selection(placement.id))
+        }
+
+        val deletedPlacement = placement.copy(isDeleted = true)
+        val filtered =
+            filter.filter(
+                source.copy(workspaceBacklogEntries = listOf(deletedPlacement)),
+                selection(deletedPlacement.id),
+            )
+
+        assertEquals(listOf(deletedPlacement.id), filtered.workspaceBacklogEntries?.map { it.id })
+        assertTrue(filtered.workspaceBacklogEntries.orEmpty().all { it.isDeleted })
+        assertTrue(filtered.notes.isEmpty())
+    }
+
+    @Test
+    fun `FK10B3b Workspace selection does not pull unplaced historical Note`() {
+        val note = legacyNote("standalone", "workspace-owner")
+        val source = checklistSource(entries = emptyList()).copy(notes = listOf(note))
+
+        val filtered =
+            filter.filter(
+                source,
+                WorkspaceSelectiveImportSelection(selectedContextIds = setOf("workspace-owner")),
+            )
+
+        assertTrue(filtered.notes.isEmpty())
+        assertNull(filtered.workspaceBacklogEntries)
+    }
+
+    private fun legacyNote(
+        id: String,
+        contextId: String?,
+        deleted: Boolean = false,
+    ) = LegacyNoteSnapshot(
+        id = id,
+        contextId = contextId,
+        title = "Title-$id",
+        content = "Body-$id",
+        createdAt = 10L,
+        updatedAt = 20L,
+        isDeleted = deleted,
+        version = 2L,
+    )
 
     private fun selection(id: String) =
         WorkspaceSelectiveImportSelection(selectedWorkspaceBacklogEntryIds = setOf(id))

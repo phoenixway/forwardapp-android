@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.AttentionT
 import com.romankozak.forwardappmobile.shared.core.models.orientation.BreadthValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.CommitmentValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ConfidenceValue
+import com.romankozak.forwardappmobile.shared.core.models.orientation.CostValue
+import com.romankozak.forwardappmobile.shared.core.models.orientation.EffortValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ExpectedSpanValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ImpactValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ImportanceValue
@@ -14,6 +16,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.Orientatio
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKindResolution
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationLifecycle
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationLifecycleResolution
+import com.romankozak.forwardappmobile.shared.core.models.orientation.RiskValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.TargetWindowValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 
@@ -56,6 +59,9 @@ fun axisValueCodes(axis: OrientationAxis): List<String> =
         OrientationAxis.ATTENTION_TIER -> AttentionTierValue.entries.map { it.name }
         OrientationAxis.COMMITMENT -> CommitmentValue.entries.map { it.name }
         OrientationAxis.CONFIDENCE -> ConfidenceValue.entries.map { it.name }
+        OrientationAxis.EFFORT -> EffortValue.entries.map { it.name }
+        OrientationAxis.COST -> CostValue.entries.map { it.name }
+        OrientationAxis.RISK -> RiskValue.entries.map { it.name }
     }
 
 fun axisApplicability(
@@ -70,7 +76,9 @@ fun axisApplicability(
                 else -> AxisApplicability.APPLICABLE
             }
 
-        OrientationKind.DAY_THEME ->
+        OrientationKind.THEME,
+        OrientationKind.DAY_THEME,
+        ->
             when (axis) {
                 OrientationAxis.EXPECTED_SPAN,
                 OrientationAxis.TARGET_WINDOW,
@@ -100,6 +108,9 @@ fun initialOrientationAssessment(kind: OrientationKind): OrientationAssessment =
         attentionTier = initialAxisAssessment(kind, OrientationAxis.ATTENTION_TIER),
         commitment = initialAxisAssessment(kind, OrientationAxis.COMMITMENT),
         confidence = initialAxisAssessment(kind, OrientationAxis.CONFIDENCE),
+        effort = initialAxisAssessment(kind, OrientationAxis.EFFORT),
+        cost = initialAxisAssessment(kind, OrientationAxis.COST),
+        risk = initialAxisAssessment(kind, OrientationAxis.RISK),
     )
 
 private fun initialAxisAssessment(

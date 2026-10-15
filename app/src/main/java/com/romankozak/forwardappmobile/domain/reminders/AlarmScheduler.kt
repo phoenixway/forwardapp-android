@@ -14,7 +14,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,7 +31,6 @@ class AlarmScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val contextRepositoryProvider: Provider<ContextRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
         private val missionRepositoryProvider: Provider<MissionRepository>,
@@ -45,7 +43,6 @@ class AlarmScheduler
         private val mainHandler = Handler(Looper.getMainLooper())
 
         suspend fun schedule(reminder: Reminder) {
-            val contextRepository = contextRepositoryProvider.get()
             Log.d(
                 tag,
                 "AlarmScheduler: schedule() called for reminder ID: ${reminder.id}, entityId: ${reminder.entityId}, entityType: ${reminder.entityType}, reminderTime: ${reminder.reminderTime}",
@@ -84,11 +81,9 @@ class AlarmScheduler
                             // Project/context reminders exist under both persisted discriminator values.
                             // Resolve both through the same shell-free presentation path.
                             "PROJECT", "CONTEXT" -> {
-                                val rawContext = contextRepository.getContextById(reminder.entityId)
                                 val presentation =
                                     systemWorkspacePresentationContextProjector.resolvePresentation(
                                         contextId = reminder.entityId,
-                                        context = rawContext,
                                     )
                                 Triple(presentation?.name, presentation?.description, "📂")
                             }

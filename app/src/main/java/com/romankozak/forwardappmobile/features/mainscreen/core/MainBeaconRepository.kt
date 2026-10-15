@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
+import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementGroupScopeMutationCoordinator
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
@@ -13,7 +15,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
@@ -62,8 +63,9 @@ class MainBeaconRepository
         fun observeMainBeaconDetails(): Flow<List<MainBeaconWithRelations>> =
             combine(
                 mainBeaconDao.observeMainBeaconRelations(),
+                mainBeaconDao.observeContextCrossRefs(),
                 orientationBridge.observeCommonProjection(),
-            ) { relationRows, commonProjection ->
+            ) { relationRows, ownerAssociations, commonProjection ->
                 relationRows.map { row ->
                     val canonical = commonProjection.beaconsByLegacyId[row.beacon.id]
                     val beacon =
@@ -74,18 +76,12 @@ class MainBeaconRepository
                             beacon.id,
                             row.levelStatuses.sortedBy { it.levelType },
                         )
-                    val ownerOrders =
-                        buildList {
-                            row.contextCrossRefs.forEach { add(it.contextId to it.order) }
-                            row.workspaceCrossRefs.forEach { add(it.workspaceId to it.order) }
-                        }
-                    require(ownerOrders.map { it.first }.distinct().size == ownerOrders.size) {
-                        "Main Beacon ${row.beacon.id} has duplicate operational-owner refs"
-                    }
-                    val relatedOwnerIds =
-                        ownerOrders
-                            .sortedWith(compareBy<Pair<String, Long>> { it.second }.thenBy { it.first })
-                            .map { it.first }
+                    // The DAO emits a validated logical projection and
+                    // invalidates it when Workspace/Context authority changes.
+                    val logicalOwners =
+                        ownerAssociations.filter { it.beaconId == row.beacon.id }
+
+                    val relatedOwnerIds = logicalOwners.map { it.contextId }
                     val relatedAttachments =
                         row.relatedAttachments.sortedWith(
                             compareByDescending<AttachmentEntity> { it.updatedAt }
@@ -286,132 +282,198 @@ class MainBeaconRepository
             }
         }
 
+        /**
+         * Logical compatibility API with canonical Workspace persistence.
+         */
         suspend fun addRelatedContexts(
             beaconId: String,
             contextIds: Set<String>,
         ): Int {
             if (contextIds.isEmpty()) return 0
 
-            val existingContextIds =
-                mainBeaconDao
-                    .getAllContextCrossRefsSync()
-                    .asSequence()
-                    .filter { it.beaconId == beaconId }
-                    .mapTo(mutableSetOf()) { it.contextId }
+            return appDatabase.withTransaction {
+                requireNotNull(mainBeaconDao.getBeaconById(beaconId)) {
+                    "Main Beacon $beaconId does not exist"
+                }
 
-            val newContextIds = contextIds.filterNot { it in existingContextIds }
-            if (newContextIds.isEmpty()) return 0
+                val workspaceById =
+                    mainBeaconDao.getAllWorkspaceCrossRefsSync()
+                        .filter { it.beaconId == beaconId }
+                        .associateBy { it.workspaceId }
 
-            var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
-            mainBeaconDao.insertContextCrossRefs(
-                newContextIds.map { contextId ->
-                    MainBeaconContextCrossRef(
-                        beaconId = beaconId,
-                        contextId = contextId,
-                        order = nextOrder++,
-                    )
-                },
-            )
-            return newContextIds.size
+                var nextOrder =
+                    mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
+
+                val planned =
+                    contextIds.sorted().map { ownerId ->
+                        val canonical = workspaceById[ownerId]
+                        MainBeaconContextCrossRef(
+                            beaconId = beaconId,
+                            contextId = ownerId,
+                            order = canonical?.order ?: nextOrder++,
+                        )
+                    }
+
+                mainBeaconDao.insertContextCrossRefs(planned)
+                planned.count { it.contextId !in workspaceById }
+            }
         }
 
+        /**
+         * A Beacon move changes all selected physical owner associations.
+         * Resolve and validate every selected owner before removing any ref.
+         */
         suspend fun moveRelatedContextsToBeacon(
             beaconId: String,
             contextIds: Set<String>,
         ): Int {
-            if (contextIds.isEmpty() || mainBeaconDao.getBeaconById(beaconId) == null) {
-                return 0
-            }
+            if (contextIds.isEmpty()) return 0
 
             return appDatabase.withTransaction {
-                mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
-                var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
-                mainBeaconDao.insertContextCrossRefs(
-                    contextIds.map { contextId ->
-                        MainBeaconContextCrossRef(
-                            beaconId = beaconId,
-                            contextId = contextId,
-                            order = nextOrder++,
-                        )
-                    },
+                moveRelatedContextsToBeaconInCurrentTransaction(
+                    beaconId = beaconId,
+                    contextIds = contextIds,
                 )
-                contextIds.size
             }
+        }
+
+        /**
+         * Context Clipboard CUT: source occurrence retirement and Beacon
+         * association mutation are one atomic Room operation.
+         *
+         * The supplied occurrence is untrusted UI state. The live persisted
+         * target, kind, parent and ordering must still match at commit time.
+         */
+        suspend fun moveRelatedContextsToBeaconWithOccurrences(
+            beaconId: String,
+            occurrencesByContextId: Map<String, HierarchyOccurrenceRef>,
+        ): Int {
+            if (occurrencesByContextId.isEmpty()) return 0
+
+            return appDatabase.withTransaction {
+                val orderedIds = occurrencesByContextId.keys.sorted()
+                val selected = orderedIds.map { contextId ->
+                    contextId to requireNotNull(
+                        occurrencesByContextId[contextId],
+                    )
+                }
+
+                require(
+                    selected.map { it.second.placementId }.distinct().size ==
+                        selected.size,
+                ) {
+                    "Main Beacon CUT contains repeated source occurrence identities"
+                }
+
+                selected.forEach { (contextId, expected) ->
+                    require(
+                        expected.target ==
+                            HierarchyTargetRef(
+                                HierarchyTargetType.WORKSPACE,
+                                contextId,
+                            ),
+                    ) {
+                        "Main Beacon CUT source $contextId is not its Workspace occurrence"
+                    }
+
+                    val persisted =
+                        requireNotNull(
+                            hierarchyPlacementRepository.getPlacement(
+                                expected.placementId,
+                            ),
+                        ) {
+                            "Main Beacon CUT source occurrence is missing or retired: $contextId"
+                        }
+
+                    require(persisted.hierarchyId == HierarchyId.GENERAL) {
+                        "Main Beacon CUT source occurrence is outside GENERAL"
+                    }
+                    require(persisted.toHierarchyOccurrenceRef() == expected) {
+                        "Main Beacon CUT source occurrence changed: $contextId"
+                    }
+                }
+
+                // Resolve all owners, detect divergent associations and
+                // persist Workspace refs within this same transaction.
+                val moved =
+                    moveRelatedContextsToBeaconInCurrentTransaction(
+                        beaconId = beaconId,
+                        contextIds = occurrencesByContextId.keys,
+                    )
+
+                // Any removal failure rolls back every earlier Beacon write.
+                val now = System.currentTimeMillis()
+                selected.forEach { (_, occurrence) ->
+                    hierarchyPlacementRepository.removePlacementInCurrentTransaction(
+                        placementId = occurrence.placementId,
+                        now = now,
+                    )
+                }
+                moved
+            }
+        }
+
+        /**
+         * Caller owns the transaction. Never call this helper outside
+         * the public transactional entrypoints.
+         */
+        private suspend fun moveRelatedContextsToBeaconInCurrentTransaction(
+            beaconId: String,
+            contextIds: Set<String>,
+        ): Int {
+            requireNotNull(mainBeaconDao.getBeaconById(beaconId)) {
+                "Main Beacon $beaconId does not exist"
+            }
+
+            val orderedIds = contextIds.sorted()
+
+            orderedIds.forEach { ownerId ->
+                requireMainBeaconWorkspaceOwner(
+                    ownerId = ownerId,
+                    context =
+                        mainBeaconDao.getHistoricalMainBeaconOwnerContext(
+                            ownerId,
+                        ),
+                    workspace =
+                        mainBeaconDao.getOperationalOwnerWorkspace(ownerId),
+                )
+            }
+
+            mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
+
+            var nextOrder =
+                mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
+
+            mainBeaconDao.insertContextCrossRefs(
+                orderedIds.map { ownerId ->
+                    MainBeaconContextCrossRef(
+                        beaconId = beaconId,
+                        contextId = ownerId,
+                        order = nextOrder++,
+                    )
+                },
+            )
+
+            return orderedIds.size
         }
 
         suspend fun addRelatedWorkspaces(
             beaconId: String,
             workspaceIds: Set<String>,
-        ): Int {
-            if (workspaceIds.isEmpty()) return 0
-
-            val existingOwnerIds =
-                mainBeaconDao
-                    .getAllContextCrossRefsSync()
-                    .asSequence()
-                    .filter { it.beaconId == beaconId }
-                    .mapTo(mutableSetOf()) { it.contextId }
-
-            val newWorkspaceIds = workspaceIds.filterNot { it in existingOwnerIds }
-            if (newWorkspaceIds.isEmpty()) return 0
-
-            val workspaces =
-                newWorkspaceIds.map { workspaceId ->
-                    requireNotNull(mainBeaconDao.getOperationalOwnerWorkspace(workspaceId)) {
-                        "Main Beacon operational owner $workspaceId has no Workspace"
-                    }
-                }
-            require(workspaces.all { workspace -> !workspace.isDeleted }) {
-                "Main Beacon operational owner must be a live Workspace"
-            }
-
-            var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
-            mainBeaconDao.insertWorkspaceCrossRefs(
-                newWorkspaceIds.map { workspaceId ->
-                    MainBeaconWorkspaceCrossRef(
-                        beaconId = beaconId,
-                        workspaceId = workspaceId,
-                        order = nextOrder++,
-                    )
-                },
+        ): Int =
+            addRelatedContexts(
+                beaconId = beaconId,
+                contextIds = workspaceIds,
             )
-            return newWorkspaceIds.size
-        }
 
         suspend fun moveRelatedWorkspacesToBeacon(
             beaconId: String,
             workspaceIds: Set<String>,
-        ): Int {
-            if (workspaceIds.isEmpty() || mainBeaconDao.getBeaconById(beaconId) == null) {
-                return 0
-            }
-
-            return appDatabase.withTransaction {
-                val workspaces =
-                    workspaceIds.map { workspaceId ->
-                        requireNotNull(mainBeaconDao.getOperationalOwnerWorkspace(workspaceId)) {
-                            "Main Beacon operational owner $workspaceId has no Workspace"
-                        }
-                    }
-                require(workspaces.all { workspace -> !workspace.isDeleted }) {
-                    "Main Beacon operational owner must be a live Workspace"
-                }
-
-                mainBeaconDao.deleteContextCrossRefsForContexts(workspaceIds)
-
-                var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
-                mainBeaconDao.insertWorkspaceCrossRefs(
-                    workspaceIds.map { workspaceId ->
-                        MainBeaconWorkspaceCrossRef(
-                            beaconId = beaconId,
-                            workspaceId = workspaceId,
-                            order = nextOrder++,
-                        )
-                    },
-                )
-                workspaceIds.size
-            }
-        }
+        ): Int =
+            moveRelatedContextsToBeacon(
+                beaconId = beaconId,
+                contextIds = workspaceIds,
+            )
 
         suspend fun removeContextsFromAllBeacons(contextIds: Set<String>) {
             if (contextIds.isEmpty()) return
@@ -610,11 +672,13 @@ class MainBeaconRepository
                 }
 
                 if (relatedOwnerIds.isNotEmpty()) {
-                    mainBeaconDao.insertWorkspaceCrossRefs(
+                    // Create/Edit shares the validated Workspace-owner seam
+                    // with ADD, CUT, Merge and Restore.
+                    mainBeaconDao.insertContextCrossRefs(
                         relatedOwnerIds.map { ownerId ->
-                            MainBeaconWorkspaceCrossRef(
+                            MainBeaconContextCrossRef(
                                 beaconId = beacon.id,
-                                workspaceId = ownerId,
+                                contextId = ownerId,
                                 order = existingOwnerOrders[ownerId] ?: nextOwnerOrder++,
                             )
                         },

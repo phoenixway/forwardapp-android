@@ -169,7 +169,21 @@ interface CanonicalRecurringSeriesDao {
     suspend fun getTaskOccurrencesForSeries(seriesId: String): List<DayTask>
 
     @Update
-    suspend fun updateTaskOccurrences(tasks: List<DayTask>)
+    suspend fun updateTaskOccurrencesRaw(tasks: List<DayTask>)
+
+    @Transaction
+    suspend fun updateTaskOccurrences(tasks: List<DayTask>) {
+        if (tasks.isEmpty()) return
+        updateTaskOccurrencesRaw(
+            tasks.map { task ->
+                routeDayTaskProjectForPersistence(
+                    task = task,
+                    contextLookup = { getOperationalProjectContextForTask(it) },
+                    workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+                )
+            },
+        )
+    }
 
     @Transaction
     suspend fun updateSeriesAndTaskOccurrences(
@@ -178,15 +192,7 @@ interface CanonicalRecurringSeriesDao {
     ) {
         update(series)
         if (occurrences.isNotEmpty()) {
-            updateTaskOccurrences(
-                occurrences.map { occurrence ->
-                    routeDayTaskProjectForPersistence(
-                        task = occurrence,
-                        contextLookup = { getOperationalProjectContextForTask(it) },
-                        workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
-                    )
-                },
-            )
+            updateTaskOccurrences(occurrences)
         }
     }
 
@@ -362,7 +368,21 @@ interface CanonicalRecurringSeriesDao {
     ): Int
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertTaskOccurrencesForSplit(tasks: List<DayTask>)
+    suspend fun insertTaskOccurrencesForSplitRaw(tasks: List<DayTask>)
+
+    @Transaction
+    suspend fun insertTaskOccurrencesForSplit(tasks: List<DayTask>) {
+        if (tasks.isEmpty()) return
+        insertTaskOccurrencesForSplitRaw(
+            tasks.map { task ->
+                routeDayTaskProjectForPersistence(
+                    task = task,
+                    contextLookup = { getOperationalProjectContextForTask(it) },
+                    workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
+                )
+            },
+        )
+    }
 
     @Transaction
     suspend fun detachCanonicalTaskOccurrence(
@@ -382,15 +402,7 @@ interface CanonicalRecurringSeriesDao {
         check(deletedCount == 1) {
             "Cannot detach stale, deleted, legacy, or non-canonical task occurrence: $taskId"
         }
-        insertTaskOccurrencesForSplit(
-            listOf(
-                routeDayTaskProjectForPersistence(
-                    task = detachedTask,
-                    contextLookup = { getOperationalProjectContextForTask(it) },
-                    workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
-                ),
-            ),
-        )
+        insertTaskOccurrencesForSplit(listOf(detachedTask))
     }
 
     @Transaction
@@ -430,15 +442,7 @@ interface CanonicalRecurringSeriesDao {
         }
 
         if (replacementOccurrences.isNotEmpty()) {
-            insertTaskOccurrencesForSplit(
-                replacementOccurrences.map { occurrence ->
-                    routeDayTaskProjectForPersistence(
-                        task = occurrence,
-                        contextLookup = { getOperationalProjectContextForTask(it) },
-                        workspaceLookup = { getOperationalProjectWorkspaceForTask(it) },
-                    )
-                },
-            )
+            insertTaskOccurrencesForSplit(replacementOccurrences)
         }
     }
 

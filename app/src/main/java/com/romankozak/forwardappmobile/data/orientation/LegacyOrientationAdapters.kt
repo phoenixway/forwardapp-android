@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.orientation.mapLegacyC
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.mapLegacyGoalLifecycle
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.projectLegacyImpact
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.projectLegacyImportance
+import com.romankozak.forwardappmobile.shared.core.domain.orientation.projectLegacyScoring
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
 import com.romankozak.forwardappmobile.shared.core.models.orientation.EffectiveOrientation
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
@@ -43,6 +44,12 @@ fun Goal.toEffectiveOrientation(resolver: LegacySubjectIdResolver): EffectiveOri
         goalStatus = goalStatus,
         valueImportance = valueImportance,
         valueImpact = valueImpact,
+        effort = effort,
+        cost = cost,
+        risk = risk,
+        weightEffort = weightEffort,
+        weightCost = weightCost,
+        weightRisk = weightRisk,
         scoringStatus = scoringStatus,
     )
 
@@ -62,6 +69,12 @@ fun GoalOrientationBootstrapRow.toEffectiveOrientation(
         goalStatus = goalStatus,
         valueImportance = valueImportance,
         valueImpact = valueImpact,
+        effort = effort,
+        cost = cost,
+        risk = risk,
+        weightEffort = weightEffort,
+        weightCost = weightCost,
+        weightRisk = weightRisk,
         scoringStatus = scoringStatus,
     )
 
@@ -78,11 +91,30 @@ private fun goalEffectiveOrientation(
     goalStatus: String,
     valueImportance: Float,
     valueImpact: Float,
+    effort: Float,
+    cost: Float,
+    risk: Float,
+    weightEffort: Float,
+    weightCost: Float,
+    weightRisk: Float,
     scoringStatus: String,
 ): EffectiveOrientation {
     val source = LegacySubjectRef(LegacyOrientationSourceType.GOAL, id)
     val importance = projectLegacyImportance(valueImportance, scoringStatus, source)
     val impact = projectLegacyImpact(valueImpact, scoringStatus, source)
+    val scoring =
+        projectLegacyScoring(
+            scoringStatus = scoringStatus,
+            importance = valueImportance,
+            impact = valueImpact,
+            effort = effort,
+            cost = cost,
+            risk = risk,
+            effortWeight = weightEffort,
+            costWeight = weightCost,
+            riskWeight = weightRisk,
+            source = source,
+        )
     return effectiveOrientation(
         resolver = resolver,
         source = source,
@@ -95,7 +127,7 @@ private fun goalEffectiveOrientation(
         version = version,
         isDeleted = isDeleted,
         lifecycle = mapLegacyGoalLifecycle(goalStatus),
-        assessment = assessmentWith(importance.assessment, impact.assessment),
+        assessment = assessmentWith(importance.assessment, impact.assessment, scoring),
         preservedFields =
             listOf(
                 "completed",
@@ -126,6 +158,19 @@ fun Context.toEffectiveOrientation(
     val source = LegacySubjectRef(LegacyOrientationSourceType.CONTEXT, id)
     val importance = projectLegacyImportance(valueImportance, scoringStatus, source)
     val impact = projectLegacyImpact(valueImpact, scoringStatus, source)
+    val scoring =
+        projectLegacyScoring(
+            scoringStatus = scoringStatus,
+            importance = valueImportance,
+            impact = valueImpact,
+            effort = effort,
+            cost = cost,
+            risk = risk,
+            effortWeight = weightEffort,
+            costWeight = weightCost,
+            riskWeight = weightRisk,
+            source = source,
+        )
     return effectiveOrientation(
         resolver = resolver,
         source = source,
@@ -138,7 +183,7 @@ fun Context.toEffectiveOrientation(
         version = version,
         isDeleted = isDeleted,
         lifecycle = mapLegacyContextLifecycle(contextStatus),
-        assessment = assessmentWith(importance.assessment, impact.assessment),
+        assessment = assessmentWith(importance.assessment, impact.assessment, scoring),
         preservedFields =
             listOf(
                 "parentId",
@@ -281,10 +326,15 @@ fun ThemeDefinitionEntity.toEffectiveOrientation(resolver: LegacySubjectIdResolv
 private fun assessmentWith(
     importance: AxisAssessment,
     impact: AxisAssessment,
+    scoring: com.romankozak.forwardappmobile.shared.core.domain.orientation.LegacyScoringProjection,
 ): OrientationAssessment =
     emptyApplicableAssessment().copy(
         importance = importance,
         impact = impact,
+        effort = scoring.effort,
+        cost = scoring.cost,
+        risk = scoring.risk,
+        evaluationState = scoring.evaluationState,
     )
 
 private fun effectiveOrientation(

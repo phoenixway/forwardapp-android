@@ -38,6 +38,7 @@ class CanonicalOrientationSyncStore
                 ack.managedSubjects.forEach { dao.markSubjectSynced(it.id, it.version, syncedAt) }
                 ack.assessments.forEach { dao.markAssessmentSynced(it.id, it.version, syncedAt) }
                 ack.assessmentRevisions.forEach { dao.markAssessmentRevisionSynced(it.id, it.version, syncedAt) }
+                ack.scoringOverrides.forEach { dao.markScoringOverrideSynced(it.id, it.version, syncedAt) }
                 ack.legacyMappings.forEach { dao.markLegacyMappingSynced(it.id, it.version, syncedAt) }
                 ack.relations.forEach { dao.markRelationSynced(it.id, it.version, syncedAt) }
                 ack.aspectRefs.forEach { dao.markAspectRefSynced(it.id, it.version, syncedAt) }
@@ -63,6 +64,7 @@ class CanonicalOrientationSyncStore
                 aspects = dao.getAllAspects(),
                 assessments = dao.getAllAssessments(),
                 assessmentRevisions = dao.getAllAssessmentRevisions(),
+                scoringOverrides = dao.getAllScoringOverrides(),
                 legacyMappings = dao.getAllLegacyMappings(),
                 relations = dao.getAllOrientationRelations(),
                 aspectRefs = dao.getAllAspectOrientationRefs(),
@@ -81,6 +83,7 @@ private fun CanonicalOrientationSyncPayload.hasDirtyRows(): Boolean =
     managedSubjects.any { it.syncedAt == null } ||
         assessments.any { it.syncedAt == null } ||
         assessmentRevisions.any { it.syncedAt == null } ||
+        scoringOverrides.any { it.syncedAt == null } ||
         legacyMappings.any { it.syncedAt == null } ||
         relations.any { it.syncedAt == null } ||
     aspectRefs.any { it.syncedAt == null } ||

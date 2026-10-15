@@ -126,8 +126,6 @@ class GoalCanonicalSubjectCreationRoomTest {
             assertTrue(database.orientationDao().getAllAssessmentRevisions().all { it.syncedAt == null })
             assertTrue(database.orientationDao().getAllLegacyMappings().all { it.syncedAt == null })
             assertTrue(database.workspaceBacklogEntryDao().getUnsynced().any { it.id == placementId })
-            assertTrue(database.backlogOrderDao().getAllRaw().isEmpty())
-            assertTrue(database.listItemDao().getAllRaw().isEmpty())
         } finally {
             database.close()
         }
@@ -414,6 +412,14 @@ class GoalCanonicalSubjectCreationRoomTest {
             database = database,
             orientationDao = database.orientationDao(),
             canonicalOrientationRepository = CanonicalOrientationRepository(database, database.orientationDao()),
+            canonicalScoringAuthorityActivator =
+                com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator(
+                    database,
+                    database.orientationDao(),
+                    database.goalDao(),
+                    database.contextDao(),
+                    database.canonicalScoringAuthorityStateDao(),
+                ),
             goalOrientationBridge =
                 GoalOrientationBridge(
                     database = database,
@@ -422,6 +428,7 @@ class GoalCanonicalSubjectCreationRoomTest {
                     hierarchyPlacementLifecycleCoordinator =
                         HierarchyPlacementLifecycleCoordinator(database),
                 ),
+            canonicalGoalSemanticReadRepository = mockk(relaxed = true),
             systemWorkspacePresentationContextProjector =
                 SystemWorkspacePresentationContextProjector(
                     workspaceDao = database.workspaceDao(),

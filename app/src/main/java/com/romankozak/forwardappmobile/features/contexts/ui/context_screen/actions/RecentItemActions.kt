@@ -40,7 +40,7 @@ class RecentItemActions(
                 )
             }
 
-            RecentItemType.NOTE -> Result.None
+            RecentItemType.NOTE -> Result.Navigate(NavTarget.LegacyNote(noteId = item.target))
             RecentItemType.NOTE_DOCUMENT -> Result.Navigate(NavTarget.NoteDocument(id = item.target))
             RecentItemType.CHECKLIST -> Result.Navigate(NavTarget.Checklist(id = item.target))
             RecentItemType.MUSIC_NOTE -> Result.Navigate(NavTarget.MusicNote(id = item.target))

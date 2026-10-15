@@ -21,7 +21,17 @@ fun ParameterSlider(
     onValueChange: (Float) -> Unit,
     enabled: Boolean,
 ) {
-    val currentIndex = state.scale.indexOf(state.value).coerceAtLeast(0)
+    val effectiveScale =
+        state.unsetValue
+            ?.takeIf { it !in state.scale }
+            ?.let { listOf(it) + state.scale }
+            ?: state.scale
+
+    val currentIndex = effectiveScale.indexOf(state.value).coerceAtLeast(0)
+    val isUnset =
+        state.unsetValue != null &&
+            effectiveScale.getOrNull(currentIndex) == state.unsetValue
+
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -31,7 +41,16 @@ fun ParameterSlider(
             Text(state.label, style = MaterialTheme.typography.bodyLarge)
             val displayText =
                 when {
-                    state.valueLabels != null -> state.valueLabels.getOrElse(currentIndex) { state.value.toString() }
+                    isUnset -> state.unsetLabel
+                    state.valueLabels != null -> {
+                        val labelIndex =
+                            if (state.unsetValue != null && state.unsetValue !in state.scale) {
+                                currentIndex - 1
+                            } else {
+                                currentIndex
+                            }
+                        state.valueLabels.getOrElse(labelIndex) { state.value.toString() }
+                    }
                     state.scale == Scales.weights -> "x${"%.1f".format(state.value)}"
                     else -> state.value.toInt().toString()
                 }
@@ -46,11 +65,11 @@ fun ParameterSlider(
             enabled = enabled,
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
-                val roundedIndex = newIndex.roundToInt().coerceIn(0, state.scale.lastIndex)
-                onValueChange(state.scale[roundedIndex])
+                val roundedIndex = newIndex.roundToInt().coerceIn(0, effectiveScale.lastIndex)
+                onValueChange(effectiveScale[roundedIndex])
             },
-            valueRange = 0f..state.scale.lastIndex.toFloat(),
-            steps = (state.scale.size - 2).coerceAtLeast(0),
+            valueRange = 0f..effectiveScale.lastIndex.toFloat(),
+            steps = (effectiveScale.size - 2).coerceAtLeast(0),
         )
     }
 }

@@ -5,6 +5,7 @@ package com.romankozak.forwardappmobile.sync
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.*
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.decodeOrientationAssessmentJson
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
@@ -90,6 +91,8 @@ internal fun SnapshotBundle.withCanonicalBacklogSelectiveClosure(
     val selectedRevisions =
         requireCanonicalRows(source.orientationAssessmentRevisions, "orientationAssessmentRevisions")
             .filter { it.id in requiredRevisionIds }
+    val selectedScoringOverrides =
+        source.orientationScoringOverrides?.filter { it.orientationId in orientationIds }
     val selectedMappings = requireCanonicalRows(source.legacySubjectMappings, "legacySubjectMappings")
         .filter { it.subjectId in orientationIds }
 
@@ -116,6 +119,7 @@ internal fun SnapshotBundle.withCanonicalBacklogSelectiveClosure(
             aspects = emptyList(),
             orientationAssessments = selectedAssessments,
             orientationAssessmentRevisions = selectedRevisions,
+            orientationScoringOverrides = selectedScoringOverrides,
             legacySubjectMappings = selectedMappings,
             orientationRelations = emptyList(),
             aspectOrientationRefs = emptyList(),
@@ -222,7 +226,7 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOri
             CanonicalAssessmentRevisionReference(
                 id = it.id,
                 orientationId = it.orientationId,
-                assessment = gson.fromJson(it.assessmentJson, OrientationAssessment::class.java),
+                assessment = decodeOrientationAssessmentJson(gson, it.assessmentJson),
             )
         },
         mappings = requireNotNull(legacySubjectMappings).map {
@@ -251,6 +255,10 @@ private fun OrientationAssessmentEntity.toAssessment() =
         attentionTier = AxisAssessment(attentionTierValue, ValueOrigin.valueOf(attentionTierOrigin)),
         commitment = AxisAssessment(commitmentValue, ValueOrigin.valueOf(commitmentOrigin)),
         confidence = AxisAssessment(confidenceValue, ValueOrigin.valueOf(confidenceOrigin)),
+        effort = AxisAssessment(effortValue, ValueOrigin.valueOf(effortOrigin)),
+        cost = AxisAssessment(costValue, ValueOrigin.valueOf(costOrigin)),
+        risk = AxisAssessment(riskValue, ValueOrigin.valueOf(riskOrigin)),
+        evaluationState = OrientationEvaluationState.valueOf(evaluationState),
     )
 
 private fun OrientationRelationEntity.toModel() =

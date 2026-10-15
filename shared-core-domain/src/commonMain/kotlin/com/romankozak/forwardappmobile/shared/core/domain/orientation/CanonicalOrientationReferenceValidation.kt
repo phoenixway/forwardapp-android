@@ -220,6 +220,15 @@ private fun JsonObject.assessment(): OrientationAssessment = OrientationAssessme
     importance = axis("importance"), impact = axis("impact"), breadth = axis("breadth"),
     expectedSpan = axis("expectedSpan"), targetWindow = axis("targetWindow"),
     attentionTier = axis("attentionTier"), commitment = axis("commitment"), confidence = axis("confidence"),
+    effort = optionalAxis("effort"),
+    cost = optionalAxis("cost"),
+    risk = optionalAxis("risk"),
+    evaluationState =
+        nullableString("evaluationState")
+            ?.let {
+                com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState.valueOf(it)
+            }
+            ?: com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState.UNASSESSED,
 )
 
 private fun JsonObject.axis(name: String): AxisAssessment {
@@ -227,11 +236,18 @@ private fun JsonObject.axis(name: String): AxisAssessment {
     return AxisAssessment(axis.nullableString("valueCode"), ValueOrigin.valueOf(axis.string("origin")))
 }
 
+private fun JsonObject.optionalAxis(name: String): AxisAssessment {
+    val axis = get(name)?.jsonObject
+        ?: return com.romankozak.forwardappmobile.shared.core.models.orientation.unsetAxis()
+    return AxisAssessment(axis.nullableString("valueCode"), ValueOrigin.valueOf(axis.string("origin")))
+}
+
 private fun OrientationAssessment.hasSameAxisValues(other: OrientationAssessment): Boolean =
-    OrientationAxis.entries.all { axis ->
-        val left = valueFor(axis)
-        val right = other.valueFor(axis)
-        left.valueCode == right.valueCode && left.origin == right.origin
-    }
+    evaluationState == other.evaluationState &&
+        OrientationAxis.entries.all { axis ->
+            val left = valueFor(axis)
+            val right = other.valueFor(axis)
+            left.valueCode == right.valueCode && left.origin == right.origin
+        }
 
 private fun invalid(code: String, message: String) = CanonicalOrientationReferenceViolation(code, message)

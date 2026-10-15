@@ -226,6 +226,90 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
                 ),
             )
 
+        assertEquals(
+            listOf(
+                MainBeaconContextCrossRefSnapshot(
+                    beaconId = "beacon",
+                    contextId = "workspace",
+                    order = 0L,
+                ),
+            ),
+            filtered.mainBeaconContextCrossRefs,
+        )
+
+        val ownerSelection =
+            WorkspaceSelectiveImportSelection(
+                selectedContextIds = setOf("workspace"),
+            )
+
+        val unselected =
+            filter.filter(
+                source,
+                WorkspaceSelectiveImportSelection(
+                    selectedContextIds = emptySet(),
+                ),
+            )
+        assertEquals(
+            emptyList<MainBeaconContextCrossRefSnapshot>(),
+            unselected.mainBeaconContextCrossRefs,
+        )
+
+        val deletedOwnerSource =
+            source.copy(
+                workspaces =
+                    source.workspaces.orEmpty().map {
+                        it.copy(isDeleted = true)
+                    },
+            )
+        val deletedFailure =
+            runCatching {
+                filter.filter(deletedOwnerSource, ownerSelection)
+            }.exceptionOrNull()
+        org.junit.Assert.assertTrue(
+            "Expected deleted Workspace rejection: $deletedFailure",
+            deletedFailure is IllegalArgumentException &&
+                deletedFailure.message.orEmpty()
+                    .contains("invalid Workspace provenance"),
+        )
+
+        val divergentOwnerSource =
+            source.copy(
+                workspaces =
+                    source.workspaces.orEmpty().map {
+                        it.copy(
+                            provenance = "CONTEXT_BACKED",
+                            sourceContextId = "different-context",
+                        )
+                    },
+            )
+        val divergentFailure =
+            runCatching {
+                filter.filter(divergentOwnerSource, ownerSelection)
+            }.exceptionOrNull()
+        org.junit.Assert.assertTrue(
+            "Expected sourceContextId rejection: $divergentFailure",
+            divergentFailure is IllegalArgumentException &&
+                divergentFailure.message.orEmpty()
+                    .contains("invalid Workspace provenance"),
+        )
+
+        val duplicateOwnerSource =
+            source.copy(
+                mainBeaconContextCrossRefs =
+                    source.mainBeaconContextCrossRefs +
+                        source.mainBeaconContextCrossRefs,
+            )
+        val duplicateFailure =
+            runCatching {
+                filter.filter(duplicateOwnerSource, ownerSelection)
+            }.exceptionOrNull()
+        org.junit.Assert.assertTrue(
+            "Expected duplicate association rejection: $duplicateFailure",
+            duplicateFailure is IllegalArgumentException &&
+                duplicateFailure.message.orEmpty()
+                    .contains("duplicate logical association"),
+        )
+
         val byId = filtered.hierarchyPlacements.orEmpty().associateBy { it.id }
         assertNull(byId.getValue("child-beacon-root").parentPlacementId)
         assertNull(byId.getValue("parent-beacon-root").parentPlacementId)

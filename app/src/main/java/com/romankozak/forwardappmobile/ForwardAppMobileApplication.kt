@@ -8,9 +8,12 @@ import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyAuthorityActivator
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAuthorityActivator
+import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAdapter
+import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAuthorityActivator
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
-import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
-import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
@@ -31,19 +34,25 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
 
     @Inject lateinit var settingsRepository: SettingsRepository
 
-    @Inject lateinit var tagAssociationHandler: TagAssociationHandler
 
     @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
 
     @Inject lateinit var canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper
+
+    @Inject lateinit var canonicalScoringAuthorityActivator: CanonicalScoringAuthorityActivator
+
+    @Inject lateinit var canonicalDayPlanningAuthorityActivator: CanonicalDayPlanningAuthorityActivator
+
+    @Inject lateinit var canonicalTacticalPlanningAuthorityActivator: CanonicalTacticalPlanningAuthorityActivator
+
+    @Inject lateinit var canonicalStrategicPlanningAuthorityActivator: CanonicalStrategicPlanningAuthorityActivator
+    @Inject lateinit var canonicalStrategicPlanningAdapter: CanonicalStrategicPlanningAdapter
 
     @Inject lateinit var canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper
 
     @Inject lateinit var canonicalHierarchyAuthorityActivator: CanonicalHierarchyAuthorityActivator
 
     @Inject lateinit var databaseInitializer: DatabaseInitializer
-
-    @Inject lateinit var executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge
 
     @Inject lateinit var contextRepository: ContextRepository
 
@@ -135,6 +144,29 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                     "issues=${orientationReport.issues.size}"
             }
 
+            val scoringReport =
+                StartupTrace.measure("Application.canonicalScoringAuthorityActivation") {
+                    canonicalScoringAuthorityActivator.ensureActivated()
+                }
+            if (scoringReport.performed) {
+                Timber.i(
+                    "Canonical scoring authority activated: orientations=%d",
+                    scoringReport.orientations,
+                )
+            }
+
+            val dayPlanningReport =
+                StartupTrace.measure("Application.dayPlanningAuthorityActivation") {
+                    canonicalDayPlanningAuthorityActivator.ensureActivated()
+                }
+            if (dayPlanningReport.performed) {
+                Timber.i(
+                    "Canonical Day planning authority activated: scopes=%d commitments=%d",
+                    dayPlanningReport.scopes,
+                    dayPlanningReport.commitments,
+                )
+            }
+
             val workspaceReport =
                 StartupTrace.measure("Application.workspaceBootstrap") {
                     canonicalWorkspaceBootstrapper.ensureBootstrapped()
@@ -151,6 +183,33 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 "P2 hierarchy authority activation requires COMPLETE canonical Workspace bootstrap; " +
                     "issues=${workspaceReport.issues.size}"
             }
+
+            val tacticalPlanningReport =
+                StartupTrace.measure("Application.tacticalPlanningAuthorityActivation") {
+                    canonicalTacticalPlanningAuthorityActivator.ensureActivated()
+                }
+            if (tacticalPlanningReport.performed) {
+                Timber.i(
+                    "Canonical Tactical planning authority activated: scopes=%d commitments=%d deferred=%d",
+                    tacticalPlanningReport.scopes,
+                    tacticalPlanningReport.commitments,
+                    tacticalPlanningReport.deferredMissions,
+                )
+            }
+
+            val strategicPlanningReport =
+                StartupTrace.measure("Application.strategicPlanningAuthorityActivation") {
+                    canonicalStrategicPlanningAuthorityActivator.ensureActivated()
+                }
+            if (strategicPlanningReport.performed) {
+                Timber.i(
+                    "Canonical Strategic planning authority activated: scopes=%d commitments=%d deferred=%d",
+                    strategicPlanningReport.scopes,
+                    strategicPlanningReport.commitments,
+                    strategicPlanningReport.deferredParticipations,
+                )
+            }
+            canonicalStrategicPlanningAdapter.projectCompatibilityRows()
 
             val report =
                 StartupTrace.measure("Application.hierarchyAuthorityEstablishment") {
@@ -181,22 +240,6 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
 
         appScope.launch(Dispatchers.IO) {
             runCatching {
-                StartupTrace.measure("Application.executionLogRepair") {
-                    executionLogWorkspaceOwnershipBridge.repairUnresolved()
-                }
-            }.onSuccess { report ->
-                if (report.assignedLogs > 0 || report.unresolvedContexts > 0) {
-                    Timber.i(
-                        "EXECUTION_LOG Workspace ownership repair: assigned=%d unresolvedContexts=%d",
-                        report.assignedLogs,
-                        report.unresolvedContexts,
-                    )
-                }
-            }.onFailure {
-                Timber.e(it, "Failed to repair EXECUTION_LOG Workspace ownership")
-            }
-
-            runCatching {
                 StartupTrace.measure("Application.backlogCleanup") {
                     contextRepository.cleanupDanglingAndLegacyStructuralListItems()
                 }
@@ -211,13 +254,10 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 Timber.e(it, "Failed to cleanup dangling/legacy structural backlog rows")
             }
 
-            runCatching {
-                StartupTrace.measure("Application.tagAssociationRepair") {
-                    tagAssociationHandler.repairAllAssociations()
-                }
-            }.onFailure {
-                Timber.e(it, "Failed to repair tag associations on startup")
-            }
+            // Association projections are maintained by Goal/Inbox writes and
+            // explicitly rebuilt after compatibility merge. Rebuilding every
+            // row on every launch deleted and recreated the cache for ~27s,
+            // competing with initial product reads and ordinary user writes.
         }
         StartupTrace.mark("Application.onCreate.end")
     }

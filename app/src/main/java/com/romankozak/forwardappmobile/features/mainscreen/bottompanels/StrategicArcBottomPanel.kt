@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,12 +23,16 @@ fun StrategicArcBottomPanel(
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun submitQuest() {
         val title = inputValue.text.trim()
         if (title.isBlank()) return
         viewModel.addArcQuest(title)
         inputValue = TextFieldValue("")
+        focusManager.clearFocus()
+        keyboardController?.hide()
     }
 
     StrategicArcBottomPanelContent(

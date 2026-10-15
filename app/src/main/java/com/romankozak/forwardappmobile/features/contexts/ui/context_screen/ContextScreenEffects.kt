@@ -134,18 +134,19 @@ private fun rememberGoalDetailEffectState(
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedStateHandle = dependencies.navController.currentBackStackEntry?.savedStateHandle
+    val isAttachmentsExpanded = uiState.presentationPreferences.isAttachmentsExpanded
     val displayList =
-        remember(listContent, list?.isAttachmentsExpanded) {
+        remember(listContent, isAttachmentsExpanded) {
             val attachmentItems = listContent.filterIsInstance<BacklogItemContent.LinkItem>()
             val draggableItems = listContent.filterNot { it is BacklogItemContent.LinkItem }
-            if (list?.isAttachmentsExpanded == true) attachmentItems + draggableItems else draggableItems
+            if (isAttachmentsExpanded) attachmentItems + draggableItems else draggableItems
         }
 
     return GoalDetailEffectState(
         uiState = uiState,
         listContent = listContent,
-        currentContextId = list?.id,
-        areAttachmentsExpanded = list?.isAttachmentsExpanded,
+        currentContextId = uiState.presentation?.id ?: list?.id,
+        areAttachmentsExpanded = isAttachmentsExpanded,
         inboxRecords = inboxRecords,
         localContext = localContext,
         obsidianVaultName = obsidianVaultName,

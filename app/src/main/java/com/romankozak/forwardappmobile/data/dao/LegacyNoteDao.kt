@@ -16,11 +16,38 @@ interface LegacyNoteDao {
     @Update
     suspend fun update(note: LegacyNoteEntity)
 
+    @Query("UPDATE notes SET syncedAt = :syncedAt WHERE id = :noteId AND version = :expectedVersion")
+    suspend fun markSyncedIfVersionMatches(
+        noteId: String,
+        expectedVersion: Long,
+        syncedAt: Long,
+    ): Int
+
     @Query("SELECT * FROM notes WHERE id = :noteId")
     suspend fun getNoteById(noteId: String): LegacyNoteEntity?
 
     @Query("SELECT * FROM notes WHERE contextId = :contextId ORDER BY updatedAt DESC")
     fun getNotesForContext(contextId: String): Flow<List<LegacyNoteEntity>>
+
+    /**
+     * Canonical Workspace BACKLOG projection by placement target identity.
+     * A Note's historical contextId is not a Workspace membership predicate.
+     * Room observes both tables so content and placement changes invalidate this flow.
+     */
+    @Query(
+        """
+        SELECT DISTINCT note.*
+        FROM notes AS note
+        INNER JOIN workspace_backlog_entries AS placement
+          ON placement.targetKind = 'LEGACY_NOTE'
+         AND placement.targetId = note.id
+        WHERE placement.workspaceId = :workspaceId
+          AND placement.isDeleted = 0
+          AND note.isDeleted = 0
+        ORDER BY note.updatedAt DESC, note.id
+        """,
+    )
+    fun observePlacedNotesForWorkspace(workspaceId: String): Flow<List<LegacyNoteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notes: List<LegacyNoteEntity>)

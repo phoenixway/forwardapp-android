@@ -1,10 +1,15 @@
 package com.romankozak.forwardappmobile.shared.core.domain.orientation
 
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
+import com.romankozak.forwardappmobile.shared.core.models.orientation.CostValue
+import com.romankozak.forwardappmobile.shared.core.models.orientation.EffortValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ImpactValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ImportanceValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectRef
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationLifecycle
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationScoringOverride
+import com.romankozak.forwardappmobile.shared.core.models.orientation.RiskValue
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueProvenance
 
@@ -12,6 +17,49 @@ data class LegacyAxisProjection(
     val assessment: AxisAssessment,
     val diagnostics: List<String>,
 )
+
+data class LegacyScoringProjection(
+    val effort: AxisAssessment,
+    val cost: AxisAssessment,
+    val risk: AxisAssessment,
+    val evaluationState: OrientationEvaluationState,
+    val override: OrientationScoringOverride,
+)
+
+fun projectLegacyScoring(
+    scoringStatus: String,
+    importance: Float,
+    impact: Float,
+    effort: Float,
+    cost: Float,
+    risk: Float,
+    effortWeight: Float,
+    costWeight: Float,
+    riskWeight: Float,
+    source: LegacySubjectRef,
+): LegacyScoringProjection {
+    val evaluationState =
+        when (scoringStatus.trim().uppercase()) {
+            "ASSESSED" -> OrientationEvaluationState.ASSESSED
+            "IMPOSSIBLE_TO_ASSESS" -> OrientationEvaluationState.UNSCORABLE
+            else -> OrientationEvaluationState.UNASSESSED
+        }
+    val assessed = evaluationState == OrientationEvaluationState.ASSESSED
+    return LegacyScoringProjection(
+        effort = legacyExactAxis("effort", effort, assessed, source, effortCoordinates),
+        cost = legacyExactAxis("cost", cost, assessed, source, costCoordinates),
+        risk = legacyExactAxis("risk", risk, assessed, source, riskCoordinates),
+        evaluationState = evaluationState,
+        override =
+            OrientationScoringOverride(
+                importanceCoordinate = importance.takeIf { assessed },
+                impactCoordinate = impact.takeIf { assessed },
+                effortWeight = effortWeight.takeUnless { it == 1f },
+                costWeight = costWeight.takeUnless { it == 1f },
+                riskWeight = riskWeight.takeUnless { it == 1f },
+            ),
+    )
+}
 
 fun projectLegacyImportance(
     value: Float,
@@ -135,3 +183,61 @@ private fun projectLegacyAxis(
         diagnostics = emptyList(),
     )
 }
+
+private fun legacyExactAxis(
+    fieldName: String,
+    value: Float,
+    assessed: Boolean,
+    source: LegacySubjectRef,
+    coordinates: Map<Float, String>,
+): AxisAssessment {
+    if (!assessed) return AxisAssessment(valueCode = null, origin = ValueOrigin.UNSET)
+    val valueCode = requireNotNull(coordinates[value]) {
+        "Assessed legacy $fieldName value $value has no canonical semantic value"
+    }
+    return AxisAssessment(
+        valueCode = valueCode,
+        origin = ValueOrigin.DERIVED,
+        provenance =
+            ValueProvenance(
+                sourceType = source.sourceType.name,
+                sourceId = source.sourceId,
+                fieldName = fieldName,
+                rawValue = value.toString(),
+            ),
+    )
+}
+
+private val effortCoordinates =
+    mapOf(
+        0f to EffortValue.NONE.name,
+        1f to EffortValue.MINIMAL.name,
+        2f to EffortValue.LOW.name,
+        3f to EffortValue.MODERATE.name,
+        5f to EffortValue.HIGH.name,
+        8f to EffortValue.VERY_HIGH.name,
+        13f to EffortValue.EXTREME.name,
+        21f to EffortValue.MASSIVE.name,
+    )
+
+private val costCoordinates =
+    mapOf(
+        0f to CostValue.NONE.name,
+        1f to CostValue.VERY_LOW.name,
+        2f to CostValue.LOW.name,
+        3f to CostValue.MODERATE.name,
+        4f to CostValue.HIGH.name,
+        5f to CostValue.VERY_HIGH.name,
+    )
+
+private val riskCoordinates =
+    mapOf(
+        0f to RiskValue.NONE.name,
+        1f to RiskValue.MINIMAL.name,
+        2f to RiskValue.LOW.name,
+        3f to RiskValue.MODERATE.name,
+        5f to RiskValue.HIGH.name,
+        8f to RiskValue.VERY_HIGH.name,
+        13f to RiskValue.EXTREME.name,
+        21f to RiskValue.CRITICAL.name,
+    )

@@ -31,7 +31,6 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.TodayTabScopeLinksHandler
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
@@ -167,7 +166,6 @@ class DayPlanViewModel
         private val dayManagementRepository: DayManagementRepository,
         private val canonicalTaskRecurrenceAuthoringAdapter: CanonicalTaskRecurrenceAuthoringAdapter,
         private val reminderRepository: ReminderRepository,
-        private val contextDao: ContextDao,
         private val contextRepository: ContextRepository,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
@@ -210,7 +208,7 @@ class DayPlanViewModel
         val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
         private val allContextsFlow =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextDao.getAllContextsFlow())
+                .observePresentationUniverse()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,

@@ -13,17 +13,33 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.core.data.models.sync.decodeOrientationAssessmentJson
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateOrientationAssessment
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateSingleParentHierarchy
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AspectNode
+import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubject
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationAssessment
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationAssessmentRevision
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationNode
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private data class ContextOrientationAssessmentState(
+    val subject: ManagedSubjectEntity,
+    val orientation: OrientationEntity,
+    val current: OrientationAssessmentEntity,
+    val assessment: OrientationAssessment,
+)
+
+data class CanonicalOrientationSemantics(
+    val subject: ManagedSubject,
+    val kind: OrientationKind,
+)
 
 /** Canonical write boundary. Legacy repositories remain unchanged until a later cutover phase. */
 @Singleton
@@ -36,6 +52,40 @@ class CanonicalOrientationRepository
         private val gson = Gson()
 
         fun observeSubjects(): Flow<List<ManagedSubjectEntity>> = dao.observeManagedSubjects()
+
+        /**
+         * Small canonical core read for identity editors and other single-entity
+         * surfaces. Unlike the shared product graph, this cannot replay a frame
+         * captured immediately before the entity's creation transaction.
+         */
+        suspend fun getOrientationSemantics(subjectId: String): CanonicalOrientationSemantics? =
+            database.withTransaction {
+                val subject = dao.getManagedSubject(subjectId) ?: return@withTransaction null
+                if (subject.isDeleted) return@withTransaction null
+                val orientations = dao.getAllOrientations().filter { it.subjectId == subjectId }
+                requireCompleteActiveOrientationAggregate(
+                    subjectId = subjectId,
+                    subject = subject,
+                    orientationNodes = orientations,
+                    currents = dao.getAllAssessments().filter { it.orientationId == subjectId },
+                    revisions = dao.getAllAssessmentRevisions(),
+                )
+                CanonicalOrientationSemantics(
+                    subject =
+                        ManagedSubject(
+                            id = subject.id,
+                            createdAt = subject.createdAt,
+                            updatedAt = subject.updatedAt,
+                            syncedAt = subject.syncedAt,
+                            isDeleted = subject.isDeleted,
+                            version = subject.version,
+                            subjectType = ManagedSubjectType.ORIENTATION,
+                            title = subject.title,
+                            description = subject.description,
+                        ),
+                    kind = OrientationKind.valueOf(orientations.single().kind),
+                )
+            }
 
         suspend fun saveOrientation(
             subject: ManagedSubject,
@@ -54,6 +104,122 @@ class CanonicalOrientationRepository
                 dao.upsertOrientations(listOf(orientation.toEntity()))
                 dao.upsertAssessmentRevisions(listOf(revision.toEntity(gson)))
                 dao.upsertAssessments(listOf(revision.toCurrentEntity(gson)))
+            }
+        }
+
+        /**
+         * Fresh canonical Orientation authoring.
+         *
+         * Unlike ensureOrientationWithId(), this is not a migration/adoption
+         * seam. It creates a new independently owned semantic Orientation with
+         * a random identity and USER-authored initial assessment revision.
+         */
+        suspend fun createOrientation(
+            kind: OrientationKind,
+            title: String,
+            description: String? = null,
+            now: Long = System.currentTimeMillis(),
+        ): String {
+            val normalizedTitle = title.trim()
+            require(normalizedTitle.isNotEmpty()) {
+                "Orientation title must not be blank"
+            }
+            val normalizedDescription =
+                description?.trim()?.takeIf { it.isNotEmpty() }
+            val id = UUID.randomUUID().toString()
+            val assessment = initialOrientationAssessment(kind)
+            val revision =
+                OrientationAssessmentRevision(
+                    id = UUID.randomUUID().toString(),
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                    orientationId = id,
+                    effectiveFrom = now,
+                    recordedAt = now,
+                    source = AssessmentRevisionSource.USER,
+                    reason = "Canonical Orientation created",
+                    assessment = assessment,
+                )
+
+            saveOrientation(
+                subject =
+                    ManagedSubject(
+                        id = id,
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                        subjectType = ManagedSubjectType.ORIENTATION,
+                        title = normalizedTitle,
+                        description = normalizedDescription,
+                    ),
+                orientation =
+                    OrientationNode(
+                        subjectId = id,
+                        kind = kind,
+                        lifecycle = null,
+                        lifecycleOrigin = ValueOrigin.UNSET,
+                        assessment = assessment,
+                    ),
+                revision = revision,
+            )
+            return id
+        }
+
+        /**
+         * Canonical semantic edit for an existing Orientation.
+         *
+         * Title/description belong to ManagedSubject. Editing them therefore
+         * bumps the canonical subject version without manufacturing a new
+         * assessment revision.
+         */
+        suspend fun updateOrientationSemantics(
+            subjectId: String,
+            title: String,
+            description: String?,
+            expectedVersion: Long? = null,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            val normalizedTitle = title.trim()
+            require(normalizedTitle.isNotEmpty()) {
+                "Orientation title must not be blank"
+            }
+            val normalizedDescription =
+                description?.trim()?.takeIf { it.isNotEmpty() }
+
+            database.withTransaction {
+                requireCompleteActiveOrientationAggregate(subjectId)
+
+                val subject =
+                    requireNotNull(dao.getManagedSubject(subjectId)) {
+                        "Existing Orientation subject does not exist"
+                    }
+                require(expectedVersion == null || subject.version == expectedVersion) {
+                    "Orientation changed after the editor loaded it"
+                }
+
+                if (
+                    subject.title == normalizedTitle &&
+                    subject.description == normalizedDescription
+                ) {
+                    return@withTransaction
+                }
+
+                dao.upsertManagedSubjects(
+                    listOf(
+                        subject.copy(
+                            title = normalizedTitle,
+                            description = normalizedDescription,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = subject.version + 1L,
+                        ),
+                    ),
+                )
             }
         }
 
@@ -149,9 +315,9 @@ class CanonicalOrientationRepository
                         !currentRevision.isDeleted &&
                             currentRevision.source == AssessmentRevisionSource.MIGRATION.name &&
                             currentRevision.reason == CONTEXT_MIGRATION_INITIAL_REASON &&
-                            gson.fromJson(
+                            decodeOrientationAssessmentJson(
+                                gson,
                                 currentRevision.assessmentJson,
-                                OrientationAssessment::class.java,
                             ) == expectedAssessment,
                     ) {
                         "Canonical Orientation id is not the migration-owned initial aggregate"
@@ -283,7 +449,7 @@ class CanonicalOrientationRepository
             val revisionAssessment =
                 requireNotNull(
                     runCatching {
-                        gson.fromJson(revision.assessmentJson, OrientationAssessment::class.java)
+                        decodeOrientationAssessmentJson(gson, revision.assessmentJson)
                     }.getOrElse {
                         throw IllegalArgumentException(
                             "Existing Orientation revision assessment is invalid",
@@ -301,6 +467,320 @@ class CanonicalOrientationRepository
             require(validateOrientationAssessment(kind, revisionAssessment).isEmpty()) {
                 "Existing Orientation assessment violates DOMAIN-CONTRACT v1"
             }
+        }
+
+        suspend fun getContextAssessment(
+            contextId: String,
+        ): OrientationAssessment? =
+            database.withTransaction {
+                loadCutOverContextOrientationAssessment(contextId)?.assessment
+            }
+
+        suspend fun getContextEvaluation(
+            contextId: String,
+        ): CanonicalOrientationEvaluation? =
+            database.withTransaction {
+                val state = loadCutOverContextOrientationAssessment(contextId) ?: return@withTransaction null
+                val override = requireNotNull(dao.getScoringOverride(state.subject.id)) {
+                    "CUT_OVER Context $contextId is missing canonical scoring policy state"
+                }
+                canonicalEvaluation(state.current, override)
+            }
+
+        suspend fun updateContextEvaluation(
+            contextId: String,
+            importance: Float,
+            impact: Float,
+            effort: Float,
+            cost: Float,
+            risk: Float,
+            effortWeight: Float,
+            costWeight: Float,
+            riskWeight: Float,
+            scoringStatus: String,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean =
+            database.withTransaction {
+                val state = loadCutOverContextOrientationAssessment(contextId) ?: return@withTransaction false
+                val currentOverride = requireNotNull(dao.getScoringOverride(state.subject.id)) {
+                    "CUT_OVER Context $contextId is missing canonical scoring policy state"
+                }
+                val projection =
+                    projectLegacyScoringToCanonical(
+                        current = state.assessment,
+                        source =
+                            com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectRef(
+                                LegacyOrientationSourceType.CONTEXT,
+                                contextId,
+                            ),
+                        input =
+                            LegacyScoringInput(
+                                importance,
+                                impact,
+                                effort,
+                                cost,
+                                risk,
+                                effortWeight,
+                                costWeight,
+                                riskWeight,
+                                scoringStatus,
+                            ),
+                        preserveCanonicalImportanceImpact = false,
+                    )
+                val kind = OrientationKind.valueOf(state.orientation.kind)
+                require(validateOrientationAssessment(kind, projection.assessment).isEmpty()) {
+                    "Context canonical assessment violates DOMAIN-CONTRACT v1"
+                }
+                val assessmentChanged = projection.assessment != state.assessment
+                val overrideChanged = projection.scoringOverride != currentOverride.toModel()
+                var storedAssessment = state.current
+                if (assessmentChanged) {
+                    val revisionId = UUID.randomUUID().toString()
+                    dao.upsertAssessmentRevisions(
+                        listOf(
+                            scoringAssessmentRevision(
+                                revisionId,
+                                state.subject.id,
+                                projection.assessment,
+                                now,
+                                CONTEXT_SCORING_EDIT_REASON,
+                                AssessmentRevisionSource.USER,
+                                gson,
+                            ),
+                        ),
+                    )
+                    storedAssessment =
+                        state.current.withCanonicalAssessment(projection.assessment, revisionId, now, gson)
+                    dao.upsertAssessments(listOf(storedAssessment))
+                }
+                val storedOverride =
+                    if (overrideChanged) {
+                        scoringOverrideEntity(
+                            state.subject.id,
+                            projection.scoringOverride,
+                            currentOverride,
+                            now,
+                        ).also { dao.upsertScoringOverrides(listOf(it)) }
+                    } else {
+                        currentOverride
+                    }
+                if (assessmentChanged || overrideChanged) {
+                    dao.upsertManagedSubjects(
+                        listOf(
+                            state.subject.copy(
+                                updatedAt = now,
+                                syncedAt = null,
+                                version = state.subject.version + 1L,
+                            ),
+                        ),
+                    )
+                }
+                val value = canonicalEvaluation(storedAssessment, storedOverride).toLegacyProjection()
+                database.contextDao().projectCanonicalScoring(
+                    contextId,
+                    value.importance,
+                    value.impact,
+                    value.effort,
+                    value.cost,
+                    value.risk,
+                    value.effortWeight,
+                    value.costWeight,
+                    value.riskWeight,
+                    value.rawScore,
+                    value.displayScore,
+                    value.scoringStatus,
+                )
+                true
+            }
+
+        suspend fun updateContextAssessmentAxes(
+            contextId: String,
+            importance: AxisAssessment,
+            impact: AxisAssessment,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean =
+            database.withTransaction {
+                val state =
+                    loadCutOverContextOrientationAssessment(contextId)
+                        ?: return@withTransaction false
+
+                val target =
+                    state.assessment.copy(
+                        importance = importance,
+                        impact = impact,
+                    )
+
+                val kind =
+                    runCatching {
+                        OrientationKind.valueOf(state.orientation.kind)
+                    }.getOrElse {
+                        throw IllegalArgumentException(
+                            "Context canonical Orientation kind is invalid",
+                            it,
+                        )
+                    }
+
+                require(validateOrientationAssessment(kind, target).isEmpty()) {
+                    "Context canonical assessment violates DOMAIN-CONTRACT v1"
+                }
+
+                if (target == state.assessment) {
+                    return@withTransaction true
+                }
+
+                val revisionId = UUID.randomUUID().toString()
+
+                dao.upsertManagedSubjects(
+                    listOf(
+                        state.subject.copy(
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = state.subject.version + 1L,
+                        ),
+                    ),
+                )
+
+                val revision =
+                    OrientationAssessmentRevision(
+                        id = revisionId,
+                        orientationId = state.subject.id,
+                        effectiveFrom = now,
+                        recordedAt = now,
+                        source = AssessmentRevisionSource.USER,
+                        reason = CONTEXT_ASSESSMENT_EDIT_REASON,
+                        assessment = target,
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    )
+
+                dao.upsertAssessmentRevisions(
+                    listOf(revision.toEntity(gson)),
+                )
+                dao.upsertAssessments(
+                    listOf(
+                        target.toCurrentEntity(
+                            orientationId = state.subject.id,
+                            revisionId = revisionId,
+                            createdAt = state.current.createdAt,
+                            updatedAt = now,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = state.current.version + 1L,
+                            gson = gson,
+                        ),
+                    ),
+                )
+
+                true
+            }
+
+        private suspend fun loadCutOverContextOrientationAssessment(
+            contextId: String,
+        ): ContextOrientationAssessmentState? {
+            val mapping =
+                dao.getLegacyMapping(
+                    LegacyOrientationSourceType.CONTEXT.name,
+                    contextId,
+                ) ?: return null
+
+            if (
+                mapping.isDeleted ||
+                mapping.state != LegacySubjectMappingState.CUT_OVER.name
+            ) {
+                return null
+            }
+
+            val subject =
+                requireNotNull(dao.getManagedSubject(mapping.subjectId)) {
+                    "CUT_OVER Context mapping points to a missing subject"
+                }
+
+            if (subject.subjectType == ManagedSubjectType.ASPECT.name) {
+                return null
+            }
+
+            require(
+                subject.subjectType == ManagedSubjectType.ORIENTATION.name &&
+                    !subject.isDeleted,
+            ) {
+                "CUT_OVER Context assessment target is not an active Orientation"
+            }
+
+            val orientations =
+                dao.getAllOrientations()
+                    .filter { it.subjectId == mapping.subjectId }
+            require(orientations.size == 1) {
+                "CUT_OVER Context must have exactly one Orientation node"
+            }
+            val orientation = orientations.single()
+
+            val currents =
+                dao.getAllAssessments()
+                    .filter { it.orientationId == mapping.subjectId }
+            require(currents.size == 1) {
+                "CUT_OVER Context must have exactly one current assessment"
+            }
+            val current = currents.single()
+            require(!current.isDeleted) {
+                "CUT_OVER Context current assessment is deleted"
+            }
+
+            val revisions =
+                dao.getAllAssessmentRevisions()
+                    .filter { it.id == current.revisionId }
+            require(revisions.size == 1) {
+                "CUT_OVER Context current revision is missing or duplicated"
+            }
+            val revision = revisions.single()
+            require(
+                !revision.isDeleted &&
+                    revision.orientationId == mapping.subjectId,
+            ) {
+                "CUT_OVER Context current revision is invalid"
+            }
+
+            val assessment =
+                requireNotNull(
+                    runCatching {
+                        decodeOrientationAssessmentJson(
+                            gson,
+                            revision.assessmentJson,
+                        )
+                    }.getOrElse {
+                        throw IllegalArgumentException(
+                            "CUT_OVER Context assessment JSON is invalid",
+                            it,
+                        )
+                    },
+                )
+
+            require(current.matchesAssessment(assessment)) {
+                "CUT_OVER Context current assessment diverges from revision"
+            }
+
+            val kind =
+                runCatching {
+                    OrientationKind.valueOf(orientation.kind)
+                }.getOrElse {
+                    throw IllegalArgumentException(
+                        "CUT_OVER Context Orientation kind is invalid",
+                        it,
+                    )
+                }
+
+            require(validateOrientationAssessment(kind, assessment).isEmpty()) {
+                "CUT_OVER Context assessment violates DOMAIN-CONTRACT v1"
+            }
+
+            return ContextOrientationAssessmentState(
+                subject = subject,
+                orientation = orientation,
+                current = current,
+                assessment = assessment,
+            )
         }
 
         @Deprecated("Use CanonicalAspectRepository lifecycle commands")
@@ -380,7 +860,13 @@ private fun OrientationAssessmentRevision.toCurrentEntity(gson: Gson) =
 private const val CONTEXT_MIGRATION_INITIAL_REASON =
     "Initial canonical Orientation created from Context migration"
 
-private fun OrientationAssessmentEntity.matchesAssessment(
+private const val CONTEXT_ASSESSMENT_EDIT_REASON =
+    "Canonical Context assessment edited from Context Settings"
+
+private const val CONTEXT_SCORING_EDIT_REASON =
+    "Canonical Context scoring bundle edited from Context Settings"
+
+internal fun OrientationAssessmentEntity.matchesAssessment(
     expected: OrientationAssessment,
 ): Boolean =
     importanceValue == expected.importance.valueCode &&
@@ -398,7 +884,14 @@ private fun OrientationAssessmentEntity.matchesAssessment(
         commitmentValue == expected.commitment.valueCode &&
         commitmentOrigin == expected.commitment.origin.name &&
         confidenceValue == expected.confidence.valueCode &&
-        confidenceOrigin == expected.confidence.origin.name
+        confidenceOrigin == expected.confidence.origin.name &&
+        effortValue == expected.effort.valueCode &&
+        effortOrigin == expected.effort.origin.name &&
+        costValue == expected.cost.valueCode &&
+        costOrigin == expected.cost.origin.name &&
+        riskValue == expected.risk.valueCode &&
+        riskOrigin == expected.risk.origin.name &&
+        evaluationState == expected.evaluationState.name
 
 private fun OrientationAssessment.toCurrentEntity(
     orientationId: String,
@@ -428,9 +921,27 @@ private fun OrientationAssessment.toCurrentEntity(
     commitmentOrigin = commitment.origin.name,
     confidenceValue = confidence.valueCode,
     confidenceOrigin = confidence.origin.name,
+    effortValue = effort.valueCode,
+    effortOrigin = effort.origin.name,
+    costValue = cost.valueCode,
+    costOrigin = cost.origin.name,
+    riskValue = risk.valueCode,
+    riskOrigin = risk.origin.name,
+    evaluationState = evaluationState.name,
     provenanceJson = gson.toJson(
-        listOf(importance, impact, breadth, expectedSpan, targetWindow, attentionTier, commitment, confidence)
-            .mapNotNull { it.provenance },
+        listOf(
+            importance,
+            impact,
+            breadth,
+            expectedSpan,
+            targetWindow,
+            attentionTier,
+            commitment,
+            confidence,
+            effort,
+            cost,
+            risk,
+        ).mapNotNull { it.provenance },
     ),
     createdAt = createdAt,
     updatedAt = updatedAt,

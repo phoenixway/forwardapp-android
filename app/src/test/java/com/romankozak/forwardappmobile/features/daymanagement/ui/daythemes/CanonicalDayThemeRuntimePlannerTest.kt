@@ -55,7 +55,7 @@ class CanonicalDayThemeRuntimePlannerTest {
     }
 
     @Test
-    fun `edit increments global and daily authorities independently`() {
+    fun `common edit stays out of extension authority while daily edit increments daily state`() {
         val definition = definition(version = 4, title = "Old")
         val daily = dayTheme(version = 7, budgetPercent = 10)
 
@@ -85,10 +85,44 @@ class CanonicalDayThemeRuntimePlannerTest {
                     ),
             )
 
-        assertEquals(5, plan.themeDefinitions.single().version)
-        assertEquals("New title", plan.themeDefinitions.single().title)
+        assertTrue(plan.themeDefinitions.isEmpty())
         assertEquals(8, plan.dayThemes.single().version)
         assertEquals(25, plan.dayThemes.single().budgetPercent)
+    }
+
+    @Test
+    fun `extension edit increments ThemeDefinition authority`() {
+        val definition = definition(version = 4)
+        val daily = dayTheme()
+
+        val plan =
+            planCanonicalDayThemeRuntimeUpdate(
+                dayPlanId = "day-1",
+                now = 200,
+                localThemeDefinitions = listOf(definition),
+                localDayThemes = listOf(daily),
+                localAssignmentDocument = null,
+                transformedDocument =
+                    DayThemeDocument(
+                        themes =
+                            listOf(
+                                DayTheme(
+                                    id = daily.id,
+                                    dayPlanId = "day-1",
+                                    title = definition.title,
+                                    colorArgb = 42,
+                                    iconKey = definition.iconKey,
+                                    comment = definition.description,
+                                    budgetPercent = daily.budgetPercent,
+                                    order = daily.order,
+                                    isActive = daily.isActive,
+                                ),
+                            ),
+                    ),
+            )
+
+        assertEquals(5, plan.themeDefinitions.single().version)
+        assertEquals(42, plan.themeDefinitions.single().colorArgb)
     }
 
     @Test

@@ -18,6 +18,8 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalInbo
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalRemainingCapabilityLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogLifecycleAccess
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -42,7 +44,7 @@ class ContextScreenDataObserver(
             } else {
                 val rawContexts = dependencies.contextRepository.getAllContextsFlow()
                 val presentationUniverse =
-                    dependencies.systemWorkspacePresentationContextProjector.observePresentationUniverse(rawContexts)
+                    dependencies.systemWorkspacePresentationContextProjector.observePresentationUniverse()
                 val currentContextReadModel =
                     combine(presentationUniverse, rawContexts) { presentations, contexts ->
                         contextScreenReadModel(
@@ -64,7 +66,7 @@ class ContextScreenDataObserver(
                     dependencies.listItemRepository.getAllEntitiesAsFlow(),
                     dependencies.reminderRepository.getAllReminders(),
                     dependencies.recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT),
-                    dependencies.noteRepository.getNotesForContext(contextId),
+                    dependencies.noteRepository.observePlacedNotesForWorkspace(contextId),
                     dependencies.goalRepository.getGoalsByContextIdFlow(contextId),
                     dependencies.canonicalWorkspaceRepository
                         .observeCanonicalPresentations()
@@ -75,6 +77,9 @@ class ContextScreenDataObserver(
                     dependencies.systemInboxDirectionAccess.observeState(contextId),
                     dependencies.systemRemainingCapabilityAccess.observeState(contextId),
                     dependencies.systemBacklogLifecycleAccess.observeState(contextId),
+                    dependencies.workspacePresentationPreferencesRepository
+                        .observeCanonicalOrNull(contextId)
+                        .map { preferences -> preferences ?: WorkspacePresentationPreferences() },
                 ) { args: Array<Any?> ->
                     mapper.map(
                         contextId = contextId,
@@ -102,6 +107,7 @@ data class ContextScreenDataObserverDependencies(
     val noteRepository: LegacyNoteRepository,
     val goalRepository: GoalRepository,
     val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
+    val workspacePresentationPreferencesRepository: WorkspacePresentationPreferencesRepository,
     val orientationDao: OrientationDao,
     val systemInboxDirectionAccess: SystemContextCanonicalInboxDirectionAccess,
     val systemRemainingCapabilityAccess: SystemContextCanonicalRemainingCapabilityLifecycleAccess,

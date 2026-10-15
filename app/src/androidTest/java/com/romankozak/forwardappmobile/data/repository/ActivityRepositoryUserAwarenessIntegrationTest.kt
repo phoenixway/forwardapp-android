@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.domain.ai.events.AiEvent
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -35,7 +37,6 @@ class ActivityRepositoryUserAwarenessIntegrationTest {
             ActivityRepository(
                 activityRecordDao = db.activityRecordDao(),
                 goalDao = db.goalDao(),
-                contextDao = db.contextDao(),
                 aiEventRepository =
                     object : AiEventRepository {
                         override suspend fun emit(event: AiEvent) = Unit
@@ -45,6 +46,8 @@ class ActivityRepositoryUserAwarenessIntegrationTest {
                 appDatabase = db,
                 userAwarenessRepository = userAwarenessRepository,
                 stateSlashCommandParser = StateSlashCommandParser(),
+                systemWorkspacePresentationContextProjector =
+                    mockk<SystemWorkspacePresentationContextProjector>(relaxed = true),
             )
     }
 

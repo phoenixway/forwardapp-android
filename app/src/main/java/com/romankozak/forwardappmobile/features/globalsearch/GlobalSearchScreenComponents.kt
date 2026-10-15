@@ -829,6 +829,7 @@ internal fun CreateFromSearchBottomSheet(
     onCreateContext: () -> Unit,
     onCreateDocument: () -> Unit,
     onCreateReminder: () -> Unit,
+    onCreateSemanticEntity: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -858,6 +859,15 @@ internal fun CreateFromSearchBottomSheet(
                     text = "Швидкі дії глобального пошуку",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            onCreateSemanticEntity?.let { createSemanticEntity ->
+                CreateSearchActionRow(
+                    title = "Семантична сутність",
+                    subtitle = "Орієнтир або аспект без обов'язкових зв'язків",
+                    icon = Icons.Default.AccountTree,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    onClick = createSemanticEntity,
                 )
             }
             CreateSearchActionRow(

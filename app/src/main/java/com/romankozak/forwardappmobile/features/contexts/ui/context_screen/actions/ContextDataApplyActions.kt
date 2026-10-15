@@ -134,7 +134,7 @@ class ContextDataApplyActions(
                 ?: context?.id
                 ?: currentState.presentation?.id
                 ?: currentState.context?.id.orEmpty()
-        val preferredViewName = context?.defaultViewModeName
+        val preferredViewName = presentationPreferences.defaultViewModeName
         val configFingerprint = buildStableConfigFingerprint(config)
         val capabilityAuthorityFingerprint =
             listOf(

@@ -7,13 +7,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordFts
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
@@ -21,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextsFts
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
 import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
@@ -34,7 +30,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemState
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
@@ -56,12 +51,19 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationScoringOverrideEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceConnectionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningCommitmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningScopeEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.planning.TacticalPlanningScopeExtensionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.planning.StrategicPlanningScopeExtensionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.planning.DayPlanningScopeExtensionEntity
+import com.romankozak.forwardappmobile.data.planning.day.DayPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.strategic.StrategicPlanningScopeExtensionDao
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -101,18 +103,15 @@ import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLinkedAp
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -134,16 +133,12 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ConversationEntity::class,
         Goal::class,
         Context::class,
-        ContextTagRef::class,
         ArcQuestEntity::class,
-        BacklogItem::class,
-        BacklogOrder::class,
         ActivityRecord::class,
         LinkItemEntity::class,
         MainBeacon::class,
         MainBeaconGroup::class,
         MainBeaconGroupMember::class,
-        MainBeaconContextCrossRef::class,
         com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconWorkspaceCrossRef::class,
         MainBeaconAttachmentCrossRef::class,
         MainBeaconLevelStatus::class,
@@ -200,12 +195,16 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         AspectEntity::class,
         OrientationAssessmentEntity::class,
         OrientationAssessmentRevisionEntity::class,
+        OrientationScoringOverrideEntity::class,
         LegacySubjectMappingEntity::class,
         OrientationRelationEntity::class,
         AspectOrientationRefEntity::class,
         WorkspaceBindingEntity::class,
         WorkspaceCapabilityInstanceEntity::class,
+
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspacePresentationPreferencesEntity::class,
+
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.SystemWorkspaceTagSeedStateEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity::class,
@@ -216,30 +215,33 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         SavedOrientationViewEntity::class,
         PlanningScopeEntity::class,
         PlanningCommitmentEntity::class,
+        DayPlanningScopeExtensionEntity::class,
+        TacticalPlanningScopeExtensionEntity::class,
+        StrategicPlanningScopeExtensionEntity::class,
+        com.romankozak.forwardappmobile.data.planning.day.DayPlanningAuthorityStateEntity::class,
+        com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningAuthorityStateEntity::class,
+        com.romankozak.forwardappmobile.data.planning.strategic.StrategicPlanningAuthorityStateEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapIssueEntity::class,
+        com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityStateEntity::class,
         com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapStateEntity::class,
         com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapIssueEntity::class,
         AiInsightEntity::class,
         GoalFts::class,
-        ContextsFts::class,
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 181,
+    version = 198,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun canonicalEntityCatalogDao():
+        com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogDao
+
     abstract fun contextDao(): ContextDao
 
-    abstract fun contextTagRefDao(): ContextTagRefDao
-
     abstract fun goalDao(): GoalDao
-
-    abstract fun listItemDao(): ListItemDao
-
-    abstract fun backlogOrderDao(): BacklogOrderDao
 
     abstract fun linkItemDao(): LinkItemDao
 
@@ -325,7 +327,24 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun orientationDao(): OrientationDao
 
+    abstract fun canonicalScoringAuthorityStateDao(): com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityStateDao
+
     abstract fun planningDao(): PlanningDao
+
+    abstract fun dayPlanningScopeExtensionDao(): DayPlanningScopeExtensionDao
+
+    abstract fun tacticalPlanningScopeExtensionDao(): TacticalPlanningScopeExtensionDao
+
+    abstract fun strategicPlanningScopeExtensionDao(): StrategicPlanningScopeExtensionDao
+
+    abstract fun dayPlanningAuthorityStateDao():
+        com.romankozak.forwardappmobile.data.planning.day.DayPlanningAuthorityStateDao
+
+    abstract fun tacticalPlanningAuthorityStateDao():
+        com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningAuthorityStateDao
+
+    abstract fun strategicPlanningAuthorityStateDao():
+        com.romankozak.forwardappmobile.data.planning.strategic.StrategicPlanningAuthorityStateDao
 
     abstract fun hierarchyPlacementDao(): HierarchyPlacementDao
 
@@ -339,7 +358,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun hierarchyEstablishmentOriginDao():
         com.romankozak.forwardappmobile.data.hierarchy.HierarchyEstablishmentOriginDao
 
+
     abstract fun workspaceDao(): WorkspaceDao
+
+    abstract fun workspacePresentationPreferencesDao():
+        com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesDao
+
 
     abstract fun workspaceTagRefDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceTagRefDao
 

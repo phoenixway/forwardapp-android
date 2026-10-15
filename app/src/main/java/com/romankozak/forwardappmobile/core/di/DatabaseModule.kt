@@ -8,9 +8,15 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
 import com.romankozak.forwardappmobile.data.database.HIERARCHY_ESTABLISHMENT_FRESH_DATABASE_CALLBACK
+import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogDao
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityStateDao
 import com.romankozak.forwardappmobile.data.planning.PlanningDao
+import com.romankozak.forwardappmobile.data.planning.day.DayPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.strategic.StrategicPlanningScopeExtensionDao
+import com.romankozak.forwardappmobile.data.planning.day.DayPlanningAuthorityStateDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
@@ -19,7 +25,6 @@ import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceInboxR
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagSeedStateDao
@@ -29,12 +34,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -77,7 +80,8 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideContextTagRefDao(appDatabase: AppDatabase): ContextTagRefDao = appDatabase.contextTagRefDao()
+    fun provideCanonicalEntityCatalogDao(appDatabase: AppDatabase): CanonicalEntityCatalogDao =
+        appDatabase.canonicalEntityCatalogDao()
 
     @Provides
     @Singleton
@@ -88,10 +92,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideGoalDao(appDatabase: AppDatabase): GoalDao = appDatabase.goalDao()
-
-    @Provides
-    @Singleton
-    fun provideListItemDao(appDatabase: AppDatabase): ListItemDao = appDatabase.listItemDao()
 
     @Provides
     @Singleton
@@ -202,7 +202,32 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideCanonicalScoringAuthorityStateDao(appDatabase: AppDatabase): CanonicalScoringAuthorityStateDao =
+        appDatabase.canonicalScoringAuthorityStateDao()
+
+    @Provides
+    @Singleton
     fun providePlanningDao(appDatabase: AppDatabase): PlanningDao = appDatabase.planningDao()
+
+    @Provides
+    @Singleton
+    fun provideDayPlanningScopeExtensionDao(appDatabase: AppDatabase): DayPlanningScopeExtensionDao =
+        appDatabase.dayPlanningScopeExtensionDao()
+
+    @Provides
+    @Singleton
+    fun provideTacticalPlanningScopeExtensionDao(appDatabase: AppDatabase): TacticalPlanningScopeExtensionDao =
+        appDatabase.tacticalPlanningScopeExtensionDao()
+
+    @Provides
+    @Singleton
+    fun provideStrategicPlanningScopeExtensionDao(appDatabase: AppDatabase): StrategicPlanningScopeExtensionDao =
+        appDatabase.strategicPlanningScopeExtensionDao()
+
+    @Provides
+    @Singleton
+    fun provideDayPlanningAuthorityStateDao(appDatabase: AppDatabase): DayPlanningAuthorityStateDao =
+        appDatabase.dayPlanningAuthorityStateDao()
 
     @Provides
     @Singleton
@@ -210,7 +235,16 @@ object DatabaseModule {
         appDatabase.hierarchyPlacementDao()
 
     @Provides
+
     fun provideWorkspaceDao(appDatabase: AppDatabase): WorkspaceDao = appDatabase.workspaceDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkspacePresentationPreferencesDao(
+        appDatabase: AppDatabase,
+    ): com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesDao =
+        appDatabase.workspacePresentationPreferencesDao()
+
 
 
     @Provides
@@ -264,10 +298,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideScriptDao(appDatabase: AppDatabase): ScriptDao = appDatabase.scriptDao()
-
-    @Provides
-    @Singleton
-    fun provideBacklogOrderDao(appDatabase: AppDatabase): BacklogOrderDao = appDatabase.backlogOrderDao()
 
     @Provides
     @Singleton

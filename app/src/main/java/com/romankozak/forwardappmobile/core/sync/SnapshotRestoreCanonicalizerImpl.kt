@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspacePresentationPreferencesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.classifyHierarchyBackupGeneration
 import com.romankozak.forwardappmobile.core.data.models.sync.requireSupportedHierarchyFormat
 import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceSnapshot
@@ -67,6 +68,10 @@ class SnapshotRestoreCanonicalizerImpl
         override fun canonicalize(bundle: SnapshotBundle): SnapshotBundle {
             val hierarchyBackupGeneration = bundle.classifyHierarchyBackupGeneration()
             bundle.requireSupportedHierarchyFormat()
+            requireHistoricalMainBeaconRestoreAdmission(
+                source = bundle,
+                generation = hierarchyBackupGeneration,
+            )
 
             val hasLegacyBacklog = bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty()
             val hasLegacyInbox = bundle.inbox.isNotEmpty()
@@ -90,10 +95,16 @@ class SnapshotRestoreCanonicalizerImpl
                 !needsLegacySystemApps
             ) {
                 requireNoLiveOrdinaryContexts(bundle)
-                return legacyHierarchyRestoreTranslator.translate(
-                    source = bundle,
-                    canonical = bundle,
-                    hierarchyBackupGeneration = hierarchyBackupGeneration,
+                val withExecutionLogs =
+                    bundle.withCanonicalExecutionLogRestoreIngress(
+                        canonicalWorkspaces = bundle.workspaces.orEmpty(),
+                    )
+                return normalizeOperationalProjectOwnersForRestore(
+                    legacyHierarchyRestoreTranslator.translate(
+                        source = bundle,
+                        canonical = withExecutionLogs,
+                        hierarchyBackupGeneration = hierarchyBackupGeneration,
+                    ),
                 )
             }
             require(bundle.workspaces == null) {
@@ -283,6 +294,23 @@ class SnapshotRestoreCanonicalizerImpl
                     }
                 }
 
+            val workspaceIds = workspaces.mapTo(hashSetOf()) { it.id }
+            val canonicalPresentationPreferences =
+                bundle.workspacePresentationPreferences
+                    ?: bundle.contexts
+                        .filter { context -> context.id in workspaceIds }
+                        .map { context ->
+                            WorkspacePresentationPreferencesSnapshot(
+                                workspaceId = context.id,
+                                defaultViewModeName = context.defaultViewModeName,
+                                isAttachmentsExpanded = context.isAttachmentsExpanded,
+                                showCheckboxes = context.showCheckboxes,
+                                createdAt = context.createdAt,
+                                updatedAt = context.updatedAt,
+                                version = context.version.coerceAtLeast(1L),
+                            )
+                        }
+
             val result =
                 bundle.copy(
                     contexts = retiredContextEvidence,
@@ -300,6 +328,7 @@ class SnapshotRestoreCanonicalizerImpl
                         },
                     workspaceBindings = emptyList(),
                     workspaceCapabilityInstances = capabilities,
+                    workspacePresentationPreferences = canonicalPresentationPreferences,
                     workspaceTagRefs = workspaceTags,
                     savedOrientationViews = emptyList(),
                     workspaceBacklogEntries = canonicalBacklog,
@@ -313,16 +342,188 @@ class SnapshotRestoreCanonicalizerImpl
                     backlogOrders = emptyList(),
                     inbox = emptyList(),
                     contextInboxSortingRules = emptyList(),
+                ).withCanonicalExecutionLogRestoreIngress(
+                    canonicalWorkspaces = workspaces.map { it.toWorkspaceSnapshot() },
+                    workspaceIdsEstablishedFromLegacyContexts = workspaces.mapTo(hashSetOf()) { it.id },
+                    legacyContexts = bundle.contexts,
                 )
             requireNoLiveOrdinaryContexts(result)
             require(result.contexts.none { SystemContexts.isSystem(ContextId(it.id)) }) {
                 "Restore canonicalization retained a reserved System Context shell"
             }
-            return legacyHierarchyRestoreTranslator.translate(
-                source = bundle,
-                canonical = result,
-                hierarchyBackupGeneration = hierarchyBackupGeneration,
+            return normalizeOperationalProjectOwnersForRestore(
+                legacyHierarchyRestoreTranslator.translate(
+                    source = bundle,
+                    canonical = result,
+                    hierarchyBackupGeneration = hierarchyBackupGeneration,
+                ),
             )
+        }
+
+        /**
+         * Restore-only DayTask owner admission.
+         *
+         * The wire projectId is a logical identity, not a permission to
+         * resurrect legacy Context ownership or create missing Workspaces.
+         *
+         * Unlike normal merge, full restore retains an otherwise valid task
+         * while neutralizing an unproven owner. No Workspace or Context is
+         * synthesized here.
+         */
+        private fun normalizeDayTaskOwnersForRestore(
+            bundle: SnapshotBundle,
+        ): SnapshotBundle {
+            if (bundle.dayTasks.isEmpty()) return bundle
+
+            val workspacesById =
+                bundle.workspaces.orEmpty().associateBy { it.id }
+            val contextsById =
+                bundle.contexts.associateBy { it.id }
+
+            val normalized =
+                bundle.dayTasks.map { task ->
+                    val ownerId = task.projectId ?: return@map task
+                    val workspace = workspacesById[ownerId]
+                    val context = contextsById[ownerId]
+
+                    val canonicalOnly =
+                        workspace?.provenance ==
+                            WorkspaceProvenance.CANONICAL_ONLY.name &&
+                            workspace.sourceContextId == null
+
+                    val proven =
+                        if (workspace == null || workspace.isDeleted) {
+                            false
+                        } else {
+                            when {
+                                SystemContexts.isSystem(ContextId(ownerId)) ->
+                                    canonicalOnly
+
+                                context?.isDeleted == false ->
+                                    workspace.provenance ==
+                                        WorkspaceProvenance.CONTEXT_BACKED.name &&
+                                        workspace.sourceContextId == ownerId
+
+                                context?.isDeleted == true ->
+                                    canonicalOnly
+
+                                else ->
+                                    (
+                                        workspace.provenance ==
+                                            WorkspaceProvenance.STANDALONE.name &&
+                                            workspace.sourceContextId == null
+                                    ) ||
+                                        (
+                                            workspace.provenance ==
+                                                WorkspaceProvenance.CONTEXT_BACKED.name &&
+                                                workspace.sourceContextId == ownerId
+                                        )
+                            }
+                        }
+
+                    if (proven) task else task.copy(projectId = null)
+                }
+
+            return bundle.copy(dayTasks = normalized)
+        }
+
+        /**
+         * Restore-only compatibility for operational project ownership.
+         *
+         * DayTask retains its established policy. TacticalMission has a
+         * separate normalization step because its physical carrier still
+         * retains the legacy Context FK until Context-FK.6.
+         */
+        private fun normalizeOperationalProjectOwnersForRestore(
+            bundle: SnapshotBundle,
+        ): SnapshotBundle =
+            normalizeTacticalMissionOwnersForRestore(
+                normalizeDayTaskOwnersForRestore(bundle),
+            )
+
+        /**
+         * TacticalMission wire projectId is a logical owner identity.
+         *
+         * Proven ownership survives unchanged on the wire and is routed
+         * to project_workspace_id by the validated DAO writer.
+         *
+         * An unproven historical owner is neutralized without dropping
+         * the mission or changing its Tactical-only carrier fields.
+         * Ambiguous owner evidence fails closed.
+         */
+        private fun normalizeTacticalMissionOwnersForRestore(
+            bundle: SnapshotBundle,
+        ): SnapshotBundle {
+            if (bundle.tacticalMissions.isEmpty()) return bundle
+
+            val workspacesById =
+                bundle.workspaces.orEmpty().groupBy { it.id }
+            val contextsById =
+                bundle.contexts.groupBy { it.id }
+
+            val normalized =
+                bundle.tacticalMissions.map { mission ->
+                    val ownerId = mission.projectId ?: return@map mission
+
+                    val workspaceCandidates = workspacesById[ownerId].orEmpty()
+                    val contextCandidates = contextsById[ownerId].orEmpty()
+
+                    require(workspaceCandidates.size <= 1) {
+                        "Ambiguous TacticalMission ${mission.id} Workspace owner $ownerId"
+                    }
+                    require(contextCandidates.size <= 1) {
+                        "Ambiguous TacticalMission ${mission.id} Context evidence $ownerId"
+                    }
+
+                    val workspace = workspaceCandidates.singleOrNull()
+                    val context = contextCandidates.singleOrNull()
+
+                    val proven =
+                        if (
+                            ownerId.isBlank() ||
+                            workspace == null ||
+                            workspace.isDeleted
+                        ) {
+                            false
+                        } else {
+                            val canonicalOnly =
+                                workspace.provenance ==
+                                    WorkspaceProvenance.CANONICAL_ONLY.name &&
+                                    workspace.sourceContextId == null
+
+                            val contextBacked =
+                                workspace.provenance ==
+                                    WorkspaceProvenance.CONTEXT_BACKED.name &&
+                                    workspace.sourceContextId == ownerId
+
+                            val standalone =
+                                workspace.provenance ==
+                                    WorkspaceProvenance.STANDALONE.name &&
+                                    workspace.sourceContextId == null
+
+                            when {
+                                SystemContexts.isSystem(ContextId(ownerId)) ->
+                                    canonicalOnly
+
+                                context?.isDeleted == false ->
+                                    contextBacked
+
+                                context?.isDeleted == true ->
+                                    canonicalOnly
+
+                                else ->
+                                    canonicalOnly || standalone || contextBacked
+                            }
+                        }
+
+                    if (proven) {
+                        mission
+                    } else {
+                        mission.copy(projectId = null)
+                    }
+                }
+
+            return bundle.copy(tacticalMissions = normalized)
         }
 
         private fun canonicalizeLegacyBacklog(

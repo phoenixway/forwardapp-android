@@ -20,6 +20,7 @@ data class ContextSettingsUiState(
     val isReady: Boolean = false,
     val isNewProject: Boolean = true,
     val isScoringEnabled: Boolean = true,
+    val isCanonicalAssessmentAvailable: Boolean = false,
     val valueImportance: Float = 0f,
     val valueImpact: Float = 0f,
     val effort: Float = 0f,

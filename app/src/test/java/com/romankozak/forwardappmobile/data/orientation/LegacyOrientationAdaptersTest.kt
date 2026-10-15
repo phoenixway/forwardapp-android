@@ -72,6 +72,12 @@ class LegacyOrientationAdaptersTest {
                 version = goal.version,
                 valueImportance = goal.valueImportance,
                 valueImpact = goal.valueImpact,
+                effort = goal.effort,
+                cost = goal.cost,
+                risk = goal.risk,
+                weightEffort = goal.weightEffort,
+                weightCost = goal.weightCost,
+                weightRisk = goal.weightRisk,
                 scoringStatus = goal.scoringStatus,
                 goalStatus = goal.goalStatus,
             )

@@ -98,6 +98,24 @@ class SystemWorkspaceTagAuthority
                 )
             }
 
+        /**
+         * Canonical reactive owner universe for callers that do not need
+         * Context compatibility rows for a separate purpose.
+         */
+        fun observeEffectiveOwners(): Flow<List<TagOwner>> =
+            combine(
+                workspaceDao.observeAll(),
+                workspaceTagRefDao.observeAll(),
+                systemWorkspaceTagSeedStateDao.observeAll(),
+            ) { workspaces, tagRefs, seedStates ->
+                effectiveOwners(
+                    contexts = emptyList(),
+                    workspaces = workspaces,
+                    tagRefs = tagRefs,
+                    seededIds = seedStates.mapTo(hashSetOf()) { it.workspaceId },
+                )
+            }
+
         fun observeEffectiveOwners(contexts: Flow<List<Context>>): Flow<List<TagOwner>> =
             combine(
                 contexts,

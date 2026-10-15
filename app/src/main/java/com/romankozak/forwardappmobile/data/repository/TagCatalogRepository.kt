@@ -3,8 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.domain.tags.buildHashTagCatalog
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceTagAuthority
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -16,19 +15,19 @@ class TagCatalogRepository
     @Inject
     constructor(
         activityRecordDao: ActivityRecordDao,
-        goalDao: GoalDao,
+        goalRepository: GoalRepository,
         dayTaskDao: DayTaskDao,
-        contextDao: ContextDao,
+        systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         systemWorkspaceTagAuthority: SystemWorkspaceTagAuthority,
     ) {
         val tags: Flow<List<String>> =
             combine(
                 activityRecordDao.getAllRecordsStream(),
-                goalDao.getAllVisibleGoalsFlow(),
+                goalRepository.getAllGoalsFlow(),
                 dayTaskDao.getAllVisibleTasksFlow(),
-                contextDao.getAllContexts(),
-                systemWorkspaceTagAuthority.observeEffectiveOwners(contextDao.getAllContexts()),
-            ) { activityRecords, goals, dayTasks, contexts, tagOwners ->
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
+                systemWorkspaceTagAuthority.observeEffectiveOwners(),
+            ) { activityRecords, goals, dayTasks, presentations, tagOwners ->
                 buildHashTagCatalog(
                     texts =
                         sequence {
@@ -42,7 +41,9 @@ class TagCatalogRepository
                                 task.description?.let { yield(it) }
                                 task.notes?.let { yield(it) }
                             }
-                            contexts.forEach { context -> context.description?.let { yield(it) } }
+                            presentations.forEach { presentation ->
+                                presentation.description?.let { yield(it) }
+                            }
                         },
                     explicitTags =
                         sequence {

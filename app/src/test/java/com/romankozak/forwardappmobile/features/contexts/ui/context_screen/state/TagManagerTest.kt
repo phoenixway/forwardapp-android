@@ -3,8 +3,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import io.mockk.every
@@ -20,28 +18,11 @@ class TagManagerTest {
     @Test
     fun `loadTags uses canonical presentation names and tags`() =
         runTest {
-            val contextRepository = mockk<ContextRepository>()
             val projector =
                 mockk<SystemWorkspacePresentationContextProjector>()
 
-            val staleRaw =
-                Context(
-                    id = "retired",
-                    name = "Stale raw name",
-                    description = null,
-                    parentId = null,
-                    createdAt = 0L,
-                    updatedAt = 1L,
-                    tags = listOf("stale-tag"),
-                    relatedLinks = emptyList(),
-                    isDeleted = true,
-                )
-
-            every { contextRepository.getAllContextsFlow() } returns
-                flowOf(listOf(staleRaw))
-
             every {
-                projector.observePresentationUniverse(any())
+                projector.observePresentationUniverse()
             } returns
                 flowOf(
                     listOf(
@@ -68,7 +49,6 @@ class TagManagerTest {
 
             val manager =
                 TagManager(
-                    contextRepository = contextRepository,
                     systemWorkspacePresentationContextProjector = projector,
                     scope = this,
                 )

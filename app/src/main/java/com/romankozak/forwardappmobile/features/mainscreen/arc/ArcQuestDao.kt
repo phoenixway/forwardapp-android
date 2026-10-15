@@ -20,6 +20,9 @@ interface ArcQuestDao {
     )
     fun observeArcQuests(arcKey: String): Flow<List<ArcQuestEntity>>
 
+    @Query("SELECT * FROM arc_quests ORDER BY arc_key ASC, quest_order ASC, id ASC")
+    fun observeAllRows(): Flow<List<ArcQuestEntity>>
+
     @Query(
         """
         SELECT DISTINCT arc_key FROM arc_quests
@@ -46,6 +49,47 @@ interface ArcQuestDao {
 
     @Update
     suspend fun update(quest: ArcQuestEntity)
+
+    /**
+     * Canonical QUEST -> legacy ArcQuest compatibility projection.
+     * Intentionally does not advance ArcQuest extension version metadata.
+     */
+    @Query(
+        """
+        UPDATE arc_quests
+        SET title = :title,
+            description = :description,
+            is_deleted = :isDeleted
+        WHERE id = :questId
+        """,
+    )
+    suspend fun projectCommonFields(
+        questId: String,
+        title: String,
+        description: String?,
+        isDeleted: Boolean,
+    )
+
+    /** Canonical Planning/Orientation -> legacy compatibility projection. */
+    @Query(
+        """
+        UPDATE arc_quests
+        SET title = :title,
+            description = :description,
+            status = :status,
+            quest_order = :order,
+            is_deleted = :isDeleted
+        WHERE id = :questId
+        """,
+    )
+    suspend fun projectCanonicalFields(
+        questId: String,
+        title: String,
+        description: String?,
+        status: String,
+        order: Long,
+        isDeleted: Boolean,
+    )
 
     @Query("SELECT COALESCE(MIN(quest_order), 0) FROM arc_quests WHERE arc_key = :arcKey AND is_deleted = 0")
     suspend fun getMinOrder(arcKey: String): Long

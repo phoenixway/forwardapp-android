@@ -127,9 +127,7 @@ class StrategicArcViewModel
                     }
 
             combine(
-                systemWorkspacePresentationContextProjector.observePresentationUniverse(
-                    contextRepository.getAllContextsFlow(),
-                ),
+                systemWorkspacePresentationContextProjector.observePresentationUniverse(),
                 mainBeaconRepository.observeMainBeaconDetails(),
                 mainBeaconRepository.observeGroups(),
                 currentArcKey.flatMapLatest { arcKey -> arcQuestRepository.observeArcQuests(arcKey) },

@@ -14,8 +14,8 @@ import javax.inject.Singleton
 /**
  * Canonical transport/invariant boundary for Workspace-owned EXECUTION_LOG rows.
  *
- * Content stays in context_execution_logs. This store owns only the canonical
- * partition contract, transport mapping, conflict resolution, and sync ack.
+ * Content stays in context_execution_logs with Workspace as its sole local
+ * owner. This store owns transport mapping, conflict resolution, and sync ack.
  */
 @Singleton
 class CanonicalExecutionLogSyncStore
@@ -73,9 +73,6 @@ class CanonicalExecutionLogSyncStore
                 }
 
                 localById[candidate.id]?.let { local ->
-                    require(local.contextId == null && local.workspaceId != null) {
-                        "EXECUTION_LOG id collision between legacy Context and canonical Workspace streams: ${candidate.id}"
-                    }
                     require(local.workspaceId == candidate.workspaceId) {
                         "Canonical EXECUTION_LOG ownership cannot move between Workspaces: ${candidate.id}"
                     }
@@ -123,13 +120,9 @@ class CanonicalExecutionLogSyncStore
     }
 
 private fun ContextLog.toCanonicalSnapshot(): CanonicalExecutionLogSnapshot {
-    require(contextId == null && workspaceId != null) {
-        "Canonical EXECUTION_LOG persistence row must have contextId=null and workspaceId!=null"
-    }
-
     return CanonicalExecutionLogSnapshot(
         id = id,
-        workspaceId = requireNotNull(workspaceId),
+        workspaceId = workspaceId,
         timestamp = timestamp,
         type = type,
         description = description,
@@ -146,7 +139,6 @@ private fun ContextLog.toCanonicalSnapshot(): CanonicalExecutionLogSnapshot {
 private fun CanonicalExecutionLogSnapshot.toEntity(): ContextLog =
     ContextLog(
         id = id,
-        contextId = null,
         timestamp = timestamp,
         type = type,
         description = description,

@@ -106,7 +106,6 @@ class EditTaskViewModelRecurrenceEditTest {
                 EditTaskViewModel(
                     dayManagementRepository = repository,
                     canonicalTaskRecurrenceAuthoringAdapter = canonicalTaskRecurrenceAuthoringAdapter,
-                    contextRepository = contextRepository,
                     systemWorkspacePresentationContextProjector = mockk(relaxed = true),
                     savedStateHandle = SavedStateHandle(mapOf("taskId" to "task-1")),
                 )
@@ -224,7 +223,6 @@ class EditTaskViewModelRecurrenceEditTest {
                     dayManagementRepository = repository,
                     canonicalTaskRecurrenceAuthoringAdapter =
                         canonicalTaskRecurrenceAuthoringAdapter,
-                    contextRepository = contextRepository,
                     systemWorkspacePresentationContextProjector = mockk(relaxed = true),
                     savedStateHandle =
                         SavedStateHandle(mapOf("taskId" to "system-task")),

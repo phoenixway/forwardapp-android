@@ -6,37 +6,23 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
 import androidx.room.Index
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 
-@Entity(
-    tableName = "backlog_orders",
-    indices = [
-        Index("list_id"),
-        Index(value = ["list_id", "item_id"], unique = true),
-    ],
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["list_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-)
+/** Historical transport/Restore shape. Local Room persistence retired at schema 194. */
 data class BacklogOrder(
-    @PrimaryKey @SerializedName("id") val id: String,
+    @SerializedName("id") val id: String,
     @SerializedName(value = "listId", alternate = ["contextId", "projectId"])
-    @ColumnInfo(name = "list_id")
     val listId: String = "",
-    @ColumnInfo(name = "item_id") @SerializedName("itemId")
-    val itemId: String,
-    @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
-    @ColumnInfo(name = "order_version", defaultValue = "0") @SerializedName("orderVersion") val orderVersion: Long = 0,
+    @SerializedName("itemId") val itemId: String,
+    @SerializedName("order") val order: Long,
+    @SerializedName("orderVersion") val orderVersion: Long = 0,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
 )
 
 @Entity(tableName = "link_items")
@@ -87,19 +73,15 @@ data class Goal(
     tableName = "context_execution_logs",
     foreignKeys = [
         ForeignKey(
-            entity = Context::class,
+            entity = WorkspaceEntity::class,
             parentColumns = ["id"],
-            childColumns = ["contextId"],
-            onDelete = ForeignKey.CASCADE,
+            childColumns = ["workspaceId"],
         ),
     ],
+    indices = [Index("workspaceId")],
 )
 data class ContextLog(
     @PrimaryKey @SerializedName("id") val id: String,
-    // Legacy Context compatibility locator. Canonical-only EXECUTION_LOG rows
-    // may leave this null once their canonical transport/repository is enabled.
-    @SerializedName(value = "contextId", alternate = ["projectId"])
-    @ColumnInfo(index = true) val contextId: String? = null,
     @SerializedName("timestamp") val timestamp: Long,
     @ColumnInfo(name = "type") @SerializedName("type") val type: String,
     @SerializedName("description") val description: String,
@@ -108,10 +90,42 @@ data class ContextLog(
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
     @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
     @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
-    // Transitional EXECUTION_LOG ownership bridge.
-    // null means Workspace ownership has not yet been proven.
-    @ColumnInfo(index = true) @SerializedName("workspaceId") val workspaceId: String? = null,
-)
+    @SerializedName("workspaceId") val workspaceId: String,
+) {
+    // Restore/UI compatibility locator only; no longer persisted after schema 189.
+    @Ignore
+    @SerializedName(value = "contextId", alternate = ["projectId"])
+    var contextId: String? = null
+        private set
+
+    @Ignore
+    constructor(
+        id: String,
+        contextId: String?,
+        timestamp: Long,
+        type: String,
+        description: String,
+        details: String? = null,
+        updatedAt: Long? = null,
+        syncedAt: Long? = null,
+        isDeleted: Boolean = false,
+        version: Long = 0,
+        workspaceId: String,
+    ) : this(
+        id = id,
+        timestamp = timestamp,
+        type = type,
+        description = description,
+        details = details,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+        workspaceId = workspaceId,
+    ) {
+        this.contextId = contextId
+    }
+}
 
 /** Legacy UI/backup compatibility projection. Canonical persistence is WorkspaceInboxRecordEntity. */
 data class InboxRecord(
@@ -130,35 +144,20 @@ data class InboxRecord(
     @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
-@Entity(
-    tableName = "list_items",
-    indices = [
-        Index(value = ["context_id", "itemType", "entityId", "is_deleted"], unique = true),
-        Index(value = ["entityId", "itemType", "association_owner_context_id"]),
-    ],
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-)
+/** Historical transport/Restore and compatibility projection shape; not a Room entity after schema 194. */
 data class BacklogItem(
-    @PrimaryKey @SerializedName("id") val id: String,
+    @SerializedName("id") val id: String,
     @SerializedName(value = "contextId", alternate = ["listId", "projectId"])
-    @ColumnInfo(name = "context_id", index = true)
     val contextId: String = "",
     @SerializedName("itemType") val itemType: String,
     @SerializedName("entityId") val entityId: String,
-    @ColumnInfo(name = "association_owner_context_id") @SerializedName("associationOwnerContextId") val associationOwnerContextId: String? = null,
-    @ColumnInfo(name = "association_tag") @SerializedName("associationTag") val associationTag: String? = null,
-    @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
+    @SerializedName("associationOwnerContextId") val associationOwnerContextId: String? = null,
+    @SerializedName("associationTag") val associationTag: String? = null,
+    @SerializedName("order") val order: Long,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
-    @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
 )
 
 @Fts4(contentEntity = Goal::class)
@@ -168,20 +167,10 @@ data class GoalFts(
     @SerializedName("description") val description: String?,
 )
 
-@Fts4(contentEntity = Context::class)
-@Entity(tableName = "contexts_fts")
-data class ContextsFts(
-    @SerializedName("name") val name: String,
-    @SerializedName("description") val description: String?,
-)
-
 data class GlobalGoalSearchResult(
     @Embedded @SerializedName("goal")
     val goal: Goal,
     @SerializedName("contextId") val contextId: String,
-    @SerializedName("contextName") val contextName: String,
-    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
-    val pathSegments: List<String>,
 )
 
 data class GlobalLinkSearchResult(
@@ -207,19 +196,6 @@ data class GlobalSearchContextPresentation(
     @SerializedName("parentId") val parentId: String?,
     @SerializedName("tags") val tags: List<String>,
     @SerializedName("rankingTimestamp") val rankingTimestamp: Long,
-)
-
-/**
- * Legacy Room-only projection retained for the dormant Context DAO query.
- * Active global search uses [GlobalSubcontextSearchResult] instead.
- */
-data class LegacyGlobalSubcontextSearchResult(
-    @Embedded @SerializedName("subcontext")
-    val subcontext: Context,
-    @SerializedName("parentContextId") val parentContextId: String,
-    @SerializedName("parentContextName") val parentContextName: String,
-    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
-    val pathSegments: List<String>,
 )
 
 data class GlobalSubcontextSearchResult(
@@ -261,6 +237,25 @@ sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
     abstract val matchedTags: List<String>
+
+    /**
+     * Canonical semantic search result.
+     *
+     * Identity/content belong to ManagedSubject + OrientationNode upstream.
+     * Workspace fields are optional navigation decoration only.
+     */
+    data class OrientationItem(
+        @SerializedName("orientationId") val orientationId: String,
+        @SerializedName("title") val title: String,
+        @SerializedName("description") val description: String?,
+        @SerializedName("workspaceId") val workspaceId: String?,
+        @SerializedName("workspaceName") val workspaceName: String?,
+        @SerializedName("updatedAt") val updatedAt: Long,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = updatedAt
+        override val uniqueId: String get() = "orientation_$orientationId"
+    }
 
     data class GoalItem(
         @SerializedName("goal") val goal: Goal,
@@ -311,6 +306,18 @@ sealed class GlobalSearchResultItem {
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
+    }
+
+    /**
+     * Standalone Legacy Note search result.
+     * Identity is the Note ID, never a Context or BACKLOG placement ID.
+     */
+    data class NoteItem(
+        @SerializedName("note") val note: LegacyNoteEntity,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = note.updatedAt
+        override val uniqueId: String get() = "note_${note.id}"
     }
 
     data class AttachmentItem(

@@ -7,26 +7,6 @@ import androidx.room.Index
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceInboxRecordEntity
 
 @Entity(
-    tableName = "context_tag_refs",
-    primaryKeys = ["context_id", "normalized_tag"],
-    indices = [
-        Index(value = ["normalized_tag"]),
-    ],
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-)
-data class ContextTagRef(
-    @ColumnInfo(name = "context_id") val contextId: String,
-    @ColumnInfo(name = "normalized_tag") val normalizedTag: String,
-)
-
-@Entity(
     tableName = "inbox_record_links",
     primaryKeys = ["record_id", "context_id"],
     indices = [
@@ -87,9 +67,4 @@ data class BacklogGoalAssociationLink(
     @ColumnInfo(name = "association_tag") val associationTag: String? = null,
     @ColumnInfo(name = "item_order") val order: Long,
     @ColumnInfo(name = "linked_at") val linkedAt: Long = System.currentTimeMillis(),
-)
-
-data class ContextTagLookup(
-    @ColumnInfo(name = "context_id") val contextId: String,
-    @ColumnInfo(name = "normalized_tag") val normalizedTag: String,
 )

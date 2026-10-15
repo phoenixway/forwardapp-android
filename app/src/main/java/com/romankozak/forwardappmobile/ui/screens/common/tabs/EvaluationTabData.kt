@@ -12,6 +12,8 @@ data class EvaluationTabUiState(
     val rawScore: Float,
     val scoringStatus: String,
     val isScoringEnabled: Boolean,
+    val isAssessmentEnabled: Boolean,
+    val supportsAssessmentUnset: Boolean,
     val relativeSize: Int,
     val isBeaconProgressExpanded: Boolean,
     val isRelativeSizeExpanded: Boolean,

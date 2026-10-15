@@ -27,7 +27,7 @@ import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.createRootWorkspaceForPicker
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
@@ -110,7 +110,7 @@ class TacticalMissionViewModel
 	        private val missionStreamRepository: MissionStreamRepository,
 	        private val tacticsWorkspaceStateRepository: TacticsWorkspaceStateRepository,
 	        private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
-	        private val goalDao: GoalDao,
+	        private val goalRepository: GoalRepository,
 	    ) : ViewModel() {
         companion object {
             const val MISSION_REMINDER_ENTITY_TYPE = "TACTICAL_MISSION"
@@ -145,11 +145,9 @@ class TacticalMissionViewModel
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
                 )
-        private val contextRows = contextRepository.getAllContextsFlow()
-
         private val allContexts =
             systemWorkspacePresentationContextProjector
-                .observePresentationUniverse(contextRows)
+                .observePresentationUniverse()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
@@ -158,7 +156,7 @@ class TacticalMissionViewModel
 
         private val projectOwnerLabels =
             systemWorkspacePresentationContextProjector
-                .observeOwnerLabels(contextRows)
+                .observeOwnerLabels()
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
@@ -250,7 +248,7 @@ class TacticalMissionViewModel
                         listItemRepository.getItemsForContextStream(contextId).map { items -> contextId to items }
                     }
                 },
-                goalDao.getAllVisibleGoalsFlow(),
+                goalRepository.getAllGoalsFlow(),
                 allContexts,
                 missions,
                 activeIteration,
@@ -875,7 +873,7 @@ class TacticalMissionViewModel
         fun reorderVisibleMissions(reordered: List<TacticalMission>) {
             viewModelScope.launch {
                 reordered.forEachIndexed { index, mission ->
-                    updateTacticalMissionUseCase(mission.copy(orderInWeek = index.toLong(), order = index.toLong()))
+                    updateTacticalMissionUseCase(mission.copy(orderInWeek = index.toLong()))
                 }
             }
         }

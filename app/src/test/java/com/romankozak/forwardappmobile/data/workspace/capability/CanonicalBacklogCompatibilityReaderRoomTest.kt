@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
@@ -215,7 +214,7 @@ class CanonicalBacklogCompatibilityReaderRoomTest {
     }
 
     @Test
-    fun `Goal runtime queries use canonical placement and ignore retained legacy authority`() = runBlocking {
+    fun `Goal runtime queries use canonical placement after legacy local retirement`() = runBlocking {
         val database = database()
         try {
             seedContext(database, "owner")
@@ -247,25 +246,6 @@ class CanonicalBacklogCompatibilityReaderRoomTest {
             )
             database.linkItemDao().insert(linkItem("canonical-link"))
             database.linkItemDao().insert(linkItem("legacy-only-link"))
-            database.listItemDao().insertItem(
-                BacklogItem(
-                    id = "retained-legacy-placement",
-                    contextId = "owner",
-                    itemType = BacklogItemTypeValues.GOAL,
-                    entityId = "legacy-only-goal",
-                    order = 0L,
-                ),
-            )
-            database.listItemDao().insertItem(
-                BacklogItem(
-                    id = "retained-legacy-link-placement",
-                    contextId = "owner",
-                    itemType = BacklogItemTypeValues.LINK_ITEM,
-                    entityId = "legacy-only-link",
-                    order = 1L,
-                ),
-            )
-
             assertEquals(
                 listOf("canonical-goal"),
                 database.goalDao().getGoalsByContextIdFlow("owner").first().map { it.id },
@@ -282,6 +262,43 @@ class CanonicalBacklogCompatibilityReaderRoomTest {
                 listOf("canonical-link-placement"),
                 database.linkItemDao().searchLinksGlobal("%link%").map { it.listItemId },
             )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `global goal search admits canonical shell-free Workspace placement`() = runBlocking {
+        val database = database()
+        try {
+            seedContextBackedWorkspace(database, "shell-free-owner")
+            seedGoal(database, "shell-free-goal")
+            seedGoalOrientationMapping(
+                database,
+                goalId = "shell-free-goal",
+                orientationId = "shell-free-orientation",
+            )
+            database.workspaceBacklogEntryDao().upsert(
+                listOf(
+                    entry(
+                        id = "shell-free-placement",
+                        owner = "shell-free-owner",
+                        kind = "ORIENTATION",
+                        targetId = "shell-free-orientation",
+                        order = 0L,
+                    ),
+                ),
+            )
+
+            assertEquals(
+                emptyList<String>(),
+                database.contextDao().getAllRaw().map { it.id },
+            )
+
+            val results = database.goalDao().searchGoalsGlobal("%shell-free%")
+
+            assertEquals(listOf("shell-free-goal"), results.map { it.goal.id })
+            assertEquals(listOf("shell-free-owner"), results.map { it.contextId })
         } finally {
             database.close()
         }
@@ -305,7 +322,7 @@ class CanonicalBacklogCompatibilityReaderRoomTest {
 
             assertEquals(
                 listOf("child"),
-                database.contextDao().getSubprojectsByParentIdFlow("owner").first().map { it.id },
+                database.contextDao().getActiveContextsByParentId("owner").map { it.id },
             )
         } finally {
             database.close()

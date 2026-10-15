@@ -12,8 +12,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityActivator
 import com.romankozak.forwardappmobile.data.orientation.GoalOrientationBridge
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.product.CanonicalGoalSemanticReadRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
@@ -62,7 +64,9 @@ class GoalRepository
         private val database: AppDatabase,
         private val orientationDao: OrientationDao,
         private val canonicalOrientationRepository: CanonicalOrientationRepository,
+        private val canonicalScoringAuthorityActivator: CanonicalScoringAuthorityActivator,
         private val goalOrientationBridge: GoalOrientationBridge,
+        private val canonicalGoalSemanticReadRepository: CanonicalGoalSemanticReadRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
@@ -174,6 +178,7 @@ class GoalRepository
                     graph.mapping.toEntity(),
                 ),
             )
+            canonicalScoringAuthorityActivator.establishForNewGoal(goal, now)
         }
 
         suspend fun updateGoal(
@@ -245,9 +250,11 @@ class GoalRepository
         }
 
         // Решта методів залишаються без змін...
-        suspend fun getGoalById(id: String): Goal? = goalDao.getGoalById(id)
+        suspend fun getGoalById(id: String): Goal? =
+            goalDao.getGoalById(id)?.let { canonicalGoalSemanticReadRepository.projectGoal(it) }
 
-        fun getAllGoalsFlow(): Flow<List<Goal>> = goalDao.getAllVisibleGoalsFlow()
+        fun getAllGoalsFlow(): Flow<List<Goal>> =
+            canonicalGoalSemanticReadRepository.projectGoals(goalDao.getAllVisibleGoalsFlow())
 
         // У GoalRepository.kt перевірте модифікатор доступу
         suspend fun createGoalLinks(

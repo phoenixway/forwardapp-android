@@ -10,4 +10,10 @@ data class DesktopWorkspaceSnapshot(
     val dayFocusItems: List<SharedDayFocusItem> = emptyList(),
     val dayTasks: List<SharedDayTask> = emptyList(),
     val recurringTasks: List<SharedRecurringTask> = emptyList(),
+    val planningFormatVersion: Int? = null,
+    val planningScopes: List<SharedPlanningScopeSnapshot>? = null,
+    val planningCommitments: List<SharedPlanningCommitmentSnapshot>? = null,
+    val dayPlanningScopeExtensions: List<SharedDayPlanningScopeExtensionSnapshot>? = null,
+    val tacticalPlanningScopeExtensions: List<SharedTacticalPlanningScopeExtensionSnapshot>? = null,
+    val strategicPlanningScopeExtensions: List<SharedStrategicPlanningScopeExtensionSnapshot>? = null,
 )

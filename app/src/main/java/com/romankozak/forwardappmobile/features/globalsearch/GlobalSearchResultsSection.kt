@@ -87,8 +87,10 @@ enum class GlobalSearchType(
 ) {
     Actions("Дії", Icons.Default.Tune),
     Attachments("Вкладення", Icons.Default.Description),
+    Notes("Нотатки", Icons.Default.Description),
     Contexts("Контексти", Icons.Default.AccountTree),
     Subcontexts("Підконтексти", Icons.Default.AccountTree),
+    Orientations("Орієнтації", Icons.Default.AccountTree),
     Goals("Цілі", Icons.Default.Flag),
     Links("Посилання", Icons.Default.Link),
     Activity("Активності", Icons.Default.History),
@@ -99,13 +101,41 @@ enum class GlobalSearchType(
         when (this) {
             Actions -> false
             Attachments -> item is GlobalSearchResultItem.AttachmentItem
+            Notes -> item is GlobalSearchResultItem.NoteItem
             Contexts -> item is GlobalSearchResultItem.ContextItem
             Subcontexts -> item is GlobalSearchResultItem.SubcontextItem
+            Orientations -> item is GlobalSearchResultItem.OrientationItem
             Goals -> item is GlobalSearchResultItem.GoalItem
             Links -> item is GlobalSearchResultItem.LinkItem
             Activity -> item is GlobalSearchResultItem.ActivityItem
             Inbox -> item is GlobalSearchResultItem.InboxItem
         }
+}
+
+/**
+ * Preserve existing partial filters, while migrating an old "all types"
+ * selection to include Notes.
+ */
+internal fun resolveGlobalSearchTypeSelection(
+    storedNames: Collection<String>,
+): Set<GlobalSearchType> {
+    val allTypes = GlobalSearchType.entries.toSet()
+    val stored = storedNames.toSet()
+    val previousAllNames =
+        GlobalSearchType.entries
+            .filterNot { it == GlobalSearchType.Notes }
+            .map { it.name }
+            .toSet()
+
+    if (stored.isEmpty() || stored == previousAllNames) {
+        return allTypes
+    }
+
+    val selected =
+        GlobalSearchType.entries
+            .filterTo(mutableSetOf()) { it.name in stored }
+
+    return selected.ifEmpty { allTypes }
 }
 
 internal fun formatTypeChipLabel(
@@ -336,6 +366,7 @@ internal enum class GlobalSearchSort(val label: String) {
 
 internal fun resultTitle(item: GlobalSearchResultItem): String =
     when (item) {
+        is GlobalSearchResultItem.OrientationItem -> item.title
         is GlobalSearchResultItem.GoalItem -> item.goal.text
         is GlobalSearchResultItem.LinkItem ->
             item.searchResult.link.linkData.displayName
@@ -345,6 +376,7 @@ internal fun resultTitle(item: GlobalSearchResultItem): String =
         is GlobalSearchResultItem.ActivityItem -> item.record.text
         is GlobalSearchResultItem.InboxItem -> item.record.text
         is GlobalSearchResultItem.AttachmentItem -> item.searchResult.title
+        is GlobalSearchResultItem.NoteItem -> item.note.title
     }
 
 private data class ResultGroup(
@@ -355,7 +387,9 @@ private data class ResultGroup(
 
 internal fun GlobalSearchResultItem.groupKey(): String =
     when (this) {
+        is GlobalSearchResultItem.OrientationItem -> "orientations"
         is GlobalSearchResultItem.AttachmentItem -> "attachments"
+        is GlobalSearchResultItem.NoteItem -> "notes"
         is GlobalSearchResultItem.ContextItem -> "contexts"
         is GlobalSearchResultItem.SubcontextItem -> "subcontexts"
         is GlobalSearchResultItem.GoalItem -> "goals"
@@ -375,6 +409,18 @@ internal fun List<GlobalSearchResultItem>.withContextsFirst(): List<GlobalSearch
 
 internal fun GlobalSearchResultItem.typePresentation(): ResultTypePresentation =
     when (this) {
+        is GlobalSearchResultItem.OrientationItem ->
+            ResultTypePresentation(
+                label = "Орієнтація",
+                icon = Icons.Default.AccountTree,
+                tone = ResultBadgeTone.Tertiary,
+            )
+        is GlobalSearchResultItem.NoteItem ->
+            ResultTypePresentation(
+                label = "Нотатка",
+                icon = Icons.Default.Description,
+                tone = ResultBadgeTone.Primary,
+            )
         is GlobalSearchResultItem.AttachmentItem ->
             ResultTypePresentation(
                 label = "Вкладення",

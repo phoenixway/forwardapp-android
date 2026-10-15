@@ -47,6 +47,13 @@ data class OrientationAssessmentEntity(
     val syncedAt: Long?,
     val isDeleted: Boolean,
     val version: Long,
+    val effortValue: String? = null,
+    val effortOrigin: String = "UNSET",
+    val costValue: String? = null,
+    val costOrigin: String = "UNSET",
+    val riskValue: String? = null,
+    val riskOrigin: String = "UNSET",
+    val evaluationState: String = "UNASSESSED",
 )
 
 @Entity(
@@ -69,6 +76,35 @@ data class OrientationAssessmentRevisionEntity(
     val source: String,
     val reason: String?,
     val assessmentJson: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val syncedAt: Long?,
+    val isDeleted: Boolean,
+    val version: Long,
+)
+
+@Entity(
+    tableName = "orientation_scoring_overrides",
+    foreignKeys = [
+        ForeignKey(
+            entity = OrientationEntity::class,
+            parentColumns = ["subjectId"],
+            childColumns = ["orientationId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("policyId")],
+)
+data class OrientationScoringOverrideEntity(
+    @PrimaryKey val orientationId: String,
+    val policyId: String,
+    val policyVersion: Int,
+    val formulaVersion: Int,
+    val importanceCoordinate: Float?,
+    val impactCoordinate: Float?,
+    val effortWeight: Float?,
+    val costWeight: Float?,
+    val riskWeight: Float?,
     val createdAt: Long,
     val updatedAt: Long,
     val syncedAt: Long?,

@@ -19,6 +19,18 @@ object NavTargetRouter {
                     originContextId = target.originContextId,
                 )
 
+            is NavTarget.LegacyNote ->
+                NavigationRoutes.legacyNote(
+                    noteId = target.noteId,
+                    workspaceId = target.workspaceId,
+                )
+
+            is NavTarget.SemanticEntityEditor ->
+                NavigationRoutes.semanticEntityEditor(target.subjectId)
+
+            is NavTarget.CanonicalEntityPicker ->
+                NavigationRoutes.canonicalEntityPicker(target.request)
+
             is NavTarget.NoteDocument ->
                 NavigationRoutes.noteDocument(id = target.id, startEdit = target.startEdit)
 
@@ -85,6 +97,9 @@ object NavTargetRouter {
 
             NavTarget.ScriptsLibrary ->
                 NavigationRoutes.SCRIPTS_LIBRARY
+
+            NavTarget.EntityLibrary ->
+                NavigationRoutes.ENTITY_LIBRARY
 
             NavTarget.TacticalManagement ->
                 NavigationRoutes.TACTICAL_MANAGEMENT

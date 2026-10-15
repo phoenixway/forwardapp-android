@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.context.SystemOperationalDefinitions
 import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -73,15 +72,6 @@ class SystemWorkspaceTagSeedRoomTest {
                         version = 9L,
                     )
                 database.workspaceTagRefDao().upsert(listOf(existing))
-                database.contextTagRefDao().insertAll(
-                    listOf(
-                        ContextTagRef(
-                            contextId = SystemContexts.INBOX.raw,
-                            normalizedTag = "legacy-index",
-                        ),
-                    ),
-                )
-
                 val failure =
                     runCatching {
                         SystemWorkspaceTagSeed(database, database.contextDao())
@@ -94,10 +84,6 @@ class SystemWorkspaceTagSeedRoomTest {
                     database.workspaceTagRefDao().getAllForWorkspace(SystemContexts.INBOX.raw),
                 )
                 assertTrue(database.systemWorkspaceTagSeedStateDao().getAll().isEmpty())
-                assertEquals(
-                    listOf(SystemContexts.INBOX.raw),
-                    database.contextTagRefDao().findContextIdsByTag("legacy-index"),
-                )
             } finally {
                 database.close()
             }
@@ -245,56 +231,6 @@ class SystemWorkspaceTagSeedRoomTest {
                     .seedMissingCanonicalCollections(now = 20L)
 
                 assertTrue(database.workspaceTagRefDao().getAll().isEmpty())
-                assertEquals(
-                    SystemOperationalDefinitions.all.size,
-                    database.systemWorkspaceTagSeedStateDao().getAll().size,
-                )
-            } finally {
-                database.close()
-            }
-        }
-
-    @Test
-    fun `successful System tag seed retires reserved legacy tag refs but preserves ordinary Context refs`() =
-        runBlocking {
-            val database = database()
-            try {
-                installPromotedSystemRows(
-                    database = database,
-                    tagsById = emptyMap(),
-                )
-                val ordinaryContextId = "ordinary-context"
-                database.contextDao().insert(
-                    ContextEntity(
-                        id = ordinaryContextId,
-                        name = "Ordinary",
-                        description = null,
-                        parentId = null,
-                        createdAt = 1L,
-                        updatedAt = 1L,
-                        tags = listOf("legacy-index"),
-                    ),
-                )
-                database.contextTagRefDao().insertAll(
-                    listOf(
-                        ContextTagRef(
-                            contextId = SystemContexts.INBOX.raw,
-                            normalizedTag = "legacy-index",
-                        ),
-                        ContextTagRef(
-                            contextId = ordinaryContextId,
-                            normalizedTag = "legacy-index",
-                        ),
-                    ),
-                )
-
-                SystemWorkspaceTagSeed(database, database.contextDao())
-                    .seedMissingCanonicalCollections(now = 10L)
-
-                assertEquals(
-                    listOf(ordinaryContextId),
-                    database.contextTagRefDao().findContextIdsByTag("legacy-index"),
-                )
                 assertEquals(
                     SystemOperationalDefinitions.all.size,
                     database.systemWorkspaceTagSeedStateDao().getAll().size,

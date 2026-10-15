@@ -20,10 +20,11 @@ fun NoteEditorScreen(
 
     UniversalEditorScreen(
         title = "Edit Note",
-        onSave = { content, _ -> // Ignore cursor position for now
-            viewModel.saveNote(content)
-            navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
-            navController.popBackStack()
+        onSave = { content, _ ->
+            viewModel.saveNote(content) {
+                navController.previousBackStackEntry?.savedStateHandle?.set("refresh_needed", true)
+                navController.popBackStack()
+            }
         },
         onAutoSave = { content, _ ->
             viewModel.saveNote(content)

@@ -187,7 +187,9 @@ class GoalRepositoryCanonicalBacklogPolicyTest {
             database = mockk(relaxed = true),
             orientationDao = mockk(relaxed = true),
             canonicalOrientationRepository = mockk(relaxed = true),
+            canonicalScoringAuthorityActivator = mockk(relaxed = true),
             goalOrientationBridge = mockk<GoalOrientationBridge>(relaxed = true),
+            canonicalGoalSemanticReadRepository = mockk(relaxed = true),
             systemWorkspacePresentationContextProjector = mockk(relaxed = true),
         )
 }

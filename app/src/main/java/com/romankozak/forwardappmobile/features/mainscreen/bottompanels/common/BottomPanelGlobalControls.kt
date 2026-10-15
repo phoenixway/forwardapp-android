@@ -30,6 +30,7 @@ fun BottomPanelMoreActionButton(
         onShowWifiImport = actions.onShowWifiImport,
         onNavigateToAttachments = actions.onNavigateToAttachments,
         onNavigateToScripts = actions.onNavigateToScripts,
+        onNavigateToEntityLibrary = actions.onNavigateToEntityLibrary,
         onShowAbout = actions.onShowAbout,
         additionalActions = additionalActions,
         featureToggles = actions.featureToggles,

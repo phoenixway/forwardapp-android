@@ -408,6 +408,7 @@ private fun LogContentPreview() {
                 type = ContextLogEntryTypeValues.STATUS_CHANGE,
                 description = "Перенесено до 'Робота'",
                 details = "Завершено перевірку",
+                workspaceId = "0",
             ),
             ContextLog(
                 id = "2",
@@ -416,6 +417,7 @@ private fun LogContentPreview() {
                 type = ContextLogEntryTypeValues.COMMENT,
                 description = "Коментар",
                 details = "Потрібно уточнити терміни",
+                workspaceId = "0",
             ),
             ContextLog(
                 id = "3",
@@ -424,6 +426,7 @@ private fun LogContentPreview() {
                 type = ContextLogEntryTypeValues.INSIGHT,
                 description = "Ідея: кешування",
                 details = "Зменшить навантаження",
+                workspaceId = "0",
             ),
         )
     MaterialTheme {

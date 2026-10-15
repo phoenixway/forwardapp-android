@@ -130,7 +130,7 @@ class WorkspaceClipboardV2EventRoomIntegrationTest {
         ))
         val hierarchy = mockk<ProjectHierarchyScreenStateUseCase>(relaxed = true)
         every { hierarchy.uiState } returns MutableStateFlow(ProjectHierarchyScreenUiState())
-        every { hierarchy.observeHierarchyPresentationUniverse(any()) } returns flowOf(emptyList())
+        every { hierarchy.observeHierarchyPresentationUniverse() } returns flowOf(emptyList())
         every { hierarchy.canonicalV2Read } returns MutableStateFlow(null)
         val navigation = mockk<NavigationUseCase>(relaxed = true)
         every { navigation.isProcessingReveal } returns MutableStateFlow(false)

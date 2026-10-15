@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntit
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences
 import com.romankozak.forwardappmobile.data.workspace.SystemInboxDirectionState
 import com.romankozak.forwardappmobile.data.workspace.SystemRemainingCapabilityLifecycleState
 import com.romankozak.forwardappmobile.data.workspace.SystemBacklogLifecycleState
@@ -31,6 +32,48 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ContextScreenDataMapperTest {
+    @Test
+    fun `Context shaped screen carrier uses canonical Workspace common fields`() {
+        val legacy =
+            Context(
+                id = "workspace",
+                name = "Stale legacy name",
+                description = "Stale legacy description",
+                parentId = "legacy-parent",
+                createdAt = 1L,
+                updatedAt = 1L,
+                tags = listOf("stale-tag"),
+                roleCode = "stale-role",
+            )
+        val presentation =
+            ContextPresentation(
+                id = legacy.id,
+                name = "Canonical Workspace name",
+                description = "Canonical Workspace description",
+                parentId = null,
+                roleCode = "canonical-role",
+                order = 0L,
+                tags = listOf("canonical-tag"),
+            )
+
+        val loaded =
+            ContextScreenDataMapper().map(
+                contextId = legacy.id,
+                snapshot =
+                    emptySnapshot(
+                        context = legacy,
+                        presentation = presentation,
+                        hasCanonicalWorkspaceOwner = true,
+                    ),
+            )
+
+        assertEquals("Canonical Workspace name", loaded.context?.name)
+        assertEquals("Canonical Workspace description", loaded.context?.description)
+        assertEquals(listOf("canonical-tag"), loaded.context?.tags)
+        assertEquals("canonical-role", loaded.context?.roleCode)
+        assertEquals("legacy-parent", loaded.context?.parentId)
+    }
+
     @Test
     fun `legacy note placement remains visible with content identity after canonical cutover`() {
         val note =
@@ -59,6 +102,36 @@ class ContextScreenDataMapperTest {
         assertSame(note, item.note)
         assertEquals("canonical-placement", item.backlogItem.id)
         assertEquals("note-content", item.backlogItem.entityId)
+    }
+
+    @Test
+    fun `standalone Note with null historical Context resolves by canonical placement target`() {
+        val note =
+            LegacyNoteEntity(
+                id = "standalone-note",
+                contextId = null,
+                title = "Independent Note",
+                content = "Standalone content",
+            )
+        val placement =
+            BacklogItem(
+                id = "workspace-placement",
+                contextId = "workspace-a",
+                itemType = BacklogItemTypeValues.NOTE,
+                entityId = note.id,
+                order = 0L,
+            )
+
+        val loaded =
+            ContextScreenDataMapper().map(
+                contextId = "workspace-a",
+                snapshot = emptySnapshot(rawItems = listOf(placement), notes = listOf(note)),
+            )
+
+        val item = loaded.items.single() as BacklogItemContent.NoteItem
+        assertSame(note, item.note)
+        assertEquals("workspace-placement", item.backlogItem.id)
+        assertEquals("standalone-note", item.backlogItem.entityId)
     }
 
     @Test
@@ -405,6 +478,7 @@ class ContextScreenDataMapperTest {
         systemInboxDirectionState: SystemInboxDirectionState? = null,
         systemRemainingCapabilityState: SystemRemainingCapabilityLifecycleState? = null,
         systemBacklogLifecycleState: SystemBacklogLifecycleState? = null,
+        presentationPreferences: WorkspacePresentationPreferences = WorkspacePresentationPreferences(),
     ): ContextScreenDataSnapshot =
         ContextScreenDataSnapshot(
             context = context,
@@ -426,6 +500,7 @@ class ContextScreenDataMapperTest {
             systemInboxDirectionState = systemInboxDirectionState,
             systemRemainingCapabilityState = systemRemainingCapabilityState,
             systemBacklogLifecycleState = systemBacklogLifecycleState,
+            presentationPreferences = presentationPreferences,
             presentation = presentation,
             presentationUniverse = presentationUniverse,
         )

@@ -15,8 +15,7 @@ import com.romankozak.forwardappmobile.domain.userawareness.ContextStateMinutes
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.userawareness.UserStateChange
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.data.product.CanonicalGoalSemanticReadRepository
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.util.UUID
@@ -42,8 +41,7 @@ class ActivityRepository
     @Inject
     constructor(
         private val activityRecordDao: ActivityRecordDao,
-        private val goalDao: GoalDao,
-        private val contextDao: ContextDao,
+        private val canonicalGoalSemanticReadRepository: CanonicalGoalSemanticReadRepository,
         private val aiEventRepository: AiEventRepository,
         private val appDatabase: AppDatabase,
         private val userAwarenessRepository: UserAwarenessRepository,
@@ -164,13 +162,13 @@ class ActivityRepository
         }
 
         suspend fun startGoalActivity(goalId: String): ActivityRecord? {
-            val goal = goalDao.getGoalById(goalId) ?: return null
+            val goal = canonicalGoalSemanticReadRepository.requireGoal(goalId)
             val now = System.currentTimeMillis()
             val newRecord =
                 ActivityRecord(
-                    text = goal.text,
-                    rawNoteText = goal.text,
-                    noteText = goal.text,
+                    text = goal.title,
+                    rawNoteText = goal.title,
+                    noteText = goal.title,
                     recordKind = ActivityRecordKind.TIMED_ACTIVITY,
                     startTime = now,
                     goalId = goalId,
@@ -236,11 +234,9 @@ class ActivityRepository
         }
 
         suspend fun startContextActivity(contextId: String): ActivityRecord? {
-            val rawContext = contextDao.getContextById(contextId)
             val presentation =
                 systemWorkspacePresentationContextProjector.resolvePresentation(
                     contextId = contextId,
-                    context = rawContext,
                 ) ?: return null
             val now = System.currentTimeMillis()
             val newRecord =

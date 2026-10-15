@@ -231,6 +231,8 @@ fun ProjectSettingsScreen(
                                 rawScore = uiState.rawScore,
                                 scoringStatus = uiState.scoringStatus,
                                 isScoringEnabled = uiState.isScoringEnabled,
+                                isAssessmentEnabled = uiState.isCanonicalAssessmentAvailable,
+                                supportsAssessmentUnset = true,
                                 relativeSize = 0,
                                 isBeaconProgressExpanded = uiState.isBeaconProgressExpanded,
                                 isRelativeSizeExpanded = uiState.isRelativeSizeExpanded,
