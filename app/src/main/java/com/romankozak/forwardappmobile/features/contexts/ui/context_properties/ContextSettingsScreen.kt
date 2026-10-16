@@ -90,6 +90,22 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabConten
 fun ProjectSettingsScreen(
     navController: NavController,
     navigationManager: EnhancedNavigationManager? = null,
+    workspaceProperties: Boolean = false,
+) {
+    if (workspaceProperties) {
+        WorkspacePropertiesContent(navController = navController)
+    } else {
+        LegacyContextProjectSettingsScreen(
+            navController = navController,
+            navigationManager = navigationManager,
+        )
+    }
+}
+
+@Composable
+private fun LegacyContextProjectSettingsScreen(
+    navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ContextSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

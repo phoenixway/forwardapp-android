@@ -163,7 +163,7 @@ still relevant to the current implementation.
 
 - **Backlog addition:** `#1`
 - **Priority:** `UNSET`
-- **Status:** `DEFERRED`
+- **Status:** `PARTIALLY COMPLETE`
 
 - **Workspace + Library product-surface adaptation.**
   Evolve the existing legacy Context-oriented UI into the canonical Workspace
@@ -194,13 +194,46 @@ still relevant to the current implementation.
   Opening a linked semantic entity is navigation to canonical identity, not
   ownership transfer.
 
-  Split implementation into bounded slices when scheduled:
-  1. canonical Workspace destination over the existing Context screen;
-  2. canonical Workspace properties adaptation;
-  3. Workspace -> linked semantic entity navigation;
-  4. Library naming and sorting polish.
+  Split implementation into bounded slices:
+  1. [x] canonical Workspace destination over the existing Context screen
+     — R2D.1 COMPLETE;
+  2. [x] canonical Workspace properties adaptation
+     — R2D.2 COMPLETE;
+  3. [x] Workspace -> linked semantic entity navigation
+     — R2D.3 COMPLETE / PHYSICAL UX ACCEPTED;
+  4. [ ] Library naming and sorting polish
+     — next bounded product slice R2E.3.
 
   Cost: `medium/large`.
+
+<!-- BACKLOG_DAY_THEME_DELETION_LIFECYCLE_AUDIT_2026_10_16 -->
+
+- **Backlog addition:** `#2`
+- **Priority:** `UNSET`
+- **Status:** `OPEN`
+
+- **Day Theme deletion lifecycle audit.**
+  Independently audit deletion from the Day Theme home-screen flow and the
+  adjacent Tactical Mission / Planning tombstone-status paths.
+
+  Startup S4 proved one Strategic FOCUS tombstone defect
+  (`isDeleted=true` with `status=ACTIVE`) and added bounded canonical recovery,
+  but that evidence must not be generalized to Day Theme or Tactical Mission
+  deletion without direct inspection and regression evidence.
+
+  Scope:
+  - trace Day Theme deletion from UI command through canonical persistence;
+  - verify tombstone status/lifecycle invariants;
+  - inspect adjacent Tactical Mission / Planning deletion paths only where they
+    share actual code or authority;
+  - add focused regression coverage for any proven defect;
+  - preserve startup performance and schema 198 unless independent evidence
+    requires otherwise.
+
+  This backlog number records chronology only. Priority remains explicitly
+  unset until Project Orchestrator triage.
+
+  Cost: `small/medium`.
 
 - **POSTPONED — canonical entity lifecycle UI/UX.** Legacy `Context` status,
   completion/scoring and Project-Management-style state are not Workspace

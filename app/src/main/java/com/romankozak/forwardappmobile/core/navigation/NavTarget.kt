@@ -33,6 +33,16 @@ sealed interface NavTarget {
         val subjectId: String,
     ) : NavTarget
 
+    /** Canonical operational identity; never a legacy Context locator. */
+    data class Workspace(
+        val workspaceId: String,
+    ) : NavTarget
+
+    /** Canonical Workspace properties identity; never a legacy Context settings locator. */
+    data class WorkspaceProperties(
+        val workspaceId: String,
+    ) : NavTarget
+
     data class CanonicalEntityPicker(
         val request: com.romankozak.forwardappmobile.features.entitypicker.CanonicalEntityPickerRequest,
     ) : NavTarget

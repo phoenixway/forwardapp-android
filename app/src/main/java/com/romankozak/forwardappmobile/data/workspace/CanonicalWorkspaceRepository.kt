@@ -34,6 +34,16 @@ internal data class CanonicalWorkspacePresentation(
     val isDeleted: Boolean,
 )
 
+data class WorkspacePropertiesSnapshot(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val roleCode: String?,
+    val sourceContextId: String?,
+    val isSystem: Boolean,
+    val version: Long,
+)
+
 @Singleton
 class CanonicalWorkspaceRepository
     @Inject
@@ -55,6 +65,35 @@ class CanonicalWorkspaceRepository
 
         suspend fun hasLiveWorkspace(id: String): Boolean =
             workspaceDao.getById(id)?.let { !it.isDeleted } ?: false
+
+        fun observeProperties(id: String): Flow<WorkspacePropertiesSnapshot?> =
+            workspaceDao.observeById(id).map { workspace ->
+                workspace?.takeUnless { it.isDeleted }?.toPropertiesSnapshot()
+            }
+
+        /**
+         * Canonical Workspace presentation mutation used by the Workspace properties surface.
+         * Lifecycle and role remain outside this command. Context-backed provenance is not an
+         * ownership fallback: the canonical Workspace row itself is always the write target.
+         */
+        suspend fun updatePropertiesPresentation(
+            id: String,
+            name: String,
+            description: String?,
+            now: Long = System.currentTimeMillis(),
+        ) = database.withTransaction {
+            val normalizedName = name.trim()
+            require(normalizedName.isNotEmpty()) { "Workspace name must not be blank" }
+            val current = requireLiveWorkspace(id)
+            workspaceDao.upsert(
+                listOf(
+                    current.bump(now).copy(
+                        nameOverride = normalizedName,
+                        descriptionOverride = description.normalized(),
+                    ),
+                ),
+            )
+        }
 
         internal suspend fun getCanonicalPresentations(): Map<String, CanonicalWorkspacePresentation> =
             workspaceDao.getAll()
@@ -468,6 +507,12 @@ class CanonicalWorkspaceRepository
             return workspace
         }
 
+        private suspend fun requireLiveWorkspace(id: String): WorkspaceEntity {
+            val workspace = requireNotNull(workspaceDao.getById(id)) { "Workspace does not exist" }
+            require(!workspace.isDeleted) { "Workspace is deleted" }
+            return workspace
+        }
+
     }
 
 private fun WorkspaceEntity.toCanonicalPresentationOrNull(): CanonicalWorkspacePresentation? {
@@ -483,6 +528,17 @@ private fun WorkspaceEntity.toCanonicalPresentationOrNull(): CanonicalWorkspaceP
         isDeleted = isDeleted,
     )
 }
+
+private fun WorkspaceEntity.toPropertiesSnapshot() =
+    WorkspacePropertiesSnapshot(
+        id = id,
+        name = nameOverride?.trim()?.takeIf(String::isNotEmpty) ?: id,
+        description = descriptionOverride.normalized(),
+        roleCode = roleCode.normalized(),
+        sourceContextId = sourceContextId,
+        isSystem = SystemContexts.isSystem(ContextId(id)),
+        version = version,
+    )
 
 private fun generateCopiedWorkspaceName(
     baseName: String,

@@ -76,6 +76,7 @@ import com.romankozak.forwardappmobile.features.sync.SyncScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceDestinationScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -429,6 +430,28 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
+        route = NavigationRoutes.WORKSPACE_PATTERN,
+        arguments = listOf(navArgument("workspaceId") { type = NavType.StringType }),
+    ) {
+        WorkspaceDestinationScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this,
+        )
+    }
+
+    composable(
+        route = NavigationRoutes.WORKSPACE_PROPERTIES_PATTERN,
+        arguments = listOf(navArgument("workspaceId") { type = NavType.StringType }),
+    ) {
+        ProjectSettingsScreen(
+            navController = navController,
+            workspaceProperties = true,
+        )
+    }
+
+    composable(
         route = NavigationRoutes.CANONICAL_ENTITY_PICKER_PATTERN,
         arguments =
             listOf(
@@ -462,6 +485,11 @@ private fun NavGraphBuilder.mainGraph(
             onOpenSemanticEditor = { subjectId ->
                 appNavigationViewModel.navigationManager.navigate(
                     NavTarget.SemanticEntityEditor(subjectId),
+                )
+            },
+            onOpenWorkspace = { workspaceId ->
+                appNavigationViewModel.navigationManager.navigate(
+                    NavTarget.Workspace(workspaceId),
                 )
             },
         )
@@ -544,7 +572,6 @@ private fun NavGraphBuilder.mainGraph(
         ProjectSettingsScreen(
             navController = navController,
             navigationManager = appNavigationViewModel.navigationManager,
-            viewModel = hiltViewModel(),
         )
     }
 

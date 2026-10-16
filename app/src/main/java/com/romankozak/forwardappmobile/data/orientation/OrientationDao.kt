@@ -128,6 +128,15 @@ interface OrientationDao {
     )
     fun observeLiveWorkspaceBindingsForSubject(subjectId: String): Flow<List<WorkspaceBindingEntity>>
 
+    @Query(
+        """
+        SELECT * FROM workspace_bindings
+        WHERE workspaceId = :workspaceId AND isDeleted = 0
+        ORDER BY bindingOrder, id
+        """,
+    )
+    fun observeLiveWorkspaceBindingsForWorkspace(workspaceId: String): Flow<List<WorkspaceBindingEntity>>
+
     @Query("SELECT * FROM workspace_capability_instances")
     suspend fun getAllWorkspaceCapabilities(): List<WorkspaceCapabilityInstanceEntity>
 

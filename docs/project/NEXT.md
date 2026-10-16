@@ -2,6 +2,74 @@
 
 Status: CANONICAL
 
+<!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
+## R2D.3 complete; next bounded product slice is R2E.3 Library polish
+
+**R2D.3 COMPLETE / HOST VERIFIED / PHYSICAL UX ACCEPTED.**
+**Startup S4 CLOSED / PHYSICAL EXP ACCEPTED.**
+
+Physical EXP smoke confirmed the Workspace linked-semantic UX:
+Workspace can project its canonical Orientation/Aspect links and navigate to the
+existing Universal Semantic Editor without Context fallback or a new semantic
+authority. Back navigation is accepted. Room schema remains 198.
+
+Immediate bounded follow-up:
+1. R2E.3 Library product polish: change product-facing `Entity Library` naming
+   to `Library` and add explicit canonical sorting controls, preserving search,
+   filters, Unplaced derivation and lightweight catalog reads.
+2. Day Theme deletion lifecycle / adjacent Tactical Mission and Planning
+   tombstone behavior is a separate backlog addition with `Priority: UNSET`.
+   Diagnose it independently; Startup S4 does not prove the same root cause.
+3. After R2E.3, Project Orchestrator selects the next bounded product slice
+   according to product value and evidence rather than backlog numbering.
+
+<!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
+## R2D.2 complete; next Workspace slice requires separate selection
+
+R2D.2 Canonical Workspace Properties is COMPLETE / HOST VERIFIED.
+
+The dedicated Workspace properties route edits canonical presentation and
+typed WorkspaceBinding independently. Explicit, live same-id Context
+provenance permits a guarded legacy operational-settings entry; standalone
+and System Workspaces do not need Context.
+
+HOST acceptance: 64/64 PASS across nine suites, including Room repositories
+and legacy regression. Kotlin compilation and structural checks: PASS.
+Room schema remains 198.
+
+Remaining bounded work:
+- R2D.3: semantic editor/navigation integration, separately scoped and
+  verified rather than folded into R2D.2.
+- Independently decide whether to canonicalize further legacy operational
+  settings under their proper authorities.
+- Optional safe-emulator visual smoke, not yet performed.
+
+Project Orchestrator owns sequencing against remaining R2E/R2F work.
+Do not infer identity from matching raw IDs or manufacture Context shells.
+Preserve WorkspaceBinding, semantic graph, hierarchy placement, Planning,
+capability and lifecycle ownership boundaries.
+
+Historical physical EXP data remains protected.
+
+<!-- R2D1_CANONICAL_WORKSPACE_DESTINATION_2026_10_16 -->
+## R2D.1 complete; next Workspace slice is R2D.2
+
+R2D.1 Canonical Workspace Destination is COMPLETE / HOST VERIFIED.
+
+Library opens Workspace through typed `workspaceId`. Canonical Workspace
+existence and presentation are resolved first. Explicit `sourceContextId`
+may expose the existing operational compatibility surface, while standalone
+and System Workspaces remain valid without Context.
+
+Next bounded Workspace work:
+
+1. R2D.2 canonicalize the existing Context-properties surface as Workspace
+   properties.
+2. Keep WorkspaceBinding, hierarchy placement and Planning independent.
+
+Do not create Context shells for standalone Workspaces or treat same raw IDs
+as proof of ownership.
+
 <!-- R2E2_ENTITY_LIBRARY_UNPLACED_2026_10_16 -->
 ## CREATE-CRASH runtime stabilization (2026-10-16)
 
@@ -10,11 +78,11 @@ Theme creation no longer crash, and reactive updates are faster after
 transactional invalidation-based observation. Strategic Quest submission
 now dismisses the keyboard.
 
-Separate possible continuations:
-- **Orientation bootstrap compatibility repair:** fresh bounded Task Chat
-  for the failing `ThemeOrientationBridgeRoomTest` and COMPLETE-state
-  fast-path/repair contract. Preserve canonical semantic winners and
-  startup-performance requirements.
+The separate Theme bridge regression is closed: its old assertion expected
+post-COMPLETE compatibility repair. The durable fast path correctly performs
+no scan, while canonical Theme projection remains the semantic winner.
+
+Separate possible continuation:
 - **IME animation UX:** optional independent investigation only if the
   Android keyboard animation delay remains disruptive. No application
   timing evidence currently proves a defect.

@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.data.planning.day.DayPlanningScopeExtensi
 import com.romankozak.forwardappmobile.data.planning.tactical.TacticalPlanningScopeExtensionDao
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitment
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId
+import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentStatus
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleCode
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleRegistry
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScope
@@ -264,6 +265,7 @@ private fun PlanningCommitment.tombstoned(now: Long): PlanningCommitment =
         updatedAt = now,
         syncedAt = null,
         version = nextVersion(version),
+        status = PlanningCommitmentStatus.DROPPED,
         isDeleted = true,
     )
 

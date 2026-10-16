@@ -75,6 +75,7 @@ class CanonicalStrategicPlanningAuthorityActivator
                         "Unsupported Strategic planning authority marker version ${marker.version}"
                     }
                     val plan = buildPlan()
+                    repairHistoricalStrategicTombstoneStatuses(plan, now)
                     requireRuntimeAdmission(plan)
                     return@withTransaction plan.report(performed = false)
                 }
@@ -143,6 +144,52 @@ class CanonicalStrategicPlanningAuthorityActivator
          * eligible/deferred accounting without rematerializing canonical facts
          * from subordinate ArcQuest compatibility copies.
          */
+        /**
+         * Repair the historical generic tombstone bug without weakening admission.
+         *
+         * Only the exact canonical FOCUS identity expected from an already-deleted
+         * ArcQuest is eligible. Unrelated or live ownership inconsistencies still
+         * fail strict admission. This runs in the outer Room transaction, so any
+         * subsequent admission failure rolls back all repairs.
+         */
+        private suspend fun repairHistoricalStrategicTombstoneStatuses(
+            plan: StrategicPlanningMapping,
+            now: Long,
+        ) {
+            val planningDao = database.planningDao()
+            plan.commitments.filter { it.isDeleted }.forEach { expected ->
+                val actual =
+                    planningDao.getCommitment(expected.id.value)
+                        ?.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL)
+                        ?: return@forEach
+
+                if (!actual.isDeleted || actual.status == PlanningCommitmentStatus.DROPPED) {
+                    return@forEach
+                }
+
+                require(
+                    actual.scopeId == expected.scopeId &&
+                        actual.orientationId == expected.orientationId &&
+                        actual.role == PlanningRoleCode.FOCUS &&
+                        actual.provenance == expected.provenance,
+                ) {
+                    "Historical Strategic FOCUS ${expected.id.value} has divergent canonical ownership"
+                }
+                require(actual.version < Long.MAX_VALUE) {
+                    "Historical Strategic FOCUS ${expected.id.value} exhausted its version"
+                }
+
+                planningDao.upsertCommitment(
+                    actual.copy(
+                        status = PlanningCommitmentStatus.DROPPED,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = actual.version + 1L,
+                    ).toPlanningCommitmentEntity(),
+                )
+            }
+        }
+
         private suspend fun requireRuntimeAdmission(plan: StrategicPlanningMapping) {
             requireActivatable(plan)
             val planningDao = database.planningDao()
@@ -192,14 +239,24 @@ class CanonicalStrategicPlanningAuthorityActivator
                 require(commitment.isDeleted == expected.isDeleted) {
                     "Canonical Strategic commitment ${id.value} has divergent deletion state"
                 }
+                // Preserve strict admission while exposing the precise
+                // failing branch for historical database diagnostics.
+                val orientationLive =
+                    if (commitment.isDeleted) {
+                        null
+                    } else {
+                        planningDao.isOrientationLive(commitment.orientationId)
+                    }
                 require(
                     if (commitment.isDeleted) {
                         commitment.status == PlanningCommitmentStatus.DROPPED
                     } else {
-                        planningDao.isOrientationLive(commitment.orientationId)
+                        orientationLive == true
                     }
                 ) {
-                    "Canonical Strategic commitment ${id.value} violates Orientation liveness/tombstone admission"
+                    "Canonical Strategic commitment ${id.value} violates Orientation liveness/tombstone admission: " +
+                        "isDeleted=${commitment.isDeleted}, status=${commitment.status}, " +
+                        "orientationId=${commitment.orientationId}, orientationLive=$orientationLive"
                 }
             }
         }

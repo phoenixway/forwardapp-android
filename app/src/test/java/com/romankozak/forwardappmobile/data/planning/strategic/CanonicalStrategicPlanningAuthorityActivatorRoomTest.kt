@@ -552,7 +552,7 @@ class CanonicalStrategicPlanningAuthorityActivatorRoomTest {
         }
 
     @Test
-    fun `marker rerun rejects deleted FOCUS without DROPPED status`() =
+    fun `marker rerun repairs legacy deleted ACTIVE FOCUS without resurrection`() =
         runBlocking {
             withDatabase { db ->
                 val (_, authority) =
@@ -563,24 +563,33 @@ class CanonicalStrategicPlanningAuthorityActivatorRoomTest {
                         subjectDeleted = true,
                     )
 
-                val focus =
+                val original =
                     db.planningDao().getAllCommitments()
                         .single { it.role == PlanningRoleCode.FOCUS.value }
 
-                db.planningDao().upsertCommitment(
-                    focus.copy(status = "ACTIVE")
-                )
+                val legacy = original.copy(status = "ACTIVE")
+                db.planningDao().upsertCommitment(legacy)
 
-                val failure =
-                    runCatching {
-                        authority.ensureActivated(now = 200L)
-                    }.exceptionOrNull()
+                val report = authority.ensureActivated(now = 200L)
+                assertFalse(report.performed)
 
-                assertTrue(failure is IllegalArgumentException)
-                assertTrue(
-                    db.planningDao().getAllCommitments()
-                        .single { it.role == PlanningRoleCode.FOCUS.value }
-                        .isDeleted
+                val repaired =
+                    requireNotNull(db.planningDao().getCommitment(original.id))
+                assertTrue(repaired.isDeleted)
+                assertEquals("DROPPED", repaired.status)
+                assertEquals(legacy.version + 1L, repaired.version)
+                assertEquals(legacy.id, repaired.id)
+                assertEquals(legacy.scopeId, repaired.scopeId)
+                assertEquals(legacy.orientationId, repaired.orientationId)
+                assertEquals(legacy.provenanceSourceType, repaired.provenanceSourceType)
+                assertEquals(legacy.provenanceSourceId, repaired.provenanceSourceId)
+                assertEquals(null, repaired.syncedAt)
+
+                val repeated = authority.ensureActivated(now = 300L)
+                assertFalse(repeated.performed)
+                assertEquals(
+                    repaired,
+                    db.planningDao().getCommitment(original.id),
                 )
             }
         }

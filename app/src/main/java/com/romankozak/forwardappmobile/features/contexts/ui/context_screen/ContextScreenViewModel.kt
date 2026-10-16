@@ -199,7 +199,11 @@ class ContextScreenViewModel
                 scope = viewModelScope,
             )
         private val activityManager = ActivityManager(activityRepository, viewModelScope)
-        private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+        private val contextIdFlow: StateFlow<String> =
+            savedStateHandle.getStateFlow(
+                "listId",
+                savedStateHandle.get<String>("workspaceId").orEmpty(),
+            )
         private val initialTagQuery: String? = savedStateHandle.get<String>("initialTagQuery")
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())

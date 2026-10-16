@@ -28,6 +28,9 @@ object NavTargetRouter {
             is NavTarget.SemanticEntityEditor ->
                 NavigationRoutes.semanticEntityEditor(target.subjectId)
 
+            is NavTarget.Workspace ->
+                NavigationRoutes.workspace(target.workspaceId)
+
             is NavTarget.CanonicalEntityPicker ->
                 NavigationRoutes.canonicalEntityPicker(target.request)
 
@@ -115,6 +118,9 @@ object NavTargetRouter {
                     goalId = target.goalId,
                     projectId = target.projectId,
                 )
+
+            is NavTarget.WorkspaceProperties ->
+                NavigationRoutes.workspaceProperties(target.workspaceId)
 
             is NavTarget.DayPlan ->
                 NavigationRoutes.dayPlan(

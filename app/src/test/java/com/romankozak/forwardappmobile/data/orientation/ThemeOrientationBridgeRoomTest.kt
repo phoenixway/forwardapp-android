@@ -86,12 +86,18 @@ class ThemeOrientationBridgeRoomTest {
     }
 
     @Test
-    fun `post-cutover compatibility drift is repaired without changing semantic winner`() = runBlocking {
+    fun `COMPLETE fast path skips compatibility repair while canonical projection still wins`() = runBlocking {
         withDatabase { database ->
             val definition = definition()
             database.canonicalDayThemeDao().upsertThemeDefinitions(listOf(definition))
             val bootstrapper = bootstrapper(database)
             bootstrapper.ensureBootstrapped()
+            val bridge =
+                ThemeOrientationBridge(
+                    orientationDao = database.orientationDao(),
+                    dayThemeDao = database.canonicalDayThemeDao(),
+                    bootstrapper = bootstrapper,
+                )
             val mapping = mapping(database, definition.id)
             val canonicalBefore = database.orientationDao().getManagedSubject(mapping.subjectId)!!
 
@@ -108,14 +114,17 @@ class ThemeOrientationBridgeRoomTest {
 
             val report = bootstrapper.ensureBootstrapped()
             val canonicalAfter = database.orientationDao().getManagedSubject(mapping.subjectId)!!
-            val repaired = database.canonicalDayThemeDao().getThemeDefinitionById(definition.id)!!
+            val compatibility = database.canonicalDayThemeDao().getThemeDefinitionById(definition.id)!!
+            val projected = bridge.projectCanonicalDefinitions(listOf(compatibility)).single()
 
             assertTrue(report.issues.isEmpty())
+            assertTrue(!report.performed)
             assertEquals(canonicalBefore, canonicalAfter)
-            assertEquals(canonicalBefore.title, repaired.title)
-            assertEquals(canonicalBefore.description, repaired.description)
-            assertEquals(canonicalBefore.isDeleted, repaired.isDeleted)
-            assertEquals(definition.version + 5, repaired.version)
+            assertEquals("Incoming compatibility drift", compatibility.title)
+            assertEquals(canonicalBefore.title, projected.title)
+            assertEquals(canonicalBefore.description, projected.description)
+            assertEquals(canonicalBefore.isDeleted, projected.isDeleted)
+            assertEquals(definition.version + 5, projected.version)
         }
     }
 

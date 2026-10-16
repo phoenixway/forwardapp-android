@@ -35,6 +35,8 @@ object NavigationRoutes {
     const val LEGACY_NOTE = "legacy_note_screen"
     const val LEGACY_NOTE_CREATE = "legacy_note_create_screen"
     const val SEMANTIC_ENTITY_EDITOR = "semantic_entity_editor_screen"
+    const val WORKSPACE = "workspace_screen"
+    const val WORKSPACE_PROPERTIES = "workspace_properties_screen"
     const val CANONICAL_ENTITY_PICKER = "canonical_entity_picker_screen"
     const val ENTITY_LIBRARY = "entity_library_screen"
     const val NOTE_DOCUMENT = "note_document_screen"
@@ -68,6 +70,8 @@ object NavigationRoutes {
     const val SCRIPT_EDITOR_PATTERN = "$SCRIPT_EDITOR?projectId={projectId}&scriptId={scriptId}"
     const val LEGACY_NOTE_PATTERN = "$LEGACY_NOTE/{noteId}?workspaceId={workspaceId}"
     const val SEMANTIC_ENTITY_EDITOR_PATTERN = "$SEMANTIC_ENTITY_EDITOR/{subjectId}"
+    const val WORKSPACE_PATTERN = "$WORKSPACE/{workspaceId}"
+    const val WORKSPACE_PROPERTIES_PATTERN = "$WORKSPACE_PROPERTIES/{workspaceId}"
     const val CANONICAL_ENTITY_PICKER_PATTERN =
         "$CANONICAL_ENTITY_PICKER?allowedClasses={allowedClasses}&selectionMode={selectionMode}" +
             "&excludedRefs={excludedRefs}&initiallySelected={initiallySelected}"
@@ -117,6 +121,16 @@ object NavigationRoutes {
     fun semanticEntityEditor(subjectId: String): String {
         require(subjectId.isNotBlank()) { "Semantic subject ID must not be blank" }
         return "$SEMANTIC_ENTITY_EDITOR/${URLEncoder.encode(subjectId, "UTF-8")}"
+    }
+
+    fun workspace(workspaceId: String): String {
+        require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
+        return "$WORKSPACE/${URLEncoder.encode(workspaceId, "UTF-8")}"
+    }
+
+    fun workspaceProperties(workspaceId: String): String {
+        require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
+        return "$WORKSPACE_PROPERTIES/${URLEncoder.encode(workspaceId, "UTF-8")}"
     }
 
     fun canonicalEntityPicker(

@@ -269,6 +269,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                     contextPresent = false,
                 )
             advanceUntilIdle()
+            org.junit.Assert.assertTrue(fixture.viewModel.uiState.value.isReady)
 
             fixture.viewModel.onToggleFeature("Backlog", enabled = true)
             fixture.viewModel.onToggleFeature("Inbox", enabled = true)
@@ -469,6 +470,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
         val canonicalOrientationRepository =
             mockk<CanonicalOrientationRepository>(relaxed = true)
         coEvery { canonicalOrientationRepository.getContextAssessment(id) } returns null
+        coEvery { canonicalOrientationRepository.getContextEvaluation(id) } returns null
 
         val viewModel =
             ContextSettingsViewModel(

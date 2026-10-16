@@ -2,6 +2,84 @@
 
 Status: CANONICAL
 
+<!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
+## 2026-10-16 - Linked-semantic navigation and Planning tombstone recovery
+
+**DECIDED / R2D.3 PHYSICAL UX ACCEPTED / STARTUP S4 PHYSICAL EXP ACCEPTED.**
+
+Workspace-linked semantic navigation is a read projection of canonical
+WorkspaceBinding plus the semantic entity catalog. It does not make
+Workspace the owner of semantic identity, hierarchy placement, Planning
+participation or the semantic graph.
+
+Canonical semantic type and subject identity determine the editor target.
+Multiple binding types for one canonical semantic entity are presented
+together. Missing, deleted, malformed or ambiguous targets fail closed;
+raw-ID equality cannot establish semantic identity or Context ownership.
+Standalone and System Workspaces require no Context shell.
+
+Planning commitment deletion must set both isDeleted=true and
+status=DROPPED, preserving canonical identity/provenance with normal
+version/sync lifecycle. This generic contract also affects Tactical
+Planning users of the shared tombstone operation.
+
+Historical Strategic recovery is permitted only on the established
+authority-marker startup path, for a deleted expected Strategic FOCUS
+whose canonical identity, ownership and provenance agree with the
+current authoritative mapping. It is transactional, idempotent and
+non-resurrecting. Strict runtime admission remains mandatory, and
+unrelated integrity divergence remains a failure.
+
+The accepted physical EXP deployment workflow is
+`make exp-arm64-cycle`, which verifies APK signing. No emulator or
+destructive database recovery is required.
+
+The R2D.3 physical navigation UX smoke and a separate Day Theme
+deletion audit remain open. Room schema 198 is unchanged.
+
+<!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
+## 2026-10-16 - Workspace properties have canonical, separated authorities
+
+**DECIDED / R2D.2 COMPLETE / HOST VERIFIED.**
+
+Canonical Workspace presentation is Workspace-owned. WorkspaceBinding
+relation commands remain an independent typed canonical authority, not
+a Context setting, hierarchy placement or Planning edge.
+
+Legacy Context settings are a bounded compatibility surface, not the
+Workspace properties authority. Admission requires an explicit live
+`sourceContextId`, matching ordinary Workspace and Context identities,
+and fail-closed revalidation after asynchronous reads. Standalone and
+System Workspaces cannot enter the legacy Context settings route.
+
+Other operational settings retain their existing independent authorities,
+including capabilities, evaluation/scoring, lifecycle and preferences.
+No implicit authority cutover follows from sharing a settings screen.
+
+The canonical editor may author Workspace name/description and explicit
+WorkspaceBinding relations. It must not manufacture Context records or
+silently mutate semantic graph, hierarchy placement or Planning.
+
+R2D.3 semantic editor/navigation integration remains separately scoped.
+Room schema 198 is unchanged. HOST regression acceptance: 64/64 PASS.
+Manual visual runtime acceptance has not been established.
+
+<!-- R2D1_CANONICAL_WORKSPACE_DESTINATION_2026_10_16 -->
+## 2026-10-16 - Workspace destination identity is canonical Workspace
+
+**DECIDED / R2D.1 COMPLETE / HOST VERIFIED.**
+
+Product navigation opens Workspace by typed canonical `workspaceId`.
+Workspace existence never derives from Context existence or raw-ID equality.
+The existing operational screen may be reused only when the Workspace carries
+an explicit live `sourceContextId`; this is a compatibility presentation seam,
+not identity authority.
+
+Standalone and System Workspaces render without a Context shell. Their legacy
+operational sections and Context-properties action remain unavailable until
+those capabilities receive canonical Workspace implementations. R2D.2 owns
+the properties cutover. No Room migration is required.
+
 <!-- R2E2_ENTITY_LIBRARY_UNPLACED_2026_10_16 -->
 ## 2026-10-16 - Unplaced is derived hierarchy presentation state
 

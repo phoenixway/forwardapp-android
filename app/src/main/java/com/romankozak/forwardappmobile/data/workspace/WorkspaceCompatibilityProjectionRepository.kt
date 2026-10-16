@@ -35,7 +35,7 @@ class WorkspaceCompatibilityProjectionRepository
             val workspace = workspaceDao.getById(workspaceId) ?: return null
             return WorkspaceCompatibilityProjection(
                 workspace = workspace,
-                sourceContext = contextDao.getContextById(workspaceId),
+                sourceContext = workspace.sourceContextId?.let { contextDao.getContextById(it) },
                 capabilities =
                     orientationDao.getAllWorkspaceCapabilities()
                         .filter { it.workspaceId == workspaceId && !it.isDeleted }

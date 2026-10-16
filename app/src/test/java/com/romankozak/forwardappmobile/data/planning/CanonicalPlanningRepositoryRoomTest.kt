@@ -124,6 +124,45 @@ class CanonicalPlanningRepositoryRoomTest {
     }
 
     @Test
+    fun `tombstoning active FOCUS drops status and preserves canonical identity`() = runBlocking {
+        val database = database()
+        try {
+            seedOrientation(database, ORIENTATION_A)
+            val repository = repository(database)
+            repository.saveScope(scope())
+            val original =
+                commitment(
+                    id = "focus-delete-regression",
+                    orientationId = ORIENTATION_A,
+                    role = PlanningRoleCode.FOCUS,
+                )
+            repository.saveCommitment(original)
+
+            val first = repository.tombstoneCommitment(original.id, now = 300L)
+            assertTrue(first.isDeleted)
+            assertEquals(PlanningCommitmentStatus.DROPPED, first.status)
+            assertEquals(original.version + 1L, first.version)
+            assertEquals(300L, first.updatedAt)
+            assertNull(first.syncedAt)
+            assertEquals(original.id, first.id)
+            assertEquals(original.scopeId, first.scopeId)
+            assertEquals(original.orientationId, first.orientationId)
+            assertEquals(original.provenance, first.provenance)
+
+            val repeated = repository.tombstoneCommitment(original.id, now = 400L)
+            assertEquals(first, repeated)
+            assertEquals(first, repository.getCommitment(original.id))
+            assertFalse(
+                requireNotNull(
+                    database.orientationDao().getManagedSubject(ORIENTATION_A),
+                ).isDeleted,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `live commitment rejects missing or tombstoned targets`() = runBlocking {
         val database = database()
         try {

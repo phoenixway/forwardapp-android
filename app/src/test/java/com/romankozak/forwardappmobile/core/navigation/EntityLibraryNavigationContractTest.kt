@@ -18,4 +18,21 @@ class EntityLibraryNavigationContractTest {
         assertThat(route).doesNotContain("hierarchy")
         assertThat(route).doesNotContain("planning")
     }
+
+    @Test
+    fun `Workspace destination preserves typed canonical id`() {
+        val route = NavTargetRouter.routeOf(NavTarget.Workspace("workspace/with spaces"))
+
+        assertThat(route).isEqualTo("${NavigationRoutes.WORKSPACE}/workspace%2Fwith+spaces")
+        assertThat(route).doesNotContain(NavigationRoutes.CONTEXT_DETAIL)
+    }
+
+    @Test
+    fun `Workspace properties preserves canonical Workspace id`() {
+        val route = NavTargetRouter.routeOf(NavTarget.WorkspaceProperties("workspace/with spaces"))
+
+        assertThat(route).isEqualTo("${NavigationRoutes.WORKSPACE_PROPERTIES}/workspace%2Fwith+spaces")
+        assertThat(route).doesNotContain(NavigationRoutes.PROJECT_SETTINGS)
+        assertThat(NavigationRoutes.WORKSPACE_PROPERTIES_PATTERN).contains("{workspaceId}")
+    }
 }

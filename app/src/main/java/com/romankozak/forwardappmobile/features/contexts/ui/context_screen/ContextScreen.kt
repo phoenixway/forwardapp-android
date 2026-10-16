@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.domain.ner.NerState
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
@@ -68,6 +69,9 @@ fun ProjectsScreen(
     projectId: String?,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    workspacePresentationOverride: ContextPresentation? = null,
+    canonicalWorkspaceId: String? = null,
+    linkedSemanticContent: @Composable (() -> Unit)? = null,
 ) {
     TransparentSystemBars()
 
@@ -128,6 +132,9 @@ fun ProjectsScreen(
                 autocompleteSuggestions = autocompleteSuggestions,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
+                workspacePresentationOverride = workspacePresentationOverride,
+                canonicalWorkspaceId = canonicalWorkspaceId,
+                linkedSemanticContent = linkedSemanticContent,
             )
         }
     }
@@ -142,12 +149,23 @@ private fun ProjectScaffold(
     autocompleteSuggestions: List<String>,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    workspacePresentationOverride: ContextPresentation?,
+    canonicalWorkspaceId: String?,
+    linkedSemanticContent: @Composable (() -> Unit)?,
 ) {
     val reminderViewModel: com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val project by viewModel.project.collectAsStateWithLifecycle()
     val projectPresentation by viewModel.projectPresentation.collectAsStateWithLifecycle()
+    val displayedProjectPresentation =
+        workspacePresentationOverride?.let { override ->
+            projectPresentation?.copy(
+                name = override.name,
+                description = override.description,
+                roleCode = override.roleCode,
+            ) ?: override
+        } ?: projectPresentation
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
@@ -285,7 +303,7 @@ private fun ProjectScaffold(
                                     AdaptiveTopBarState(
                                         isSelectionModeActive = uiState.isSelectionModeActive,
                                         project = project,
-                                        presentation = projectPresentation,
+                                        presentation = displayedProjectPresentation,
                                         selectedCount = uiState.selectedItemIds.size,
                                         areAllSelected =
                                             draggableItems.isNotEmpty() &&
@@ -335,6 +353,9 @@ private fun ProjectScaffold(
                                 windowInsets = WindowInsets.statusBars,
                             )
 
+                            // Canonical Workspace read-only semantic navigation.
+                            linkedSemanticContent?.invoke()
+
                             // Action panel removed to avoid duplicating ModernInputPanel controls.
                         }
                     }
@@ -357,6 +378,7 @@ private fun ProjectScaffold(
                         menuExpanded = menuExpanded,
                         onMenuExpandedChange = { menuExpanded = it },
                         projectId = projectPresentation?.id ?: project?.id,
+                        canonicalWorkspaceId = canonicalWorkspaceId,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
                         navigationManager = navigationManager,
                         holdMenuController = holdMenuController,
@@ -400,7 +422,9 @@ private fun ProjectScaffold(
                     onShowProjectProperties = {
                         menuExpanded = false
                         navigationManager.navigate(
-                            target = NavTarget.ProjectSettings(projectId = projectPresentation?.id ?: project?.id),
+                            target =
+                                canonicalWorkspaceId?.let { NavTarget.WorkspaceProperties(it) }
+                                    ?: NavTarget.ProjectSettings(projectId = projectPresentation?.id ?: project?.id),
                         )
                     },
                     onSwitchView = viewModel::onProjectViewChange,
@@ -507,6 +531,7 @@ private fun ProjectBottomBar(
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
     projectId: String?,
+    canonicalWorkspaceId: String?,
     onShowDisplayPropertiesClick: () -> Unit,
     navigationManager: EnhancedNavigationManager,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
@@ -583,7 +608,9 @@ private fun ProjectBottomBar(
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
                     navigationManager.navigate(
-                        target = NavTarget.ProjectSettings(projectId = projectId),
+                        target =
+                            canonicalWorkspaceId?.let { NavTarget.WorkspaceProperties(it) }
+                                ?: NavTarget.ProjectSettings(projectId = projectId),
                     )
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdown() },

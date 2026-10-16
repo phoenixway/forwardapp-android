@@ -17,14 +17,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -33,18 +29,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityBrowserList
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityBrowserSearch
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntityLibraryScreen(
     onBack: () -> Unit,
     onOpenSemanticEditor: (String) -> Unit,
+    onOpenWorkspace: (String) -> Unit,
     viewModel: EntityLibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -56,7 +50,6 @@ fun EntityLibraryScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         when (val current = state) {
             EntityLibraryUiState.Loading ->
@@ -78,10 +71,8 @@ fun EntityLibraryScreen(
                         when (val destination = entityLibraryDestination(ref)) {
                             is EntityLibraryDestination.SemanticEditor ->
                                 onOpenSemanticEditor(destination.subjectId)
-                            EntityLibraryDestination.WorkspaceEditorUnavailable ->
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Редактор робочого простору ще недоступний")
-                                }
+                            is EntityLibraryDestination.Workspace ->
+                                onOpenWorkspace(destination.workspaceId)
                         }
                     },
                     modifier = Modifier.fillMaxSize().padding(padding),

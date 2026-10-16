@@ -44,14 +44,14 @@ sealed interface EntityLibraryUiState {
 sealed interface EntityLibraryDestination {
     data class SemanticEditor(val subjectId: String) : EntityLibraryDestination
 
-    data object WorkspaceEditorUnavailable : EntityLibraryDestination
+    data class Workspace(val workspaceId: String) : EntityLibraryDestination
 }
 
 fun entityLibraryDestination(ref: CanonicalEntityRef): EntityLibraryDestination =
     when (ref) {
         is CanonicalEntityRef.Orientation -> EntityLibraryDestination.SemanticEditor(ref.id)
         is CanonicalEntityRef.Aspect -> EntityLibraryDestination.SemanticEditor(ref.id)
-        is CanonicalEntityRef.Workspace -> EntityLibraryDestination.WorkspaceEditorUnavailable
+        is CanonicalEntityRef.Workspace -> EntityLibraryDestination.Workspace(ref.id)
     }
 
 @HiltViewModel

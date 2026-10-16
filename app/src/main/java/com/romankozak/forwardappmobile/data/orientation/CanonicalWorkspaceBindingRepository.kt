@@ -25,6 +25,9 @@ class CanonicalWorkspaceBindingRepository
         fun observeBindings(subjectId: String): Flow<List<WorkspaceBindingEntity>> =
             orientationDao.observeLiveWorkspaceBindingsForSubject(subjectId)
 
+        fun observeBindingsForWorkspace(workspaceId: String): Flow<List<WorkspaceBindingEntity>> =
+            orientationDao.observeLiveWorkspaceBindingsForWorkspace(workspaceId)
+
         suspend fun bind(
             subjectId: String,
             workspaceId: String,

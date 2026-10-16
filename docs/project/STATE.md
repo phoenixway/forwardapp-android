@@ -2,6 +2,127 @@
 
 Status: CANONICAL
 
+<!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
+## 2026-10-16 - R2D.3 Linked Semantic Navigation and Startup S4
+
+**R2D.3 COMPLETE / HOST VERIFIED / PHYSICAL UX ACCEPTED.**
+**STARTUP S4 CLOSED / PHYSICAL EXP ACCEPTED.**
+
+R2D.3 adds Workspace-linked semantic entity navigation without changing
+Workspace, WorkspaceBinding, semantic graph, hierarchy or Planning authority.
+
+The read model combines canonical WorkspaceBinding observation with the
+canonical semantic catalog. It projects Orientation/Aspect targets using typed
+identity, collapses multiple binding types for one semantic entity, excludes
+deleted bindings, and fails closed for missing, ambiguous or invalid targets.
+
+Navigation reuses the existing canonical SemanticEntityEditor route.
+The section is available in standalone, System and explicitly Context-backed
+Workspace destinations. No synthetic Context or same-raw-ID inference is used.
+
+Focused regression inventory: seven projection tests and three ViewModel
+tests. HOST compile/tests were reported GREEN. A dedicated physical-device
+navigation UX smoke has not yet been evidenced.
+
+Startup S4 resolved an independent crash encountered during R2D.3
+verification. Read-only forensic inspection of the real EXP database proved
+a deleted Strategic FOCUS with status ACTIVE, while its Orientation remained
+live. The UI ArcQuest deletion path reaches the generic Planning commitment
+tombstone operation, which previously preserved the former ACTIVE status.
+
+CanonicalPlanningRepository now sets DROPPED whenever it creates a new
+Planning commitment tombstone. On the established Strategic authority-marker
+startup path, a bounded Room-transaction recovery normalizes historical
+deleted Strategic FOCUS statuses only when expected canonical identity,
+ownership and provenance match. The existing strict admission remains
+effective. Recovery increments version and clears syncedAt; it does not
+resurrect deleted records.
+
+Two focused regression scenarios cover new FOCUS deletion and historical
+Strategic recovery/idempotence. HOST tests were reported GREEN. The user
+confirmed successful physical EXP runtime with the existing
+`make exp-arm64-cycle` workflow, which checks signing before installation.
+
+A private HOST database snapshot was retained; no database clearing,
+manual SQLite edits or emulator were required. Room schema remains 198.
+
+Open:
+- Separate Day Theme deletion lifecycle and related Planning/tactical
+  tombstone-status audit, not a blocker for the accepted startup fix.
+
+<!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
+## 2026-10-16 - R2D.2 Canonical Workspace Properties
+
+**COMPLETE / HOST UNIT + ROOM VERIFIED.**
+
+R2D.2 introduces a dedicated canonical Workspace Properties route keyed by
+`workspaceId`. Canonical Workspace existence, presentation and relation
+authority do not depend on a legacy Context shell.
+
+Ownership classification of the former Context-properties surface:
+
+- A / Workspace presentation: canonical Workspace name and description,
+  observed and saved through CanonicalWorkspaceRepository.
+- B / WorkspaceBinding: independent typed semantic-to-operational binding
+  authority, with canonical endpoint validation and explicit relation types.
+  WorkspaceBinding is not hierarchy placement or Planning participation.
+- C / Legacy Context operational compatibility: accessible only for a live,
+  explicitly sourced, same-id Context-backed ordinary Workspace. Both
+  Workspace and Context must be live. Admission fails closed for standalone,
+  System, missing, deleted or mismatched Context identities.
+- D / Other independent authorities: capabilities, evaluation/scoring,
+  lifecycle, presentation preferences and remaining operational settings
+  retain their existing owner contracts. R2D.2 does not silently migrate
+  them into Workspace presentation or WorkspaceBinding.
+
+The canonical editor handles Workspace presentation and bindings directly.
+It uses the R2B canonical picker for Orientation/Aspect selection, then
+requires an explicit WorkspaceBinding relation type. Picker selection alone
+does not create a binding.
+
+The existing Context operational settings editor remains reachable through
+a separately guarded compatibility action, not through canonical Workspace
+identity inference. Admission is revalidated after the asynchronous
+compatibility read, including Workspace version, draft, save and binding
+mutation state. No legacy Context is synthesized for standalone Workspace.
+
+Standalone and System Workspaces remain canonical Workspace identities and
+can use the canonical properties surface without Context. Legacy Context
+operational settings are not offered for those identities.
+
+HOST acceptance: 64/64 tests PASS across nine JUnit XML suites, with zero
+failures, errors or skips. Coverage includes ViewModel, picker, navigation,
+canonical Workspace and binding Room repositories, compatibility projection,
+destination, Library and legacy regression.
+
+Production and unit-test Kotlin compilation: HOST PASS.
+Final JUnit XML audit: PASS.
+Structural verification: `git diff --check` PASS.
+Room schema remains 198; no migration introduced.
+
+Manual emulator/physical-device visual acceptance was not performed.
+The protected historical physical EXP data must remain untouched.
+R2D.3 semantic editor/navigation integration is deferred to a separate slice.
+
+<!-- R2D1_CANONICAL_WORKSPACE_DESTINATION_2026_10_16 -->
+## 2026-10-16 - R2D.1 Canonical Workspace Destination
+
+**COMPLETE / HOST VERIFIED.**
+
+Entity Library Workspace rows now open a typed canonical Workspace destination
+keyed by `workspaceId`. The destination establishes existence, title,
+description and role from the live Workspace row before considering legacy
+compatibility content.
+
+For an explicit live `sourceContextId`, the destination reuses the existing
+operational Context-era screen through a bounded presentation adapter. A
+standalone or System Workspace with no Context renders an honest canonical
+read-only destination; it neither creates nor searches for a same-id Context.
+Missing and tombstoned Workspaces fail closed.
+
+R2D.1 does not migrate Context properties or mutation authorities. Workspace
+properties canonicalization remains R2D.2. Room remains schema 198.
+
 <!-- R2E2_ENTITY_LIBRARY_UNPLACED_2026_10_16 -->
 ## 2026-10-16 - R2E.2 Entity Library Unplaced
 
@@ -5724,14 +5845,12 @@ keyboard now closes; Android keyboard show/hide animation was still
 perceived as relatively slow. There is no measured animation timing
 or demonstrated ForwardApp animation defect.
 
-A separate broad regression run had 32/33 passing tests. The failing
-`ThemeOrientationBridgeRoomTest` checks repair of compatibility drift
-after completed Orientation bootstrap. The current bootstrap fast path
-returns on COMPLETE before `repairThemeCompatibilityProjections`; the
-canonical subject remained correct while the legacy projection was stale.
-That failure is **OPEN / SEPARATE** from CREATE-CRASH and must not be
-silently counted green. Do not remove the fast path casually because
-steady-state startup performance matters.
+The formerly failing `ThemeOrientationBridgeRoomTest` was a stale assertion,
+not a production authority defect. After durable Orientation bootstrap
+`COMPLETE`, the accepted fast path performs no compatibility scan or repair.
+Canonical Theme projection still reads title, description and liveness from
+the canonical Orientation, so stale compatibility columns cannot win. The
+test now proves both properties and is green without reopening bootstrap work.
 
 No device wipe or data clearing was used. The deeply dirty worktree and
 unrelated changes were preserved. Final acceptance is functional, not

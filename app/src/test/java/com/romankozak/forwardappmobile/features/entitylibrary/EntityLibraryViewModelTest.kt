@@ -100,13 +100,13 @@ class EntityLibraryViewModelTest {
     }
 
     @Test
-    fun `typed row opening preserves semantic identity and defers Workspace honestly`() {
+    fun `typed row opening preserves canonical identity for semantic entities and Workspace`() {
         assertThat(entityLibraryDestination(CanonicalEntityRef.Orientation("same")))
             .isEqualTo(EntityLibraryDestination.SemanticEditor("same"))
         assertThat(entityLibraryDestination(CanonicalEntityRef.Aspect("same")))
             .isEqualTo(EntityLibraryDestination.SemanticEditor("same"))
         assertThat(entityLibraryDestination(CanonicalEntityRef.Workspace("same")))
-            .isEqualTo(EntityLibraryDestination.WorkspaceEditorUnavailable)
+            .isEqualTo(EntityLibraryDestination.Workspace("same"))
     }
 
     @Test
