@@ -2,6 +2,18 @@
 
 Status: CANONICAL
 
+## Product UX milestone - R2E.3 Library Product Polish complete
+
+**COMPLETE / HOST VERIFIED.** Library naming and saved bidirectional Name,
+Created and Updated sorts complete backlog addition #1. Shared search now
+supports word typos and a clear affordance. Search/filter/Unplaced and typed
+navigation retain their contracts. HOST focused acceptance: 31/31 PASS;
+production/test Kotlin compilation PASS. Room stays 198. Physical smoke for
+R2E.3 was not performed; overall R2E is not declared complete.
+
+Backlog addition #2 remains independent with Priority UNSET. The Orchestrator
+selects subsequent work; chronology numbers do not assign priority.
+
 <!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
 ## Product UX milestone - R2D.3 Linked Semantic Navigation complete
 
@@ -17,14 +29,14 @@ Planning, semantic graph or WorkspaceBinding ownership cutover occurred.
 Room remains at schema 198.
 
 Ten focused R2D.3 test methods were added and HOST tests reported GREEN.
-Dedicated physical navigation UX acceptance remains outstanding.
+Physical EXP navigation UX and back navigation are accepted.
 
 Independent startup stabilization S4 is CLOSED / PHYSICAL EXP ACCEPTED:
 new Planning tombstones use DROPPED, and bounded historical Strategic
 FOCUS recovery restores lifecycle consistency under strict admission.
 Two regression scenarios were added and HOST tests reported GREEN.
 
-Backlog #1 is a separate Day Theme and related Planning deletion-lifecycle
+Backlog #2 is a separate Day Theme and related Planning deletion-lifecycle
 audit. Remaining R2E/R2F work retains Project Orchestrator sequencing.
 
 <!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
@@ -45,8 +57,8 @@ semantic graph and Planning owners remain independently authoritative.
 Room remains schema 198. No migration or Context-shell creation.
 Visual runtime acceptance remains unverified.
 
-R2D.3 semantic editor/navigation integration is a separate proposed
-Workspace slice. Remaining R2E Library and R2F hierarchy work retain their
+R2D.3 semantic editor/navigation integration subsequently completed with physical
+UX acceptance. Remaining R2E Library and R2F hierarchy work retain their
 independent scope and Orchestrator sequencing.
 
 <!-- R2D1_CANONICAL_WORKSPACE_DESTINATION_2026_10_16 -->
@@ -59,7 +71,7 @@ Workspace rows open it directly. Existing Context-era operational UI is reused
 only behind explicit `sourceContextId` compatibility. Workspace-only and System
 identities remain valid without Context.
 
-The next bounded R2D slice is R2D.2 Workspace properties canonicalization.
+R2D.2 Workspace properties canonicalization subsequently completed.
 R2D.1 does not change WorkspaceBinding, hierarchy, Planning or semantic
 identity authority. Room remains schema 198.
 

@@ -33,6 +33,7 @@ sealed interface EntityLibraryUiState {
         val admittedCatalogSize: Int,
         val searchText: String,
         val filter: EntityLibraryFilter,
+        val sort: EntityLibrarySort = EntityLibrarySort.NAME_ASC,
     ) : EntityLibraryUiState {
         val isCatalogEmpty: Boolean get() = admittedCatalogSize == 0
         val hasNoMatches: Boolean get() = admittedCatalogSize > 0 && items.isEmpty()
@@ -64,6 +65,7 @@ class EntityLibraryViewModel
     ) : ViewModel() {
         private val searchText = savedStateHandle.getStateFlow(SEARCH_KEY, "")
         private val filter = savedStateHandle.getStateFlow(FILTER_KEY, EntityLibraryFilter.ALL.name)
+        private val sort = savedStateHandle.getStateFlow(SORT_KEY, EntityLibrarySort.NAME_ASC.name)
 
         val uiState =
             combine(
@@ -71,7 +73,10 @@ class EntityLibraryViewModel
                 presenceRepository.observeVisiblePlacedTargets(),
                 searchText,
                 filter,
-            ) { catalog, placedTargets, text, filterName ->
+                sort,
+            ) { catalog, placedTargets, text, filterName, sortName ->
+                val selectedSort = EntityLibrarySort.entries.firstOrNull { it.name == sortName }
+                    ?: EntityLibrarySort.NAME_ASC
                 val admittedCatalog = queryCanonicalEntities(catalog, CanonicalEntityBrowserQuery())
                 val selectedFilter =
                     EntityLibraryFilter.entries.firstOrNull { it.name == filterName }
@@ -84,16 +89,20 @@ class EntityLibraryViewModel
                     }
                 EntityLibraryUiState.Ready(
                     items =
-                        queryCanonicalEntities(
-                            scopeCatalog,
-                            CanonicalEntityBrowserQuery(
-                                text = text,
-                                allowedClasses = selectedFilter.allowedClasses,
+                        sortLibraryEntities(
+                            queryCanonicalEntities(
+                                scopeCatalog,
+                                CanonicalEntityBrowserQuery(
+                                    text = text,
+                                    allowedClasses = selectedFilter.allowedClasses,
+                                ),
                             ),
+                            selectedSort,
                         ),
                     admittedCatalogSize = admittedCatalog.size,
                     searchText = text,
                     filter = selectedFilter,
+                    sort = selectedSort,
                 ) as EntityLibraryUiState
             }.catch { emit(EntityLibraryUiState.Error(it.message ?: "Не вдалося завантажити бібліотеку")) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EntityLibraryUiState.Loading)
@@ -106,8 +115,13 @@ class EntityLibraryViewModel
             savedStateHandle[FILTER_KEY] = value.name
         }
 
+        fun setSort(value: EntityLibrarySort) {
+            savedStateHandle[SORT_KEY] = value.name
+        }
+
         private companion object {
             const val SEARCH_KEY = "entityLibrarySearch"
             const val FILTER_KEY = "entityLibraryFilter"
+            const val SORT_KEY = "entityLibrarySort"
         }
     }

@@ -262,6 +262,26 @@ class EntityLibraryViewModelTest {
             assertThat(ready(viewModel).hasNoMatches).isTrue()
         }
 
+    @Test
+    fun `sort restores safely and composes with Unplaced search`() = runTest(dispatcher) {
+        val catalog = MutableSharedFlow<List<CanonicalEntitySummary>>(replay = 1)
+        catalog.emit(mixedCatalog())
+        val handle = SavedStateHandle(mapOf("entityLibrarySort" to "NAME_DESC", "entityLibraryFilter" to "UNPLACED"))
+        val vm = viewModel(catalog, flowOf(setOf(subject("o1"))), handle)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertThat(ready(vm).sort).isEqualTo(EntityLibrarySort.NAME_DESC)
+        assertThat(ready(vm).items.map { it.ref }).containsExactly(CanonicalEntityRef.Workspace("w1"), CanonicalEntityRef.Aspect("a1")).inOrder()
+        vm.setSearchText("workspce")
+        assertThat(ready(vm).items.map { it.ref }).containsExactly(CanonicalEntityRef.Workspace("w1"))
+        vm.setSort(EntityLibrarySort.UPDATED_ASC)
+        assertThat(handle.get<String>("entityLibrarySort")).isEqualTo("UPDATED_ASC")
+        val stale = viewModel(catalog, state = SavedStateHandle(mapOf("entityLibrarySort" to "RETIRED")))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { stale.uiState.collect {} }
+        advanceUntilIdle()
+        assertThat(ready(stale).sort).isEqualTo(EntityLibrarySort.NAME_ASC)
+    }
+
     private fun viewModel(
         source: MutableSharedFlow<List<CanonicalEntitySummary>>,
         placedTargets: Flow<Set<HierarchyTargetRef>> = flowOf(emptySet()),

@@ -11,6 +11,8 @@ data class CanonicalEntityCatalogRow(
     val description: String?,
     val orientationKind: String?,
     val aspectArchived: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
 )
 
 @Dao
@@ -23,7 +25,9 @@ interface CanonicalEntityCatalogDao {
                subjects.title AS displayTitle,
                subjects.description AS description,
                orientations.kind AS orientationKind,
-               0 AS aspectArchived
+               0 AS aspectArchived,
+               subjects.createdAt AS createdAt,
+               subjects.updatedAt AS updatedAt
         FROM managed_subjects AS subjects
         INNER JOIN orientations ON orientations.subjectId = subjects.id
         WHERE subjects.subjectType = 'ORIENTATION' AND subjects.isDeleted = 0
@@ -35,7 +39,9 @@ interface CanonicalEntityCatalogDao {
                subjects.title AS displayTitle,
                subjects.description AS description,
                NULL AS orientationKind,
-               aspects.archived AS aspectArchived
+               aspects.archived AS aspectArchived,
+               subjects.createdAt AS createdAt,
+               subjects.updatedAt AS updatedAt
         FROM managed_subjects AS subjects
         INNER JOIN aspects ON aspects.subjectId = subjects.id
         WHERE subjects.subjectType = 'ASPECT' AND subjects.isDeleted = 0
@@ -47,7 +53,9 @@ interface CanonicalEntityCatalogDao {
                workspaces.nameOverride AS displayTitle,
                workspaces.descriptionOverride AS description,
                NULL AS orientationKind,
-               0 AS aspectArchived
+               0 AS aspectArchived,
+               workspaces.createdAt AS createdAt,
+               workspaces.updatedAt AS updatedAt
         FROM workspaces
         WHERE workspaces.isDeleted = 0
         """,

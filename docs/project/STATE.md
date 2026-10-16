@@ -2,6 +2,26 @@
 
 Status: CANONICAL
 
+## 2026-10-16 - R2E.3 Library Product Polish
+
+**COMPLETE / HOST VERIFIED.** Product menu and screen now say Library.
+Library offers Name, Created and Updated ordering in both directions, saved
+through SavedStateHandle with Name ascending as the safe default. Canonical
+timestamps come from managed_subjects for Orientation/Aspect and workspaces
+for Workspace. Historical imports retain their persisted historical values.
+Equal values use deterministic title/class/id tie-breakers; missing summary
+timestamps sort last in either direction.
+
+Shared browser search supports bounded word edit-distance matching and a clear
+icon for nonempty input. Search, class filters and GENERAL Unplaced compose
+with sorting. Navigation and admission remain unchanged. The data path still
+uses the lightweight catalog and placement-presence flows, with no graph or
+per-row reads. Room remains 198.
+
+HOST: 31/31 focused tests PASS across seven classes; production and unit-test
+Kotlin compilation PASS. Physical/visual smoke was not performed for R2E.3.
+Backlog addition #1 is COMPLETE. Addition #2 remains independent, Priority UNSET.
+
 <!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
 ## 2026-10-16 - R2D.3 Linked Semantic Navigation and Startup S4
 
@@ -21,8 +41,8 @@ The section is available in standalone, System and explicitly Context-backed
 Workspace destinations. No synthetic Context or same-raw-ID inference is used.
 
 Focused regression inventory: seven projection tests and three ViewModel
-tests. HOST compile/tests were reported GREEN. A dedicated physical-device
-navigation UX smoke has not yet been evidenced.
+tests. HOST compile/tests were reported GREEN. Physical EXP navigation UX,
+including back navigation, was accepted by the user.
 
 Startup S4 resolved an independent crash encountered during R2D.3
 verification. Read-only forensic inspection of the real EXP database proved

@@ -163,7 +163,7 @@ still relevant to the current implementation.
 
 - **Backlog addition:** `#1`
 - **Priority:** `UNSET`
-- **Status:** `PARTIALLY COMPLETE`
+- **Status:** `COMPLETE`
 
 - **Workspace + Library product-surface adaptation.**
   Evolve the existing legacy Context-oriented UI into the canonical Workspace
@@ -201,8 +201,8 @@ still relevant to the current implementation.
      — R2D.2 COMPLETE;
   3. [x] Workspace -> linked semantic entity navigation
      — R2D.3 COMPLETE / PHYSICAL UX ACCEPTED;
-  4. [ ] Library naming and sorting polish
-     — next bounded product slice R2E.3.
+  4. [x] Library naming and sorting polish
+     — R2E.3 COMPLETE / HOST VERIFIED; physical smoke not performed.
 
   Cost: `medium/large`.
 

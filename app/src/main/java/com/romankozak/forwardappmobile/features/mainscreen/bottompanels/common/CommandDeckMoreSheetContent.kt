@@ -168,7 +168,7 @@ private fun MoreSheetLibraryItems(
 ) {
     MoreSheetMenuItem(
         icon = Icons.Default.CollectionsBookmark,
-        label = "Entity Library",
+        label = "Library",
         onClick = onNavigateToEntityLibrary,
     )
     if (featureToggles[FeatureFlag.AttachmentsLibrary] == true) {

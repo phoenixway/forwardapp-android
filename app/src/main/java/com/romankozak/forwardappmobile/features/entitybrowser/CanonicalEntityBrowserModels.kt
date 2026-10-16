@@ -31,6 +31,8 @@ data class CanonicalEntitySummary(
     val subtitle: String? = null,
     val orientationKind: OrientationKind? = null,
     val isArchivedAspect: Boolean = false,
+    val createdAt: Long? = null,
+    val updatedAt: Long? = null,
 )
 
 data class CanonicalEntityBrowserQuery(
@@ -49,7 +51,7 @@ fun queryCanonicalEntities(
         .filter { it.ref.entityClass in query.allowedClasses }
         .filterNot { it.ref in query.excludedRefs }
         .filter { query.includeArchivedAspects || !it.isArchivedAspect }
-        .filter { needle.isEmpty() || it.title.lowercase().contains(needle) }
+        .filter { canonicalTitleMatches(it.title, needle) }
         .sortedWith(compareBy<CanonicalEntitySummary>({ it.title.lowercase() }, { it.ref.entityClass.name }, { it.ref.id }))
         .toList()
 }

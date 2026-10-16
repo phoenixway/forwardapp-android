@@ -57,6 +57,8 @@ class CanonicalEntityCatalogRepository
                 subtitle = row.description?.trim()?.takeIf(String::isNotEmpty),
                 orientationKind = row.orientationKind?.let(OrientationKind::valueOf),
                 isArchivedAspect = entityClass == CanonicalEntityClass.ASPECT && row.aspectArchived,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
             )
         }
     }

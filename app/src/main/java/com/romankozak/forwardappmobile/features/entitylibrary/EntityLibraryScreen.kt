@@ -21,6 +21,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -42,7 +48,7 @@ fun EntityLibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Entity Library") },
+                title = { Text("Library") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -67,6 +73,7 @@ fun EntityLibraryScreen(
                     state = current,
                     onSearchChange = viewModel::setSearchText,
                     onFilterChange = viewModel::setFilter,
+                    onSortChange = viewModel::setSort,
                     onSelect = { ref ->
                         when (val destination = entityLibraryDestination(ref)) {
                             is EntityLibraryDestination.SemanticEditor ->
@@ -86,6 +93,7 @@ private fun EntityLibraryReadyContent(
     state: EntityLibraryUiState.Ready,
     onSearchChange: (String) -> Unit,
     onFilterChange: (EntityLibraryFilter) -> Unit,
+    onSortChange: (EntityLibrarySort) -> Unit,
     onSelect: (CanonicalEntityRef) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,9 +118,21 @@ private fun EntityLibraryReadyContent(
                 )
             }
         }
+        Box(Modifier.padding(horizontal = 12.dp)) {
+            var sortMenuExpanded by remember { mutableStateOf(false) }
+            TextButton(onClick = { sortMenuExpanded = true }) { Text(state.sort.label) }
+            DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
+                EntityLibrarySort.entries.forEach { sort ->
+                    DropdownMenuItem(
+                        text = { Text(sort.label) },
+                        onClick = { onSortChange(sort); sortMenuExpanded = false },
+                    )
+                }
+            }
+        }
         CanonicalEntityBrowserList(
             items = state.items,
-            emptyMessage = if (state.isCatalogEmpty) "Бібліотека сутностей порожня" else "Нічого не знайдено",
+            emptyMessage = if (state.isCatalogEmpty) "Бібліотека порожня" else "Нічого не знайдено",
             onSelect = onSelect,
             modifier = Modifier.weight(1f),
         )

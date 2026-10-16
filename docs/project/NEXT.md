@@ -2,8 +2,19 @@
 
 Status: CANONICAL
 
+## R2E.3 complete; next product slice requires Orchestrator selection
+
+R2E.3 Library Product Polish is COMPLETE / HOST VERIFIED. Library naming,
+saved sorting, fuzzy search and search clearing are implemented. Focused HOST
+acceptance is 31/31; Kotlin production/test compilation PASS. Physical smoke
+for this slice remains unperformed.
+
+Backlog addition #1 is COMPLETE. Addition #2 Day Theme deletion lifecycle
+audit remains separate with Priority UNSET. No priority follows from numbering.
+Project Orchestrator selects the next bounded task; no next slice was started.
+
 <!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
-## R2D.3 complete; next bounded product slice is R2E.3 Library polish
+## R2D.3 completed checkpoint
 
 **R2D.3 COMPLETE / HOST VERIFIED / PHYSICAL UX ACCEPTED.**
 **Startup S4 CLOSED / PHYSICAL EXP ACCEPTED.**
@@ -14,9 +25,8 @@ existing Universal Semantic Editor without Context fallback or a new semantic
 authority. Back navigation is accepted. Room schema remains 198.
 
 Immediate bounded follow-up:
-1. R2E.3 Library product polish: change product-facing `Entity Library` naming
-   to `Library` and add explicit canonical sorting controls, preserving search,
-   filters, Unplaced derivation and lightweight catalog reads.
+1. R2E.3 Library product polish subsequently completed; see the current top
+   checkpoint for acceptance and verification boundaries.
 2. Day Theme deletion lifecycle / adjacent Tactical Mission and Planning
    tombstone behavior is a separate backlog addition with `Priority: UNSET`.
    Diagnose it independently; Startup S4 does not prove the same root cause.
@@ -24,7 +34,7 @@ Immediate bounded follow-up:
    according to product value and evidence rather than backlog numbering.
 
 <!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
-## R2D.2 complete; next Workspace slice requires separate selection
+## R2D.2 completed checkpoint
 
 R2D.2 Canonical Workspace Properties is COMPLETE / HOST VERIFIED.
 
@@ -38,8 +48,8 @@ and legacy regression. Kotlin compilation and structural checks: PASS.
 Room schema remains 198.
 
 Remaining bounded work:
-- R2D.3: semantic editor/navigation integration, separately scoped and
-  verified rather than folded into R2D.2.
+- R2D.3 semantic editor/navigation integration subsequently completed with
+  physical UX acceptance; see the current top checkpoint.
 - Independently decide whether to canonicalize further legacy operational
   settings under their proper authorities.
 - Optional safe-emulator visual smoke, not yet performed.
@@ -52,7 +62,7 @@ capability and lifecycle ownership boundaries.
 Historical physical EXP data remains protected.
 
 <!-- R2D1_CANONICAL_WORKSPACE_DESTINATION_2026_10_16 -->
-## R2D.1 complete; next Workspace slice is R2D.2
+## R2D.1 completed checkpoint
 
 R2D.1 Canonical Workspace Destination is COMPLETE / HOST VERIFIED.
 
@@ -61,10 +71,10 @@ existence and presentation are resolved first. Explicit `sourceContextId`
 may expose the existing operational compatibility surface, while standalone
 and System Workspaces remain valid without Context.
 
-Next bounded Workspace work:
+Subsequent Workspace work:
 
-1. R2D.2 canonicalize the existing Context-properties surface as Workspace
-   properties.
+1. R2D.2 canonicalized the existing Context-properties surface as Workspace
+   properties and is complete.
 2. Keep WorkspaceBinding, hierarchy placement and Planning independent.
 
 Do not create Context shells for standalone Workspaces or treat same raw IDs

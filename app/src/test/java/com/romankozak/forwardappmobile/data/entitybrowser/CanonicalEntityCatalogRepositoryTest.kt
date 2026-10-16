@@ -29,8 +29,8 @@ class CanonicalEntityCatalogRepositoryTest {
         try {
             database.orientationDao().upsertManagedSubjects(
                 listOf(
-                    subject("orientation", "ORIENTATION", "Zulu"),
-                    subject("aspect", "ASPECT", "Alpha"),
+                    subject("orientation", "ORIENTATION", "Zulu").copy(createdAt = 10, updatedAt = 40),
+                    subject("aspect", "ASPECT", "Alpha").copy(createdAt = 20, updatedAt = 50),
                     subject("deleted", "ORIENTATION", "Deleted", deleted = true),
                 ),
             )
@@ -42,7 +42,7 @@ class CanonicalEntityCatalogRepositoryTest {
             )
             database.orientationDao().upsertAspects(listOf(AspectEntity("aspect", null, 0, false)))
             database.workspaceDao().upsert(
-                listOf(WorkspaceEntity("workspace", "Middle", null, null, 1, 1, null, false, 1, "STANDALONE", null)),
+                listOf(WorkspaceEntity("workspace", "Middle", null, null, 30, 60, null, false, 1, "STANDALONE", null)),
             )
 
             val catalog = CanonicalEntityCatalogRepository(database.canonicalEntityCatalogDao()).observeCatalog().first()
@@ -53,6 +53,9 @@ class CanonicalEntityCatalogRepositoryTest {
                 CanonicalEntityRef.Workspace("workspace"),
             )
             assertThat(catalog.map { it.ref }.distinct()).hasSize(3)
+            assertThat(catalog.associate { it.ref.id to (it.createdAt to it.updatedAt) })
+                .containsExactly("orientation", 10L to 40L, "aspect", 20L to 50L, "workspace", 30L to 60L)
+            Unit
         } finally {
             database.close()
         }

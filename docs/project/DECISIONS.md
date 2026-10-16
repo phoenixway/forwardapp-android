@@ -2,6 +2,22 @@
 
 Status: CANONICAL
 
+## 2026-10-16 - Library naming, sorting and fuzzy inventory search
+
+R2E.3 is COMPLETE / HOST VERIFIED. Product copy uses Library; internal entity
+type and implementation names remain unchanged. Sort choices are typed enum
+values persisted in SavedStateHandle, defaulting safely to Name ascending.
+Created/Updated mean canonical row metadata: managed_subjects for semantic
+entities and workspaces for operational entities. They do not imply the time
+of the latest related activity or relation change. Imported historical values
+are preserved; missing summary dates sort last. Stable title/class/id ties
+apply independently of direction.
+
+The shared lightweight browser uses substring and bounded word edit-distance
+matching, including multiword queries in any order. Explicit Library sorting
+orders matches; no relevance rank or full Product graph is introduced.
+Unplaced remains GENERAL live placement absence. No mutation or schema change.
+
 <!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
 ## 2026-10-16 - Linked-semantic navigation and Planning tombstone recovery
 
@@ -34,8 +50,8 @@ The accepted physical EXP deployment workflow is
 `make exp-arm64-cycle`, which verifies APK signing. No emulator or
 destructive database recovery is required.
 
-The R2D.3 physical navigation UX smoke and a separate Day Theme
-deletion audit remain open. Room schema 198 is unchanged.
+The R2D.3 physical navigation UX smoke is accepted. The separate Day Theme
+deletion audit remains open. Room schema 198 is unchanged.
 
 <!-- R2D2_CANONICAL_WORKSPACE_PROPERTIES_2026_10_16 -->
 ## 2026-10-16 - Workspace properties have canonical, separated authorities
