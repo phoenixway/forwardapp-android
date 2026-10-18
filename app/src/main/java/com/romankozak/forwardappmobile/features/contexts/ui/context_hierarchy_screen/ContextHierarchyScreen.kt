@@ -70,7 +70,8 @@ fun ProjectHierarchyScreen(
                 pasteDescription = "Вставити / перемістити сюди",
                 actions = {
                     if (BIG_PICTURE_MUTATION_UX_ENABLED) ready?.let {
-                        BigPictureMutationControls(it, mutations) {
+                        BigPictureMutationControls(it, mutations) { destination ->
+                            mutations.beginAdd(destination)
                             entry.savedStateHandle[CANONICAL_ENTITY_PICKER_RESULT_KEY] = null
                             entry.savedStateHandle["bigPicturePickerPending"] = true
                             navController.navigate(NavTargetRouter.routeOf(NavTarget.CanonicalEntityPicker(mutations.pickerRequest())))

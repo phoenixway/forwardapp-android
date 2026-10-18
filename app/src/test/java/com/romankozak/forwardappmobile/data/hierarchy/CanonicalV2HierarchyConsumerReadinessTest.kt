@@ -123,7 +123,7 @@ class CanonicalV2HierarchyConsumerReadinessTest {
     }
 
     @Test
-    fun `CoreLevel rejects Workspace structural parent instead of inventing Beacon nesting`() {
+    fun `CoreLevel omits Workspace branch while Big Picture and search retain descendants`() {
         val read =
             adapter.read(
                 placements =
@@ -135,19 +135,45 @@ class CanonicalV2HierarchyConsumerReadinessTest {
                             parentId = "workspace",
                             order = 0,
                         ),
+                        placement("grandchild", subjectTarget("grandchild"), parentId = "beacon"),
                     ),
                 admittedWorkspacePresentations =
                     listOf(workspacePresentation("workspace")),
                 managedSubjects =
-                    listOf(subject("beacon", "Beacon")),
+                    listOf(subject("beacon", "Beacon"), subject("grandchild", "Grandchild")),
             )
 
-        val failure =
-            runCatching {
-                consumers.coreLevelOccurrences(read)
-            }.exceptionOrNull()
+        assertTrue(consumers.coreLevelOccurrences(read).isEmpty())
+        assertEquals(3, read.hierarchy.occurrences.size)
+        assertEquals(listOf("workspace", "beacon", "grandchild"),
+            read.breadcrumbsToOccurrence(PlacementId("grandchild")).mapNotNull { it.placementId?.value })
+    }
 
-        assertTrue(failure is IllegalArgumentException)
+    @Test
+    fun `CoreLevel keeps historical siblings and omits complete mixed subtree inside historical scope`() {
+        val read = adapter.read(
+            placements = listOf(
+                placement("root", subjectTarget("root")),
+                placement("workspace", workspaceTarget("w"), parentId = "root"),
+                placement("beacon", subjectTarget("shared"), parentId = "workspace"),
+                placement("child", subjectTarget("child"), parentId = "beacon"),
+                placement("kept-link", subjectTarget("shared"), parentId = "root", kind = PlacementKind.LINK, order = 1),
+            ),
+            admittedWorkspacePresentations = listOf(workspacePresentation("w")),
+            managedSubjects = listOf(subject("root", "Root"), subject("shared", "Shared"), subject("child", "Child")),
+            syntheticScopes = listOf(CanonicalV2SyntheticScopeInput(
+                kind = CanonicalV2SyntheticScopeKind.NO_GROUP, id = CANONICAL_V2_NO_GROUP_SCOPE_ID,
+                title = "No group", order = 0, rootTargets = listOf(subjectTarget("root")),
+            )),
+        )
+        val core = consumers.coreLevelOccurrences(read)
+        assertEquals(listOf("root", "kept-link"), core.map { it.placementId.value })
+        assertEquals(PlacementId("root"), core.last().parentPlacementId)
+        assertEquals(5, read.hierarchy.occurrences.size)
+        // Input order cannot bring a grandchild of an excluded node back in.
+        assertEquals(core, consumers.coreLevelOccurrences(read.copy(hierarchy = read.hierarchy.copy(
+            occurrences = read.hierarchy.occurrences.reversed(),
+        ))).reversed())
     }
 
     private fun placement(

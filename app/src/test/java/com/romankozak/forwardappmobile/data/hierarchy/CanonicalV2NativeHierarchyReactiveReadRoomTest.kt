@@ -8,6 +8,9 @@ import com.romankozak.forwardappmobile.data.hierarchy.container.*
 import com.romankozak.forwardappmobile.data.orientation.CanonicalAspectRepository
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.*
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
@@ -26,10 +29,53 @@ class CanonicalV2NativeHierarchyReactiveReadRoomTest {
         ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
     ).allowMainThreadQueries().build()
 
-    private fun reader(db: AppDatabase): CanonicalV2ReactiveHierarchyReadSource {
+    private fun reader(db: AppDatabase, workspacePresentations: List<ContextPresentation> = emptyList()): CanonicalV2ReactiveHierarchyReadSource {
         val workspaces = mockk<SystemWorkspacePresentationContextProjector>()
-        every { workspaces.observePresentationUniverse() } returns flowOf(emptyList())
+        every { workspaces.observePresentationUniverse() } returns flowOf(workspacePresentations)
         return CanonicalV2ReactiveHierarchyReadSource(db, workspaces, CanonicalV2HierarchyReadSnapshotAssembler())
+    }
+
+    @Test fun `historical Beacon subtree moved under Workspace remains readable live and on cold subscription`() = runBlocking {
+        val db = database()
+        try {
+            db.workspaceDao().upsert(listOf(WorkspaceEntity("w", "Workspace", null, null, 1, 1, null, false, 1,
+                provenance = WorkspaceProvenance.CANONICAL_ONLY.name, sourceContextId = null)))
+            val subjects = CanonicalOrientationRepository(db, db.orientationDao())
+            val h1 = H1StructuralMutationCoordinator(db)
+            val scopes = HierarchyPlacementGroupScopeMutationCoordinator(db)
+            val source = h1.addAppearance(HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT,
+                subjects.createOrientation(OrientationKind.INTENT, "Historical", now = 1)), H1StructuralParent.Root)
+            val child = h1.addAppearance(HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT,
+                subjects.createOrientation(OrientationKind.INTENT, "Historical child", now = 2)), H1StructuralParent.Root)
+            scopes.setRootScope(source, null, now = 10)
+            scopes.setRootScope(child, null, now = 11)
+            h1.moveNode(H1TypedNode.Occurrence(child.value), H1StructuralParent.Node(H1TypedNode.Occurrence(source.value)))
+            val workspace = h1.addAppearance(HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "w"), H1StructuralParent.Root)
+            val presentations = listOf(ContextPresentation("w", "Workspace", null, null, null, 0, emptyList()))
+            val consumer = CanonicalV2HierarchyConsumerReadiness()
+            val initial = withTimeout(10_000) { reader(db, presentations).observe().first() }
+            assertThat(consumer.coreLevelOccurrences(initial).map { it.placementId }).containsExactly(source, child)
+            val started = CompletableDeferred<Unit>()
+            val moved = async(Dispatchers.Default) {
+                withTimeout(10_000) {
+                    reader(db, presentations).observe().onEach { frame ->
+                        consumer.coreLevelOccurrences(frame)
+                        started.complete(Unit)
+                    }.first { it.parentOccurrence(source)?.placementId == workspace }
+                }
+            }
+            withTimeout(10_000) { started.await() }
+            h1.moveNode(H1TypedNode.Occurrence(source.value), H1StructuralParent.Node(H1TypedNode.Occurrence(workspace.value)))
+            val frame = moved.await()
+            assertThat(consumer.coreLevelOccurrences(frame)).isEmpty()
+            val cold = withTimeout(10_000) { reader(db, presentations).observe().first() }
+            assertThat(consumer.coreLevelOccurrences(cold)).isEmpty()
+            assertThat(cold.hierarchy.occurrences.map { it.placementId }).containsExactly(workspace, source, child)
+            assertThat(cold.breadcrumbsToOccurrence(child).mapNotNull { it.placementId })
+                .containsExactly(workspace, source, child).inOrder()
+            assertThat(db.orientationDao().getAllManagedSubjects().filterNot { it.isDeleted }).hasSize(2)
+            assertThat(db.hierarchyPlacementGroupScopeDao().getAll().all { it.isDeleted }).isTrue()
+        } finally { db.close() }
     }
 
     @Test fun `native Orientation and Aspect Add updates subscribed reader and survives cold startup read`() = runBlocking<Unit> {

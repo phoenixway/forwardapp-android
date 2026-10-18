@@ -25,9 +25,12 @@ class BigPictureMutationViewModel @Inject constructor(
     private val mutableState = MutableStateFlow(BigPictureMutationState())
     val state = mutableState.asStateFlow()
     val clipboard = savedState.getStateFlow<String?>("bigPictureCut", null)
-    val pendingEntity = savedState.getStateFlow<String?>("bigPictureAddEntity", null)
 
     fun pickerRequest() = CanonicalEntityPickerRequest(CanonicalEntityClass.entries.toSet())
+
+    fun beginAdd(destination: H1StructuralParent) {
+        if (!state.value.busy) savedState["bigPictureAddDestination"] = encodeStructuralParent(destination)
+    }
 
     fun acceptPickerResult(handle: SavedStateHandle) {
         val encoded = handle.get<List<String>>(CANONICAL_ENTITY_PICKER_RESULT_KEY) ?: return
@@ -36,26 +39,21 @@ class BigPictureMutationViewModel @Inject constructor(
         handle[CANONICAL_ENTITY_PICKER_RESULT_KEY] = null
         handle["bigPicturePickerPending"] = false
         if (!expected) return
+        val encodedDestination = savedState.get<String>("bigPictureAddDestination")
+        savedState["bigPictureAddDestination"] = null
         try {
             require(encoded.size == 1) { "Оберіть одну сутність" }
             val ref = CanonicalEntityRefCodec.decode(encoded.single())
-            savedState["bigPictureAddEntity"] = CanonicalEntityRefCodec.encode(ref)
+            val destination = decodeStructuralParent(requireNotNull(encodedDestination) {
+                "Місце додавання втрачено. Відкрийте потрібне місце та натисніть Додати знову."
+            })
+            mutate { writer.addAppearance(ref.toBigPictureTarget(), destination) }
         } catch (error: IllegalArgumentException) {
             mutableState.value = BigPictureMutationState(message = error.message)
         }
     }
 
-    fun cancelAdd() { if (!state.value.busy) savedState["bigPictureAddEntity"] = null }
     fun clearMessage() { mutableState.value = state.value.copy(message = null) }
-
-    fun addEntity(destination: H1StructuralParent) {
-        val encoded = pendingEntity.value ?: return
-        mutate {
-            val ref = CanonicalEntityRefCodec.decode(encoded)
-            writer.addAppearance(ref.toBigPictureTarget(), destination)
-            savedState["bigPictureAddEntity"] = null
-        }
-    }
 
     fun addGroup(title: String, destination: H1StructuralParent) = mutate {
         writer.createContainer(title, destination)
@@ -116,6 +114,18 @@ internal fun CanonicalEntityRef.toBigPictureTarget() = HierarchyTargetRef(
 internal fun encodeStructuralNode(node: H1TypedNode): String = when (node) {
     is H1TypedNode.Occurrence -> "occurrence:${node.id}"
     is H1TypedNode.Container -> "container:${node.id}"
+}
+
+internal fun encodeStructuralParent(parent: H1StructuralParent): String = when (parent) {
+    H1StructuralParent.Root -> "root"
+    is H1StructuralParent.Node -> encodeStructuralNode(parent.ref)
+}
+
+internal fun decodeStructuralParent(encoded: String): H1StructuralParent {
+    require(encoded == "root" || encoded.startsWith("occurrence:") || encoded.startsWith("container:")) {
+        "Unknown structural destination"
+    }
+    return if (encoded == "root") H1StructuralParent.Root else H1StructuralParent.Node(decodeStructuralNode(encoded))
 }
 
 internal fun decodeStructuralNode(encoded: String): H1TypedNode {

@@ -9,7 +9,10 @@ production hierarchy reader, despite green transport tests. That read path is
 now coverage-aware. Update the APK in place using the established workflow,
 after HOST regression 58/58 and production/unit-test Kotlin compilation PASS;
 first confirm startup with the already-persisted native occurrence, then
-repeat Add → Root and restart. Do not clear data or delete the saved occurrence
+repeat Add → Root and restart. The additional CoreLevel Workspace-parent
+crash-path is now HOST-verified (7/7): move a safe historical Beacon subtree
+beneath a Workspace and restart; the complete branch must remain in Big
+Picture/search while CoreLevel omits the incompatible branch. Do not clear data or delete the saved occurrence
 to escape the crash. Continue the existing R2F.2B physical checklist only after
 this passes. Room remains 200; R2F.2C deferred; Backlog #2 Priority: UNSET.
 

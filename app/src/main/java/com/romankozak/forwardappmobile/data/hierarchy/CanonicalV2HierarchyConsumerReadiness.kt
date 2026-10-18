@@ -29,13 +29,38 @@ data class CanonicalV2CoreLevelOccurrence(
 class CanonicalV2HierarchyConsumerReadiness {
     fun coreLevelOccurrences(
         read: CanonicalV2ProductionHierarchyRead,
-    ): List<CanonicalV2CoreLevelOccurrence> =
-        read.hierarchy.occurrences
+    ): List<CanonicalV2CoreLevelOccurrence> {
+        val occurrences = read.hierarchy.occurrences.associateBy { it.placementId }
+        val admitted = mutableMapOf<PlacementId, Boolean>()
+
+        // A legal mixed Big Picture branch may not fit the historical Beacon
+        // surface. Exclude that entire branch here, preserving H1 unchanged.
+        // Memoize ancestry so each node is examined once, including deep trees.
+        fun admitsBranch(id: PlacementId): Boolean {
+            val path = mutableListOf<PlacementId>()
+            var cursor: PlacementId? = id
+            while (cursor != null && cursor !in admitted) {
+                val current = cursor
+                val node = requireNotNull(occurrences[current]) { "Missing H1 occurrence ${current.value}" }
+                path += current
+                val scope = read.syntheticScopeFor(current)
+                if (node.target.type != HierarchyTargetType.MANAGED_SUBJECT ||
+                    current in read.nativePlacementIds || scope == null ||
+                    scope.kind == CanonicalV2SyntheticScopeKind.NO_BEACON
+                ) {
+                    admitted[current] = false
+                    break
+                }
+                cursor = node.parentPlacementId
+            }
+            val result = cursor?.let { admitted.getValue(it) } ?: true
+            path.forEach { admitted[it] = result }
+            return result
+        }
+
+        return read.hierarchy.occurrences
             .asSequence()
-            .filter { it.target.type == HierarchyTargetType.MANAGED_SUBJECT }
-            // CoreLevel is the historical Beacon surface. Generic native
-            // appearances remain available in Big Picture and search only.
-            .filter { it.placementId !in read.nativePlacementIds && read.syntheticScopeFor(it.placementId) != null }
+            .filter { admitsBranch(it.placementId) }
             .map { projected ->
                 val presented =
                     requireNotNull(read.occurrence(projected.placementId)) {
@@ -81,6 +106,7 @@ class CanonicalV2HierarchyConsumerReadiness {
                 )
             }
             .toList()
+    }
 
     /**
      * Search/focus structural ancestry remains exact occurrence ancestry.

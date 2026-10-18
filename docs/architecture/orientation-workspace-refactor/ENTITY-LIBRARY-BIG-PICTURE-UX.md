@@ -20,6 +20,16 @@ appearances, while canonical Big Picture/search retain them. Focused HOST
 regression is 58/58 across 13 XML classes, including the production reactive
 reader during native Add and a fresh read of the persisted state.
 
+CoreLevel is a specialized historical Beacon consumer, not a validator of legal
+Big Picture composition. It admits only branches whose complete occurrence
+ancestry is historical ManagedSubject presentation in Group/NoGroup. A
+Workspace, native or unscoped ancestor excludes the whole branch from CoreLevel,
+including deeper descendants; no reparenting or synthetic Beacon is invented.
+Mixed structure remains fully available in Big Picture and search. Admission
+uses an iterative memoized pass, without DAO fan-out or dependence on input
+order. Follow-up HOST tests: 7/7, including real H1 Move beneath Workspace,
+retired GroupScope, live read and cold subscription. Device acceptance pending.
+
 ## R2F.2B activation — canonical Big Picture mutation UX, 2026-10-18
 
 R2F_2B_ACTIVATION_20261018

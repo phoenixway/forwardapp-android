@@ -4,6 +4,15 @@ Status: CANONICAL
 
 ## 2026-10-18 - Add-root/startup GroupScope runtime crash repair
 
+Follow-up: the CoreLevel crash-path for a historical Beacon beneath a Workspace
+is also repaired. CoreLevel now admits complete historical Beacon ancestry
+only; legal mixed/native/unscoped branches are omitted from this specialized
+consumer while the full H1 structure and breadcrumbs remain in Big Picture.
+Memoized iterative ancestry admission is linear and input-order independent.
+Focused HOST acceptance: CoreLevel consumer 4/4 and real reactive H1 Move/read
+3/3 PASS, including cold subscription; both Kotlin compiles PASS in that test
+graph. No phone deployment; schema remains 200. Physical re-test is pending.
+
 Physical EXP logs confirmed `IllegalArgumentException` in
 `CanonicalV2HierarchyScopePlanner.plan` after native Add → Root and again
 on restart. The placement persisted correctly; the still-subscribed production

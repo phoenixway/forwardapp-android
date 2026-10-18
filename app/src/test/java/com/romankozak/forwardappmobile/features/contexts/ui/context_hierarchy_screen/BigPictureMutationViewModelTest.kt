@@ -29,23 +29,23 @@ class BigPictureMutationViewModelTest {
         assertThat(BIG_PICTURE_MUTATION_UX_ENABLED).isTrue()
     }
 
-    @Test fun `picker allows all three classes and consumes identity only once before explicit destination`() = runTest(dispatcher) {
+    @Test fun `picker adds immediately at captured location and consumes identity only once`() = runTest(dispatcher) {
         val model = vm()
         assertThat(model.pickerRequest().allowedClasses).containsExactlyElementsIn(CanonicalEntityClass.entries)
+        coEvery { writer.addAppearance(any(), any(), any(), any()) } returns PlacementId("new-occurrence")
+        val destination = H1StructuralParent.Node(H1TypedNode.Container("container:1"))
+        model.beginAdd(destination)
+        verify { writer wasNot Called }
         val returned = result(CanonicalEntityRef.Aspect("subject:1"))
         model.acceptPickerResult(returned)
         model.acceptPickerResult(returned)
-        assertThat(model.pendingEntity.value).isEqualTo("ASPECT:subject:1")
-        verify { writer wasNot Called }
-        coEvery { writer.addAppearance(any(), any(), any(), any()) } returns PlacementId("new-occurrence")
-        val destination = H1StructuralParent.Node(H1TypedNode.Container("container:1"))
-        model.addEntity(destination)
-        model.addEntity(destination) // Guard rapid duplicate tap.
+        assertThat(model.state.value.busy).isTrue()
         advanceUntilIdle()
         coVerify(exactly = 1) { writer.addAppearance(
             HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "subject:1"), destination, any(), any(),
         ) }
-        assertThat(model.pendingEntity.value).isNull()
+        assertThat(returned.get<List<String>>(CANONICAL_ENTITY_PICKER_RESULT_KEY)).isNull()
+        assertThat(returned.get<Boolean>("bigPicturePickerPending")).isFalse()
     }
 
     @Test fun `stale unsolicited and malformed picker results never write`() = runTest(dispatcher) {
@@ -53,10 +53,10 @@ class BigPictureMutationViewModelTest {
         val unsolicited = result(CanonicalEntityRef.Workspace("w"))
         unsolicited["bigPicturePickerPending"] = false
         model.acceptPickerResult(unsolicited)
+        model.beginAdd(H1StructuralParent.Root)
         val malformed = SavedStateHandle(mapOf("bigPicturePickerPending" to true,
             CANONICAL_ENTITY_PICKER_RESULT_KEY to listOf("WRONG:x")))
         model.acceptPickerResult(malformed)
-        assertThat(model.pendingEntity.value).isNull()
         assertThat(model.state.value.message).isNotNull()
         verify { writer wasNot Called }
     }
@@ -68,11 +68,39 @@ class BigPictureMutationViewModelTest {
             H1StructuralParent.Node(H1TypedNode.Occurrence("parent")), H1StructuralParent.Node(H1TypedNode.Container("section")))
         refs.forEachIndexed { i, ref ->
             val model = vm()
+            model.beginAdd(destinations[i])
             model.acceptPickerResult(result(ref))
-            model.addEntity(destinations[i])
             advanceUntilIdle()
             coVerify(exactly = 1) { writer.addAppearance(ref.toBigPictureTarget(), destinations[i], any(), any()) }
         }
+    }
+
+    @Test fun `captured destination survives recreation while picker is open`() = runTest(dispatcher) {
+        coEvery { writer.addAppearance(any(), any(), any(), any()) } returns PlacementId("new")
+        val saved = SavedStateHandle()
+        val destination = H1StructuralParent.Node(H1TypedNode.Occurrence("parent:with:colons"))
+        vm(saved).beginAdd(destination)
+        val restored = vm(saved)
+        val returned = result(CanonicalEntityRef.Workspace("w"))
+        restored.acceptPickerResult(returned)
+        advanceUntilIdle()
+        vm(saved).acceptPickerResult(returned)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { writer.addAppearance(
+            HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "w"), destination, any(), any(),
+        ) }
+        assertThat(saved.get<String>("bigPictureAddDestination")).isNull()
+    }
+
+    @Test fun `missing or corrupt saved destination never falls back to root`() = runTest(dispatcher) {
+        listOf(null, "invalid").forEach { encoded ->
+            val saved = SavedStateHandle(mapOf("bigPictureAddDestination" to encoded))
+            val model = vm(saved)
+            model.acceptPickerResult(result(CanonicalEntityRef.Orientation("o")))
+            advanceUntilIdle()
+            assertThat(model.state.value.message).isNotNull()
+        }
+        verify { writer wasNot Called }
     }
 
     @Test fun `cut restores exact occurrence not target and failed cyclic paste retains source`() = runTest(dispatcher) {
@@ -115,25 +143,30 @@ class BigPictureMutationViewModelTest {
         coEvery { writer.reorderChildren(any(), any(), any()) } just Runs
         val model = vm()
         val parent = H1StructuralParent.Node(H1TypedNode.Occurrence("parent"))
-        model.addGroup("WIP", parent)
-        advanceUntilIdle()
+        listOf(H1StructuralParent.Root, parent, H1StructuralParent.Node(H1TypedNode.Container("section"))).forEach {
+            model.addGroup("WIP", it)
+            advanceUntilIdle()
+            coVerify(exactly = 1) { writer.createContainer("WIP", it, null, any(), any()) }
+        }
         val order = listOf(H1TypedNode.Container("x"), H1TypedNode.Occurrence("a"), H1TypedNode.Container("y"))
         model.reorder(parent, order)
         advanceUntilIdle()
-        coVerify(exactly = 1) { writer.createContainer("WIP", parent, null, any(), any()) }
         coVerify(exactly = 1) { writer.reorderChildren(parent, order, any()) }
         confirmVerified(writer)
     }
 
-    @Test fun `failed add preserves selected entity and exposes error for retry`() = runTest(dispatcher) {
+    @Test fun `failed direct add exposes error without replaying consumed picker result`() = runTest(dispatcher) {
         coEvery { writer.addAppearance(any(), any(), any(), any()) } throws IllegalStateException("Deleted target")
         val model = vm()
-        model.acceptPickerResult(result(CanonicalEntityRef.Workspace("w")))
-        model.addEntity(H1StructuralParent.Root)
+        model.beginAdd(H1StructuralParent.Root)
+        val returned = result(CanonicalEntityRef.Workspace("w"))
+        model.acceptPickerResult(returned)
         assertThat(model.state.value.busy).isTrue()
         advanceUntilIdle()
         assertThat(model.state.value.busy).isFalse()
         assertThat(model.state.value.message).contains("Deleted target")
-        assertThat(model.pendingEntity.value).isEqualTo("WORKSPACE:w")
+        model.acceptPickerResult(returned)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { writer.addAppearance(any(), any(), any(), any()) }
     }
 }
