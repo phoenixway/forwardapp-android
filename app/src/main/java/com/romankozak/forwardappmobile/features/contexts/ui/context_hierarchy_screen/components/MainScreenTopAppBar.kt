@@ -42,6 +42,10 @@ fun ProjectHierarchyScreenTopAppBar(
     isSiblingReorderMode: Boolean,
     onToggleSiblingReorderMode: () -> Unit,
     onSearchClick: () -> Unit,
+    readOnly: Boolean = false,
+    title: String = "Orientation Hierarchy",
+    actions: (@Composable () -> Unit)? = null,
+    pasteDescription: String = "Вставити у вибраний контекст",
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
 
@@ -71,7 +75,7 @@ fun ProjectHierarchyScreenTopAppBar(
             }
         }
         Text(
-            text = if (isSelectionMode) "Вибрано: $selectedCount" else "Orientation Hierarchy",
+            text = if (isSelectionMode) "Вибрано: $selectedCount" else title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
@@ -95,12 +99,13 @@ fun ProjectHierarchyScreenTopAppBar(
             IconButton(onClick = onPasteToFocusedContext) {
                 Icon(
                     imageVector = Icons.Default.ContentPaste,
-                    contentDescription = "Вставити у вибраний контекст",
+                    contentDescription = pasteDescription,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
-        if (!isSelectionMode) {
+        actions?.invoke()
+        if (!isSelectionMode && !readOnly && actions == null) {
             IconButton(onClick = { showMoreMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,

@@ -29,6 +29,37 @@ class CanonicalHierarchySelectiveImportGroupScopeTest {
     private val filter = SnapshotBundleSelectiveImportFilter()
 
     @Test
+    fun `explicit native coverage permits unscoped selected occurrence without fabricating provenance`() {
+        val source = beaconSource(listOf(beaconPlacement("p")), emptyList(), false)
+            .copy(groupScopeCoverage = coverage("p", "NATIVE"))
+        val filtered = filter.filter(source, WorkspaceSelectiveImportSelection())
+        assertEquals(listOf("p"), filtered.hierarchyPlacements!!.map { it.id })
+        assertEquals(source.groupScopeCoverage, filtered.groupScopeCoverage)
+        assertTrue(filtered.hierarchyPlacementGroupScopes!!.isEmpty())
+        assertTrue(filtered.orientationRelations!!.isEmpty())
+    }
+
+    @Test
+    fun `historical inert scope survives selective transport while UNKNOWN stays conservative`() {
+        val tombstone = scope("p", null).copy(isDeleted = true, version = 3)
+        val source = beaconSource(listOf(beaconPlacement("p")), listOf(tombstone), false)
+            .copy(groupScopeCoverage = coverage("p", "HISTORICAL"))
+        val filtered = filter.filter(source, WorkspaceSelectiveImportSelection())
+        assertEquals(listOf(tombstone), filtered.hierarchyPlacementGroupScopes)
+        assertEquals(source.groupScopeCoverage, filtered.groupScopeCoverage)
+        assertThrows(IllegalArgumentException::class.java) {
+            filter.filter(source.copy(groupScopeCoverage = coverage("p", "LEGACY_UNKNOWN")), WorkspaceSelectiveImportSelection())
+        }
+    }
+
+    private fun coverage(id: String, mode: String) =
+        com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot(
+            records = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeApplicabilityRecord(
+                id, "GENERAL", mode, 1, 1, null, 1,
+            )),
+        )
+
+    @Test
     fun `selected Beacon root retains exact GroupScope and canonical PART_OF provenance`() {
         val sourceWithCanonicalHierarchy =
             beaconSource(

@@ -41,6 +41,8 @@ import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationAck
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
@@ -234,6 +236,27 @@ class FullBackupLocalDataSourceImpl
             entries: List<WorkspaceDirectionEntrySyncVersion>,
         ) {
             canonicalWorkspaceDirectionEntrySyncStore.markSynced(entries)
+        }
+
+
+        override suspend fun loadUnsyncedBigPicturePresentation() =
+            BigPicturePresentationRepository(db).dirty()
+        override suspend fun loadUnsyncedGroupScopeCoverage() =
+            com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).dirty()
+        override suspend fun loadGroupScopeCoverageChangedSince(timestamp: Long) =
+            com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).changedSince(timestamp)
+        override suspend fun markGroupScopeCoverageSynced(versions: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageVersion>) {
+            com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).markSynced(versions, System.currentTimeMillis())
+        }
+
+        override suspend fun loadBigPicturePresentationChangedSince(timestamp: Long) =
+            BigPicturePresentationRepository(db).changedSince(timestamp)
+
+        override suspend fun markBigPicturePresentationSynced(ack: BigPicturePresentationAck) {
+            BigPicturePresentationRepository(db).markSynced(
+                ack = ack,
+                now = System.currentTimeMillis(),
+            )
         }
 
         override suspend fun loadUnsyncedCanonicalHierarchyPlacements() =
@@ -485,8 +508,11 @@ class FullBackupLocalDataSourceImpl
                 hierarchyPlacements = canonicalHierarchyPlacementSyncStore.loadAll(),
                 hierarchyPlacementGroupScopes =
                     canonicalHierarchyPlacementGroupScopeSyncStore.loadAll(),
+                groupScopeCoverage = com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).snapshot(),
                 hierarchyPlacementLinkedAppearances =
                     canonicalHierarchyPlacementLinkedAppearanceSyncStore.loadAll(),
+                bigPicturePresentation =
+                    BigPicturePresentationRepository(db).snapshot(),
                 workspaceTagRefs = canonicalWorkspaceTagTransportStore.loadAll(),
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },

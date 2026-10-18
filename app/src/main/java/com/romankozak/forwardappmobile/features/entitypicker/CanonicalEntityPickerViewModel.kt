@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.entitypicker
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.di.DefaultDispatcher
 import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityBrowserQuery
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass
@@ -11,6 +12,7 @@ import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySum
 import com.romankozak.forwardappmobile.features.entitybrowser.queryCanonicalEntities
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOn
 
 sealed interface CanonicalEntityPickerUiState {
     data object Loading : CanonicalEntityPickerUiState
@@ -43,6 +46,7 @@ class CanonicalEntityPickerViewModel
     constructor(
         catalogRepository: CanonicalEntityCatalogRepository,
         savedStateHandle: SavedStateHandle,
+        @DefaultDispatcher computationDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         val request = requestFrom(savedStateHandle)
         private val search = MutableStateFlow("")
@@ -74,6 +78,7 @@ class CanonicalEntityPickerViewModel
                     request = request,
                 ) as CanonicalEntityPickerUiState
             }.catch { emit(CanonicalEntityPickerUiState.Error(it.message ?: "Не вдалося завантажити сутності")) }
+                .flowOn(computationDispatcher)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CanonicalEntityPickerUiState.Loading)
 
         fun setSearch(value: String) {

@@ -20,6 +20,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationAck
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureRecordVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncVersion
@@ -79,12 +82,25 @@ internal data class CanonicalWifiPushPlan(
     val hierarchyPlacementsAck: List<HierarchyPlacementSyncVersion>,
     val hierarchyPlacementGroupScopesAck: List<HierarchyPlacementGroupScopeSyncVersion>,
     val hierarchyPlacementLinkedAppearancesAck: List<HierarchyPlacementLinkedAppearanceSyncVersion>,
+    val bigPicturePresentationAck: BigPicturePresentationAck,
+    val groupScopeCoverageAck: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageVersion>,
     val workspaceConnectionsAck: List<WorkspaceConnectionSyncVersion>,
     val workspaceBacklogAck: List<WorkspaceBacklogEntrySyncVersion>,
     val workspaceProblemsAck: CanonicalWorkspaceProblemSyncAck,
     val workspaceInboxAck: List<WorkspaceInboxRecordSyncVersion>,
     val workspacePresentationPreferencesAck: List<WorkspacePresentationPreferencesSyncVersion>,
 )
+
+internal fun BigPicturePresentationSnapshot.hasChanges(): Boolean =
+    containers.isNotEmpty() || memberships.isNotEmpty()
+
+private fun BigPicturePresentationSnapshot.toVersionAck() =
+    BigPicturePresentationAck(
+        containers = containers.map { BigPictureRecordVersion(it.id, it.version) },
+        memberships = memberships.map {
+            BigPictureRecordVersion(it.placementId, it.version)
+        },
+    )
 
 internal fun CanonicalPlanningSyncPayload.hasChanges(): Boolean =
     scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
@@ -173,6 +189,8 @@ internal fun shouldPushCanonicalWifi(
     dirtyCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
     dirtyCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
     dirtyCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
+    dirtyBigPicturePresentation: BigPicturePresentationSnapshot = BigPicturePresentationSnapshot(),
+    dirtyGroupScopeCoverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot = com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot(),
     dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -190,6 +208,8 @@ internal fun shouldPushCanonicalWifi(
         dirtyCanonicalHierarchyPlacements.isNotEmpty() ||
         dirtyCanonicalHierarchyPlacementGroupScopes.isNotEmpty() ||
         dirtyCanonicalHierarchyPlacementLinkedAppearances.isNotEmpty() ||
+        dirtyBigPicturePresentation.hasChanges() ||
+        dirtyGroupScopeCoverage.records.isNotEmpty() ||
         dirtyCanonicalWorkspaceConnections.isNotEmpty() ||
         dirtyCanonicalWorkspaceBacklog.isNotEmpty() ||
         dirtyCanonicalWorkspaceProblems.hasChanges() ||
@@ -208,6 +228,8 @@ internal fun buildCanonicalWifiPushPlan(
     dirtyCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
     dirtyCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
     dirtyCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
+    dirtyBigPicturePresentation: BigPicturePresentationSnapshot = BigPicturePresentationSnapshot(),
+    dirtyGroupScopeCoverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot = com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot(),
     dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -232,6 +254,8 @@ internal fun buildCanonicalWifiPushPlan(
                     dirtyCanonicalHierarchyPlacementGroupScopes,
                 explicitCanonicalHierarchyPlacementLinkedAppearances =
                     dirtyCanonicalHierarchyPlacementLinkedAppearances,
+                explicitBigPicturePresentation = dirtyBigPicturePresentation,
+                explicitGroupScopeCoverage = dirtyGroupScopeCoverage,
                 explicitCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                 explicitCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -289,6 +313,10 @@ internal fun buildCanonicalWifiPushPlan(
                     version = linked.version,
                 )
             },
+        bigPicturePresentationAck = dirtyBigPicturePresentation.toVersionAck(),
+        groupScopeCoverageAck = dirtyGroupScopeCoverage.records.map {
+            com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageVersion(it.placementId, it.version)
+        },
         workspaceConnectionsAck =
             dirtyCanonicalWorkspaceConnections.map { connection ->
                 WorkspaceConnectionSyncVersion(connection.id, connection.version)
@@ -368,6 +396,9 @@ private fun buildSnapshotSelectionDelta(
         workspaceDirectionEntries = null,
         hierarchyPlacements = null,
         hierarchyPlacementGroupScopes = null,
+        groupScopeCoverage = null,
+        hierarchyPlacementLinkedAppearances = null,
+        bigPicturePresentation = null,
         workspaceConnections = null,
         workspaceBacklogEntries = null,
         workspaceProblems = null,
@@ -411,6 +442,8 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalHierarchyPlacements: List<HierarchyPlacementSnapshot> = emptyList(),
     explicitCanonicalHierarchyPlacementGroupScopes: List<HierarchyPlacementGroupScopeSnapshot> = emptyList(),
     explicitCanonicalHierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot> = emptyList(),
+    explicitBigPicturePresentation: BigPicturePresentationSnapshot = BigPicturePresentationSnapshot(),
+    explicitGroupScopeCoverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot = com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot(),
     explicitCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
     explicitCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     explicitCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
@@ -434,7 +467,37 @@ internal fun buildCanonicalSnapshotDelta(
     val includeCanonicalHierarchyBundle =
         explicitCanonicalHierarchyPlacements.isNotEmpty() ||
             explicitCanonicalHierarchyPlacementGroupScopes.isNotEmpty() ||
-            explicitCanonicalHierarchyPlacementLinkedAppearances.isNotEmpty()
+            explicitCanonicalHierarchyPlacementLinkedAppearances.isNotEmpty() ||
+            explicitBigPicturePresentation.hasChanges() || explicitGroupScopeCoverage.records.isNotEmpty()
+
+    if (explicitGroupScopeCoverage.records.isNotEmpty()) {
+        val fullCoverage = requireNotNull(fullSnapshot.groupScopeCoverage) {
+            "Dirty GroupScope coverage requires a full coverage snapshot."
+        }
+        require(fullCoverage.formatVersion == explicitGroupScopeCoverage.formatVersion)
+        val records = fullCoverage.records.associateBy { it.placementId }
+        require(explicitGroupScopeCoverage.records.all { dirty ->
+            records[dirty.placementId]?.copy(syncedAt = null) == dirty.copy(syncedAt = null)
+        }) { "GroupScope coverage changed during snapshot assembly." }
+    }
+
+    if (explicitBigPicturePresentation.hasChanges()) {
+        val fullPresentation = requireNotNull(fullSnapshot.bigPicturePresentation) {
+            "Dirty Big Picture requires a full presentation snapshot."
+        }
+        require(fullPresentation.formatVersion == explicitBigPicturePresentation.formatVersion) {
+            "Big Picture snapshot format mismatch."
+        }
+        val containers = fullPresentation.containers.associateBy { it.id }
+        val memberships = fullPresentation.memberships.associateBy { it.placementId }
+        require(explicitBigPicturePresentation.containers.all {
+            dirty -> containers[dirty.id]?.version == dirty.version
+        } && explicitBigPicturePresentation.memberships.all {
+            dirty -> memberships[dirty.placementId]?.version == dirty.version
+        }) {
+            "Big Picture changed during snapshot assembly."
+        }
+    }
     val includeCanonicalWorkspaceConnections = explicitCanonicalWorkspaceConnections.isNotEmpty()
     val includeCanonicalWorkspaceBacklog = explicitCanonicalWorkspaceBacklog.isNotEmpty()
     val includeCanonicalWorkspaceProblems = explicitCanonicalWorkspaceProblems.hasChanges()
@@ -807,11 +870,19 @@ internal fun buildCanonicalSnapshotDelta(
                 } else {
                     null
                 },
+            groupScopeCoverage = if (includeCanonicalHierarchyBundle) fullSnapshot.groupScopeCoverage else null,
             hierarchyPlacementLinkedAppearances =
                 if (includeCanonicalHierarchyBundle) {
                     requireNotNull(fullSnapshot.hierarchyPlacementLinkedAppearances) {
                         "Local full snapshot must expose hierarchyPlacementLinkedAppearances before building a hierarchy delta."
                     }
+                } else {
+                    null
+                },
+            // Dependency envelope: unchanged rows must not enter the ACK.
+            bigPicturePresentation =
+                if (includeCanonicalHierarchyBundle) {
+                    fullSnapshot.bigPicturePresentation
                 } else {
                     null
                 },
@@ -890,6 +961,9 @@ class SyncWifiService @Inject constructor(
                 fullBackupLocalDataSource.loadUnsyncedCanonicalHierarchyPlacementGroupScopes()
             val dirtyCanonicalHierarchyPlacementLinkedAppearances =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalHierarchyPlacementLinkedAppearances()
+            val dirtyBigPicturePresentation =
+                fullBackupLocalDataSource.loadUnsyncedBigPicturePresentation()
+            val dirtyCoverage = fullBackupLocalDataSource.loadUnsyncedGroupScopeCoverage()
             val dirtyCanonicalWorkspaceConnections =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceConnections()
             val dirtyCanonicalWorkspaceBacklog =
@@ -916,6 +990,8 @@ class SyncWifiService @Inject constructor(
                         dirtyCanonicalHierarchyPlacementGroupScopes,
                     dirtyCanonicalHierarchyPlacementLinkedAppearances =
                         dirtyCanonicalHierarchyPlacementLinkedAppearances,
+                    dirtyBigPicturePresentation = dirtyBigPicturePresentation,
+                    dirtyGroupScopeCoverage = dirtyCoverage,
                     dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                     dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                     dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -942,6 +1018,8 @@ class SyncWifiService @Inject constructor(
                             dirtyCanonicalHierarchyPlacementGroupScopes,
                         dirtyCanonicalHierarchyPlacementLinkedAppearances =
                             dirtyCanonicalHierarchyPlacementLinkedAppearances,
+                        dirtyBigPicturePresentation = dirtyBigPicturePresentation,
+                        dirtyGroupScopeCoverage = dirtyCoverage,
                         dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
                         dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                         dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
@@ -989,6 +1067,10 @@ class SyncWifiService @Inject constructor(
                     fullBackupLocalDataSource.markCanonicalHierarchyPlacementLinkedAppearancesSynced(
                         pushPlan.hierarchyPlacementLinkedAppearancesAck,
                     )
+                    fullBackupLocalDataSource.markBigPicturePresentationSynced(
+                        pushPlan.bigPicturePresentationAck,
+                    )
+                fullBackupLocalDataSource.markGroupScopeCoverageSynced(pushPlan.groupScopeCoverageAck)
                     fullBackupLocalDataSource.markCanonicalWorkspaceConnectionsSynced(
                         pushPlan.workspaceConnectionsAck,
                     )
@@ -1051,6 +1133,10 @@ class SyncWifiService @Inject constructor(
         val changedCanonicalHierarchyPlacementLinkedAppearances =
             fullBackupLocalDataSource
                 .loadCanonicalHierarchyPlacementLinkedAppearancesChangedSince(deltaSince)
+        val changedBigPicturePresentation =
+            fullBackupLocalDataSource.loadBigPicturePresentationChangedSince(deltaSince)
+        val changedGroupScopeCoverage =
+            fullBackupLocalDataSource.loadGroupScopeCoverageChangedSince(deltaSince)
         val changedCanonicalWorkspaceConnections =
             fullBackupLocalDataSource.loadCanonicalWorkspaceConnectionsChangedSince(deltaSince)
         val changedCanonicalWorkspaceBacklog =
@@ -1080,6 +1166,8 @@ class SyncWifiService @Inject constructor(
                     changedCanonicalHierarchyPlacementGroupScopes,
                 explicitCanonicalHierarchyPlacementLinkedAppearances =
                     changedCanonicalHierarchyPlacementLinkedAppearances,
+                explicitBigPicturePresentation = changedBigPicturePresentation,
+                explicitGroupScopeCoverage = changedGroupScopeCoverage,
                 explicitCanonicalWorkspaceConnections = changedCanonicalWorkspaceConnections,
                 explicitCanonicalWorkspaceBacklog = changedCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = changedCanonicalWorkspaceProblems,

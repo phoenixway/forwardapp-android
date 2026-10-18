@@ -283,6 +283,7 @@ class CanonicalV2HierarchySyntheticPresentationComposer {
     fun compose(
         hierarchy: CanonicalV2HierarchyProjection,
         scopes: List<CanonicalV2SyntheticScopeInput>,
+        unscopedPlacementIds: Set<PlacementId> = emptySet(),
     ): CanonicalV2HierarchyPresentationProjection {
         val byPlacementId = hierarchy.occurrences.associateBy { it.placementId }
         val childrenByParentId =
@@ -384,12 +385,14 @@ class CanonicalV2HierarchySyntheticPresentationComposer {
             }
         }
 
-        if (remainingSubjectRoots.isNotEmpty()) {
+        val uncoveredRoots = remainingSubjectRoots.filter { it.placementId !in unscopedPlacementIds }
+        if (uncoveredRoots.isNotEmpty()) {
             throw CanonicalV2HierarchySyntheticPresentationException(
                 "Persisted MANAGED_SUBJECT roots remain without synthetic scope: " +
-                    remainingSubjectRoots.joinToString { it.placementId.value },
+                    uncoveredRoots.joinToString { it.placementId.value },
             )
         }
+        remainingSubjectRoots.forEach { appendOccurrence(it, level = 0) }
 
         if (workspaceRoots.isNotEmpty()) {
             entries +=

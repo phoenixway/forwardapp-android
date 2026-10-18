@@ -21,6 +21,12 @@ If a hierarchy-related structure is unclassified, contradictory, or has
 multiple plausible owners, stop the architectural mutation and resolve its
 authority from current code plus canonical documentation first.
 
+<!-- MODEL_EFFORT_ADVISORY_BEGIN -->
+## Model and Reasoning-Effort Cost Advisory
+
+Before substantial tasks and major phase transitions, proactively advise the user when a less expensive model/reasoning setting is sufficient or when harder reasoning is needed. Optimize total cost of reliable completion, not tokens per attempt. Prefer downgrading for deterministic follow-up work and upgrading for unresolved architecture, complex migrations, or unexpected regressions. Report a meaningful switch **before** the next expensive phase; do not interrupt atomic operations or generate repetitive notices. Model and reasoning effort are separate choices. Never invent knowledge of the active model, effort, price or token usage, or claim to have changed settings. For webchat/Bridge/delegation use the single detailed contract in `docs/governance/WEBCHAT.md` under "Adaptive model and reasoning-effort advisor"; keep its routing precedence.
+<!-- MODEL_EFFORT_ADVISORY_END -->
+
 ## Build Ownership
 
 - Do not run full project builds unless explicitly requested by the user.

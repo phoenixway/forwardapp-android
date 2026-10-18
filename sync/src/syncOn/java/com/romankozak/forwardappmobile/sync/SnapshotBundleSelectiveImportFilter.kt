@@ -231,7 +231,9 @@ class SnapshotBundleSelectiveImportFilter {
             // only through the exact occurrence closure below.
             hierarchyPlacements = null,
             hierarchyPlacementGroupScopes = null,
+            groupScopeCoverage = null,
             hierarchyPlacementLinkedAppearances = null,
+            bigPicturePresentation = null,
         )
         val closed =
             filtered
@@ -244,10 +246,13 @@ class SnapshotBundleSelectiveImportFilter {
                     selectedContextIds = selection.selectedContextIds,
                 )
 
-        return closed.copy(
+        val presentationClosed =
+            closed.withCanonicalBigPictureSelectiveClosure(source)
+
+        return presentationClosed.copy(
             hierarchyFormatVersion =
                 source.hierarchyFormatVersion?.takeIf {
-                    closed.hasCompleteCanonicalHierarchyTransport()
+                    presentationClosed.hasCompleteCanonicalHierarchyTransport()
                 },
         )
     }

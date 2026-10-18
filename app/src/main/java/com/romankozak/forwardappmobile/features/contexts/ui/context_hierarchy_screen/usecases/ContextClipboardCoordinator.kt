@@ -486,8 +486,8 @@ class ContextClipboardCoordinator
                 return ContextClipboardResult("Контекст у буфері більше не існує")
             }
 
-            val occurrences =
-                contextIds.map { contextId ->
+            val occurrencesByContextId =
+                contextIds.associateWith { contextId ->
                     current.occurrences[contextId]
                         ?: return ContextClipboardResult(
                             "Неможливо перемістити: відсутня identity occurrence",
@@ -495,14 +495,9 @@ class ContextClipboardCoordinator
                 }
 
             withContext(ioDispatcher) {
-                occurrences.forEach { occurrence ->
-                    hierarchyOccurrenceCommandService.removeOccurrence(
-                        HierarchyOccurrenceCommand.RemoveOccurrence(
-                            placementId = occurrence.placementId,
-                        ),
-                    )
-                }
-                mainBeaconRepository.removeContextsFromAllBeacons(contextIds)
+                mainBeaconRepository.moveContextsToNoBeaconWithOccurrences(
+                    occurrencesByContextId,
+                )
             }
 
             clear()
@@ -536,15 +531,15 @@ class ContextClipboardCoordinator
                 }
 
             withContext(ioDispatcher) {
-                sourceOccurrences.forEach { source ->
-                    hierarchyOccurrenceCommandService.createAppearance(
+                hierarchyOccurrenceCommandService.createAppearances(
+                    sourceOccurrences.map { source ->
                         HierarchyOccurrenceCommand.CreateAppearance(
                             target = source.target,
                             parentPlacementId = destination.placementId,
                             placementKind = PlacementKind.LINK,
-                        ),
-                    )
-                }
+                        )
+                    },
+                )
             }
 
             return ContextClipboardResult(

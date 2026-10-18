@@ -31,12 +31,21 @@ interface HierarchyPlacementDao {
             la.updatedAt AS linkedAppearance_updatedAt,
             la.syncedAt AS linkedAppearance_syncedAt,
             la.isDeleted AS linkedAppearance_isDeleted,
-            la.version AS linkedAppearance_version
+            la.version AS linkedAppearance_version,
+            ga.placementId AS applicability_placementId,
+            ga.hierarchyId AS applicability_hierarchyId,
+            ga.mode AS applicability_mode,
+            ga.createdAt AS applicability_createdAt,
+            ga.updatedAt AS applicability_updatedAt,
+            ga.syncedAt AS applicability_syncedAt,
+            ga.version AS applicability_version
         FROM hierarchy_placements AS p
         LEFT JOIN hierarchy_placement_group_scopes AS gs
           ON gs.placementId = p.id
          AND gs.hierarchyId = p.hierarchyId
-         AND gs.isDeleted = 0
+        LEFT JOIN hierarchy_group_scope_applicability AS ga
+          ON ga.placementId = p.id
+         AND ga.hierarchyId = p.hierarchyId
         LEFT JOIN hierarchy_placement_linked_appearances AS la
           ON la.placementId = p.id
          AND la.hierarchyId = p.hierarchyId

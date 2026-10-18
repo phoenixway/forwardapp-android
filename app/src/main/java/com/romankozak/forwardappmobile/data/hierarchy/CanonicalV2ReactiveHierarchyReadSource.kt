@@ -23,6 +23,7 @@ private data class CanonicalV2ReactiveStructuralState(
     val placements: List<HierarchyPlacement>,
     val groupScopes: List<HierarchyPlacementGroupScopeEntity>,
     val presentationProvenance: CanonicalV2HierarchyPresentationProvenance,
+    val applicability: List<GroupScopeApplicabilityEntity>,
 )
 
 private data class CanonicalV2ReactiveOrientationState(
@@ -73,6 +74,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                             groupScopes =
                                 rows.mapNotNull { it.groupScope }
                                     .distinctBy { it.placementId },
+                            applicability = rows.mapNotNull { it.applicability },
                             presentationProvenance =
                                 CanonicalV2HierarchyPresentationProvenance(
                                     linkedAppearancePlacementIds =
@@ -132,6 +134,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                         legacyGroups = presentationState.groups,
                         presentationProvenance = structuralState.presentationProvenance,
                         hierarchyId = hierarchyId,
+                        applicability = structuralState.applicability,
                     )
                 }
             }

@@ -38,10 +38,13 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
 
     suspend fun mergeIncoming(
         incoming: List<HierarchyPlacementGroupScopeSnapshot>?,
+        coverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
+        incomingPlacementIds: Set<String>? = null,
     ) {
         if (incoming == null) return
 
         database.withTransaction {
+            if (coverage != null) GroupScopeCoverageStore(database).merge(coverage, incomingPlacementIds)
             require(
                 incoming.map { it.placementId }.toSet().size == incoming.size,
             ) {
@@ -56,6 +59,8 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             validateAgainstCurrentDatabase(
                 scopes = candidates,
                 requireComplete = true,
+                coverage = coverage,
+                placementIds = if (coverage != null) incomingPlacementIds else null,
             )
             val localByPlacementId =
                 dao.getAll().associateBy { it.placementId }
@@ -76,11 +81,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                         local == null -> candidate
                         candidate.version > local.version -> candidate
                         candidate.version < local.version -> null
-                        candidate.updatedAt > local.updatedAt -> candidate
-                        candidate.updatedAt < local.updatedAt -> null
                         candidate.sameTransportSemanticState(local) -> null
-                        candidate.differsOnlyByDeletionFrom(local) ->
-                            candidate.takeIf { it.isDeleted && !local.isDeleted }
                         else ->
                             throw HierarchyPlacementGroupScopeMergeConflictException(
                                 "Equal-freshness hierarchy Group-scope divergence for " +
@@ -97,6 +98,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             validateAgainstCurrentDatabase(
                 scopes = prospective.values,
                 requireComplete = true,
+                coverage = if (coverage != null) GroupScopeCoverageStore(database).snapshot() else null,
             )
 
             if (winners.isNotEmpty()) {
@@ -116,10 +118,12 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
     suspend fun mergeIncomingSelective(
         incoming: List<HierarchyPlacementGroupScopeSnapshot>?,
         incomingPlacementIds: Set<String>,
+        coverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
     ) {
         if (incoming == null) return
 
         database.withTransaction {
+            if (coverage != null) GroupScopeCoverageStore(database).merge(coverage, incomingPlacementIds)
             require(
                 incoming.map { it.placementId }.toSet().size == incoming.size,
             ) {
@@ -154,6 +158,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 mappings = orientationDao.getAllLegacyMappings(),
                 relations = orientationDao.getAllOrientationRelations(),
                 requireComplete = true,
+                coverage = coverage,
             )
 
             val localByPlacementId =
@@ -175,11 +180,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                         local == null -> candidate
                         candidate.version > local.version -> candidate
                         candidate.version < local.version -> null
-                        candidate.updatedAt > local.updatedAt -> candidate
-                        candidate.updatedAt < local.updatedAt -> null
                         candidate.sameTransportSemanticState(local) -> null
-                        candidate.differsOnlyByDeletionFrom(local) ->
-                            candidate.takeIf { it.isDeleted && !local.isDeleted }
                         else ->
                             throw HierarchyPlacementGroupScopeMergeConflictException(
                                 "Equal-freshness hierarchy Group-scope divergence for " +
@@ -196,6 +197,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             validateAgainstCurrentDatabase(
                 scopes = prospective.values,
                 requireComplete = true,
+                coverage = if (coverage != null) GroupScopeCoverageStore(database).snapshot() else null,
             )
 
             if (winners.isNotEmpty()) {
@@ -232,6 +234,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             mappings = bundle.legacySubjectMappings.orEmpty(),
             relations = bundle.orientationRelations.orEmpty(),
             requireComplete = requireComplete,
+            coverage = GroupScopeCoverageStore(database).decodeForRestore(bundle, placements, decoded),
         )
 
         return decoded
@@ -244,10 +247,18 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
     suspend fun restoreExactDecoded(
         scopes: List<HierarchyPlacementGroupScopeEntity>,
         requireComplete: Boolean,
-    ) {
+    ) = database.withTransaction {
+        val store = GroupScopeCoverageStore(database)
+        if (store.snapshot().records.isEmpty()) {
+            val o = database.orientationDao()
+            store.restoreExact(com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot(records =
+                classifyLegacyCoverage(database.hierarchyPlacementDao().getAll().map { it.toHierarchyPlacementStrict() }, scopes,
+                    o.getAllManagedSubjects(), o.getAllAspects(), o.getAllLegacyMappings())))
+        }
         validateAgainstCurrentDatabase(
             scopes = scopes,
             requireComplete = requireComplete,
+            coverage = store.snapshot(),
         )
         if (scopes.isNotEmpty()) {
             dao.upsertAll(scopes)
@@ -274,6 +285,8 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
     private suspend fun validateAgainstCurrentDatabase(
         scopes: Collection<HierarchyPlacementGroupScopeEntity>,
         requireComplete: Boolean,
+        coverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
+        placementIds: Set<String>? = null,
     ) {
         val orientationDao = database.orientationDao()
 
@@ -282,12 +295,13 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             placements =
                 database.hierarchyPlacementDao()
                     .getAll()
-                    .map { it.toHierarchyPlacementStrict() },
+                    .map { it.toHierarchyPlacementStrict() }.filter { placementIds == null || it.id.value in placementIds },
             subjects = orientationDao.getAllManagedSubjects(),
             orientations = orientationDao.getAllOrientations(),
             mappings = orientationDao.getAllLegacyMappings(),
             relations = orientationDao.getAllOrientationRelations(),
             requireComplete = requireComplete,
+            coverage = coverage,
         )
     }
 }

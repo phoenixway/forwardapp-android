@@ -99,7 +99,7 @@ private fun EntityLibraryReadyContent(
 ) {
     Column(modifier) {
         CanonicalEntityBrowserSearch(
-            searchText = state.searchText,
+            initialSearchText = state.searchText,
             onSearchChange = onSearchChange,
         )
         Row(

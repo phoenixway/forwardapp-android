@@ -31,6 +31,8 @@ data class CanonicalV2ProductionHierarchyRead(
     val presentation: CanonicalV2HierarchyPresentationProjection,
     val presentationProvenance: CanonicalV2HierarchyPresentationProvenance =
         CanonicalV2HierarchyPresentationProvenance(),
+    /** Native appearances are not historical CoreLevel Beacon appearances. */
+    val nativePlacementIds: Set<PlacementId> = emptySet(),
 ) {
     private val presentedOccurrences =
         presentation.entries
@@ -47,13 +49,12 @@ data class CanonicalV2ProductionHierarchyRead(
                     is CanonicalV2PresentedHierarchyEntry.SyntheticScope ->
                         activeScope = entry
 
-                    is CanonicalV2PresentedHierarchyEntry.Occurrence ->
-                        put(
-                            entry.placementId,
-                            requireNotNull(activeScope) {
-                                "V2 occurrence ${entry.placementId.value} is outside a synthetic scope"
-                            },
-                        )
+                    is CanonicalV2PresentedHierarchyEntry.Occurrence -> {
+                        // A level-zero occurrence starts an admitted unscoped branch.
+                        // Clear the preceding historical scope before its descendants.
+                        if (entry.level == 0) activeScope = null
+                        activeScope?.let { put(entry.placementId, it) }
+                    }
                 }
             }
         }
@@ -190,15 +191,10 @@ data class CanonicalV2ProductionHierarchyRead(
         val path = occurrencePath(placementId)
         if (path.isEmpty()) return emptyList()
 
-        val scope =
-            requireNotNull(
-                syntheticScopeByPlacementId[path.first().placementId],
-            ) {
-                "V2 occurrence ${path.first().placementId.value} has no synthetic scope"
-            }
+        val scope = syntheticScopeByPlacementId[path.first().placementId]
 
         return buildList {
-            add(
+            if (scope != null) add(
                 CanonicalV2Breadcrumb(
                     id = scope.id,
                     title = scope.title,
@@ -212,7 +208,7 @@ data class CanonicalV2ProductionHierarchyRead(
                     CanonicalV2Breadcrumb(
                         id = occurrence.id,
                         title = occurrence.title,
-                        level = index + 1,
+                        level = index + if (scope == null) 0 else 1,
                         target = occurrence.breadcrumbTarget,
                         placementId = occurrence.placementId,
                     ),

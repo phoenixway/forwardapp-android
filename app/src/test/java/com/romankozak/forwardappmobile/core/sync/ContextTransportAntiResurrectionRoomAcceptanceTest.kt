@@ -40,9 +40,13 @@ import com.romankozak.forwardappmobile.data.orientation.MainBeaconOrientationBri
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementGroupScopeMutationCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyTargetDeletedException
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyTargetMissingException
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureContainerSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureMembershipSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
@@ -1243,6 +1247,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                 orientationBridge = bridge,
                 hierarchyPlacementRepository = CanonicalHierarchyPlacementRepository(database),
                 groupScopeCoordinator = HierarchyPlacementGroupScopeMutationCoordinator(database),
+                h1StructuralMutationCoordinator = com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(database),
             )
 
             val group = MainBeaconGroup(id = "stale-group", title = "Group")
@@ -1352,6 +1357,7 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
                 orientationBridge = bridge,
                 hierarchyPlacementRepository = CanonicalHierarchyPlacementRepository(database),
                 groupScopeCoordinator = HierarchyPlacementGroupScopeMutationCoordinator(database),
+                h1StructuralMutationCoordinator = com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(database),
             )
 
             val group = MainBeaconGroup(id = "stale-retired-group", title = "Retired Group")
@@ -1729,6 +1735,378 @@ class ContextTransportAntiResurrectionRoomAcceptanceTest {
             destination.close()
         }
     }
+
+
+    // R2F.2A: exercise the actual production Merge adapter, not repository.merge alone.
+
+    @Test
+    fun `R2F2A merge accepts newer presentation and clears receiver ACK`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-merge-owner")
+            val placement = CanonicalHierarchyPlacementRepository(database)
+                .createPrimaryAppearance(
+                    target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, owner.id),
+                    now = 7L,
+                )
+            val presentation = BigPicturePresentationRepository(database)
+            val section = presentation.create("Original", now = 10L)
+            presentation.assign(placement.value, section, now = 11L)
+            val local = presentation.snapshot()
+
+            val incoming = BigPicturePresentationSnapshot(
+                containers = listOf(
+                    local.containers.single().copy(
+                        title = "Remote newer title",
+                        updatedAt = 40L,
+                        syncedAt = 35L,
+                        version = 2L,
+                    ),
+                ),
+                memberships = listOf(
+                    local.memberships.single().copy(
+                        updatedAt = 41L,
+                        syncedAt = 36L,
+                        version = 2L,
+                    ),
+                ),
+            )
+
+            merge(database).applySnapshotBundle(r2f2aBundle(owner, incoming))
+
+            val actual = presentation.snapshot()
+            assertEquals(
+                incoming.containers.single().copy(syncedAt = null),
+                actual.containers.single(),
+            )
+            assertEquals(
+                incoming.memberships.single().copy(syncedAt = null),
+                actual.memberships.single(),
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `R2F2A merge cannot resurrect presentation tombstones`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-tombstone-owner")
+            val placement = CanonicalHierarchyPlacementRepository(database)
+                .createPrimaryAppearance(
+                    target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, owner.id),
+                    now = 7L,
+                )
+            val presentation = BigPicturePresentationRepository(database)
+            val section = presentation.create("Deleted later", now = 10L)
+            presentation.assign(placement.value, section, now = 11L)
+
+            val staleRemote = presentation.snapshot()
+
+            presentation.unassign(placement.value, expectedVersion = 1L, now = 20L)
+            presentation.tombstone(section, expectedVersion = 1L, now = 21L)
+            val deleted = presentation.snapshot()
+
+            merge(database).applySnapshotBundle(r2f2aBundle(owner, staleRemote))
+
+            assertEquals(deleted, presentation.snapshot())
+            assertTrue(presentation.snapshot().containers.single().isDeleted)
+            assertTrue(presentation.snapshot().memberships.single().isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `R2F2A invalid presentation rolls back incoming H1`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-rollback-owner")
+            val hierarchy = CanonicalHierarchyPlacementRepository(database)
+            val presentation = BigPicturePresentationRepository(database)
+
+            val beforeHierarchy = database.hierarchyPlacementDao().getAll()
+            val beforePresentation = presentation.snapshot()
+            val beforeOwner = database.workspaceDao().getById(owner.id)
+
+            val newPlacementId = "r2f-rollback-new-placement"
+            val incomingH1 = HierarchyPlacementSnapshot(
+                id = newPlacementId,
+                hierarchyId = "GENERAL",
+                targetType = "WORKSPACE",
+                targetId = owner.id,
+                parentPlacementId = null,
+                placementKind = "PRIMARY",
+                siblingOrder = 0L,
+                createdAt = 30L,
+                updatedAt = 30L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val invalidPresentation = BigPicturePresentationSnapshot(
+                memberships = listOf(
+                    BigPictureMembershipSnapshot(
+                        placementId = newPlacementId,
+                        hierarchyId = "GENERAL",
+                        containerId = "r2f-nonexistent-section",
+                        createdAt = 31L,
+                        updatedAt = 31L,
+                        syncedAt = null,
+                        isDeleted = false,
+                        version = 1L,
+                    ),
+                ),
+            )
+
+            val incoming = r2f2aBundle(owner, invalidPresentation).copy(
+                hierarchyPlacements = listOf(incomingH1),
+            )
+
+            val failure = runCatching {
+                merge(database).applySnapshotBundle(incoming)
+            }.exceptionOrNull()
+
+            assertTrue(
+                "Expected presentation validation after H1 ingress; got $failure",
+                failure?.message?.contains("Missing membership container") == true,
+            )
+            assertEquals(beforeHierarchy, database.hierarchyPlacementDao().getAll())
+            assertEquals(beforePresentation, presentation.snapshot())
+            assertEquals(beforeOwner, database.workspaceDao().getById(owner.id))
+            assertNull(database.hierarchyPlacementDao().getById(newPlacementId))
+            assertTrue(hierarchy.getLiveHierarchy().none { it.id.value == newPlacementId })
+        } finally {
+            database.close()
+        }
+    }
+
+
+    @Test
+    fun `R2F2A selective presentation accepts exact nested dependency closure`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-selective-valid-owner")
+            val placementId = "r2f-selective-valid-placement"
+
+            val h1 = HierarchyPlacementSnapshot(
+                id = placementId,
+                hierarchyId = "GENERAL",
+                targetType = "WORKSPACE",
+                targetId = owner.id,
+                parentPlacementId = null,
+                placementKind = "PRIMARY",
+                siblingOrder = 0L,
+                createdAt = 30L,
+                updatedAt = 30L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val root = BigPictureContainerSnapshot(
+                id = "r2f-selective-root",
+                hierarchyId = "GENERAL",
+                title = "Root section",
+                anchorPlacementId = null,
+                parentContainerId = null,
+                siblingOrder = 0L,
+                createdAt = 31L,
+                updatedAt = 31L,
+                syncedAt = 29L,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val nested = root.copy(
+                id = "r2f-selective-nested",
+                title = "Nested section",
+                parentContainerId = root.id,
+            )
+
+            val membership = BigPictureMembershipSnapshot(
+                placementId = placementId,
+                hierarchyId = "GENERAL",
+                containerId = nested.id,
+                createdAt = 32L,
+                updatedAt = 32L,
+                syncedAt = 30L,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            merge(database).applySelectiveSnapshotBundle(
+                r2f2aBundle(
+                    owner,
+                    BigPicturePresentationSnapshot(
+                        containers = listOf(root, nested),
+                        memberships = listOf(membership),
+                    ),
+                ).copy(hierarchyPlacements = listOf(h1)),
+            )
+
+            assertNotNull(database.hierarchyPlacementDao().getById(placementId))
+            val actual = BigPicturePresentationRepository(database).snapshot()
+            assertEquals(setOf(root.id, nested.id), actual.containers.map { it.id }.toSet())
+            assertEquals(listOf(placementId), actual.memberships.map { it.placementId })
+            assertTrue(actual.containers.all { it.syncedAt == null })
+            assertNull(actual.memberships.single().syncedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `R2F2A selective presentation rejects surplus and missing dependencies before mutation`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-selective-reject-owner")
+            val placementId = "r2f-selective-reject-placement"
+
+            val h1 = HierarchyPlacementSnapshot(
+                id = placementId,
+                hierarchyId = "GENERAL",
+                targetType = "WORKSPACE",
+                targetId = owner.id,
+                parentPlacementId = null,
+                placementKind = "PRIMARY",
+                siblingOrder = 0L,
+                createdAt = 30L,
+                updatedAt = 30L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val section = BigPictureContainerSnapshot(
+                id = "r2f-selective-section",
+                hierarchyId = "GENERAL",
+                title = "Section",
+                anchorPlacementId = null,
+                parentContainerId = null,
+                siblingOrder = 0L,
+                createdAt = 31L,
+                updatedAt = 31L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val membership = BigPictureMembershipSnapshot(
+                placementId = placementId,
+                hierarchyId = "GENERAL",
+                containerId = section.id,
+                createdAt = 32L,
+                updatedAt = 32L,
+                syncedAt = null,
+                isDeleted = false,
+                version = 1L,
+            )
+
+            val malformed = listOf(
+                BigPicturePresentationSnapshot(
+                    containers = listOf(section, section.copy(id = "unselected-section")),
+                    memberships = listOf(membership),
+                ),
+                BigPicturePresentationSnapshot(
+                    containers = listOf(section),
+                    memberships = listOf(
+                        membership.copy(placementId = "unselected-placement"),
+                    ),
+                ),
+                BigPicturePresentationSnapshot(
+                    containers = listOf(section.copy(parentContainerId = "missing-parent")),
+                    memberships = listOf(membership),
+                ),
+                BigPicturePresentationSnapshot(
+                    containers = listOf(section.copy(anchorPlacementId = "unselected-anchor")),
+                    memberships = listOf(membership),
+                ),
+            )
+
+            val beforeHierarchy = database.hierarchyPlacementDao().getAll()
+            val beforePresentation = BigPicturePresentationRepository(database).snapshot()
+            val beforeOwner = database.workspaceDao().getById(owner.id)
+
+            malformed.forEachIndexed { index, presentation ->
+                val failure = runCatching {
+                    merge(database).applySelectiveSnapshotBundle(
+                        r2f2aBundle(owner, presentation)
+                            .copy(hierarchyPlacements = listOf(h1)),
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(
+                    "case $index must reject incomplete selective presentation: $failure",
+                    failure is IllegalArgumentException,
+                )
+                assertEquals(beforeHierarchy, database.hierarchyPlacementDao().getAll())
+                assertEquals(
+                    beforePresentation,
+                    BigPicturePresentationRepository(database).snapshot(),
+                )
+                assertEquals(beforeOwner, database.workspaceDao().getById(owner.id))
+                assertNull(database.hierarchyPlacementDao().getById(placementId))
+            }
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `R2F2A selective empty presentation and historical absence are admitted`() = runBlocking {
+        val database = database()
+        try {
+            val owner = r2f2aSeedWorkspace(database, "r2f-selective-empty-owner")
+            val beforePresentation = BigPicturePresentationRepository(database).snapshot()
+
+            merge(database).applySelectiveSnapshotBundle(
+                r2f2aBundle(owner, BigPicturePresentationSnapshot()),
+            )
+
+            merge(database).applySelectiveSnapshotBundle(
+                r2f2aBundle(owner, BigPicturePresentationSnapshot())
+                    .copy(bigPicturePresentation = null),
+            )
+
+            assertEquals(
+                beforePresentation,
+                BigPicturePresentationRepository(database).snapshot(),
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    private suspend fun r2f2aSeedWorkspace(
+        database: AppDatabase,
+        id: String,
+    ): WorkspaceEntity {
+        SystemWorkspaceMaterializer(
+            database = database,
+            contextDao = database.contextDao(),
+            workspaceDao = database.workspaceDao(),
+        ).materializeAll(
+            now = 5L,
+            seedMissingFactoryCapabilities = false,
+        )
+        val owner = canonicalOnlyWorkspace(id)
+        database.workspaceDao().upsert(listOf(owner))
+        return owner
+    }
+
+    private fun r2f2aBundle(
+        owner: WorkspaceEntity,
+        presentation: BigPicturePresentationSnapshot,
+    ): SnapshotBundle = canonicalBundle(
+        context = ordinaryContext(owner.id).copy(isDeleted = true),
+        workspace = owner,
+    ).copy(
+        contexts = emptyList(),
+        bigPicturePresentation = presentation,
+    )
 
     private fun canonicalBundle(
         context: ContextEntity,

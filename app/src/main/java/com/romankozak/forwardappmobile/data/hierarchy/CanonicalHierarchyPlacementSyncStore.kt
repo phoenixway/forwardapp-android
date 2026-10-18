@@ -76,14 +76,10 @@ class CanonicalHierarchyPlacementSyncStore(
                         local == null -> candidate
                         candidate.version > local.version -> candidate
                         candidate.version < local.version -> null
-                        candidate.updatedAt > local.updatedAt -> candidate
-                        candidate.updatedAt < local.updatedAt -> null
                         candidate.sameTransportSemanticState(local) -> null
-                        candidate.differsOnlyByDeletionFrom(local) ->
-                            candidate.takeIf { it.isDeleted && !local.isDeleted }
                         else ->
                             throw HierarchyPlacementMergeConflictException(
-                                "Equal-freshness hierarchy placement divergence for ${candidate.id.value}",
+                                "Equal-version hierarchy placement divergence for ${candidate.id.value}",
                             )
                     }
 

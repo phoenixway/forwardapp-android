@@ -342,21 +342,8 @@ private fun NavGraphBuilder.mainGraph(
                     defaultValue = null
                 },
             ),
-    ) { backStackEntry ->
-        val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
-        val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
-
-        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
-
-        ProjectHierarchyScreen(
-            navController = navController,
-            syncDataViewModel = syncDataViewModel,
-            viewModel = viewModel,
-            navigationManager = appNavigationViewModel.navigationManager,
-            projectIdToReveal = backStackEntry.arguments?.getString(NavigationRoutes.ARG_PROJECT_ID_TO_REVEAL),
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = this,
-        )
+    ) {
+        ProjectHierarchyScreen(navController = navController)
     }
 
     composable(

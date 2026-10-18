@@ -18,6 +18,42 @@ class CanonicalV2HierarchyScopePlannerTest {
     private val planner = CanonicalV2HierarchyScopePlanner()
 
     @Test
+    fun `native root stays unscoped while unknown roots still require historical provenance`() {
+        val hierarchy = project(placement("native", subjectTarget("subject")))
+        val native = GroupScopeApplicabilityEntity("native", "GENERAL", "NATIVE", 1, 1, null, 1)
+        assertTrue(planner.plan(hierarchy, emptyList(), emptyList(), emptyList(),
+            applicability = listOf(native)).isEmpty())
+        assertTrue(runCatching {
+            planner.plan(hierarchy, emptyList(), emptyList(), emptyList(),
+                applicability = listOf(native.copy(mode = "LEGACY_UNKNOWN")))
+        }.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(runCatching {
+            planner.plan(hierarchy, emptyList(), emptyList(), listOf(scope("native", null)),
+                applicability = listOf(native))
+        }.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    @Test
+    fun `retired historical group provenance preserves target membership without requiring native appearances to join it`() {
+        val target = subjectTarget("shared")
+        val hierarchy = project(
+            placement("active", target), placement("retired", target, kind = PlacementKind.LINK),
+            placement("native", target, kind = PlacementKind.LINK),
+        )
+        val scopes = planner.plan(hierarchy,
+            listOf(group("a", "ga", "A", 0), group("b", "gb", "B", 1)),
+            listOf(partOf("pa", "shared", "ga"), partOf("pb", "shared", "gb")),
+            listOf(scope("active", "ga"), scope("retired", "gb").copy(isDeleted = true)),
+            applicability = listOf(
+                GroupScopeApplicabilityEntity("active", "GENERAL", "HISTORICAL", 1, 1, null, 1),
+                GroupScopeApplicabilityEntity("retired", "GENERAL", "HISTORICAL", 1, 1, null, 1),
+                GroupScopeApplicabilityEntity("native", "GENERAL", "NATIVE", 1, 1, null, 1),
+            ))
+        assertEquals(listOf(PlacementId("active")), scopes.single { it.id == "a" }.rootPlacementIds)
+        assertTrue(scopes.single { it.id == "b" }.rootPlacementIds.orEmpty().isEmpty())
+    }
+
+    @Test
     fun `persisted Group scope selects exact root while H1 keeps structural parent`() {
         val parent = subjectTarget("parent")
         val child = subjectTarget("child")

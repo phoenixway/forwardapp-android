@@ -10,9 +10,13 @@ import com.romankozak.forwardappmobile.core.data.models.sync.toWorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.withoutEmbeddedWorkspaceTopology
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureContainerSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureMembershipSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import io.mockk.mockk
@@ -29,6 +33,39 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class HierarchyPlacementRestoreRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `schema 200 production exact Restore installs native coverage without historical scope`() = runBlocking {
+        val source = database()
+        val target = database()
+        try {
+            val dao = source.orientationDao()
+            val subject = com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository(source, dao)
+                .createOrientation(com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.INTENT, "Native", now = 1)
+            com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(source).addAppearance(
+                com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef(
+                    com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType.MANAGED_SUBJECT, subject),
+                com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent.Root, now = 2)
+            val coverage = com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(source).snapshot()
+            val bundle = canonicalBundle(emptyList(),
+                com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore(source).loadAll(), emptyList())
+                .copy(managedSubjects = dao.getAllManagedSubjects(), orientations = dao.getAllOrientations(),
+                    orientationAssessments = dao.getAllAssessments(),
+                    orientationAssessmentRevisions = dao.getAllAssessmentRevisions(),
+                    hierarchyPlacementGroupScopes = emptyList(), groupScopeCoverage = coverage,
+                    bigPicturePresentation = BigPicturePresentationSnapshot())
+            restoreDataSource(target) { payload ->
+                installTargets(target, payload)
+                target.orientationDao().upsertManagedSubjects(payload.managedSubjects.orEmpty())
+                target.orientationDao().upsertOrientations(payload.orientations.orEmpty())
+                target.orientationDao().upsertAssessments(payload.orientationAssessments.orEmpty())
+                target.orientationDao().upsertAssessmentRevisions(payload.orientationAssessmentRevisions.orEmpty())
+            }.replaceWith(bundle)
+            assertEquals(coverage, com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(target).snapshot())
+            assertTrue(target.hierarchyPlacementGroupScopeDao().getAll().isEmpty())
+            assertEquals(subject, target.hierarchyPlacementDao().getAll().single().targetId)
+        } finally { source.close(); target.close() }
+    }
 
     @Test
     fun `E valid full restore preserves graph ids tombstones and syncedAt and U FK check is clean`() =
@@ -612,6 +649,117 @@ class HierarchyPlacementRestoreRoomTest {
             } finally {
                 db.close()
             }
+        }
+    }
+
+
+    @Test
+    fun `R2F full restore preserves presentation membership versions and syncedAt`() = runBlocking {
+        val db = database()
+        try {
+            val target = workspace("presentation-workspace")
+            val placement = snapshot(
+                id = "presentation-placement",
+                targetId = target.id,
+            )
+            val expected = BigPicturePresentationSnapshot(
+                containers = listOf(
+                    BigPictureContainerSnapshot(
+                        id = "presentation-section",
+                        hierarchyId = "GENERAL",
+                        title = "Independent section",
+                        anchorPlacementId = null,
+                        parentContainerId = null,
+                        siblingOrder = 7L,
+                        createdAt = 10L,
+                        updatedAt = 20L,
+                        syncedAt = 18L,
+                        isDeleted = false,
+                        version = 3L,
+                    ),
+                ),
+                memberships = listOf(
+                    BigPictureMembershipSnapshot(
+                        placementId = placement.id,
+                        hierarchyId = "GENERAL",
+                        containerId = "presentation-section",
+                        createdAt = 11L,
+                        updatedAt = 21L,
+                        syncedAt = 19L,
+                        isDeleted = false,
+                        version = 4L,
+                    ),
+                ),
+            )
+
+            restoreDataSource(db).replaceWith(
+                canonicalBundle(
+                    workspaces = listOf(target),
+                    hierarchyPlacements = listOf(placement),
+                ).copy(bigPicturePresentation = expected),
+            )
+
+            assertEquals(
+                expected,
+                BigPicturePresentationRepository(db).snapshot(),
+            )
+            assertEquals(
+                0,
+                db.openHelper.writableDatabase
+                    .query("PRAGMA foreign_key_check")
+                    .use { it.count },
+            )
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `R2F historical restore preserves compatible local presentation`() = runBlocking {
+        val db = database()
+        try {
+            val presentation = BigPicturePresentationRepository(db)
+            presentation.create("Locally retained", now = 10L)
+            val before = presentation.snapshot()
+
+            restoreDataSource(db).replaceWith(
+                canonicalBundle(
+                    workspaces = emptyList(),
+                    hierarchyPlacements = emptyList(),
+                ),
+            )
+
+            assertEquals(before, presentation.snapshot())
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `R2F unsupported presentation fails before destructive restore`() = runBlocking {
+        val db = database()
+        try {
+            seedSentinel(db)
+            var writerRan = false
+            val invalid = canonicalBundle(
+                workspaces = emptyList(),
+                hierarchyPlacements = emptyList(),
+            ).copy(
+                bigPicturePresentation = BigPicturePresentationSnapshot(formatVersion = 99),
+            )
+
+            val failure = runCatching {
+                restoreDataSource(db) {
+                    writerRan = true
+                    installTargets(db, it)
+                }.replaceWith(invalid)
+            }.exceptionOrNull()
+
+            assertNotNull(failure)
+            assertFalse(writerRan)
+            assertNotNull(db.workspaceDao().getById(SENTINEL_ID))
+        } finally {
+            db.close()
         }
     }
 

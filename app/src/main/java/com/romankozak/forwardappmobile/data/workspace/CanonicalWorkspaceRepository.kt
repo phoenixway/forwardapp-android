@@ -9,10 +9,14 @@ import kotlinx.coroutines.flow.map
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementMove
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
@@ -59,6 +63,7 @@ class CanonicalWorkspaceRepository
         private val backlogRepository: CanonicalBacklogRepository,
         private val hierarchyPlacementLifecycleCoordinator: HierarchyPlacementLifecycleCoordinator,
         private val hierarchyPlacementRepository: CanonicalHierarchyPlacementRepository,
+        private val h1StructuralMutationCoordinator: H1StructuralMutationCoordinator,
     ) {
         internal suspend fun getCanonicalPresentation(id: String): CanonicalWorkspacePresentation? =
             workspaceDao.getById(id)?.toCanonicalPresentationOrNull()
@@ -250,13 +255,16 @@ class CanonicalWorkspaceRepository
                     now = now,
                 )
 
-                hierarchyPlacementRepository.createPrimaryAppearanceInCurrentTransaction(
+                h1StructuralMutationCoordinator.createOccurrence(
                     target =
                         HierarchyTargetRef(
                             type = HierarchyTargetType.WORKSPACE,
                             id = id,
                         ),
-                    parentPlacementId = parentPlacementId,
+                    placementKind = PlacementKind.PRIMARY,
+                    destination = parentPlacementId?.let {
+                        H1StructuralParent.Node(H1TypedNode.Occurrence(it.value))
+                    } ?: H1StructuralParent.Root,
                     now = now,
                 )
                 id
@@ -389,7 +397,7 @@ class CanonicalWorkspaceRepository
                 )
             }
 
-            hierarchyPlacementRepository.movePlacementsInCurrentTransaction(moves, now)
+            h1StructuralMutationCoordinator.moveOccurrences(moves, now)
             sourcePlacementsByWorkspaceId.keys.toList()
         }
 
@@ -437,9 +445,12 @@ class CanonicalWorkspaceRepository
                     roleCode = source.roleCode,
                     now = now,
                 )
-                hierarchyPlacementRepository.createPrimaryAppearanceInCurrentTransaction(
+                h1StructuralMutationCoordinator.createOccurrence(
                     target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, id),
-                    parentPlacementId = targetPlacementId,
+                    placementKind = PlacementKind.PRIMARY,
+                    destination = H1StructuralParent.Node(
+                        H1TypedNode.Occurrence(targetPlacementId.value),
+                    ),
                     now = now,
                 )
                 id

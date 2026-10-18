@@ -2,6 +2,456 @@
 
 Status: CANONICAL
 
+## 2026-10-18 - Add-root/startup GroupScope runtime crash repair
+
+Physical EXP logs confirmed `IllegalArgumentException` in
+`CanonicalV2HierarchyScopePlanner.plan` after native Add → Root and again
+on restart. The placement persisted correctly; the still-subscribed production
+reader and synthetic composer retained pre-coverage complete-root assumptions.
+The runtime read now joins applicability and historical scope tombstones in
+one SQLite frame, preserves conservative legacy admission, and renders
+admitted native/retired historical roots without inventing GroupScope.
+The read wrapper supports unscoped breadcrumbs, resets historical scope at
+level-zero branches, and identifies native appearances so background legacy
+CoreLevel/screen adapters do not require Beacon-only metadata for them.
+HOST acceptance: 58/58 tests in 13 JUnit XML classes, zero failures/errors/skips;
+production and unit-test Kotlin compilation PASS in the focused test graph.
+Room stays 200; no phone data was modified. Physical re-test of the repaired
+APK is pending. R2F.2C remains deferred; Backlog #2 Priority: UNSET.
+
+## 2026-10-18 - R2F.2B canonical Big Picture mutation UX activated
+
+R2F_2B_ACTIVATION_20261018
+
+**ACTIVATED / HOST VERIFIED / PHYSICAL EXP ACCEPTANCE PENDING.** The existing
+focus-mode Big Picture surface now exposes canonical-picker Add Entity,
+generic Group/Section creation, typed Root/Occurrence/Container destinations,
+exact-occurrence Cut/Paste, occurrence-only Remove, generic container
+promotion, and complete mixed-sibling reorder. All product writes remain
+delegated to `H1StructuralMutationCoordinator`; presentation nesting creates
+no semantic relation.
+
+The schema-200 GroupScope applicability repair is the completed transport
+prerequisite. Focused app (246/246) and sync (41/41) regressions are green;
+the separate production and unit-test Kotlin compile gates were subsequently
+confirmed green on HOST. The runtime flag is true. Physical EXP acceptance is
+still required; R2F.2C remains deferred; Backlog #2 remains Priority: UNSET.
+
+## 2026-10-18 - GroupScope applicability coverage implemented; final compile gates pending
+
+GROUPSCOPE_APPLICABILITY_COVERAGE_V1_20261018
+
+**IMPLEMENTED / HOST TEST-VERIFIED / FINAL COMPILE GATES PENDING.** Schema
+200 adds the exact-placement `hierarchy_group_scope_applicability` sidecar,
+which distinguishes native H1 occurrences from historical GroupScope lineage
+without changing semantic or generic structural authority. Native canonical
+roots now carry NATIVE coverage and round-trip without fabricated GroupScope.
+Historical lineage remains explicit; a generic Move that makes active scope
+inapplicable retires that scope atomically, while a generic return to root
+does not resurrect it.
+
+Migration 199→200 classifies only authoritative evidence as HISTORICAL or
+NATIVE and retains ambiguity as LEGACY_UNKNOWN. Restore, Merge, selective
+import, delta and exact-version ACK transport coverage; equal-version
+divergence fails closed. The former R2F.2B rejection characterizations are
+positive Restore/Merge acceptance. Focused app regression is 246/246 and
+focused sync transport regression 41/41, both green. The later activation
+checkpoint confirms the separate Kotlin compile gates green.
+
+This removed the transport blocker. The later activation checkpoint enables
+the UI; physical UX acceptance remains separate. R2F.2C remains unstarted;
+Backlog #2 remains Priority: UNSET.
+
+## 2026-10-18 - R2F.2B UX prepared; GroupScope ingress blocks activation
+
+R2F_2B_20261018_TRANSPORT_ACTIVATION_BLOCKED
+
+**PARTIAL / HOST-VERIFIED CODE / PRODUCT ACTIVATION BLOCKED.**
+The existing focus-mode Big Picture shell now has prepared canonical-picker
+Add Entity, Group/Section creation, Root/Occurrence/Container destination
+selection, exact typed clipboard Cut/Paste, occurrence-only Remove, container
+promotion and complete mixed sibling reorder. All writes delegate to H1;
+`addAppearance` selects PRIMARY/LINK atomically inside its transaction.
+The planner was mechanically extracted from the oversized coordinator.
+
+Do NOT enable `BIG_PICTURE_MUTATION_UX_ENABLED` yet. Two Room characterization
+tests prove a pre-existing activation contradiction: complete GroupScope
+Restore/Merge demands provenance for every root ManagedSubject, while native
+H1 Add correctly creates none; moving a scoped root below an occurrence keeps
+a live sidecar which the same ingress rejects as non-root. Full backup exports
+the present GroupScope stream, so this is not merely an optional old caller.
+No ingress validation was weakened and no synthetic provenance/PART_OF added.
+
+Focused HOST regression: 107/107 tests across 21 classes PASS, including
+17 new tests. Two of those characterize the blocker, not successful transport
+acceptance. Both explicit Kotlin gates (`compileProdDebugKotlin` and
+`compileProdDebugUnitTestKotlin`) PASS. Production remains read-only behind
+the safety gate. Schema 199
+unchanged; no protected-device operation or physical UX acceptance. Direction
+semantic-companion persistence gap remains unchanged. R2F.2C not started;
+Backlog #2 retains Priority: UNSET. Earlier completed H1 checkpoints below
+remain valid evidence for their stated command-layer scope.
+
+## 2026-10-17 - H1 A+ consumer convergence HOST VERIFIED
+
+H1_A_PLUS_CC_20261017_CONSUMER_CONVERGENCE
+
+**COMPLETE / HOST VERIFIED for the bounded schema-199 production
+structural consumer cutover. This is not R2F.2B or R2F.2C activation.**
+
+H1StructuralMutationCoordinator now owns the existing product
+occurrence create/link, atomic Move/MoveMany, reorder, remove,
+subtree retirement and exact historical restore commands.
+Mixed typed sibling sets reject occurrence-only reorder. Restore
+preserves occurrence identity, checks the unified prospective and
+persisted graph, and restores linked provenance only when correlated
+with the occurrence retirement event.
+
+ContextActionsUseCase and ContextClipboardCoordinator route through
+occurrence commands or fused V2 parent/Beacon plans. Workspace
+create/move/shallow-copy and MainBeacon create/retirement use the
+typed H1 coordinator while their semantic Workspace, GroupScope,
+Direction and Beacon companion responsibilities retain enclosing
+Room transaction boundaries.
+
+BigPicturePresentationRepository exposes read, snapshot, transport,
+exact Restore/Merge, ACK and graph-validation operations. Its five
+historical structural mutators are internal compatibility/test API,
+with no production callers found in the bounded authority census.
+BigPictureHierarchyLifecycleCoordinator reconciles legacy occurrence
+mutations only, not typed coordinator commands.
+
+HOST evidence: twelve focused regression suites, 88/88 tests PASS,
+zero failures/errors/skips, including seven new coordinator Restore
+Room tests. Separate :app:compileProdDebugKotlin and
+:app:compileProdDebugUnitTestKotlin gates PASS. Final production
+method-reference and bounded DAO-write census found no remaining
+alternative product structural writer. git diff --check PASS.
+
+Schema 199 unchanged. No schema 200, R2F.2B mutation UI,
+R2F.2C Library Add or protected EXP-device deployment occurred.
+Prior Context parent-plan Room proof mocked the actual Direction
+semantic companion; real Direction persistence and any additional
+SyncOn/SyncOff/device activation checks are not claimed by this
+checkpoint. Prior milestones below remain historical evidence.
+
+## 2026-10-17 - H1 A+ typed structural writer and bounded compatibility HOST VERIFIED
+
+H1_A_PLUS_20261017_TYPED_WRITER_COMPATIBILITY
+
+**COMPLETE / HOST VERIFIED for this bounded implementation slice.
+NOT a full production single-writer consumer cutover.**
+
+Schema-199 `H1StructuralMutationCoordinator` is implemented with
+typed Occurrence/Container identities and Root/Node destinations.
+Its transactional command surface supports `moveNode`,
+`reorderChildren`, `createContainer`, and `deleteContainer`.
+Mixed sibling order, nearest-occurrence ancestry, container anchors,
+memberships, version/dirty metadata, prospective graph validation
+and persisted graph validation are coordinated within one Room
+transaction. Container deletion tombstones the container and
+promotes all direct live mixed children without deleting semantic
+targets. Historical Policy B state remains compatible.
+
+Legacy `CanonicalHierarchyPlacementRepository` mutation paths remain
+active for existing UI and compound semantic transactions. Compatibility
+guards reject incomplete mixed typed sibling reorders and unsafe
+occurrence-only move/create destinations. A complete uniform
+container-owned source sibling set remains eligible for legacy move
+through lifecycle cleanup. `BigPictureHierarchyLifecycleCoordinator`
+is explicitly scoped to `reconcileLegacyOccurrenceMutation`, not
+the typed coordinator's independent structural policy.
+
+HOST consolidated nine-suite JUnit acceptance: 59/59 PASS, zero
+failures/errors/skips. Coverage includes typed moves, ordering,
+promotion, rollback, legacy reorder/move/create boundaries, lifecycle,
+V2 fused Group writer, Workspace repository, both clipboard suites,
+and Context parent-plan transaction rollback. The Context parent-plan
+Room acceptance uses real structural persistence with a mocked
+ContextRepository semantic companion; it does NOT prove actual
+Direction companion database writes.
+
+**Still open:** full consumer/writer convergence, removal of remaining
+distributed structural policy, complete typed-intent activation gates,
+and broader SyncOn/SyncOff/device acceptance where required. The
+coordinator is production-capable but existing product mutations
+are NOT all routed through it. R2F.2B and R2F.2C remain BLOCKED.
+No schema 200, semantic-authority rewrite or protected EXP-device
+deployment was performed.
+
+The preceding CA milestone remains valid historical evidence of
+Policy B projection and strict transport conflict admission.
+
+## 2026-10-17 - H1 A+ compatibility and conflict admission HOST VERIFIED
+
+H1_CA_20261017_COMPAT_CONFLICT_ADMISSION
+
+**Result: COMPLETE / HOST VERIFIED for the bounded compatibility
+and conflict-admission slice. This is NOT production A+ cutover.**
+
+Stage A: schema-199 typed projector now supports historical Policy B.
+Retained live memberships into tombstoned containers and memberships
+of retired occurrences remain in persisted snapshots and transport,
+but do not form active typed edges. References remain strictly checked.
+Active ancestry, anchor and composite-cycle violations fail closed.
+
+Stage B.1: H1 placement and Big Picture container/membership peer Merge
+now reject divergent equal-version payloads independently of updatedAt.
+This includes title/metadata, parent, order and deletion changes.
+Identical replay ignores receiver-local syncedAt; higher-version records
+are admitted subject to validation; stale lower versions are ignored.
+Legitimate local semantic changes must increment record version.
+Existing id+version ACK therefore cannot clear a newer local version.
+Exact Restore retains separate replacement semantics.
+
+Stage B.2: final typed-graph validation runs after both H1 and
+presentation peer Merge inside the existing Workspace bootstrapper
+Room transaction. Restore validates decoded prospective H1 plus
+presentation before destructive clear, and validates persisted state
+again inside the Restore transaction. Room proofs exercise a rejected
+invalid live anchor with atomic rollback and a coherent mixed
+H1/membership Move.
+
+HOST JUnit XML audit: 57/57 PASS, failures=0, errors=0, skipped=0
+across six classes: H1UnifiedStructuralRoomProofTest (6),
+H1UnifiedStructuralGraphTest (10),
+H1UnifiedStructuralConflictCharacterizationRoomTest (3),
+CanonicalHierarchyPlacementSyncStoreRoomTest (15),
+BigPicturePresentationRepositoryRoomTest (7), and
+HierarchyPlacementRestoreRoomTest (16). git diff --check clean
+at CA.10 audit. No physical EXP deployment or broad SyncOn/SyncOff
+regression is claimed. Full MergeLocalDataSourceImpl adversarial
+end-to-end ingress remains additional useful verification.
+
+Still blocked: unified production structural writer/coordinator
+cutover; occurrence-only consumers, mixed-order normalization,
+atomic promotion commands, selective dependency acceptance beyond
+the focused proof, R2F.2B mutation UX and R2F.2C Library Add.
+No Room schema change, semantic-authority rewrite or device-data
+mutation was authorized or performed by this slice.
+
+Earlier spike checkpoints below describe the PRE-CA state.
+Their historical descriptions of unsafe current Merge and
+Policy B projector incompatibility are superseded by this entry.
+
+## 2026-10-17 - H1 unified structural spike: A+ SAFE feasibility [HISTORICAL PRE-CA CHECKPOINT]
+
+H1_SPIKE_20261017_A_PLUS_VERDICT
+
+**A+ SAFE is the schema-199 encoding feasibility verdict, NOT a
+production cutover or a claim that current Merge/ACK is safe.**
+No unavoidable typed-persistence blocker was established. The existing
+hierarchy_placements, big_picture_containers, and big_picture_memberships
+can represent one typed immediate-parent graph under a single coordinator.
+
+HOST-reported focused evidence: H1.6 pure projection 6 GREEN;
+H1.7 mixed ordering/atomic Room writes 4 GREEN; H1.8D conflict
+characterization 2 GREEN; H1.9 container promotion/rollback 3 GREEN.
+Total 15 focused tests GREEN by HOST reports, without a new cumulative
+JUnit XML audit. The two conflict-characterization tests reproduce an
+unsafe CURRENT behavior; they are not safety acceptance tests.
+
+Graph: Occurrence(PlacementId) and Container(ContainerId) have distinct
+typed identities. Effective occurrence parent is a live membership's
+container, otherwise its H1 parentPlacementId/root. Container parent is
+parentContainerId, otherwise anchorPlacementId/root. H1 parentPlacementId
+and container anchor retain nearest-occurrence ancestry. Composite
+cycle/anchor/parent validation is required. Mixed siblings use the
+existing siblingOrder fields, typed deterministic tie-breaking, and
+coordinator-owned normalization on writes.
+
+Room proof demonstrates coordinated Move, combined mixed ordering,
+promotion of ALL direct live occurrence/container children with stable
+relative order, tombstones, and transaction rollback. These remain
+test-only proof operations, not production command implementations.
+
+CONFLICT BLOCKER FOR CUTOVER: existing H1 and presentation merge can
+accept divergent equal-version structural rows using updatedAt.
+Version-only ACK may then mark an untransmitted alternative structural
+state as synced. This was reproduced for membership and container parent.
+The next implementation must enforce strict semantic-version admission,
+monotonic versions for every structural change, and safe exact ACK;
+never silently choose divergent equal-version structural state by time.
+
+Transport: existing Wi-Fi delta includes the full H1/GroupScope/linked
+and presentation dependency envelope for canonical changes; dirty-only
+ACK excludes unchanged dependencies. Restore/Merge use transaction
+boundaries, but future mixed graph admission must be atomic and strict,
+including missing/stale dependencies and noncommuting remote changes.
+Selective presentation currently closes selected memberships to container
+ancestors; empty independently selected containers are not transported
+by that membership-driven selection. This needs an explicit selection
+policy, not a schema migration.
+
+Compatibility: historical policy-B can retain a LIVE membership whose
+container is tombstoned, with inert presentation effect. The current
+strict proof projector rejects this legal historical shape, so its
+production-compatible admission must explicitly distinguish inert
+history from active parent edges without deleting transport history.
+GroupScope remains historical H1 provenance/presentation, not another
+generic structural parent authority.
+
+Production readers/writers, clipboard Move and reorder, ancestry UI,
+lifecycle reconciliation, Sync/Restore/Merge and selective import still
+need coordinated cutover or compatibility adapters. Existing semantic
+relations, canonical entity identity, and Library are unaffected.
+
+R2F.2B mutation UX and R2F.2C Library Add remain DEFERRED. No new
+Room schema, migration, production authority activation, Sync rewrite,
+protected EXP data change, or physical-device acceptance is claimed.
+The pre-spike baseline below remains historical evidence.
+
+## 2026-10-17 - R2F.2A schema-199 accepted integration baseline [PRE-SPIKE CHECKPOINT]
+
+**R2F.2A INTEGRATION BASELINE COMPLETE / HOST VERIFIED.**
+Room schema 199 is the current source baseline. The additive 198->199
+migration preserves existing H1 and GroupScope records. Generic
+containers and exact-placement memberships persist independently.
+
+Production SnapshotBundle backup/Restore/Merge, selective dependency
+closure, Wi-Fi delta/ACK, H1 lifecycle reconciliation, generic plus
+historical Big Picture read/navigation and SyncOff compilation have
+passed their relevant integration gates. R8A.3 now reads H1, including
+GroupScope, and generic presentation in one Room transaction.
+
+Final APP / SyncOn / SyncOff HOST gates: GREEN. Focused R8A.3 JUnit
+XML: atomic read 2/2, free composition 1/1, ViewModel 6/6,
+generic navigation 2/2; total 11/11, no failures/errors/skips.
+R8A.3 HOST task was UP-TO-DATE with successful cached acceptance.
+Physical EXP UX smoke is not claimed.
+
+**Current implementation versus accepted target:** schema 199 still
+physically separates occurrence ancestry from generic presentation
+containment. H1 as sole mixed structural authority is the accepted
+architectural target, not an already completed production cutover.
+
+Next: bounded H1 Unified Structural Contract Spike. It must prove
+whether schema 199 can encode one safe typed mixed graph under a
+single H1 coordinator (Option A+), or establish a concrete blocker.
+Neither A+ SAFE nor A+ BLOCKED is established. No schema vNext
+is approved. R2F.2B mutation UX and R2F.2C Library Add remain deferred.
+No user-data migration or physical phone operation was performed.
+
+Older R2F.2A sections below preserve their historical checkpoint
+evidence and do not override this current status.
+
+## 2026-10-16 - R2F.2A generic presentation persistence foundation [HISTORICAL CHECKPOINT]
+
+**IN PROGRESS / PARTIAL. Do not start R2F.2B or R2F.2C.** Source schema advances
+198 -> 199 through additive MIGRATION_198_199; no historical H1/GroupScope or
+semantic rows are rewritten. Dedicated big_picture_containers and
+big_picture_memberships own presentation-only identity and exact occurrence
+membership. No product UI calls the new repository.
+Epoch: this is an additive CANONICAL_V2_TARGET foundation, not an activated
+runtime cutover. Existing H1 structural authority and specialized GroupScope
+compatibility remain unchanged.
+
+Containers may nest within one H1 sibling level, anchored by an optional
+anchorPlacementId. Membership accepts any target class at that same parent
+location, not merely roots. Crossing H1 levels requires a separate explicit
+H1 move, not a second implicit parent system. One occurrence has at most one
+membership. Ordering is one explicit mixed sequence: container.siblingOrder
+or occurrence H1 siblingOrder, then container-before-occurrence tie, then ID.
+No redundant member order is stored.
+
+Repository foundation provides version-guarded update/tombstone, assignment,
+unassignment, observation, exact local snapshot replacement, merge, dirty/since
+selection and exact-version ACK. Container deletion policy B retains inert
+membership history; live nested containers reject parent deletion. Target
+identities and H1 placements are never deleted by container commands.
+
+NOT COMPLETE: SnapshotBundle/full-backup, production Restore/merge, Wi-Fi/delta
+dependency closure/ACK, selective import, generic+historical Big Picture screen
+projection and H1-move membership lifecycle coordination are not wired yet.
+Repository DTO roundtrip/merge is not evidence of end-to-end transport.
+Do not expose these write APIs in UI or treat this candidate as feature-ready
+until the remaining R2F.2A integration and regression gates pass.
+Backlog #2 remains Priority UNSET. No phone operation was performed.
+HOST foundation/regression bundle: 65/65 PASS, zero failures/errors/skips.
+This includes 6 repository Room tests, 3 ordering tests, exported-198 -> Room-199
+migration acceptance and 55 existing R2F/H1/GroupScope regressions. The migration
+validates the complete new Room schema, preserves H1/GroupScope records, starts
+new tables empty and passes FK/integrity checks. Full production transport and
+screen integration acceptance remain outstanding despite these green tests.
+
+## 2026-10-16 - R2F.1 Existing Hierarchy -> Canonical Big Picture
+
+**COMPLETE / HOST VERIFIED.** The existing ProjectHierarchyScreen and its
+goal_lists_screen destination now present Big Picture. No second screen/route
+was added. The existing top bar and extracted hierarchy header-card component
+retain visual treatment and child counts. The accepted UI is focus-mode:
+initially roots only; then the active unit above its direct children, with
+the existing breadcrumb navigation above. No expanded/indented tree is rendered.
+
+The route uses BigPictureViewModel with a coherent GENERAL placement/GroupScope
+read frame, lightweight group display-order metadata, and the canonical catalog,
+projected on the Default dispatcher. GroupScope restores the existing authored
+group presentation; canonical Group titles and preserved display order label
+the synthetic root containers. Workspace roots appear in virtual NoBeacon;
+explicitly ungrouped semantic roots appear in NoGroup. These containers are
+navigation presentation, never fabricated placements or semantic ownership.
+Contract-conformance correction under the existing 2026-10-15 decision:
+historical Group/MainBeacon organization is one valid authored layout, not
+mandatory grammar. All nine Orientation/Aspect/Workspace parent-child class
+combinations are admitted by H1. Unassigned roots are directly visible; the
+read surface no longer requires historical GroupScope on every subject root.
+It never infers missing provenance as NoGroup or semantic membership.
+
+Outcome B: GroupScope is canonical historical presentation provenance coupled
+to semantic MAIN_BEACON_GROUP identity, CUT_OVER mapping and PART_OF validation;
+it is not a generic presentation-only container. BigPictureContainer is a
+generic read DTO with explicit origin. Production supplies historical adapters
+only. R2F.2 needs a bounded generic-container persistence/transport prerequisite;
+no migration or mutation is introduced here. Existing GroupScope ingress rules
+remain unchanged. The exact evidence and prerequisite are recorded in the
+existing ENTITY-LIBRARY-BIG-PICTURE-UX contract, not a new architecture decision.
+Placement id keys occurrence rows, parents, order, focus and breadcrumb paths.
+Multiple PRIMARY/LINK appearances of one canonical entity remain separate.
+Row tap focuses an occurrence. The active header or separate open icon opens
+its canonical semantic editor/Workspace destination. Back within focus goes to
+the parent; breadcrumb root returns to the root list. Workspace reveal focuses
+the matching occurrence without changing hierarchy persistence.
+
+H1 is the already-activated Canonical V2 structural authority. The former
+mixed hierarchy UI composition is TRANSITIONAL_PROJECTION, Context topology
+is LEGACY, and bindings/semantic relations remain SEMANTIC_NOT_HIERARCHY.
+OrientationHierarchyBuilder was already retired from production in H5.
+The initial R2F.1 simplification incorrectly omitted the existing GroupScope
+presentation and exposed grouped root occurrences at top level. That was a
+read/render regression, not deletion of the user's stored hierarchy.
+Big Picture does not consume Context topology, ProductRead, Planning or per-row
+target queries. Group compatibility rows supply display order only; exact root
+assignment comes from canonical occurrence-scoped provenance. Other Main/Core consumers of
+the older shared hierarchy ViewModel are outside this bounded route adaptation.
+
+Missing or ambiguous catalog targets retain a disabled occurrence placeholder.
+The existing canonical validator rejects duplicate ids, cycles, orphans and
+multiple PRIMARY authority into a controlled Error state. Empty GENERAL shows
+an empty placement map, independently of existing Library inventory.
+
+R2F.1 is read-only: no creation, clipboard, drag/drop, removal, reorder or
+relation/Planning actions are exposed. Focus uses SavedStateHandle only.
+R2F.2 owns deliberate canonical occurrence mutation and remains NOT STARTED.
+
+Initial H1/navigation regression bundle: 57/57 PASS. Focus-mode correction:
+15/15 focused projection/ViewModel tests PASS, including roots-only visibility,
+direct children, occurrence-specific breadcrumbs, restored focus and parent/root
+navigation. Group/NoBeacon restoration: 20/20 focused tests PASS
+(projection 11, scopes 4, ViewModel 5), including group order, empty groups,
+NoGroup/NoBeacon assignment, unchanged occurrence membership, typed opening
+and Back from Beacon to its group. Production/test Kotlin compilation PASS as dependencies of the
+focused task. Room 198 -> 198. Physical/visual acceptance was not performed.
+Backlog addition #2 remains independent with Priority UNSET.
+Contract-conformance focused HOST: 27/27 PASS (projection 11, scopes 6,
+containers 3, ViewModel 6, free-composition Room 1). The Room acceptance proves
+mixed placement create/read/move/reorder/remove leaves canonical identities,
+Orientation relations, Aspect refs, WorkspaceBinding, Planning and Context
+unchanged. Physical acceptance remains separate and unperformed.
+Regression HOST: 37/37 PASS across H1 repository/lifecycle/presence,
+GroupScope validation/coordinator/sync and typed Library/editor navigation.
+Final explicit compileProdDebugKotlin + compileProdDebugUnitTestKotlin PASS.
+Total conformance verification: 64/64 tests, zero failures/errors/skips.
+
 ## 2026-10-16 - R2E.3 Library Product Polish
 
 **COMPLETE / HOST VERIFIED.** Product menu and screen now say Library.
@@ -21,6 +471,15 @@ per-row reads. Room remains 198.
 HOST: 31/31 focused tests PASS across seven classes; production and unit-test
 Kotlin compilation PASS. Physical/visual smoke was not performed for R2E.3.
 Backlog addition #1 is COMPLETE. Addition #2 remains independent, Priority UNSET.
+
+Search-input follow-up: the user reported typing lag and cursor rollback.
+The shared browser field now owns immediate TextFieldValue state (including
+selection/composition), independently of delayed result emissions. Library and
+picker query computation use an injected Default dispatcher; Library performs
+one final sort instead of three sorts per query. Physical verification of this
+input repair remains pending. HOST: 20/20 focused Library/picker tests PASS,
+including deferred-computation/rapid-query regression; production and unit-test
+Kotlin compilation PASS as dependencies of the focused test task.
 
 <!-- R2D3_LINKED_SEMANTICS_STARTUP_S4_2026_10_16 -->
 ## 2026-10-16 - R2D.3 Linked Semantic Navigation and Startup S4

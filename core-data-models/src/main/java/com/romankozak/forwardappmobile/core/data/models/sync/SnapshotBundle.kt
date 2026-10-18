@@ -36,6 +36,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.G
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.SystemAppSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementLinkedAppearanceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
@@ -96,6 +97,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace
  * It aggregates all feature-specific snapshots into one bundle.
  */
 data class SnapshotBundle(
+    @SerializedName("groupScopeCoverage") val groupScopeCoverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
     @SerializedName(value = "snapshotVersion", alternate = ["version"])
     val version: Int = 1,
 
@@ -193,6 +195,11 @@ data class SnapshotBundle(
     // null = unsupported/absent; [] = authoritative present-and-empty.
     @SerializedName("hierarchyPlacementLinkedAppearances")
     val hierarchyPlacementLinkedAppearances: List<HierarchyPlacementLinkedAppearanceSnapshot>? = null,
+    // Room 199 presentation-only persistence.
+    // null = historical/unsupported; present empty snapshot = authoritative empty.
+    // Absence must not implicitly clear existing presentation data.
+    @SerializedName("bigPicturePresentation")
+    val bigPicturePresentation: BigPicturePresentationSnapshot? = null,
     @SerializedName("systemApps") val systemApps: List<SystemAppSnapshot> = emptyList(),
     @SerializedName("activityRecords") val activityRecords: List<ActivityRecordSnapshot> = emptyList(),
     @SerializedName("recentProjectEntries") val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),

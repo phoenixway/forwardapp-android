@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
@@ -78,6 +79,7 @@ class WorkspaceClipboardV2EventRoomIntegrationTest {
             backlogRepository = mockk<CanonicalBacklogRepository>(relaxed = true),
             hierarchyPlacementLifecycleCoordinator = HierarchyPlacementLifecycleCoordinator(db),
             hierarchyPlacementRepository = placements,
+            h1StructuralMutationCoordinator = H1StructuralMutationCoordinator(db),
         )
         val clipboard = WorkspaceClipboardCoordinator(
             canonicalWorkspaceRepository = workspaces,

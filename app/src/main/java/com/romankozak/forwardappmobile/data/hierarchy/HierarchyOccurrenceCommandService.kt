@@ -1,21 +1,24 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1LegacyOccurrenceCreation
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
-import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Dormant H4.0a mutation seam over canonical V2 placement primitives.
+ * Legacy occurrence-only compatibility command seam.
  *
- * CURRENT production structural writers do not call this service. P2 must be
- * an explicit later authority transfer.
+ * Existing UI use-cases still invoke this service; it is not canonical
+ * mixed H1 structural authority. R2F.2B typed UX remains deferred.
  */
 @Singleton
 class HierarchyOccurrenceCommandService
     @Inject
     constructor(
         private val repository: CanonicalHierarchyPlacementRepository,
+        private val coordinator: H1StructuralMutationCoordinator,
     ) {
         suspend fun occurrence(placementId: PlacementId): HierarchyOccurrenceRef? =
             repository.getPlacement(placementId)?.toHierarchyOccurrenceRef()
@@ -24,10 +27,14 @@ class HierarchyOccurrenceCommandService
             command: HierarchyOccurrenceCommand.Move,
             now: Long = System.currentTimeMillis(),
         ) {
-            repository.movePlacement(
-                placementId = command.placementId,
-                newParentPlacementId = command.newParentPlacementId,
-                position = command.position,
+            coordinator.moveOccurrences(
+                moves = listOf(
+                    HierarchyPlacementMove(
+                        placementId = command.placementId,
+                        newParentPlacementId = command.newParentPlacementId,
+                        position = command.position,
+                    ),
+                ),
                 now = now,
             )
         }
@@ -36,8 +43,35 @@ class HierarchyOccurrenceCommandService
             command: HierarchyOccurrenceCommand.MoveMany,
             now: Long = System.currentTimeMillis(),
         ) {
-            repository.movePlacements(
+            coordinator.moveOccurrences(
                 moves = command.moves,
+                now = now,
+            )
+        }
+
+        /**
+         * Atomic occurrence-only creation batch for Clipboard consumers.
+         * The coordinator is the sole structural writer.
+         */
+        suspend fun createAppearances(
+            commands: List<HierarchyOccurrenceCommand.CreateAppearance>,
+            now: Long = System.currentTimeMillis(),
+        ): List<PlacementId> {
+            commands.forEach { command ->
+                if (command.hierarchyId != HierarchyId.GENERAL) {
+                    throw UnsupportedHierarchyException(command.hierarchyId)
+                }
+            }
+
+            return coordinator.createLegacyOccurrences(
+                creations = commands.map { command ->
+                    H1LegacyOccurrenceCreation(
+                        target = command.target,
+                        placementKind = command.placementKind,
+                        parentPlacementId = command.parentPlacementId,
+                        position = command.position,
+                    )
+                },
                 now = now,
             )
         }
@@ -45,26 +79,19 @@ class HierarchyOccurrenceCommandService
         suspend fun createAppearance(
             command: HierarchyOccurrenceCommand.CreateAppearance,
             now: Long = System.currentTimeMillis(),
-        ): PlacementId =
-            when (command.placementKind) {
-                PlacementKind.PRIMARY ->
-                    repository.createPrimaryAppearance(
-                        target = command.target,
-                        parentPlacementId = command.parentPlacementId,
-                        position = command.position,
-                        hierarchyId = command.hierarchyId,
-                        now = now,
-                    )
-
-                PlacementKind.LINK ->
-                    repository.createLinkAppearance(
-                        target = command.target,
-                        parentPlacementId = command.parentPlacementId,
-                        position = command.position,
-                        hierarchyId = command.hierarchyId,
-                        now = now,
-                    )
+        ): PlacementId {
+            if (command.hierarchyId != HierarchyId.GENERAL) {
+                throw UnsupportedHierarchyException(command.hierarchyId)
             }
+
+            return coordinator.createLegacyOccurrence(
+                target = command.target,
+                placementKind = command.placementKind,
+                parentPlacementId = command.parentPlacementId,
+                position = command.position,
+                now = now,
+            )
+        }
 
         /**
          * Reorder requires the complete concrete sibling occurrence set.
@@ -74,19 +101,27 @@ class HierarchyOccurrenceCommandService
             command: HierarchyOccurrenceCommand.ReorderSiblings,
             now: Long = System.currentTimeMillis(),
         ) {
-            repository.reorderSiblings(
-                parentPlacementId = command.parentPlacementId,
-                orderedPlacementIds = command.orderedPlacementIds,
-                hierarchyId = command.hierarchyId,
-                now = now,
-            )
+            require(command.hierarchyId == HierarchyId.GENERAL) {
+                "Unified H1 reorder supports GENERAL hierarchy only"
+            }
+            try {
+                coordinator.reorderOccurrenceSiblings(
+                    parentPlacementId = command.parentPlacementId?.value,
+                    orderedPlacementIds = command.orderedPlacementIds.map { it.value },
+                    now = now,
+                )
+            } catch (error: IllegalArgumentException) {
+                throw HierarchySiblingSetMismatchException(
+                    error.message ?: "Incomplete or mixed H1 sibling set",
+                )
+            }
         }
 
         suspend fun removeOccurrence(
             command: HierarchyOccurrenceCommand.RemoveOccurrence,
             now: Long = System.currentTimeMillis(),
         ) {
-            repository.removePlacement(
+            coordinator.removeOccurrence(
                 placementId = command.placementId,
                 now = now,
             )
@@ -96,8 +131,8 @@ class HierarchyOccurrenceCommandService
             command: HierarchyOccurrenceCommand.RemoveOccurrenceSubtree,
             now: Long = System.currentTimeMillis(),
         ): List<PlacementId> =
-            repository.removeOccurrenceSubtree(
-                rootPlacementId = command.rootPlacementId,
+            coordinator.removeOccurrenceSubtree(
+                placementId = command.rootPlacementId,
                 now = now,
             )
 
@@ -105,7 +140,7 @@ class HierarchyOccurrenceCommandService
             command: HierarchyOccurrenceCommand.RestoreOccurrence,
             now: Long = System.currentTimeMillis(),
         ) {
-            repository.restorePlacement(
+            coordinator.restoreOccurrence(
                 placementId = command.placementId,
                 now = now,
             )

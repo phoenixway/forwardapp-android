@@ -18,4 +18,6 @@ data class CanonicalV2HierarchyStructuralReadRow(
     val groupScope: HierarchyPlacementGroupScopeEntity?,
     @Embedded(prefix = "linkedAppearance_")
     val linkedAppearance: HierarchyPlacementLinkedAppearanceEntity?,
+    @Embedded(prefix = "applicability_")
+    val applicability: GroupScopeApplicabilityEntity? = null,
 )

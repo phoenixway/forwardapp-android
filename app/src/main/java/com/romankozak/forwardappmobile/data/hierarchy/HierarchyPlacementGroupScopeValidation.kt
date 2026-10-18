@@ -21,7 +21,11 @@ internal fun validateHierarchyPlacementGroupScopes(
     mappings: Collection<LegacySubjectMappingEntity>,
     relations: Collection<OrientationRelationEntity>,
     requireComplete: Boolean,
+    coverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
+    containerMembers: Set<String> = emptySet(),
 ) {
+    coverage?.let { validateCoverageRecords(it, placements) }
+    val modes = coverage?.records?.associate { it.placementId to it.mode }.orEmpty()
     val placementById = placements.associateBy { it.id.value }
     val liveGroupSubjectIds =
         canonicalLiveGroupSubjectIds(
@@ -43,6 +47,11 @@ internal fun validateHierarchyPlacementGroupScopes(
             }
 
     val liveScopes = scopes.filterNot { it.isDeleted }
+    val scopeIds = scopes.mapTo(hashSetOf()) { it.placementId }
+    val retiredGroupsByTarget = scopes.asSequence()
+        .filter { it.isDeleted && modes[it.placementId] == "HISTORICAL" && it.groupSubjectId != null }
+        .groupBy { placementById[it.placementId]?.target?.id }
+        .mapValues { (_, rows) -> rows.mapNotNullTo(hashSetOf()) { it.groupSubjectId } }
     val liveScopeByPlacementId = liveScopes.associateBy { it.placementId }
     require(liveScopeByPlacementId.size == liveScopes.size) {
         "Hierarchy Group-scope state contains duplicate live placementIds"
@@ -61,10 +70,12 @@ internal fun validateHierarchyPlacementGroupScopes(
         }
         require(
             placement.parentPlacementId == null &&
-                placement.target.type == HierarchyTargetType.MANAGED_SUBJECT,
+                placement.target.type == HierarchyTargetType.MANAGED_SUBJECT &&
+                placement.id.value !in containerMembers,
         ) {
             "Live Group scope ${scope.placementId} must reference a root MANAGED_SUBJECT placement"
         }
+        require(modes[scope.placementId] != "NATIVE") { "NATIVE occurrence cannot have active historical GroupScope" }
 
         scope.groupSubjectId?.let { groupSubjectId ->
             require(groupSubjectId in liveGroupSubjectIds) {
@@ -99,7 +110,8 @@ internal fun validateHierarchyPlacementGroupScopes(
                     "NoGroup root provenance for $targetId conflicts with live PART_OF membership"
                 }
             } else {
-                require(groupedIds == semanticMemberships) {
+                val retiredGroups = retiredGroupsByTarget[targetId].orEmpty()
+                require(groupedIds.all { it in semanticMemberships } && semanticMemberships.all { it in groupedIds || it in retiredGroups }) {
                     "Grouped root provenance for $targetId does not match target-wide PART_OF membership"
                 }
             }
@@ -111,11 +123,15 @@ internal fun validateHierarchyPlacementGroupScopes(
                 .filter {
                     !it.isDeleted &&
                         it.parentPlacementId == null &&
-                        it.target.type == HierarchyTargetType.MANAGED_SUBJECT
+                        it.target.type == HierarchyTargetType.MANAGED_SUBJECT &&
+                        (coverage == null || modes[it.id.value] == "LEGACY_UNKNOWN")
                 }
                 .mapTo(linkedSetOf()) { it.id.value }
 
-        require(liveScopeByPlacementId.keys == liveRootSubjectPlacementIds) {
+        val legacyScopeIds = liveScopeByPlacementId.keys.filterTo(hashSetOf()) {
+            coverage == null || modes[it] == "LEGACY_UNKNOWN"
+        }
+        require(legacyScopeIds == liveRootSubjectPlacementIds) {
             val missing =
                 (liveRootSubjectPlacementIds - liveScopeByPlacementId.keys).take(5)
             val extra =
@@ -123,6 +139,9 @@ internal fun validateHierarchyPlacementGroupScopes(
             "Authoritative Group-scope stream must cover every live root MANAGED_SUBJECT; " +
                 "missing=$missing extra=$extra"
         }
+    }
+    coverage?.records?.filter { it.mode == "HISTORICAL" }?.forEach { record ->
+        require(record.placementId in scopeIds) { "HISTORICAL occurrence lost GroupScope history" }
     }
 }
 

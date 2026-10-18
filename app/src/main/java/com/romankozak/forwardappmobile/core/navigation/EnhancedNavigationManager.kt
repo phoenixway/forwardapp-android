@@ -231,7 +231,7 @@ class EnhancedNavigationManager(
                 NavigationEntry(
                     type = NavigationType.PROJECT_HIERARCHY_SCREEN,
                     id = target.projectIdToReveal ?: "main",
-                    title = titleOverride ?: "Orientations",
+                    title = titleOverride ?: "Big Picture",
                     route = route,
                 )
 

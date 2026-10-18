@@ -43,7 +43,11 @@ class CanonicalV2HierarchyScreenPresentationAdapter
         read: CanonicalV2ProductionHierarchyRead,
         metadata: CanonicalV2HierarchyScreenMetadata,
     ): List<OrientationHierarchyItem> =
-        read.presentation.entries.map { entry ->
+        read.presentation.entries.filterNot { entry ->
+            // This adapter serves the historical Beacon/Workspace UI. Native
+            // semantic occurrences render through the canonical Big Picture UI.
+            entry is CanonicalV2PresentedHierarchyEntry.Occurrence && entry.placementId in read.nativePlacementIds
+        }.map { entry ->
             when (entry) {
                 is CanonicalV2PresentedHierarchyEntry.SyntheticScope ->
                     OrientationHierarchyItem(

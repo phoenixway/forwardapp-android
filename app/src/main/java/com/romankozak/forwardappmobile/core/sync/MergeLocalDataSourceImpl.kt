@@ -52,6 +52,9 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrie
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.requireSelectiveBigPictureDependencyClosure
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
@@ -151,6 +154,8 @@ class MergeLocalDataSourceImpl
             CanonicalHierarchyPlacementSyncStore(db)
         private val canonicalHierarchyPlacementGroupScopeSyncStore =
             CanonicalHierarchyPlacementGroupScopeSyncStore(db)
+        private val bigPicturePresentationRepository =
+            BigPicturePresentationRepository(db)
         private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
             CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
 
@@ -224,6 +229,11 @@ class MergeLocalDataSourceImpl
             requireValidCanonicalDayThemePayload(bundle)
             requireValidCanonicalOrientationPayload(bundle)
             requireValidCanonicalPlanningPayload(bundle)
+            // Selective payloads must be closed over the exact transported H1
+            // occurrences before entering the mutation boundary.
+            if (selectiveHierarchyDelta) {
+                requireSelectiveBigPictureDependencyClosure(bundle)
+            }
 
             val contextIngress = partitionSystemContextSnapshotIngress(bundle.contexts)
             val contextSnapshotsForPersistence =
@@ -736,6 +746,10 @@ class MergeLocalDataSourceImpl
                 canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
                 canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
                 requireCanonicalNotePlacementClosure(db)
+                require(bundle.groupScopeCoverage == null ||
+                    (bundle.hierarchyPlacements != null && bundle.hierarchyPlacementGroupScopes != null)) {
+                    "GroupScope coverage requires the canonical H1 and GroupScope streams"
+                }
                 canonicalHierarchyPlacementSyncStore.mergeIncoming(bundle.hierarchyPlacements)
                 val incomingHierarchyPlacementIds =
                     bundle.hierarchyPlacements
@@ -745,6 +759,7 @@ class MergeLocalDataSourceImpl
                     canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncomingSelective(
                         incoming = bundle.hierarchyPlacementGroupScopes,
                         incomingPlacementIds = incomingHierarchyPlacementIds,
+                        coverage = bundle.groupScopeCoverage,
                     )
                     canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncomingSelective(
                         incoming = bundle.hierarchyPlacementLinkedAppearances,
@@ -753,12 +768,24 @@ class MergeLocalDataSourceImpl
                 } else {
                     canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncoming(
                         bundle.hierarchyPlacementGroupScopes,
+                        coverage = bundle.groupScopeCoverage,
+                        incomingPlacementIds = incomingHierarchyPlacementIds,
                     )
                     canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncoming(
                         bundle.hierarchyPlacementLinkedAppearances,
                     )
                 }
+                // Validate against the final merged H1, including when the sender
+                // predates generic presentation persistence. An empty incoming
+                // stream validates local state without deleting it.
+                bigPicturePresentationRepository.merge(
+                    bundle.bigPicturePresentation ?: BigPicturePresentationSnapshot()
+                )
                 canonicalHierarchyPlacementSyncStore.requireCurrentHierarchyValid()
+                // Both structural streams have now been admitted. Validate
+                // their combined typed graph in the SAME outer transaction.
+                bigPicturePresentationRepository.requireCurrentUnifiedStructuralGraphValid()
+                com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).validateCurrent()
                 },
                 afterRefresh = {
                     // Exact reserved System Contexts are never projected as

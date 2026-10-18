@@ -3,6 +3,10 @@ package com.romankozak.forwardappmobile.data.workspace
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyChildPolicyRejectedException
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementLifecycleCoordinator
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import android.content.Context
@@ -537,6 +541,7 @@ class CanonicalWorkspaceRepositoryRoomTest {
                 com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository(database),
             hierarchyPlacementLifecycleCoordinator =
                 HierarchyPlacementLifecycleCoordinator(database),
+            h1StructuralMutationCoordinator = H1StructuralMutationCoordinator(database),
         )
 
     private fun backlogRepository(database: AppDatabase) =
@@ -851,5 +856,117 @@ class CanonicalWorkspaceRepositoryRoomTest {
             }
         }
 
+
+
+    @Test
+    fun `V2 create move and copy admit mixed typed sibling namespace`() =
+        runBlocking {
+            val database = database()
+            try {
+                val workspaces = repository(database)
+                val placements = CanonicalHierarchyPlacementRepository(database)
+                val coordinator = H1StructuralMutationCoordinator(database)
+
+                val parentId = workspaces.createWithV2PrimaryAppearance(
+                    nameOverride = "Typed parent",
+                    now = 10L,
+                )
+                val parentTarget = HierarchyTargetRef(
+                    HierarchyTargetType.WORKSPACE,
+                    parentId,
+                )
+                val parentPlacement = requireNotNull(
+                    placements.getPrimaryAppearance(parentTarget),
+                )
+
+                coordinator.createContainer(
+                    title = "Mixed sibling",
+                    destination = H1StructuralParent.Node(
+                        H1TypedNode.Occurrence(parentPlacement.id.value),
+                    ),
+                    id = "cc2c2-mixed-container",
+                    now = 20L,
+                )
+
+                val createdId = workspaces.createWithV2PrimaryAppearance(
+                    nameOverride = "Created beside section",
+                    parentWorkspaceId = parentId,
+                    parentPlacementId = parentPlacement.id,
+                    now = 21L,
+                )
+
+                val createdPlacement = requireNotNull(
+                    placements.getPrimaryAppearance(
+                        HierarchyTargetRef(
+                            HierarchyTargetType.WORKSPACE,
+                            createdId,
+                        ),
+                    ),
+                )
+                assertEquals(
+                    parentPlacement.id,
+                    createdPlacement.parentPlacementId,
+                )
+
+                val sourceId = workspaces.createWithV2PrimaryAppearance(
+                    nameOverride = "Moved occurrence",
+                    now = 22L,
+                )
+                val sourcePlacement = requireNotNull(
+                    placements.getPrimaryAppearance(
+                        HierarchyTargetRef(
+                            HierarchyTargetType.WORKSPACE,
+                            sourceId,
+                        ),
+                    ),
+                )
+
+                workspaces.moveV2Occurrences(
+                    sourcePlacementsByWorkspaceId = mapOf(
+                        sourceId to sourcePlacement.id,
+                    ),
+                    targetWorkspaceId = parentId,
+                    targetPlacementId = parentPlacement.id,
+                    now = 23L,
+                )
+
+                assertEquals(
+                    parentPlacement.id,
+                    placements.getPlacement(sourcePlacement.id)?.parentPlacementId,
+                )
+
+                val copiedId = workspaces.copyV2WorkspacesShallow(
+                    ids = listOf(sourceId),
+                    targetWorkspaceId = parentId,
+                    targetPlacementId = parentPlacement.id,
+                    now = 24L,
+                ).single()
+
+                assertNotEquals(sourceId, copiedId)
+                assertEquals(
+                    parentPlacement.id,
+                    placements.getPrimaryAppearance(
+                        HierarchyTargetRef(
+                            HierarchyTargetType.WORKSPACE,
+                            copiedId,
+                        ),
+                    )?.parentPlacementId,
+                )
+
+                val presentation =
+                    BigPicturePresentationRepository(database).snapshot()
+
+                assertTrue(
+                    presentation.containers.single {
+                        it.id == "cc2c2-mixed-container"
+                    }.isDeleted == false,
+                )
+
+                BigPicturePresentationRepository(database)
+                    .requireCurrentUnifiedStructuralGraphValid()
+            } finally {
+                database.close()
+            }
+        }
 
 }

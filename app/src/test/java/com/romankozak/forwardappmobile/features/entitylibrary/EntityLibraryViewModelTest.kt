@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -92,7 +93,7 @@ class EntityLibraryViewModelTest {
         every { repository.observeCatalog() } returns flow { error("catalog failed") }
         val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
         every { presence.observeVisiblePlacedTargets(any()) } returns flowOf(emptySet())
-        val viewModel = EntityLibraryViewModel(repository, presence, SavedStateHandle())
+        val viewModel = EntityLibraryViewModel(repository, presence, SavedStateHandle(), dispatcher)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
@@ -282,6 +283,26 @@ class EntityLibraryViewModelTest {
         assertThat(ready(stale).sort).isEqualTo(EntityLibrarySort.NAME_ASC)
     }
 
+    @Test
+    fun `search input persists immediately while catalog computation runs on its dispatcher`() = runTest(dispatcher) {
+        val repository = mockk<CanonicalEntityCatalogRepository>()
+        every { repository.observeCatalog() } returns flowOf(mixedCatalog())
+        val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
+        every { presence.observeVisiblePlacedTargets(any()) } returns flowOf(emptySet())
+        val handle = SavedStateHandle()
+        val vm = EntityLibraryViewModel(repository, presence, handle, StandardTestDispatcher(testScheduler))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        assertThat(vm.uiState.value).isEqualTo(EntityLibraryUiState.Loading)
+        advanceUntilIdle()
+        vm.setSearchText("wor")
+        vm.setSearchText("workspce")
+        assertThat(handle.get<String>("entityLibrarySearch")).isEqualTo("workspce")
+        assertThat(ready(vm).searchText).isEmpty()
+        advanceUntilIdle()
+        assertThat(ready(vm).searchText).isEqualTo("workspce")
+        assertThat(ready(vm).items.map { it.ref }).containsExactly(CanonicalEntityRef.Workspace("w1"))
+    }
+
     private fun viewModel(
         source: MutableSharedFlow<List<CanonicalEntitySummary>>,
         placedTargets: Flow<Set<HierarchyTargetRef>> = flowOf(emptySet()),
@@ -291,7 +312,7 @@ class EntityLibraryViewModelTest {
         every { repository.observeCatalog() } returns source
         val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
         every { presence.observeVisiblePlacedTargets(any()) } returns placedTargets
-        return EntityLibraryViewModel(repository, presence, state)
+        return EntityLibraryViewModel(repository, presence, state, dispatcher)
     }
 
     private fun subject(id: String) =

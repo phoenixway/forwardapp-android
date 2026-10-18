@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Man
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import javax.inject.Inject
@@ -38,6 +39,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
             legacyGroups: Collection<MainBeaconGroup>,
             presentationProvenance: CanonicalV2HierarchyPresentationProvenance,
             hierarchyId: HierarchyId = HierarchyId.GENERAL,
+            applicability: Collection<GroupScopeApplicabilityEntity> = emptyList(),
         ): CanonicalV2ProductionHierarchyRead {
             require(hierarchyId == HierarchyId.GENERAL) {
                 "Canonical V2 production assembler currently supports only GENERAL"
@@ -68,17 +70,25 @@ class CanonicalV2HierarchyReadSnapshotAssembler
                     groups = groups,
                     relations = relations,
                     groupScopes = groupScopes,
+                    applicability = applicability,
                 )
             val presentation =
                 composer.compose(
                     hierarchy = hierarchy,
                     scopes = syntheticScopes,
+                    unscopedPlacementIds = applicability.asSequence()
+                        .filter { it.mode == "NATIVE" || it.mode == "HISTORICAL" }
+                        .map { PlacementId(it.placementId) }
+                        .toSet(),
                 )
 
             return CanonicalV2ProductionHierarchyRead(
                 hierarchy = hierarchy,
                 presentation = presentation,
                 presentationProvenance = presentationProvenance,
+                nativePlacementIds = applicability.asSequence()
+                    .filter { it.mode == "NATIVE" }
+                    .map { PlacementId(it.placementId) }.toSet(),
             )
         }
 

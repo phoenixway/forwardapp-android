@@ -82,6 +82,17 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalWorkspaceDirectionEntriesSynced(
         entries: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion>,
     ) { /* no-op */ }
+
+    override suspend fun loadUnsyncedBigPicturePresentation() =
+        com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot()
+
+    override suspend fun loadBigPicturePresentationChangedSince(timestamp: Long) =
+        com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot()
+
+    override suspend fun markBigPicturePresentationSynced(
+        ack: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationAck,
+    ) { /* no-op */ }
+
     override suspend fun loadUnsyncedCanonicalHierarchyPlacements() =
         emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot>()
     override suspend fun loadCanonicalHierarchyPlacementsChangedSince(timestamp: Long) =

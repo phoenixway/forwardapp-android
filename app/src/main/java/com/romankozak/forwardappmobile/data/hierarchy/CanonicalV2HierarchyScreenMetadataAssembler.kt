@@ -75,8 +75,10 @@ class CanonicalV2HierarchyScreenMetadataAssembler
                             }
 
                             is CanonicalV2PresentedHierarchyEntry.Occurrence -> {
+                                if (entry.level == 0) flushActiveGroup()
                                 if (
                                     activeGroupScopeId != null &&
+                                    entry.placementId !in read.nativePlacementIds &&
                                     entry.target.type == HierarchyTargetType.MANAGED_SUBJECT
                                 ) {
                                     activeGroupBeaconCount++

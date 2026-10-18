@@ -46,13 +46,21 @@ fun queryCanonicalEntities(
     catalog: List<CanonicalEntitySummary>,
     query: CanonicalEntityBrowserQuery,
 ): List<CanonicalEntitySummary> {
+    return filterCanonicalEntities(catalog, query)
+        .sortedWith(compareBy<CanonicalEntitySummary>({ it.title.lowercase() }, { it.ref.entityClass.name }, { it.ref.id }))
+}
+
+/** Unsorted matching for callers that apply their own explicit ordering. */
+fun filterCanonicalEntities(
+    catalog: List<CanonicalEntitySummary>,
+    query: CanonicalEntityBrowserQuery,
+): List<CanonicalEntitySummary> {
     val needle = query.text.trim().lowercase()
     return catalog.asSequence()
         .filter { it.ref.entityClass in query.allowedClasses }
         .filterNot { it.ref in query.excludedRefs }
         .filter { query.includeArchivedAspects || !it.isArchivedAspect }
         .filter { canonicalTitleMatches(it.title, needle) }
-        .sortedWith(compareBy<CanonicalEntitySummary>({ it.title.lowercase() }, { it.ref.entityClass.name }, { it.ref.id }))
         .toList()
 }
 

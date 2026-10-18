@@ -16,7 +16,7 @@ data class NavigationEntry(
             return NavigationEntry(
                 type = NavigationType.PROJECT_HIERARCHY_SCREEN,
                 id = "main",
-                title = "Contexts",
+                title = "Big Picture",
                 route = "goal_lists_screen",
             )
         }

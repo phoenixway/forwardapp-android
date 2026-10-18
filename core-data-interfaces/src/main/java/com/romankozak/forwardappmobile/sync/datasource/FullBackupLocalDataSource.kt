@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.sync.datasource
 
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationAck
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
+
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
@@ -198,6 +201,22 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalWorkspaceDirectionEntriesChangedSince(timestamp: Long): List<WorkspaceDirectionEntrySnapshot>
 
     suspend fun markCanonicalWorkspaceDirectionEntriesSynced(entries: List<WorkspaceDirectionEntrySyncVersion>)
+
+
+    /** Only changed rows, including tombstones. Transport provides graph dependencies. */
+    suspend fun loadUnsyncedBigPicturePresentation(): BigPicturePresentationSnapshot
+    suspend fun loadUnsyncedGroupScopeCoverage(): com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot =
+        com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot()
+    suspend fun loadGroupScopeCoverageChangedSince(timestamp: Long): com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot =
+        com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot()
+    suspend fun markGroupScopeCoverageSynced(versions: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageVersion>) {}
+
+    suspend fun loadBigPicturePresentationChangedSince(
+        timestamp: Long,
+    ): BigPicturePresentationSnapshot
+
+    /** ACK must match the exact row version sent over the wire. */
+    suspend fun markBigPicturePresentationSynced(ack: BigPicturePresentationAck)
 
     suspend fun loadUnsyncedCanonicalHierarchyPlacements(): List<HierarchyPlacementSnapshot>
 

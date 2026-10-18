@@ -417,6 +417,29 @@ Return to `WEBCHAT_BRIDGE` instead of escalating blindly when:
 
 After a difficult architectural step succeeds, actively downgrade to `MEDIUM_MODEL` or `WEAK_MODEL` for deterministic follow-up work.
 
+<!-- ADAPTIVE_MODEL_ADVISOR_BEGIN -->
+### Adaptive model and reasoning-effort advisor
+
+This is a proactive advisory extension of the existing two-stage router, not another routing tier. Keep `WEBCHAT_BRIDGE` separate from delegated model strength. It also applies to the webchat's own model and reasoning effort when those settings are user-selectable.
+
+* **When to reassess:** at entry to a substantial/multiphase task, BEFORE meaningful transitions (discovery, architecture, implementation, verification, documentation), after new evidence changes the risk or uncertainty, and at a safe checkpoint following a difficult step. Do not add a message-by-message ritual.
+* **Independent choices:** first choose the existing execution topology; next choose the lowest sufficient `WEAK_MODEL` / `MEDIUM_MODEL` / `STRONG_MODEL` tier when delegating; independently choose the lowest sufficient reasoning effort if the model/runtime exposes such a control. Lowering effort on the same model may be preferable to replacing the model.
+* **Downgrade signals:** architecture and ownership are settled; the next work is specified, repetitive, deterministic, scoped editing, routine test execution/results, or documentation without unresolved design. Actively surface opportunities before the expensive follow-up, not after it.
+* **Upgrade signals:** unresolved canonical authority, cross-module contracts, risky migrations/persistence/sync, ambiguous test regressions, difficult root-cause analysis, repeated unsuccessful attempts, or newly discovered complexity. When root cause or ownership is unknown, favor focused `WEBCHAT_BRIDGE` investigation rather than blindly escalating delegation.
+* **Objective:** minimize the *expected total cost of a correct completed phase*, including tool/retry costs, context transfer, review, switching overhead and regression risk. Never compromise acceptance, data preservation or safety to save tokens. Do not recommend changes when benefit is marginal.
+* **Visibility:** do not invent the current model, effort setting, prices or token counts. If unavailable, issue a conditional recommendation using only actual supported levels; never claim to have modified model settings without doing so.
+* **Timing:** notify the user before a materially expensive new phase. At a safe handoff checkpoint, allow a requested manual switch before proceeding when the savings are meaningful. Do not interrupt atomic edits, in-flight verification or urgent safety work. Avoid repeating advice until the work profile changes.
+
+When a switch is materially justified, give a brief user-visible notice:
+
+    ⚙️ MODEL ADVISOR: [known current setting or "unknown"] -> [recommended tier/model and effort]
+    Reason: [why the next phase has different reasoning needs]
+    Next phase: [specific work]
+    Action: [switch before next phase / optional at next checkpoint]
+
+If the active settings are unknown, write "If currently using High, consider Medium for the next phase" or an equivalent conditional notice instead of pretending the switch has occurred. When delegating, include the recommended tier and, if available, reasoning effort in the delegation prompt; ask the delegated agent to report material complexity changes at safe phase boundaries.
+<!-- ADAPTIVE_MODEL_ADVISOR_END -->
+
 ### Routing heuristic
 
 Before each repository step, ask in this order:
@@ -441,6 +464,7 @@ The router should optimize for total reliable progress, not for minimizing the n
 Whenever ChatGPT delegates repository work, the prompt should state:
 
 * `EXECUTION MODE`: `STRONG_MODEL`, `MEDIUM_MODEL`, or `WEAK_MODEL`;
+* `REASONING EFFORT`: lowest sufficient setting when available, or explicitly unknown;
 * `GOAL`: one concrete goal;
 * `WHY THIS MODE`: brief reason for the selected execution level;
 * `KNOWN CONTRACT`: confirmed repository facts and constraints;

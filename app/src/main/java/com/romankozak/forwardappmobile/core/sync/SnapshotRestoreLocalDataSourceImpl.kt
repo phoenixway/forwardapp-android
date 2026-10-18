@@ -11,6 +11,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonic
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.validateBigPicturePresentation
+import com.romankozak.forwardappmobile.data.hierarchy.container.projectH1UnifiedStructuralGraph
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
 import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAuthorityActivator
@@ -59,9 +62,14 @@ class SnapshotRestoreLocalDataSourceImpl
         private val strategicPlanningAdapter: CanonicalStrategicPlanningAdapter? = null,
     ) : SnapshotRestoreLocalDataSource {
         override suspend fun replaceWith(bundle: SnapshotBundle) {
+            require(bundle.groupScopeCoverage == null ||
+                (bundle.hierarchyPlacements != null && bundle.hierarchyPlacementGroupScopes != null)) {
+                "GroupScope coverage requires the canonical H1 and GroupScope streams"
+            }
             validateBeforeClear(bundle)
 
             val hierarchyStore = CanonicalHierarchyPlacementSyncStore(database)
+            val presentationRepository = BigPicturePresentationRepository(database)
             val groupScopeStore =
                 CanonicalHierarchyPlacementGroupScopeSyncStore(database)
             val linkedAppearanceStore =
@@ -84,6 +92,8 @@ class SnapshotRestoreLocalDataSourceImpl
                     placements = decodedHierarchy,
                     requireComplete = bundle.hierarchyPlacementGroupScopes != null,
                 )
+            val coverageStore = com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(database)
+            val decodedCoverage = coverageStore.decodeForRestore(bundle, decodedHierarchy, decodedGroupScopes)
 
             val linkedAppearanceSnapshots =
                 bundle.hierarchyPlacementLinkedAppearances ?: linkedAppearanceStore.loadAll()
@@ -92,6 +102,15 @@ class SnapshotRestoreLocalDataSourceImpl
                     snapshots = linkedAppearanceSnapshots,
                     placements = decodedHierarchy,
                 )
+
+            // Preserve local presentation for historical backups that lack this stream.
+            // Validate against the incoming H1 before destructive table clearing.
+            val presentationSnapshot =
+                bundle.bigPicturePresentation ?: presentationRepository.snapshot()
+            validateBigPicturePresentation(presentationSnapshot, decodedHierarchy)
+            // Fail before destructive clear when the combined restored
+            // H1 + presentation graph is not structurally admissible.
+            projectH1UnifiedStructuralGraph(decodedHierarchy, presentationSnapshot)
 
             val planningStore = CanonicalPlanningSyncStore(database)
             val planningScopeSnapshots =
@@ -155,6 +174,8 @@ class SnapshotRestoreLocalDataSourceImpl
                     hierarchyPlacements = null,
                     hierarchyPlacementGroupScopes = null,
                     hierarchyPlacementLinkedAppearances = null,
+                    bigPicturePresentation = null,
+                    groupScopeCoverage = null,
                 )
 
             database.withTransaction {
@@ -165,11 +186,14 @@ class SnapshotRestoreLocalDataSourceImpl
                 tacticalExtensionStore.restoreExactDecoded(decodedTacticalExtensions)
                 strategicExtensionStore.restoreExactDecoded(decodedStrategicExtensions)
                 hierarchyStore.restoreExactDecoded(decodedHierarchy)
+                coverageStore.restoreExact(decodedCoverage)
                 groupScopeStore.restoreExactDecoded(
                     scopes = decodedGroupScopes,
                     requireComplete = bundle.hierarchyPlacementGroupScopes != null,
                 )
                 linkedAppearanceStore.restoreExactDecoded(decodedLinkedAppearances)
+                presentationRepository.restoreExact(presentationSnapshot)
+                coverageStore.validateCurrent()
                 canonicalScoringAuthorityActivator.ensureActivated()
                 dayPlanningAuthorityActivator.ensureActivated()
                 dayPlanningAuthorityActivator.projectCompatibilityRows()
@@ -188,6 +212,9 @@ class SnapshotRestoreLocalDataSourceImpl
                 strategicPlanningAdapter?.projectCompatibilityRows()
 
                 assertRestoreInvariants(bundle)
+                // Final persisted graph must agree with preclear admission.
+                // Failure here rolls back the full Room restore transaction.
+                presentationRepository.requireCurrentUnifiedStructuralGraphValid()
             }
             bundle.dayManagementRuntimeState?.let { dayManagementRuntimeRepository.importSnapshot(it) }
         }

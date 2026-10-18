@@ -231,6 +231,47 @@ class CanonicalHierarchyPlacementSyncStoreRoomTest {
     }
 
     @Test
+    fun `N newer timestamp equal-version H1 divergence rejects and replay preserves ACK`(): Unit =
+        runBlocking {
+            val db = database()
+            try {
+                workspace(db, "workspace-1")
+                db.hierarchyPlacementDao().upsert(
+                    entity(
+                        id = "p1",
+                        targetId = "workspace-1",
+                        order = 0L,
+                        updatedAt = 20L,
+                        syncedAt = 123L,
+                        version = 2L,
+                    ),
+                )
+                val store = CanonicalHierarchyPlacementSyncStore(db)
+                val original = store.loadAll().single()
+
+                val conflict = runCatching {
+                    store.mergeIncoming(
+                        listOf(
+                            original.copy(
+                                siblingOrder = 9L,
+                                updatedAt = original.updatedAt + 100,
+                                syncedAt = 999L,
+                            ),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(conflict is HierarchyPlacementMergeConflictException)
+                assertEquals(original, store.loadAll().single())
+
+                store.mergeIncoming(listOf(original.copy(syncedAt = 999L)))
+                assertEquals(original, store.loadAll().single())
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
     fun `I missing or tombstoned target rejects peer merge atomically`() = runBlocking {
         val db = database()
         try {
@@ -339,42 +380,95 @@ class CanonicalHierarchyPlacementSyncStoreRoomTest {
     }
 
     @Test
-    fun `equal freshness live versus tombstone resolves to tombstone`() = runBlocking {
-        val db = database()
-        try {
-            workspace(db, "workspace-1")
-            db.hierarchyPlacementDao().upsert(
-                entity(
-                    id = "p1",
-                    targetId = "workspace-1",
-                    updatedAt = 20L,
-                    syncedAt = 18L,
-                    deleted = false,
-                    version = 2L,
-                ),
-            )
-            val store = CanonicalHierarchyPlacementSyncStore(db)
-
-            store.mergeIncoming(
-                listOf(
-                    snapshot(
+    fun `equal version tombstone conflicts but higher version tombstone wins`(): Unit =
+        runBlocking {
+            val db = database()
+            try {
+                workspace(db, "workspace-1")
+                db.hierarchyPlacementDao().upsert(
+                    entity(
                         id = "p1",
                         targetId = "workspace-1",
                         updatedAt = 20L,
-                        syncedAt = 999L,
-                        deleted = true,
+                        syncedAt = 18L,
+                        deleted = false,
                         version = 2L,
                     ),
-                ),
-            )
+                )
 
-            val stored = requireNotNull(db.hierarchyPlacementDao().getById("p1"))
-            assertTrue(stored.isDeleted)
-            assertNull(stored.syncedAt)
-        } finally {
-            db.close()
+                val store = CanonicalHierarchyPlacementSyncStore(db)
+
+                // Deletion is a semantic mutation, not an equal-version tie break.
+                val conflict = runCatching {
+                    store.mergeIncoming(
+                        listOf(
+                            snapshot(
+                                id = "p1",
+                                targetId = "workspace-1",
+                                updatedAt = 20L,
+                                syncedAt = 999L,
+                                deleted = true,
+                                version = 2L,
+                            ),
+                        ),
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(conflict is HierarchyPlacementMergeConflictException)
+
+                val unchanged =
+                    requireNotNull(db.hierarchyPlacementDao().getById("p1"))
+                assertFalse(unchanged.isDeleted)
+                assertEquals(2L, unchanged.version)
+                assertEquals(18L, unchanged.syncedAt)
+
+                // A genuine newer tombstone is accepted and becomes dirty.
+                store.mergeIncoming(
+                    listOf(
+                        snapshot(
+                            id = "p1",
+                            targetId = "workspace-1",
+                            updatedAt = 21L,
+                            syncedAt = 999L,
+                            deleted = true,
+                            version = 3L,
+                        ),
+                    ),
+                )
+
+                val retired =
+                    requireNotNull(db.hierarchyPlacementDao().getById("p1"))
+                assertTrue(retired.isDeleted)
+                assertEquals(3L, retired.version)
+                assertNull(retired.syncedAt)
+
+                // A stale live replay cannot resurrect the tombstone.
+                store.mergeIncoming(
+                    listOf(
+                        snapshot(
+                            id = "p1",
+                            targetId = "workspace-1",
+                            updatedAt = 20L,
+                            deleted = false,
+                            version = 2L,
+                        ),
+                    ),
+                )
+
+                // An ACK for the original v2 cannot acknowledge v3.
+                store.markSynced(
+                    listOf(HierarchyPlacementSyncVersion("p1", 2L)),
+                )
+
+                val final =
+                    requireNotNull(db.hierarchyPlacementDao().getById("p1"))
+                assertTrue(final.isDeleted)
+                assertEquals(3L, final.version)
+                assertNull(final.syncedAt)
+            } finally {
+                db.close()
+            }
         }
-    }
 
     @Test
     fun `P exact version ACK marks current unsynced row`() = runBlocking {

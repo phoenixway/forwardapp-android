@@ -177,6 +177,12 @@ class CanonicalV1HierarchyMaterializer
                     )
             }
 
+            val coverageStore = GroupScopeCoverageStore(database)
+            coverageStore.ensureLegacy(desired)
+            val desiredById = desired.associateBy { it.id.value }
+            // Explicit H2 materialization is authoritative historical establishment,
+            // including an exact rerun over occurrences created through compatibility API.
+            coverageStore.establishHistorical(desiredGroupScopes.map { desiredById.getValue(it.placementId) }, now)
             return CanonicalV1HierarchyMaterializationReport(
                 outcome = outcome,
                 occurrenceCount = snapshot.occurrences.size,

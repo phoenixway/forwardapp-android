@@ -24,7 +24,8 @@ data class CanonicalV2HierarchyGroupPresentation(
  * occurrence-scoped provenance.
  *
  * HierarchyPlacement owns topology. HierarchyPlacementGroupScope owns the exact
- * Group/NoGroup scope of each root MANAGED_SUBJECT occurrence. PART_OF remains
+ * Group/NoGroup scope of historical occurrences only. Applicability distinguishes
+ * native occurrences and retired historical provenance. PART_OF remains
  * target-wide semantic state and is checked for consistency only. It can never
  * choose an occurrence, create a parent, or recover missing provenance.
  */
@@ -35,6 +36,7 @@ class CanonicalV2HierarchyScopePlanner {
         relations: Collection<OrientationRelationEntity>,
         groupScopes: Collection<HierarchyPlacementGroupScopeEntity>,
         noGroupTitle: String = "No group",
+        applicability: Collection<GroupScopeApplicabilityEntity> = emptyList(),
     ): List<CanonicalV2SyntheticScopeInput> {
         val groupList =
             groups.sortedWith(
@@ -90,14 +92,35 @@ class CanonicalV2HierarchyScopePlanner {
             "Hierarchy Group-scope state contains duplicate live placementIds"
         }
 
-        require(liveScopeByPlacementId.keys == subjectRootIds) {
-            val missing = (subjectRootIds - liveScopeByPlacementId.keys).take(5)
+        val coverage = applicability.associateBy { it.placementId }
+        val scopeHistoryIds = groupScopes.mapTo(hashSetOf()) { it.placementId }
+        require(coverage.size == applicability.size) { "Duplicate GroupScope applicability" }
+        coverage.values.forEach { row ->
+            require(row.hierarchyId == hierarchy.hierarchyId.value) { "Foreign GroupScope applicability" }
+            val mode = GroupScopeApplicabilityMode.valueOf(row.mode)
+            if (mode == GroupScopeApplicabilityMode.NATIVE) {
+                require(row.placementId !in liveScopeByPlacementId) { "NATIVE occurrence cannot have active GroupScope" }
+            } else if (mode == GroupScopeApplicabilityMode.HISTORICAL) {
+                require(row.placementId in scopeHistoryIds) { "HISTORICAL occurrence lost GroupScope history" }
+            }
+        }
+        val requiredScopeIds = subjectRootIds.filterTo(linkedSetOf()) {
+            coverage[it]?.mode.let { mode -> mode == null || mode == GroupScopeApplicabilityMode.LEGACY_UNKNOWN.name }
+        }
+        require(liveScopeByPlacementId.keys.all { it in subjectRootIds } && requiredScopeIds.all { it in liveScopeByPlacementId }) {
+            val missing = (requiredScopeIds - liveScopeByPlacementId.keys).take(5)
             val extra = (liveScopeByPlacementId.keys - subjectRootIds).take(5)
             "Persisted Group-scope provenance must cover every root MANAGED_SUBJECT; " +
                 "missing=$missing extra=$extra"
         }
 
-        subjectRoots
+        val scopedRoots = subjectRoots.filter { it.placementId.value in liveScopeByPlacementId }
+        val retiredGroupsByTarget = groupScopes.asSequence()
+            .filter { it.isDeleted && coverage[it.placementId]?.mode == GroupScopeApplicabilityMode.HISTORICAL.name }
+            .groupBy { occurrenceById[PlacementId(it.placementId)]?.target }
+            .mapValues { (_, scopes) -> scopes.mapNotNullTo(hashSetOf()) { it.groupSubjectId } }
+
+        scopedRoots
             .groupBy { it.target }
             .forEach { (target, targetRoots) ->
                 val scopes =
@@ -126,7 +149,8 @@ class CanonicalV2HierarchyScopePlanner {
                         "NoGroup root provenance for ${target.id} conflicts with PART_OF membership"
                     }
                 } else {
-                    require(groupedSubjectIds == memberships) {
+                    val retired = retiredGroupsByTarget[target].orEmpty()
+                    require(groupedSubjectIds.all { it in memberships } && memberships.all { it in groupedSubjectIds || it in retired }) {
                         "Grouped root provenance for ${target.id} does not match PART_OF membership"
                     }
                 }
@@ -138,7 +162,7 @@ class CanonicalV2HierarchyScopePlanner {
             }.toMutableMap()
         val noGroupPlacementIds = mutableListOf<PlacementId>()
 
-        subjectRoots.forEach { root ->
+        scopedRoots.forEach { root ->
             val scope =
                 requireNotNull(liveScopeByPlacementId[root.placementId.value])
 

@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementGroupScopeEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
@@ -21,8 +22,8 @@ data class HierarchyGroupRetirementResult(
  * Group remains synthetic. This coordinator never creates a Group hierarchy
  * parent and never derives occurrence identity from PART_OF or ordering.
  *
- * Methods do not open a transaction. P2 callers must fuse H1,
- * GroupScope and canonical PART_OF changes in one outer Room transaction.
+ * Explicit scope assignment is atomic with lineage adoption. P2 callers must
+ * still fuse H1, GroupScope and canonical PART_OF changes in one outer transaction.
  */
 @Singleton
 class HierarchyPlacementGroupScopeMutationCoordinator
@@ -46,7 +47,7 @@ class HierarchyPlacementGroupScopeMutationCoordinator
             placementId: PlacementId,
             groupSubjectId: String?,
             now: Long,
-        ) {
+        ) = database.withTransaction {
             require(groupSubjectId == null || groupSubjectId.isNotBlank()) {
                 "Hierarchy Group scope cannot use a blank Group subject id"
             }
@@ -66,7 +67,14 @@ class HierarchyPlacementGroupScopeMutationCoordinator
             ) {
                 "Group scope requires a live root MANAGED_SUBJECT occurrence: ${placementId.value}"
             }
+            val liveContainerIds = database.bigPicturePresentationDao().containers()
+                .filterNot { it.record.isDeleted }.mapTo(hashSetOf()) { it.record.id }
+            require(database.bigPicturePresentationDao().memberships().none {
+                !it.record.isDeleted && it.record.placementId == placementId.value &&
+                    it.record.containerId in liveContainerIds
+            }) { "Group scope cannot activate inside a generic presentation container" }
 
+            GroupScopeCoverageStore(database).establishHistorical(placement, now)
             val current = scopeDao.getByPlacementId(placementId.value)
             if (
                 current != null &&
@@ -74,7 +82,7 @@ class HierarchyPlacementGroupScopeMutationCoordinator
                 current.hierarchyId == placement.hierarchyId.value &&
                 current.groupSubjectId == groupSubjectId
             ) {
-                return
+                return@withTransaction
             }
 
             val updated =
@@ -95,10 +103,10 @@ class HierarchyPlacementGroupScopeMutationCoordinator
                     }
                     current.copy(
                         groupSubjectId = groupSubjectId,
-                        updatedAt = now,
+                        updatedAt = maxOf(now, Math.addExact(current.updatedAt, 1)),
                         syncedAt = null,
                         isDeleted = false,
-                        version = current.version + 1L,
+                        version = Math.addExact(current.version, 1),
                     )
                 }
 
@@ -118,10 +126,10 @@ class HierarchyPlacementGroupScopeMutationCoordinator
 
             scopeDao.upsert(
                 current.copy(
-                    updatedAt = now,
+                    updatedAt = maxOf(now, Math.addExact(current.updatedAt, 1)),
                     syncedAt = null,
                     isDeleted = true,
-                    version = current.version + 1L,
+                    version = Math.addExact(current.version, 1),
                 ),
             )
             return true
@@ -407,6 +415,11 @@ class HierarchyPlacementGroupScopeMutationCoordinator
 
         suspend fun validateAuthoritativeState() {
             val orientationDao = database.orientationDao()
+            val placements = placementDao.getAll().map { it.toHierarchyPlacementStrict() }
+            val coverage = GroupScopeCoverageStore(database)
+            coverage.ensureLegacy(placements)
+            val liveContainers = database.bigPicturePresentationDao().containers()
+                .filterNot { it.record.isDeleted }.mapTo(hashSetOf()) { it.record.id }
 
             validateHierarchyPlacementGroupScopes(
                 scopes = scopeDao.getAll(),
@@ -418,6 +431,10 @@ class HierarchyPlacementGroupScopeMutationCoordinator
                 mappings = orientationDao.getAllLegacyMappings(),
                 relations = orientationDao.getAllOrientationRelations(),
                 requireComplete = true,
+                coverage = coverage.snapshot(),
+                containerMembers = database.bigPicturePresentationDao().memberships()
+                    .filter { !it.record.isDeleted && it.record.containerId in liveContainers }
+                    .mapTo(hashSetOf()) { it.record.placementId },
             )
         }
 

@@ -2,6 +2,246 @@
 
 Status: CANONICAL
 
+## 2026-10-18 - R2F.2B physical activation regression
+
+Add → Root and subsequent startup crashed in the background V2 hierarchy
+reader's old complete-GroupScope check. The bounded correction passes durable
+applicability and retired scope history through the atomic read and admits
+unscoped native roots in synthetic composition. No structural/semantic
+authority or schema change. Physical acceptance remains pending on the repaired
+APK; R2F.2C remains deferred; Backlog #2 Priority: UNSET.
+Focused HOST regression: 58/58 tests across 13 XML classes; production and
+unit-test Kotlin compilation PASS. These results do not claim device recovery.
+
+## 2026-10-18 - R2F.2B canonical Big Picture mutation UX activated
+
+R2F_2B_ACTIVATION_20261018
+
+- ACTIVATED: canonical picker Add Entity, generic Group/Section, typed
+  Root/Occurrence/Container destinations, exact clipboard Move, occurrence
+  Remove, container promotion and mixed sibling reorder.
+- AUTHORITY: all product structural mutation delegates to H1; nesting remains
+  presentation only.
+- PREREQUISITE: schema-200 GroupScope applicability admission is complete.
+- HOST VERIFIED: focused app 246/246 and sync 41/41; separate app Kotlin
+  production and unit-test compile gates subsequently confirmed green.
+- PENDING: physical EXP acceptance only. R2F.2C remains deferred; Backlog #2
+  Priority: UNSET.
+
+## 2026-10-18 - GroupScope applicability coverage V1 implementation status
+
+GROUPSCOPE_APPLICABILITY_COVERAGE_V1_20261018
+
+- IMPLEMENTED: schema 200 exact-placement applicability sidecar with NATIVE,
+  HISTORICAL and conservative LEGACY_UNKNOWN modes.
+- IMPLEMENTED: native root Restore/Merge admission without synthetic
+  provenance; generic H1 Move atomically retires incompatible historical
+  GroupScope and does not resurrect it on generic root return.
+- IMPLEMENTED: coverage migration, full/delta transport, Restore, Merge,
+  selective import and exact-version ACK; equal-version divergent GroupScope
+  payloads fail closed.
+- HOST TEST-VERIFIED: 246/246 focused app tests and 41/41 focused sync tests.
+- LATER VERIFIED: the separate Kotlin compile gates were confirmed green and
+  R2F.2B was activated by the checkpoint above.
+
+## 2026-10-18 - R2F.2B bounded implementation status
+
+R2F_2B_20261018_TRANSPORT_ACTIVATION_BLOCKED
+
+- PREPARED, NOT ACTIVATED: canonical picker Add, generic sections, typed
+  destinations, exact clipboard Move, occurrence Remove, coordinator container
+  promotion and complete mixed reorder in the existing focus-mode shell.
+- HOST REGRESSION: 107/107 tests across 21 classes PASS, including two
+  characterization tests which confirm ingress rejection rather than fix it.
+- BLOCKER: historical GroupScope complete-root coverage and root-only sidecar
+  validation disagree with native Add and generic authored Move. No transport
+  contract was silently weakened; production controls remain safety-gated.
+- UNCHANGED: schema 199, semantic ownership, historical display, Direction
+  companion evidence limit, and Backlog #2 Priority: UNSET.
+- NOT CLAIMED: R2F.2B product completion, physical acceptance or R2F.2C Library
+  Add. This checkpoint does not choose any global project milestone/priority.
+
+## 2026-10-17 - H1 A+ production consumer convergence verified
+
+H1_A_PLUS_CC_20261017_CONSUMER_CONVERGENCE
+
+- COMPLETE: schema-199 product structural consumer cutover through
+  H1StructuralMutationCoordinator, including atomic occurrence
+  MoveMany, create, reorder, retirement and historical Restore.
+- COMPLETE: Workspace, Context clipboard/fused plans, MainBeacon
+  structural command routing and legacy lifecycle separation.
+- COMPLETE: internal-only presentation compatibility mutators;
+  public transport, ACK, Merge and exact Restore retained.
+- HOST VERIFIED: 88/88 focused JUnit tests across twelve suites,
+  including 7/7 coordinator Restore; separate production and
+  unit-test Kotlin compile gates PASS.
+- UNCHANGED: physical schema 199, semantic ownership and historical
+  Policy B; no schema 200 or protected-device deployment.
+- EVIDENCE LIMIT: real Direction companion writes are not proven
+  by the mocked Context parent-plan Room acceptance.
+- NOT ACTIVATED: R2F.2B Big Picture mutation UX or R2F.2C
+  Library-to-Big-Picture Add. Orchestrator retains readiness
+  and sequencing decisions.
+- UNCHANGED: Backlog #2 Priority: UNSET.
+
+Earlier milestones below record prerequisite work and remain
+authoritative for their historical acceptance boundaries.
+
+## 2026-10-17 - H1 A+ typed writer milestone HOST VERIFIED
+
+H1_A_PLUS_20261017_TYPED_WRITER_COMPATIBILITY
+
+**COMPLETE: bounded production-capable typed structural coordinator
+and legacy compatibility hardening. HOST consolidated 59/59 PASS.**
+
+Milestone progression:
+- COMPLETE: R2F.2A schema-199 persistence/transport/read baseline.
+- COMPLETE: A+ typed graph feasibility and historical Policy B support.
+- COMPLETE: strict peer version/conflict admission and ingress gates
+  from the preceding CA milestone.
+- COMPLETE: typed structural coordinator with atomic mixed Move,
+  ordering, create/delete, container-child promotion and rollback.
+- COMPLETE: bounded legacy occurrence reorder/move/create safeguards,
+  legacy lifecycle boundary and focused fused-writer regression.
+- PARTIAL: remaining product consumer/writer convergence and semantic
+  companion activation across full typed structural commands.
+- BLOCKED: R2F.2B Big Picture structural mutation UX.
+- BLOCKED: R2F.2C Library-to-Big-Picture Add.
+
+The nine-suite HOST acceptance covers 59 tests with zero
+failures/errors/skips. The Context parent-plan test exercises
+real Room transactions but mocks its final ContextRepository companion.
+This milestone does not imply that all product structural writes now
+go through the typed coordinator, or that protected physical EXP
+acceptance has occurred. Schema 199 remains authoritative; no schema
+200 or new persistence table was introduced.
+
+Earlier CA and feasibility entries below are retained as milestones.
+
+## 2026-10-17 - H1 A+ compatibility/admission milestone complete
+
+H1_CA_20261017_COMPAT_CONFLICT_ADMISSION
+
+**COMPLETE / HOST VERIFIED: bounded compatibility and peer
+conflict-admission milestone. JUnit XML: 57/57 PASS.**
+
+Milestone status:
+- COMPLETE: R2F.2A schema-199 persistence/transport/read baseline.
+- COMPLETE: H1 A+ schema-199 structural feasibility spike.
+- COMPLETE: Policy B inert-history-compatible typed projection.
+- COMPLETE: strict H1/presentation equal-version conflict admission,
+  idempotence, stale-ACK regression and transaction-scoped unified
+  Merge/Restore graph gates.
+- NEXT: single production H1 structural command coordinator,
+  writer/consumer convergence and complete mixed-order semantics.
+- BLOCKED: R2F.2B Big Picture mutation UX.
+- BLOCKED: R2F.2C Library-to-Big-Picture Add.
+
+Proof scope: six focused Room/pure/Restore classes, 57 tests,
+zero failures/errors/skips. Full entrypoint adversarial integration,
+SyncOn/SyncOff and device smoke are not claimed by this gate.
+
+No schema migration, production authority activation, broad Sync
+rewrite or protected EXP-device change was part of this milestone.
+Prior spike roadmap below is retained as historical context.
+
+## 2026-10-17 - H1 A+ structural feasibility gate PASSED [HISTORICAL PRE-CA CHECKPOINT]
+
+H1_SPIKE_20261017_A_PLUS_VERDICT
+
+**A+ SAFE: schema-199 encoding feasible with one H1 coordinator.**
+HOST reports 15 focused proof/characterization tests GREEN across
+typed graph, mixed ordering, atomic Move, conflict reproduction,
+container child promotion and rollback. This does NOT mark the current
+production distributed contract safe.
+
+Milestone sequence:
+- COMPLETE: R2F.2A schema-199 persistence/transport/read baseline.
+- COMPLETE: H1 structural feasibility spike, A+ SAFE for encoding.
+- NEXT: bounded single-coordinator write/consumer/compatibility and
+  strict version/ACK/transport admission contract and tests.
+- BLOCKED pending that gate: R2F.2B mutation UX.
+- BLOCKED pending that gate: R2F.2C Library-to-Big-Picture Add.
+
+No schema 200, migration, destructive change, semantic-authority
+rewrite or physical EXP acceptance is authorized by the spike.
+Previous checkpoint sections below are historical.
+
+## R2F.2A accepted baseline and next structural proof [PRE-SPIKE CHECKPOINT]
+
+**R2F.2A schema-199 integration COMPLETE / HOST VERIFIED.**
+Persistence, backup/Restore/Merge, selective closure, Wi-Fi delta/ACK,
+H1 lifecycle, generic/historical read and navigation are integrated.
+Final APP / SyncOn / SyncOff gates GREEN. R8A.3 JUnit XML 11/11 PASS.
+Physical EXP UX smoke is not yet accepted; mutation UI is not enabled.
+
+**Architecture direction:** H1 becomes the sole owner of mixed
+occurrence/container structure; containers are not semantic entities
+or HierarchyTargets. Current schema 199 is a verified baseline, not
+yet a proven unified graph representation.
+
+**Next gate:** H1 Unified Structural Contract Spike. Decide A+ SAFE
+or A+ BLOCKED from concrete projection, consumer, command and
+transport proofs. Retain schema 199 if A+ can be made safe by a bounded
+single-coordinator cutover. Consider typed persistence only if
+a specific unavoidable correctness blocker is established.
+
+R2F.2B mutation UX and R2F.2C Library Add stay deferred.
+No schema number reserved, no migration approved.
+Older roadmap entries retain historical implementation context.
+
+## R2F.2A presentation persistence - in progress [HISTORICAL CHECKPOINT]
+
+R2F.2A is PARTIAL, not a completed product milestone. Additive schema 199
+introduces independent presentation containers/membership. Containers wrap
+arbitrary-depth H1 sibling sets and may nest at the same anchor. They are not
+semantic identities and never enter Library as entities. Historical GroupScope
+remains untouched compatibility presentation.
+
+Persistence/transport/read integration acceptance remains required before
+R2F.2B mutation UI or R2F.2C Library -> Add to Big Picture. No new architecture
+supersedes the accepted custom-representation contract. Backlog #2 stays UNSET.
+Current HOST foundation/regression evidence: 65/65 PASS; this does not close
+the remaining production integration requirements.
+
+## Product UX milestone - R2F.1 Canonical Big Picture complete
+
+**R2F.1 Existing Hierarchy -> Canonical Big Picture — COMPLETE / HOST VERIFIED.**
+The existing hierarchy screen/route and hierarchy card/top-bar presentation were
+adapted, with canonical GENERAL placements as structure and catalog summaries
+as presentation. Library remains inventory; Big Picture remains an occurrence
+map. Duplicate target appearances retain independent placement identities.
+
+The UI must preserve focus navigation: root list, then active unit and direct
+children, with ancestor/root breadcrumbs. A flattened expandable tree is not
+the accepted mobile surface. Entity opening is a separate action from focus.
+Preserve the user's grouped entry organization through existing canonical
+GroupScope presentation, with virtual NoGroup/NoBeacon scopes. This presentation
+must not be discarded when replacing the old mixed read machinery.
+This preserves one authored layout, not a required Group -> Beacon grammar.
+All canonical target classes may nest under each other subject only to H1
+structural/lifecycle invariants. Semantic axes remain independent.
+
+Contract-conformance Outcome B: existing GroupScope retains historical semantic
+Group/PART_OF coupling. R2F.1 adapts it into a generic read-container DTO without
+inventing persistence. R2F.2 requires an explicitly bounded presentation-container
+persistence/transport prerequisite before generic section creation, plus typed
+picker Add Entity and semantic-neutral occurrence remove/move/reorder.
+This is implementation alignment with the existing Big Picture decision, not
+architectural supersession. Conformance focused HOST: 27/27 PASS.
+Bounded H1/GroupScope/navigation regression: 37/37 PASS; explicit Kotlin
+production/test compile gates PASS. Physical acceptance remains pending.
+
+The read path is narrow and read-only. Legacy Context/Group controls are not
+exposed as placement commands. R2F.2 will introduce deliberately scoped
+canonical occurrence mutation; R2F.1 does not complete the entire R2F workstream.
+HOST: initial H1/navigation bundle 57/57 PASS; focus-mode correction 15/15 PASS.
+Both Kotlin compile gates PASS. Schema stays 198.
+Group/NoBeacon presentation restoration: 20/20 focused tests PASS, Kotlin
+production/test compilation PASS. No hierarchy persistence was rewritten.
+Physical acceptance remains pending for this slice.
+Backlog addition #2 remains independent, Priority UNSET.
+
 ## Product UX milestone - R2E.3 Library Product Polish complete
 
 **COMPLETE / HOST VERIFIED.** Library naming and saved bidirectional Name,

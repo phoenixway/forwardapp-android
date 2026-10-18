@@ -2,6 +2,363 @@
 
 Status: CANONICAL
 
+## 2026-10-18 - GroupScope coverage applies to production reads too
+
+Contract-conformance correction following the physical Add-root/startup crash:
+schema-200 applicability governs the existing background hierarchy scope planner
+and synthetic composer as well as transport admission. Native occurrences
+and historical occurrences with retired provenance may render without an
+active synthetic group. Unknown legacy roots remain conservative; active
+historical scopes retain PART_OF consistency checks. Applicability and scope
+history are joined with H1 in one read frame, preventing split-flow coverage
+races. This introduces no new architecture or semantic mutation authority.
+The shared read keeps explicit native occurrence IDs; historical CoreLevel and
+legacy Beacon screen adapters skip these instead of fabricating Beacon data.
+Unscoped branches have occurrence-only breadcrumbs. HOST regression: 58/58.
+
+## 2026-10-18 - R2F.2B mutation UX activation boundary
+
+R2F_2B_ACTIVATION_20261018
+
+The accepted prepared Big Picture mutation surface is enabled through its
+single existing runtime flag. No additional writer, picker, destination model,
+or semantic authority was introduced. Add Entity, Group/Section, clipboard
+Move, occurrence Remove, container deletion/promotion and mixed reorder retain
+H1 as canonical structural authority.
+
+This activation relies on the schema-200 applicability decision below; it does
+not supersede it. Device acceptance remains separate, R2F.2C is not
+authorized, and Backlog #2 remains Priority: UNSET.
+
+## 2026-10-18 - GroupScope applicability is durable compatibility provenance
+
+GROUPSCOPE_APPLICABILITY_COVERAGE_V1_20261018
+
+Schema 200 resolves the proven schema-199 information deficit without making
+historical GroupScope generic H1 structure. `GroupScopeApplicability` is keyed
+by exact PlacementId and has only three compatibility meanings: NATIVE requires
+no GroupScope; HISTORICAL preserves GroupScope history; LEGACY_UNKNOWN retains
+conservative old admission. Generic Move preserves lineage, retiring an active
+historical scope atomically when its location makes that scope inapplicable;
+generic return to root never invents provenance.
+
+Migration and pre-coverage payload decoding classify only authoritative
+evidence. An existing scope history is HISTORICAL; a canonical Aspect without
+any MainBeacon/Group mapping is safely NATIVE; all other relevant ambiguity is
+LEGACY_UNKNOWN. No semantic relation, Context, Planning, WorkspaceBinding,
+PART_OF, or generic-container authority is inferred or changed. GroupScope
+equal-version divergence now fails closed; exact-version ACK remains safe.
+
+Focused HOST tests and the separately required Kotlin compile gates are green.
+The later activation checkpoint enables R2F.2B while preserving physical
+device acceptance and R2F.2C as separate decisions.
+
+## 2026-10-18 - R2F.2B implementation safety boundary
+
+R2F_2B_20261018_TRANSPORT_ACTIVATION_BLOCKED
+
+This is a bounded implementation observation, not a replacement architecture
+decision. The accepted presentation/semantic separation remains unchanged.
+Prepared UX uses only H1 structural writes, canonical picker identities and
+exact occurrence/container IDs. PRIMARY/LINK admission is atomic in H1.
+
+Activation is withheld: Room evidence shows that native root Add cannot pass
+current complete GroupScope ingress, and scoped-root Move can retain a live
+non-root sidecar which that ingress rejects. Prior command-layer HOST success
+does not prove these product-path roundtrips. Keep the safety gate false;
+do not create fake provenance, infer semantic membership, weaken historical
+Restore/Merge admission or claim physical acceptance. A compatible ingress /
+sidecar lifecycle policy remains unresolved; this task does not decide it.
+107/107 focused tests PASS, including two blocker-characterization tests.
+Schema 199 and Backlog #2 Priority: UNSET remain unchanged.
+
+## 2026-10-17 - H1 A+ consumer structural authority convergence
+
+H1_A_PLUS_CC_20261017_CONSUMER_CONVERGENCE
+
+**Accepted bounded implementation result: product structural
+occurrence commands converge on one H1 typed coordinator.**
+
+H1StructuralMutationCoordinator owns create, placement MoveMany,
+mixed-aware ordering, occurrence/subtree retirement and exact
+historical restore. Structural prospective and persisted graph
+admission occurs transactionally; linked provenance correlation,
+version/dirty history and semantic target liveness are retained.
+
+Context, clipboard, Workspace and MainBeacon consumers preserve
+their enclosing semantic transactions, including GroupScope,
+PART_OF, Direction and Beacon responsibilities. Their semantic
+companion writes are not replaced by structural parent inference.
+
+BigPicturePresentationRepository is not an alternative product
+structural writer: legacy create/update/tombstone/assign/unassign
+are internal compatibility/test operations without production
+callers in the final census. Snapshot/observe, Restore/Merge,
+dirty/delta, ACK and validation remain. Lifecycle reconciliation
+is restricted to legacy occurrence paths.
+
+HOST acceptance: 88/88 focused Room/unit tests PASS and both
+separate Kotlin compile gates PASS. Schema 199 remains the
+baseline. Real Direction companion persistence has not been
+independently established by the mocked parent-plan proof.
+
+This records completed scoped implementation and does not itself
+authorize R2F.2B UI activation, R2F.2C Library Add, a schema
+migration or protected EXP-device execution. Project-wide
+readiness and priorities remain with the Project Orchestrator.
+
+## 2026-10-17 - H1 A+ structural command authority boundary
+
+H1_A_PLUS_20261017_TYPED_WRITER_COMPATIBILITY
+
+**Accepted implementation boundary: one typed logical structural
+coordinator for NEW mixed occurrence/container commands, with
+explicit bounded legacy compatibility until consumer convergence.**
+
+`H1StructuralMutationCoordinator` owns typed structural intent:
+Root/Occurrence/Container destinations, mixed immediate sibling
+ordering, nearest-occurrence ancestry, live container membership,
+container anchor and nested-parent propagation. Changes to H1
+placements, containers and memberships are validated and committed
+in one Room transaction with monotonic version/dirty updates.
+Deleting a generic container promotes ALL direct live mixed children
+in relative order, tombstones the container and retains semantic
+targets and historical records.
+
+Existing occurrence-only writers are not silently treated as typed
+commands. Their reorder APIs reject incomplete mixed typed levels;
+move/create have bounded admission and lifecycle compatibility
+constraints. Uniform container-owned source sibling moves may use
+the legacy cleanup path. Semantic compound writers, GroupScope,
+Workspace/Beacon authorities, transport and Restore/Merge admission
+retain their separate responsibilities.
+
+This is NOT a decision to activate R2F.2B or R2F.2C and NOT proof
+of complete global single-writer cutover. Direct presentation
+mutation entry points and legacy occurrence create/remove/restore
+remain explicit consumer-convergence work. In particular,
+`reconcileLegacyOccurrenceMutation` is compatibility cleanup,
+never an independent generic typed-structure mutation authority.
+
+Consolidated HOST JUnit acceptance: nine suites, 59/59 PASS with
+zero failures/errors/skips. The Context parent-plan Room rollback
+proof mocks the ContextRepository semantic companion and does not
+assert real Direction companion writes. No schema migration,
+protected EXP-device deployment or semantic authority rewrite.
+
+The prior CA peer-conflict/Policy B decision remains in effect.
+
+## 2026-10-17 - H1 peer admission and Policy B decision
+
+H1_CA_20261017_COMPAT_CONFLICT_ADMISSION
+
+**Accepted implementation decision, HOST VERIFIED: immutable
+versioned peer payload at equal record version.**
+
+For H1 placements, Big Picture containers and memberships:
+incoming higher versions can win subject to structural validation;
+lower versions are stale; equal versions are admissible ONLY for
+identical transport payload, ignoring receiver-owned syncedAt.
+Different updatedAt, title, structural parent, sibling order,
+membership target or deletion at the same version is a conflict.
+There is no timestamp or tombstone tie-break for divergence.
+Deletion is a semantic mutation and must increment version.
+
+Container metadata and structure share one record version.
+Independent same-version rename and Move cannot be silently
+merged. Existing id+version ACK remains valid only under
+version-monotonic writer ownership; that requirement is not yet
+proven across all future production structural writers.
+
+Historical Policy B nondeleted memberships referencing tombstoned
+containers remain durable inert transport history. The live
+projector excludes such edges without deleting records, while
+still validating all references and active typed topology.
+
+Peer Merge checks the final unified graph after the H1 and
+presentation streams inside one enclosing Room transaction.
+Exact Restore uses separate semantics: prospective decoded graph
+validation before clear and final graph validation before commit.
+Neither ingress gate is a structural command coordinator.
+
+Evidence: six HOST JUnit XML classes, 57/57 PASS, no failures,
+errors or skips. Single-writer authority, normalized mixed order
+and production deletion/promotion remain future cutover decisions.
+Earlier spike hazards below are historical PRE-CA observations.
+
+## 2026-10-17 - H1 Option A+ feasibility decision [HISTORICAL PRE-CA CHECKPOINT]
+
+H1_SPIKE_20261017_A_PLUS_VERDICT
+
+**Decision: A+ SAFE for lossless schema-199 typed-graph encoding
+subject to explicit compatibility and coordinator contracts.**
+NOT an authorization to activate production H1 mixed mutations.
+No typed-node table is justified by the present evidence.
+
+The single logical structural authority owns nodes
+Occurrence(PlacementId) and Container(ContainerId), each with one
+effective immediate typed parent or root and one ordered sibling slot.
+Occurrence membership overrides the immediate H1 occurrence parent
+ONLY when the membership is active in a live container.
+Nearest-occurrence ancestry remains in parentPlacementId; container
+anchorPlacementId is the same ancestry for a container.
+Nested parentContainerId remains within that anchor. Typed identity
+prevents equal String IDs across kinds from aliasing.
+
+Stored live graph must be composite-acyclic, closed under references
+and strict about anchors and parents. Historical deleted/inert rows
+must survive intact for Restore/Merge/Sync and anti-resurrection;
+they must not be mistaken for current active edges. The present pure
+proof projector is stricter than historical policy B and is NOT yet
+a production-compatible materialization.
+
+Mixed order uses the existing container and occurrence siblingOrder
+columns; no independent membership order. Stable typed/id tie-break
+supports historical collisions. Future explicit reorder normalizes
+the complete mixed sibling set and versions every modified row.
+Atomic Move coordinates H1 ancestry, membership and mixed order.
+Container deletion atomically tombstones the container and promotes
+ALL direct live occurrence and container children into its typed
+parent preserving their relative order. It never deletes occurrences
+or semantic entities. The old policy-B reject/inert behavior remains
+historical, not the new deletion command.
+
+**Confirmed current Sync hazard:** presentation and H1 merge may
+accept same-version divergent structural state by updatedAt. ACK
+checks id/version only. Two HOST-GREEN characterization tests reproduce
+an accepted membership/container-parent conflict followed by stale
+ACK incorrectly clearing dirty state. Current production A+ cutover
+MUST reject divergent equal-version structural changes irrespective
+of clock; require monotonic semantic revisions, idempotent replay,
+strict dependency admission and version-safe ACK. Future distributed
+merge must atomically validate a complete prospective typed graph and
+fail closed on noncommuting structural changes. No operation-ID schema
+requirement has been proven; neither may its absence be ignored.
+
+Wi-Fi full canonical hierarchy/presentation dependency envelopes and
+dirty-only ACK selection already exist. Selective container closure
+is membership-driven and excludes standalone empty containers unless
+the selection contract is deliberately extended. Restore and old
+peer support must preserve optional historical presentation streams
+while rejecting incompatible mixed graphs. GroupScope stays H1
+historical provenance, not a parallel parent authority.
+
+Evidence: H1.6 6, H1.7 4, H1.8D 2, H1.9 3 focused tests reported
+HOST GREEN; no cumulative XML audit. No source schema modification,
+production coordinator cutover, new mutation UX, Sync rewrite,
+protected EXP data operation or physical device acceptance.
+R2F.2B and R2F.2C are still blocked pending implementation gates.
+
+## 2026-10-17 - H1 unified structural direction and proof gate [PRE-SPIKE CHECKPOINT]
+
+**Accepted product architecture direction, NOT a persistence cutover.**
+
+H1 is the intended single logical structural authority for:
+- Occurrence(PlacementId), retaining the canonical entity target
+  and PRIMARY/LINK semantics;
+- Container(ContainerId), with no canonical semantic identity
+  and no HierarchyTarget;
+- typed parent/root, mixed sibling ordering and lifecycle.
+
+GroupScope belongs to H1 as historical provenance/compatibility.
+Generic nesting must not create Orientation/Aspect/Workspace semantic
+relations. Entity Library remains independent from structural layout.
+
+Schema 199 remains the accepted implementation baseline. Its current
+container anchor, nested-container parent, membership and occurrence
+parent fields are NOT yet proven to encode a single unified graph
+without conflicting writers and transport ownership.
+
+The selected next task is an architecture spike evaluating Option A+:
+retain physical schema 199 but make one H1 coordinator the only
+structural writer with a pure typed graph projection.
+
+No A+ verdict has been approved. No schema vNext or migration is
+authorized solely by this decision.
+
+**Future unified-container deletion target:** tombstone container,
+atomically promote ALL direct live child occurrences and containers
+to its parent, preserve relative order, never delete canonical
+entities/occurrences, and fail closed on invariant violation.
+This is a future target, NOT current schema-199 command behavior.
+The historical deletion policy B remains evidence of the prior
+implementation and must not silently be described as this target.
+
+R2F.2A is HOST-verified as a schema-199 integration baseline, with
+physical EXP UX smoke still pending. R2F.2B mutation UX and R2F.2C
+Library Add remain deferred until the structural contract is proven.
+
+Older decisions below remain historical records, not the current
+authorization to expose presentation commands as H1 authority.
+
+## 2026-10-16 - R2F.2A concrete presentation persistence boundary [HISTORICAL CHECKPOINT]
+
+Implementation of the existing Big Picture decision, currently PARTIAL.
+Schema 199 adds independent container identity and placement-keyed membership.
+Containers are not H1 targets or semantic subjects. Optional anchorPlacementId
+identifies the H1 sibling level; parentContainerId nests sections at that same
+level. Assigning an occurrence cannot implicitly change its H1 parent.
+Membership has no independent order: mixed sequence compares container order
+with H1 occurrence order, then typed stable ties. Root occurrences may remain
+uncontained. No target-class restriction applies.
+
+Container deletion retains historical memberships inert (policy B), preserves
+targets/placements and rejects live child containers. Existing semantic Group
+creation/deletion and GroupScope/PART_OF contracts are not reused or modified.
+Transport adapters, production read composition and placement lifecycle hooks
+remain required R2F.2A work; do not mistake local repository methods for their
+completion or expose mutation UX prematurely.
+
+## 2026-10-16 - Big Picture adapts the existing hierarchy surface
+
+**R2F.1 COMPLETE / HOST VERIFIED.** Reuse the existing hierarchy destination,
+top bar, breadcrumb navigation and hierarchy cards, with the canonical GENERAL
+placement/GroupScope frame, narrow group display metadata and lightweight catalog.
+A separate parallel Big Picture route/screen
+is not introduced. Existing internal ContextHierarchy naming/route remains a
+navigation compatibility name; it does not define current hierarchy authority.
+
+Library answers what exists. Big Picture projects where occurrences are placed.
+Occurrence identity is placementId; entity identity is the typed canonical
+target. Duplicate appearances are valid and never deduplicated by entity id.
+Focus is local presentation state keyed by placement id. Show only roots at
+entry, then the active unit and its direct children. Breadcrumbs navigate to
+ancestors/root; Back inside focus goes to the parent. Never render a flattened
+expandable tree. Row tap changes focus; separate opening uses canonical entity
+identity. This corrects the initial R2F.1 tree-rendering regression rejected
+by the user. Semantic nesting,
+WorkspaceBinding, Aspect membership and Planning are not inferred from placement.
+
+H1 authority was already activated by H0-H6; R2F.1 changes no persistence or
+authority contract. Preserve synthetic Group/NoGroup/NoBeacon navigation from
+the existing canonical presentation contract: GroupScope assigns exact root
+occurrences; persisted WORKSPACE roots derive NoBeacon. Group title/order is
+display metadata, not H1 parentage. Never infer a grouping from Context parents,
+WorkspaceBinding, equal names or coincident IDs. Unknown/ambiguous catalog targets disable navigation;
+invalid topology uses the existing canonical validator and an Error state.
+
+R2F.1 exposes no placement mutation. R2F.2 must invoke existing H1 commands with
+explicit occurrence identity for add/remove/move/reorder and role operations.
+Removing an occurrence must never silently delete the canonical target.
+Physical UX acceptance for R2F.1 has not yet been performed. Room remains 198.
+
+Implementation conformance to `ENTITY_LIBRARY_BIG_PICTURE_DECISION_2026_10_15`:
+historical Group -> Main Beacon layout is preserved for parity only. It does
+not limit future authored composition. Orientation, Aspect and Workspace may
+be visually nested in any class combination; semantic relations are independent.
+The read surface accepts unassigned roots instead of imposing historical
+GroupScope completeness as universal grammar, without changing legacy ingress
+validation or synthesizing provenance.
+
+Outcome B: existing GroupScope cannot be a generic presentation container.
+Its non-null groupSubjectId is a canonical MAIN_BEACON_GROUP with CUT_OVER
+mapping and PART_OF consistency; creation/deletion uses semantic Group commands.
+BigPictureContainer separates presentation read metadata from entity identity;
+production currently supplies historical origins only. Generic container
+persistence/transport and safe separation from the old mixed semantic writer
+are explicit R2F.2 prerequisites. The focused UX contract records the evidence
+and proposed minimal persistence seam. No new decision marker or schema change.
+
 ## 2026-10-16 - Library naming, sorting and fuzzy inventory search
 
 R2E.3 is COMPLETE / HOST VERIFIED. Product copy uses Library; internal entity

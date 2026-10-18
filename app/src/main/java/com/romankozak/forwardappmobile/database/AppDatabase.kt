@@ -187,8 +187,11 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         UserStateIntervalEntity::class,
         ManagedSubjectEntity::class,
         HierarchyPlacementEntity::class,
+        com.romankozak.forwardappmobile.data.hierarchy.GroupScopeApplicabilityEntity::class,
         HierarchyPlacementGroupScopeEntity::class,
         HierarchyPlacementLinkedAppearanceEntity::class,
+        com.romankozak.forwardappmobile.data.hierarchy.container.BigPictureContainerEntity::class,
+        com.romankozak.forwardappmobile.data.hierarchy.container.BigPictureMembershipEntity::class,
         com.romankozak.forwardappmobile.data.database.HierarchyAuthorityActivationStateEntity::class,
         com.romankozak.forwardappmobile.data.database.HierarchyEstablishmentOriginEntity::class,
         OrientationEntity::class,
@@ -231,11 +234,12 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 198,
+    version = 200,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun groupScopeApplicabilityDao(): com.romankozak.forwardappmobile.data.hierarchy.GroupScopeApplicabilityDao
     abstract fun canonicalEntityCatalogDao():
         com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogDao
 
@@ -347,6 +351,8 @@ abstract class AppDatabase : RoomDatabase() {
         com.romankozak.forwardappmobile.data.planning.strategic.StrategicPlanningAuthorityStateDao
 
     abstract fun hierarchyPlacementDao(): HierarchyPlacementDao
+
+    abstract fun bigPicturePresentationDao(): com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationDao
 
     abstract fun hierarchyPlacementGroupScopeDao(): HierarchyPlacementGroupScopeDao
 

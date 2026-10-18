@@ -33,6 +33,7 @@ internal fun SnapshotBundle.withCanonicalHierarchySelectiveClosure(
         ?: return copy(
             hierarchyPlacements = null,
             hierarchyPlacementGroupScopes = null,
+            groupScopeCoverage = null,
             hierarchyPlacementLinkedAppearances = null,
         )
 
@@ -64,6 +65,10 @@ internal fun SnapshotBundle.withCanonicalHierarchySelectiveClosure(
         hierarchyPlacements = closure.placements,
         hierarchyPlacementGroupScopes = closure.groupScopes,
         hierarchyPlacementLinkedAppearances = closure.linkedAppearances,
+        groupScopeCoverage = source.groupScopeCoverage?.let { payload ->
+            val selected = closure.placements.mapTo(hashSetOf()) { it.id }
+            payload.copy(records = payload.records.filter { it.placementId in selected })
+        },
     )
 }
 
@@ -134,7 +139,20 @@ private fun SnapshotBundle.buildCanonicalHierarchySelectiveClosure(
         }
     }
 
-    require(liveScopeByPlacementId.keys == liveRootSubjectIds) {
+    val modes = groupScopeCoverage?.let { coverage ->
+        require(coverage.formatVersion == 1) { "Unsupported coverage version" }
+        val expected = placements.filter { it.targetType == "MANAGED_SUBJECT" }.mapTo(hashSetOf()) { it.id }
+        require(coverage.records.mapTo(hashSetOf()) { it.placementId } == expected && coverage.records.size == expected.size) { "Incomplete applicability coverage" }
+        require(coverage.records.all { it.mode in setOf("NATIVE", "HISTORICAL", "LEGACY_UNKNOWN") })
+        coverage.records.associate { it.placementId to it.mode }
+    }
+    require(liveScopeByPlacementId.keys.all { modes?.get(it) != "NATIVE" }) { "Native occurrence has active GroupScope" }
+    modes?.filterValues { it == "HISTORICAL" }?.keys?.forEach { id ->
+        require(groupScopes.any { it.placementId == id }) { "Historical occurrence lost GroupScope history" }
+    }
+    val requiredLegacyRoots = liveRootSubjectIds.filterTo(hashSetOf()) { modes == null || modes[it] == "LEGACY_UNKNOWN" }
+    val legacyScopeKeys = liveScopeByPlacementId.keys.filterTo(hashSetOf()) { modes == null || modes[it] == "LEGACY_UNKNOWN" }
+    require(legacyScopeKeys == requiredLegacyRoots) {
         val missing = (liveRootSubjectIds - liveScopeByPlacementId.keys).take(5)
         val extra = (liveScopeByPlacementId.keys - liveRootSubjectIds).take(5)
         "Canonical hierarchy source has incomplete GroupScope provenance; missing=$missing extra=$extra"
@@ -192,7 +210,7 @@ private fun SnapshotBundle.buildCanonicalHierarchySelectiveClosure(
 
     val selectedPlacements = livePlacements.filter { it.id in retainedIds }
     val selectedScopes =
-        liveScopes.filter { scope ->
+        groupScopes.filter { scope ->
             scope.placementId in retainedIds
         }
     val selectedLinkedAppearances =
@@ -209,10 +227,9 @@ private fun SnapshotBundle.buildCanonicalHierarchySelectiveClosure(
             }
             .mapTo(linkedSetOf()) { it.id }
 
-    require(
-        selectedScopes.mapTo(linkedSetOf()) { it.placementId } ==
-            selectedRootSubjectIds,
-    ) {
+    require(selectedScopes.filterNot { it.isDeleted }.mapTo(linkedSetOf()) { it.placementId }
+        .filterTo(hashSetOf()) { modes == null || modes[it] == "LEGACY_UNKNOWN" } ==
+        selectedRootSubjectIds.filterTo(hashSetOf()) { modes == null || modes[it] == "LEGACY_UNKNOWN" }) {
         "Selective hierarchy closure lost exact GroupScope provenance."
     }
 
@@ -355,6 +372,7 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
     val scopedGroupSubjectIds =
         closure.groupScopes
             .asSequence()
+            .filterNot { it.isDeleted }
             .mapNotNull { it.groupSubjectId }
             .toCollection(linkedSetOf())
 
@@ -404,22 +422,30 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
             addAll(retainedSubjectIds)
             addAll(transportedBeaconSubjectIds)
             addAll(requiredGroupSubjectIds)
-        }
+        }.toMutableSet()
+    val aspectsById = source.aspects.orEmpty().associateBy { it.subjectId }
+    val pendingAspectParents = java.util.ArrayDeque(requiredSubjectIds)
+    while (pendingAspectParents.isNotEmpty()) {
+        val id = pendingAspectParents.removeFirst()
+        aspectsById[id]?.parentAspectId?.let { if (requiredSubjectIds.add(it)) pendingAspectParents.add(it) }
+    }
 
     requiredSubjectIds.forEach { subjectId ->
         val subject = requireNotNull(liveSubjectById[subjectId]) {
             "Canonical hierarchy dependency references missing/deleted ManagedSubject $subjectId."
         }
-        require(subject.subjectType == ManagedSubjectType.ORIENTATION.name) {
+        require(subject.subjectType in setOf(ManagedSubjectType.ORIENTATION.name, ManagedSubjectType.ASPECT.name)) {
             "Canonical hierarchy dependency $subjectId is not an Orientation ManagedSubject."
         }
-        requireNotNull(orientationBySubjectId[subjectId]) {
+        require(if (subject.subjectType == "ASPECT") aspectsById[subjectId] != null else orientationBySubjectId[subjectId] != null) {
             "Canonical hierarchy dependency $subjectId has no Orientation row."
         }
     }
 
     retainedSubjectIds.forEach { subjectId ->
-        require(subjectId in transportedBeaconSubjectIds) {
+        require(subjectId in transportedBeaconSubjectIds || source.groupScopeCoverage?.records?.any {
+            it.mode == "NATIVE" && source.hierarchyPlacements.orEmpty().any { p -> p.id == it.placementId && p.targetId == subjectId }
+        } == true) {
             "Selective H1 MANAGED_SUBJECT target $subjectId is not a transported Main Beacon target."
         }
     }
@@ -518,9 +544,9 @@ private fun SnapshotBundle.withCanonicalHierarchyDependencies(
                 baseOrientations,
                 requiredOrientations,
             ) { it.subjectId },
-        aspects = baseAspects,
-        orientationAssessments = baseAssessments,
-        orientationAssessmentRevisions = baseRevisions,
+        aspects = mergeCanonicalById(baseAspects, source.aspects.orEmpty().filter { it.subjectId in requiredSubjectIds }) { it.subjectId },
+        orientationAssessments = mergeCanonicalById(baseAssessments, source.orientationAssessments.orEmpty().filter { it.orientationId in requiredSubjectIds }) { it.orientationId },
+        orientationAssessmentRevisions = mergeCanonicalById(baseRevisions, source.orientationAssessmentRevisions.orEmpty().filter { it.orientationId in requiredSubjectIds }) { it.id },
         legacySubjectMappings =
             mergeCanonicalById(
                 baseMappings,
@@ -562,7 +588,7 @@ private fun requireSelectedGroupScopeSemantics(
 ) {
     val placementById = placements.associateBy { it.id }
     val scopesByTarget =
-        scopes.groupBy { scope ->
+        scopes.filterNot { it.isDeleted }.groupBy { scope ->
             requireNotNull(placementById[scope.placementId]) {
                 "Selected GroupScope ${scope.placementId} lost its H1 placement."
             }.targetId
@@ -589,7 +615,8 @@ private fun requireSelectedGroupScopeSemantics(
                 "Selected NoGroup target $targetId conflicts with live PART_OF membership."
             }
         } else {
-            require(groupedIds == memberships) {
+            val retired = scopes.filter { it.isDeleted && placementById[it.placementId]?.targetId == targetId }.mapNotNullTo(hashSetOf()) { it.groupSubjectId }
+            require(groupedIds.all { it in memberships } && memberships.all { it in groupedIds || it in retired }) {
                 "Selected GroupScope provenance for $targetId does not match PART_OF membership."
             }
         }

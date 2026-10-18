@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureContainerSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureMembershipSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementGroupScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import org.junit.Assert.assertEquals
@@ -116,4 +119,46 @@ class HierarchyPlacementSnapshotBundleTest {
 
         assertEquals(listOf(row), parsed.hierarchyPlacements)
     }
+
+    @Test
+    fun `R2F presentation absent remains distinct from explicit empty`() {
+        val historical = gson.fromJson(
+            """{"snapshotVersion":2}""", SnapshotBundle::class.java,
+        )
+        assertNull(historical.bigPicturePresentation)
+
+        val explicit = gson.fromJson(
+            """{"snapshotVersion":2,"bigPicturePresentation":{"containers":[],"memberships":[],"formatVersion":1}}""",
+            SnapshotBundle::class.java,
+        )
+        assertEquals(BigPicturePresentationSnapshot(), explicit.bigPicturePresentation)
+    }
+
+    @Test
+    fun `R2F presentation bundle roundtrip retains memberships tombstones and sync metadata`() {
+        val original = BigPicturePresentationSnapshot(
+            containers = listOf(
+                BigPictureContainerSnapshot(
+                    id = "section", hierarchyId = "GENERAL", title = "Section",
+                    anchorPlacementId = null, parentContainerId = null,
+                    siblingOrder = 5L, createdAt = 1L, updatedAt = 10L,
+                    syncedAt = 9L, isDeleted = false, version = 2L,
+                ),
+            ),
+            memberships = listOf(
+                BigPictureMembershipSnapshot(
+                    placementId = "placement", hierarchyId = "GENERAL",
+                    containerId = "section", createdAt = 2L, updatedAt = 11L,
+                    syncedAt = 10L, isDeleted = true, version = 3L,
+                ),
+            ),
+        )
+
+        val decoded = gson.fromJson(
+            gson.toJson(SnapshotBundle(version = 2, bigPicturePresentation = original)),
+            SnapshotBundle::class.java,
+        )
+        assertEquals(original, decoded.bigPicturePresentation)
+    }
+
 }

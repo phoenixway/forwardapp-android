@@ -2,6 +2,9 @@ package com.romankozak.forwardappmobile.data.hierarchy
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import javax.inject.Inject
@@ -19,7 +22,7 @@ class CanonicalV2ContextParentPlanWriter
     @Inject
     constructor(
         private val database: AppDatabase,
-        private val repository: CanonicalHierarchyPlacementRepository,
+        private val coordinator: H1StructuralMutationCoordinator,
         private val contextRepository: ContextRepository,
     ) {
         suspend fun execute(
@@ -71,22 +74,27 @@ class CanonicalV2ContextParentPlanWriter
             }
 
             database.withTransaction {
-                removals.forEach { operand ->
-                    repository.removePlacementInCurrentTransaction(
-                        placementId = operand.placementId,
-                        now = now,
-                    )
-                }
+                // Structural authority is H1. All nested coordinator calls
+                // participate in this outer semantic Room transaction.
+                coordinator.removeOccurrences(
+                    placementIds = removals.map { it.placementId },
+                    now = now,
+                )
 
-                repository.movePlacementsInCurrentTransaction(
+                coordinator.moveOccurrences(
                     moves = moves,
                     now = now,
                 )
 
                 creates.forEach { operand ->
-                    repository.createLinkAppearanceInCurrentTransaction(
+                    coordinator.createOccurrence(
                         target = operand.target,
-                        parentPlacementId = operand.parentPlacementId,
+                        placementKind = operand.placementKind,
+                        destination = operand.parentPlacementId?.let {
+                            H1StructuralParent.Node(
+                                H1TypedNode.Occurrence(it.value),
+                            )
+                        } ?: H1StructuralParent.Root,
                         now = now,
                     )
                 }

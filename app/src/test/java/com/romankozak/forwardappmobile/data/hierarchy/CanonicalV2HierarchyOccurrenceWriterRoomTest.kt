@@ -273,10 +273,102 @@ class CanonicalV2HierarchyOccurrenceWriterRoomTest {
         }
     }
 
+
+    @Test
+    fun `late PART_OF rejection rolls back fresh H1 root and GroupScope`() =
+        runBlocking {
+            val db = database()
+            try {
+                group(db, GROUP_A, "legacy-a")
+                subject(db, TARGET)
+                placement(db, "root-a", TARGET)
+                scope(db, "root-a", GROUP_A)
+                partOf(db, "part-a", TARGET, GROUP_A)
+
+                val presentation =
+                    com.romankozak.forwardappmobile.data.hierarchy.container
+                        .BigPicturePresentationRepository(db)
+
+                val beforePlacements =
+                    db.hierarchyPlacementDao().getAll()
+                val beforeScopes =
+                    db.hierarchyPlacementGroupScopeDao().getAll()
+                val beforePresentation = presentation.snapshot()
+                val beforeRelations =
+                    db.orientationDao().getAllOrientationRelations()
+
+                // H1 first creates a new root LINK.
+                // GroupScope then records a syntactically valid group id.
+                // PART_OF reconciliation must reject its noncanonical identity.
+                val failure = runCatching {
+                    writer(db).executeBeaconPlan(
+                        plan = HierarchyActionPlan(
+                            occurrenceScope = listOf(
+                                HierarchyOccurrenceScopeOperand
+                                    .CreateRootLinkAppearance(
+                                        sourceOccurrenceId =
+                                            PlacementId("root-a"),
+                                        target = subjectTarget(TARGET),
+                                        groupSubjectId =
+                                            "cc2c5b-unknown-group",
+                                    ),
+                            ),
+                            semantic = listOf(
+                                HierarchySemanticOperand
+                                    .ReconcileBeaconGroupMembershipFromRootScopes(
+                                        subjectTarget(TARGET),
+                                    ),
+                            ),
+                        ),
+                        now = 20L,
+                    )
+                }.exceptionOrNull()
+
+                assertTrue(
+                    "Expected late PART_OF reconciliation failure: $failure",
+                    failure is IllegalArgumentException &&
+                        failure.message?.contains(
+                            "Root scope references a non-canonical Main Beacon Group",
+                        ) == true,
+                )
+
+                // A failed semantic companion must roll back the earlier
+                // structural creation, its root scope and all presentation
+                // and semantic state in the same Room transaction.
+                assertEquals(
+                    beforePlacements,
+                    db.hierarchyPlacementDao().getAll(),
+                )
+                assertEquals(
+                    beforeScopes,
+                    db.hierarchyPlacementGroupScopeDao().getAll(),
+                )
+                assertEquals(
+                    beforePresentation,
+                    presentation.snapshot(),
+                )
+                assertEquals(
+                    beforeRelations,
+                    db.orientationDao().getAllOrientationRelations(),
+                )
+
+                assertFalse(
+                    db.hierarchyPlacementGroupScopeDao()
+                        .getAll()
+                        .any {
+                            it.groupSubjectId == "cc2c5b-unknown-group"
+                        },
+                )
+            } finally {
+                db.close()
+            }
+        }
+
     private fun writer(db: AppDatabase) =
         CanonicalV2HierarchyOccurrenceWriter(
             database = db,
             repository = CanonicalHierarchyPlacementRepository(db),
+            coordinator = com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(db),
             groupScopeCoordinator = HierarchyPlacementGroupScopeMutationCoordinator(db),
         )
 

@@ -3,6 +3,9 @@ package com.romankozak.forwardappmobile.data.hierarchy
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
 import com.romankozak.forwardappmobile.data.orientation.mainBeaconMembershipRelationId
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
@@ -29,6 +32,7 @@ class CanonicalV2HierarchyOccurrenceWriter
     constructor(
         private val database: AppDatabase,
         private val repository: CanonicalHierarchyPlacementRepository,
+        private val coordinator: H1StructuralMutationCoordinator,
         private val groupScopeCoordinator: HierarchyPlacementGroupScopeMutationCoordinator,
     ) {
         suspend fun executeBeaconPlan(
@@ -176,27 +180,40 @@ class CanonicalV2HierarchyOccurrenceWriter
                     }
                 }
 
-                repository.movePlacementsInCurrentTransaction(
+                // H1 is the sole structural mutation authority.
+                // This batch participates in the outer semantic Room transaction.
+                coordinator.moveOccurrences(
                     moves = moves,
                     now = now,
+                    historicalCompanion = {
+                        setScopes.forEach { operand ->
+                            groupScopeCoordinator.setRootScope(operand.placementId, operand.groupSubjectId, now)
+                        }
+                    },
                 )
 
                 val created = mutableListOf<PlacementId>()
 
                 nestedCreates.forEach { operand ->
                     created +=
-                        repository.createLinkAppearanceInCurrentTransaction(
+                        coordinator.createOccurrence(
                             target = operand.target,
-                            parentPlacementId = requireNotNull(operand.parentPlacementId),
+                            placementKind = PlacementKind.LINK,
+                            destination = H1StructuralParent.Node(
+                                H1TypedNode.Occurrence(
+                                    requireNotNull(operand.parentPlacementId).value,
+                                ),
+                            ),
                             now = now,
                         )
                 }
 
                 rootCreates.forEach { operand ->
                     val placementId =
-                        repository.createLinkAppearanceInCurrentTransaction(
+                        coordinator.createOccurrence(
                             target = operand.target,
-                            parentPlacementId = null,
+                            placementKind = PlacementKind.LINK,
+                            destination = H1StructuralParent.Root,
                             now = now,
                         )
                     groupScopeCoordinator.setRootScope(

@@ -33,6 +33,9 @@ class CanonicalV2HierarchyConsumerReadiness {
         read.hierarchy.occurrences
             .asSequence()
             .filter { it.target.type == HierarchyTargetType.MANAGED_SUBJECT }
+            // CoreLevel is the historical Beacon surface. Generic native
+            // appearances remain available in Big Picture and search only.
+            .filter { it.placementId !in read.nativePlacementIds && read.syntheticScopeFor(it.placementId) != null }
             .map { projected ->
                 val presented =
                     requireNotNull(read.occurrence(projected.placementId)) {

@@ -66,7 +66,7 @@ internal fun MoreBottomSheetContent(
             Spacer(modifier = Modifier.height(16.dp))
             MoreSheetMenuItem(
                 icon = Icons.Outlined.AccountTree,
-                label = "Ієрархія орієнтирів",
+                label = "Big Picture",
                 onClick = onNavigateToProjectHierarchy,
             )
             MoreSheetMenuItem(

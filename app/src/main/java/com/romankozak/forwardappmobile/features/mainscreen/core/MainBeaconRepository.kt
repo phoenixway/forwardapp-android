@@ -2,6 +2,9 @@ package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.hierarchy.toHierarchyOccurrenceRef
 import com.romankozak.forwardappmobile.data.hierarchy.HierarchyPlacementGroupScopeMutationCoordinator
@@ -9,6 +12,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
@@ -38,6 +42,7 @@ class MainBeaconRepository
         private val orientationBridge: MainBeaconOrientationBridge,
         private val hierarchyPlacementRepository: CanonicalHierarchyPlacementRepository,
         private val groupScopeCoordinator: HierarchyPlacementGroupScopeMutationCoordinator,
+        private val h1StructuralMutationCoordinator: H1StructuralMutationCoordinator,
     ) {
         companion object {
             val DefaultLevels: List<MainBeaconLevelType> =
@@ -401,14 +406,14 @@ class MainBeaconRepository
                         contextIds = occurrencesByContextId.keys,
                     )
 
-                // Any removal failure rolls back every earlier Beacon write.
-                val now = System.currentTimeMillis()
-                selected.forEach { (_, occurrence) ->
-                    hierarchyPlacementRepository.removePlacementInCurrentTransaction(
-                        placementId = occurrence.placementId,
-                        now = now,
-                    )
-                }
+                // Structural retirement shares this outer Room transaction
+                // with Beacon associations. The H1 typed graph is authoritative.
+                h1StructuralMutationCoordinator.removeOccurrences(
+                    placementIds = selected.map { (_, occurrence) ->
+                        occurrence.placementId
+                    },
+                    now = System.currentTimeMillis(),
+                )
                 moved
             }
         }
@@ -478,6 +483,67 @@ class MainBeaconRepository
         suspend fun removeContextsFromAllBeacons(contextIds: Set<String>) {
             if (contextIds.isEmpty()) return
             mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
+        }
+
+        /**
+         * Context Clipboard CUT to No beacon.
+         *
+         * Revalidates exact persisted source appearances, then commits
+         * structural retirement and legacy Beacon association cleanup in one
+         * transaction. A failure in either step rolls back both.
+         */
+        suspend fun moveContextsToNoBeaconWithOccurrences(
+            occurrencesByContextId: Map<String, HierarchyOccurrenceRef>,
+        ): Int {
+            if (occurrencesByContextId.isEmpty()) return 0
+
+            return appDatabase.withTransaction {
+                val selected = occurrencesByContextId.toSortedMap().toList()
+
+                require(
+                    selected.map { it.second.placementId }.distinct().size ==
+                        selected.size,
+                ) {
+                    "No beacon CUT contains duplicate occurrence identities"
+                }
+
+                selected.forEach { (contextId, expected) ->
+                    require(
+                        expected.target ==
+                            HierarchyTargetRef(
+                                HierarchyTargetType.WORKSPACE,
+                                contextId,
+                            ),
+                    ) {
+                        "No beacon CUT source $contextId is not its Workspace occurrence"
+                    }
+
+                    val persisted = requireNotNull(
+                        hierarchyPlacementRepository.getPlacement(
+                            expected.placementId,
+                        ),
+                    ) {
+                        "No beacon CUT occurrence missing or retired: $contextId"
+                    }
+
+                    require(persisted.hierarchyId == HierarchyId.GENERAL) {
+                        "No beacon CUT occurrence is outside GENERAL: $contextId"
+                    }
+                    require(persisted.toHierarchyOccurrenceRef() == expected) {
+                        "No beacon CUT occurrence changed: $contextId"
+                    }
+                }
+
+                h1StructuralMutationCoordinator.removeOccurrences(
+                    selected.map { it.second.placementId },
+                )
+
+                mainBeaconDao.deleteContextCrossRefsForContexts(
+                    occurrencesByContextId.keys,
+                )
+
+                selected.size
+            }
         }
 
         /**
@@ -745,10 +811,17 @@ class MainBeaconRepository
                         "Multiple legacy Groups map to the same canonical Group"
                     }
 
+                    // H1 owns canonical Beacon structural creation.
+                    // The enclosing Beacon/GroupScope transaction remains authoritative.
                     val primaryId =
-                        hierarchyPlacementRepository.createPrimaryAppearanceInCurrentTransaction(
+                        h1StructuralMutationCoordinator.createOccurrence(
                             target = target,
-                            parentPlacementId = parentPlacementId,
+                            placementKind = PlacementKind.PRIMARY,
+                            destination = parentPlacementId?.let {
+                                H1StructuralParent.Node(
+                                    H1TypedNode.Occurrence(it.value),
+                                )
+                            } ?: H1StructuralParent.Root,
                             now = beacon.updatedAt,
                         )
                     if (parentPlacementId == null) {
@@ -759,9 +832,10 @@ class MainBeaconRepository
                         )
                         canonicalGroupIds.drop(1).forEach { groupSubjectId ->
                             val linkId =
-                                hierarchyPlacementRepository.createLinkAppearanceInCurrentTransaction(
+                                h1StructuralMutationCoordinator.createOccurrence(
                                     target = target,
-                                    parentPlacementId = null,
+                                    placementKind = PlacementKind.LINK,
+                                    destination = H1StructuralParent.Root,
                                     now = beacon.updatedAt,
                                 )
                             groupScopeCoordinator.setRootScope(

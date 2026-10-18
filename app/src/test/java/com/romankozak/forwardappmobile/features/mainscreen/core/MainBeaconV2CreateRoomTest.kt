@@ -993,6 +993,7 @@ class MainBeaconV2CreateRoomTest {
             orientationBridge = bridge,
             hierarchyPlacementRepository = CanonicalHierarchyPlacementRepository(db),
             groupScopeCoordinator = HierarchyPlacementGroupScopeMutationCoordinator(db),
+            h1StructuralMutationCoordinator = com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(db),
         )
         return repository to bridge
     }

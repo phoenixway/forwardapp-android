@@ -1,5 +1,10 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPictureHierarchyLifecycleCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
+import com.romankozak.forwardappmobile.data.hierarchy.container.projectH1UnifiedStructuralGraph
+
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
@@ -235,6 +240,23 @@ class CanonicalHierarchyPlacementRepository
                     move to requireLivePlacement(prospective, move.placementId)
                 }
 
+            // Compatibility-only: refuse mixed physical sibling levels.
+            // Product typed moves use H1StructuralMutationCoordinator.
+            // Uniform container-owned source siblings may be moved
+            // through the legacy lifecycle compatibility path.
+            requireLegacyPureSiblingLevels(
+                before.values,
+                liveMoves.map { (_, current) -> current.parentPlacementId },
+                allowUniformMembershipSource = true,
+            )
+            // A different destination must be occurrence-only.
+            requireLegacyPureSiblingLevels(
+                before.values,
+                liveMoves.filter { (move, current) ->
+                    move.newParentPlacementId != current.parentPlacementId
+                }.map { (move, _) -> move.newParentPlacementId },
+            )
+
             // Parent changes are projected for the whole batch first. Position
             // references therefore see the final destination sibling set,
             // including other placements moved by the same command.
@@ -265,6 +287,7 @@ class CanonicalHierarchyPlacementRepository
 
             database.requireValidProspectiveHierarchy(prospective.values)
             persistChangedState(before, prospective, now)
+            BigPictureHierarchyLifecycleCoordinator(database).reconcileLegacyOccurrenceMutation(now)
         }
 
         suspend fun reorderPlacement(
@@ -275,6 +298,31 @@ class CanonicalHierarchyPlacementRepository
             database.withTransaction {
                 val before = loadCompleteState()
                 val current = requireLivePlacement(before, placementId)
+
+                // This legacy API reorders the complete physical occurrence
+                // level. Reject when that level is not exactly one typed
+                // sibling namespace (containers or active memberships).
+                val physicalChildren = before.values
+                    .filter {
+                        !it.isDeleted &&
+                            it.hierarchyId == current.hierarchyId &&
+                            it.parentPlacementId == current.parentPlacementId
+                    }
+                    .map { H1TypedNode.Occurrence(it.id.value) }
+                val typedParent = current.parentPlacementId?.value
+                    ?.let(H1TypedNode::Occurrence)
+                val typedChildren = projectH1UnifiedStructuralGraph(
+                    before.values,
+                    BigPicturePresentationRepository(database).snapshot(),
+                ).childrenOf(typedParent).map { it.node }
+                if (
+                    physicalChildren.size != typedChildren.size ||
+                    physicalChildren.toSet() != typedChildren.toSet()
+                ) {
+                    throw HierarchySiblingSetMismatchException(
+                        "Legacy occurrence reorder cannot address mixed typed siblings",
+                    )
+                }
                 val prospective = before.toMutableMap()
 
                 applyPosition(
@@ -312,6 +360,26 @@ class CanonicalHierarchyPlacementRepository
             database.withTransaction {
                 val before = loadCompleteState()
                 parentPlacementId?.let { requireLivePlacement(before, it) }
+
+                // Legacy occurrence-only reorder cannot command a
+                // partial mixed typed sibling namespace.
+                val typedParent = parentPlacementId?.value
+                    ?.let(H1TypedNode::Occurrence)
+                val actualTypedChildren = projectH1UnifiedStructuralGraph(
+                    before.values,
+                    BigPicturePresentationRepository(database).snapshot(),
+                ).childrenOf(typedParent).map { it.node }
+                val requestedTypedChildren = orderedPlacementIds.map {
+                    H1TypedNode.Occurrence(it.value)
+                }
+                if (
+                    actualTypedChildren.size != requestedTypedChildren.size ||
+                    actualTypedChildren.toSet() != requestedTypedChildren.toSet()
+                ) {
+                    throw HierarchySiblingSetMismatchException(
+                        "Occurrence-only reorder cannot address mixed typed siblings",
+                    )
+                }
 
                 val currentIds =
                     before.values
@@ -385,6 +453,7 @@ class CanonicalHierarchyPlacementRepository
             HierarchyPlacementGroupScopeMutationCoordinator(database)
                 .retireScopesForPlacements(orderedIds, now)
             persistChangedState(before, prospective, now)
+            BigPictureHierarchyLifecycleCoordinator(database).reconcileLegacyOccurrenceMutation(now)
             orderedIds
         }
 
@@ -444,6 +513,7 @@ class CanonicalHierarchyPlacementRepository
                     now = now,
                 )
             persistChangedState(before, prospective, now)
+            BigPictureHierarchyLifecycleCoordinator(database).reconcileLegacyOccurrenceMutation(now)
         }
 
         suspend fun restorePlacement(
@@ -508,6 +578,12 @@ class CanonicalHierarchyPlacementRepository
             val before = loadCompleteState()
             if (id in before) throw HierarchyPlacementAlreadyExistsException(id)
 
+            // A new occurrence has no container-aware destination here.
+            requireLegacyPureSiblingLevels(
+                before.values,
+                listOf(parentPlacementId),
+            )
+
             val prospective =
                 before.toMutableMap().apply {
                     this[id] =
@@ -535,8 +611,22 @@ class CanonicalHierarchyPlacementRepository
 
             database.requireValidProspectiveHierarchy(prospective.values)
             persistChangedState(before, prospective, now)
+            // This compatibility entry still creates a NEW canonical occurrence.
+            // Explicit historical callers adopt lineage in their enclosing transaction.
+            GroupScopeCoverageStore(database).recordNative(listOf(prospective.getValue(id)))
             return id
         }
+
+        /**
+         * Bounded legacy admission only. Physical parent levels must be
+         * identical to complete immediate typed occurrence sibling sets.
+         * The canonical mixed structural writer does not use this helper.
+         */
+        private suspend fun requireLegacyPureSiblingLevels(
+            state: Collection<HierarchyPlacement>,
+            parents: Collection<PlacementId?>,
+            allowUniformMembershipSource: Boolean = false,
+        ) = database.requireLegacyOccurrenceSiblingLevels(state, parents, allowUniformMembershipSource)
 
         private suspend fun loadCompleteState(): Map<PlacementId, HierarchyPlacement> =
             dao.getAll()

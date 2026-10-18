@@ -30,7 +30,8 @@ class HierarchyPlacementCanonicalDeltaTest {
 
         val projected = result.mainBeacons.single()
         assertEquals(null, projected.parentBeaconId)
-        assertEquals(0L, projected.order)
+        // H1 owns structural ancestry, not MainBeacon flat-list ordering.
+        assertEquals(staleBeacon.order, projected.order)
     }
 
     @Test
@@ -67,6 +68,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),
@@ -149,6 +151,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),
@@ -194,6 +197,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),
@@ -238,6 +242,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),
@@ -298,6 +303,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),
@@ -364,6 +370,7 @@ class HierarchyPlacementCanonicalDeltaTest {
                 aspects = emptyList(),
                 orientationAssessments = emptyList(),
                 orientationAssessmentRevisions = emptyList(),
+                orientationScoringOverrides = emptyList(),
                 legacySubjectMappings = emptyList(),
                 orientationRelations = emptyList(),
                 aspectOrientationRefs = emptyList(),

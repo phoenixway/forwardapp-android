@@ -20,6 +20,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,7 +45,7 @@ fun CanonicalEntityBrowserContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        CanonicalEntityBrowserSearch(searchText = searchText, onSearchChange = onSearchChange)
+        CanonicalEntityBrowserSearch(initialSearchText = searchText, onSearchChange = onSearchChange)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -66,18 +71,27 @@ fun CanonicalEntityBrowserContent(
 
 @Composable
 fun CanonicalEntityBrowserSearch(
-    searchText: String,
+    initialSearchText: String,
     onSearchChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Result flows can lag behind typing. Keep text, selection and IME composition
+    // local so a completed older query cannot overwrite a newer edit.
+    var input by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(initialSearchText))
+    }
     OutlinedTextField(
-        value = searchText,
-        onValueChange = onSearchChange,
+        value = input,
+        onValueChange = { next ->
+            val changed = next.text != input.text
+            input = next
+            if (changed) onSearchChange(next.text)
+        },
         label = { Text("Пошук") },
         singleLine = true,
         trailingIcon = {
-            if (searchText.isNotEmpty()) {
-                IconButton(onClick = { onSearchChange("") }) {
+            if (input.text.isNotEmpty()) {
+                IconButton(onClick = { input = TextFieldValue(""); onSearchChange("") }) {
                     Icon(Icons.Default.Clear, contentDescription = "Очистити пошук")
                 }
             }

@@ -31,6 +31,35 @@ class HierarchyPlacementGroupScopeMutationCoordinatorRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun `generic mixed Move preserves PART_OF while retiring only exact historical group provenance`() = runBlocking {
+        val db = database()
+        try {
+            group(db, GROUP_A, "legacy-a")
+            group(db, GROUP_B, "legacy-b")
+            subject(db, TARGET)
+            placement(db, "root-a", TARGET)
+            placement(db, "root-b", TARGET)
+            // Two appearances of one target must not collide on PRIMARY identity.
+            val second = requireNotNull(db.hierarchyPlacementDao().getById("root-b"))
+            db.hierarchyPlacementDao().upsert(second.copy(placementKind = "LINK"))
+            scope(db, "root-a", GROUP_A)
+            scope(db, "root-b", GROUP_B)
+            partOf(db, "part-a", TARGET, GROUP_A)
+            partOf(db, "part-b", TARGET, GROUP_B)
+            val relations = db.orientationDao().getAllOrientationRelations()
+            val writer = com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator(db)
+            val section = writer.createContainer("Section", com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent.Root, now = 30)
+            writer.moveNode(com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode.Occurrence("root-a"),
+                com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent.Node(
+                    com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode.Container(section)), now = 31)
+            assertTrue(requireNotNull(db.hierarchyPlacementGroupScopeDao().getByPlacementId("root-a")).isDeleted)
+            assertFalse(requireNotNull(db.hierarchyPlacementGroupScopeDao().getByPlacementId("root-b")).isDeleted)
+            assertEquals(relations, db.orientationDao().getAllOrientationRelations())
+            HierarchyPlacementGroupScopeMutationCoordinator(db).validateAuthoritativeState()
+        } finally { db.close() }
+    }
+
+    @Test
     fun `target lifecycle tombstones occurrence Group scope`() = runBlocking {
         val db = database()
         try {
