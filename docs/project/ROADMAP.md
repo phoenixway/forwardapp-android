@@ -1,5 +1,17 @@
 # ForwardApp Roadmap
 
+## 2026-10-19 - Recurrence Planning SOURCE seam closed
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+- IMPLEMENTED / HOST VERIFIED; physical smoke pending.
+- Existing recurrence-v2 Task templates carry typed SOURCE; Orientation-only
+  participation and per-occurrence reference lifecycle converge atomically.
+- Conversion/split/detach/delete/stop and future materialization are covered.
+- HOST XML 108/108, both separate Kotlin compile gates, shared JS distribution
+  and generated TypeScript validation PASS; Room 201 unchanged.
+- No new milestone/priority selection; Backlog #2 remains Priority UNSET.
+
 ## 2026-10-19 - Canonical operational Planning layer complete
 
 CANONICAL_PLANNING_REFERENCES_PHYSICAL_ACCEPTED_20261019

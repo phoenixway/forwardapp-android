@@ -9,6 +9,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningRepository
+import com.romankozak.forwardappmobile.data.planning.day.PlanningDaySourceWriter
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceOccurrenceId
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceFrequency
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceRule
@@ -34,6 +37,11 @@ import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
 class CanonicalFocusRecurrenceRoomAcceptanceTest {
+    private fun planningSources(db: AppDatabase): RecurrencePlanningSourceBridge {
+        val references = CanonicalPlanningReferenceRepository(db)
+        val planning = CanonicalPlanningRepository(db, db.planningDao(), db.dayPlanningScopeExtensionDao(), db.tacticalPlanningScopeExtensionDao())
+        return RecurrencePlanningSourceBridge(db, references, PlanningDaySourceWriter(db, references, planning))
+    }
     private lateinit var context: Context
     private lateinit var db: AppDatabase
     private lateinit var previousTimeZone: TimeZone
@@ -100,6 +108,7 @@ class CanonicalFocusRecurrenceRoomAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = db,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = planningSources(db),
             )
         var authoring =
             CanonicalFocusRecurrenceAuthoringAdapter(
@@ -187,6 +196,7 @@ class CanonicalFocusRecurrenceRoomAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = db,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = planningSources(db),
             )
         authoring =
             CanonicalFocusRecurrenceAuthoringAdapter(

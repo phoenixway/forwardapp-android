@@ -162,6 +162,7 @@ class CanonicalFocusRecurrenceRoomAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = db,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = recurrencePlanningSources(db),
             )
         val authoring =
             CanonicalFocusRecurrenceAuthoringAdapter(
@@ -248,6 +249,7 @@ class CanonicalFocusRecurrenceRoomAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = db,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = recurrencePlanningSources(db),
             )
 
         val firstPass =

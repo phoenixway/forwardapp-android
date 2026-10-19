@@ -262,6 +262,8 @@ fun createRecurringTaskTemplateForJs(
     projectId: String?,
     taskType: String?,
     executionStrictness: String?,
+    planningSourceKind: String? = null,
+    planningSourceId: String? = null,
 ): RecurringTaskTemplate =
     RecurringTaskTemplate(
         title = title,
@@ -279,6 +281,11 @@ fun createRecurringTaskTemplateForJs(
         projectId = projectId,
         taskType = taskType,
         executionStrictness = executionStrictness,
+        planningSource = if (planningSourceKind == null && planningSourceId == null) null else
+            com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskPlanningSource(
+                enumValueOf<com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSourceKind>(requireNotNull(planningSourceKind)),
+                requireNotNull(planningSourceId),
+            ),
     )
 
 @JsExport

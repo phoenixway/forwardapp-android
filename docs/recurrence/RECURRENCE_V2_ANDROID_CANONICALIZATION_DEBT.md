@@ -6,6 +6,30 @@
 
 ## Summary
 
+### 2026-10-19 - Typed Task creation source integration
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+HOST implemented; physical smoke pending. The existing Task template may carry
+optional `planningSource { kind, id }` (ORIENTATION / ASPECT / WORKSPACE), retained
+by shared KMP, the JS factory, Desktop's technical adapter, Room templateJson and
+existing SnapshotBundle template transport. Missing legacy fields stay absent;
+goal/project identifiers never infer typed source. Room remains 201.
+
+Android task conversion/split/detach and materialization now coordinate SOURCE,
+per-occurrence RELATED and Orientation-only DAY.TASK participation through the
+existing Planning authorities, in the same recurrence transaction. Delete/stop
+retire owned metadata. Existing imported occurrences can receive missing explicit
+template metadata, without resurrecting SOURCE tombstones. Unavailable source
+targets cannot create new live occurrences. No alternate scheduler or semantic/
+structural identity is introduced. Focus/responsibility recurrence is unchanged.
+
+HOST XML: 108/108 / 17 classes (74 app + 34 shared). Both separate Kotlin compile
+gates and shared JS distribution/generated TypeScript validation PASS. Exact
+classes and invariants: `../architecture/CANONICAL-PLANNING-CONTRACT-V3.md`.
+No Android instrumentation/full Desktop application suite or phone deployment
+is claimed for this checkpoint.
+
 Recurrence-v2 canonicalization is no longer deferred architectural debt.
 
 The repository now contains one shared KMP recurrence model/domain used by both

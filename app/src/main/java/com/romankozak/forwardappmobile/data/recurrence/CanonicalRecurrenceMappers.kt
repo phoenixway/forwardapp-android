@@ -78,7 +78,7 @@ fun CanonicalRecurringSeriesEntity.toCanonicalSeries(
                 rule = rule,
                 startDayKey = startDayKey,
                 endDayKey = endDayKey,
-                template = gson.fromJson(templateJson, RecurringTaskTemplate::class.java),
+                template = decodeTaskRecurrenceTemplate(templateJson, gson),
             )
 
         RecurringSeriesKind.FOCUS ->

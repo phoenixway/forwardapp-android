@@ -1,5 +1,23 @@
 # ForwardApp Decisions
 
+## 2026-10-19 - Recurring Task creation provenance remains typed Planning SOURCE
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+Retain recurrence-v2 scheduling/identity authority. Its existing JSON Task
+template may hold an optional typed canonical creation source. Android derives
+per-occurrence SOURCE and Orientation-only DAY.TASK participation through the
+existing Planning authorities, fused with recurrence writes in Room transactions.
+Aspect/Workspace never become PlanningCommitment. RELATED remains per occurrence.
+
+Replacing execution IDs (conversion/split/detach) must also replace ownership of
+references/participation; old metadata is tombstoned/versioned, not stranded or
+physically erased. Recurrence deletion/stop retires the same metadata. Explicit
+source-reference tombstones block metadata repair. Legacy templates without
+SOURCE are not reinterpreted using raw IDs, title matching or RelatedLink.
+This extends neither semantic/H1 ownership nor PlanningCommitment recurrence.
+Existing JSON/transport suffice; Room remains 201.
+
 ## 2026-10-19 - Day participation history, task recurrence and Theme carry-forward
 
 DAY_CARRY_FORWARD_HOST_20261019

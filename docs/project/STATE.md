@@ -1,5 +1,31 @@
 # ForwardApp Project State
 
+## 2026-10-19 - Recurrence-v2 typed Planning SOURCE integration
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+**IMPLEMENTED / HOST VERIFIED; PHYSICAL ACCEPTANCE PENDING.** Room **201 -> 201**.
+
+The previously reported Task recurrence/SOURCE seam is closed. The existing KMP
+Task template carries an optional exact typed SOURCE (Orientation/Aspect/Workspace)
+inside existing template JSON and SnapshotBundle transport. Absence in older
+templates remains absence; goalId/projectId/title do not infer canonical source.
+
+Conversion/split/detach transfer SOURCE and per-occurrence RELATED to the new
+exact execution identity, retiring old references/participation atomically.
+Future Android occurrences get SOURCE and, for Orientation only, DAY.TASK
+participation of the same semantic identity. Delete/stop retire owned metadata.
+Existing imported occurrences can receive missing explicit template metadata;
+reference tombstones are never revived by this repair. Unavailable sources do
+not materialize new live occurrences. No H1, bindings or semantic identities are
+created. Series editing retains SOURCE; RELATED is not a series-wide template.
+
+HOST XML: **108/108 in 17 classes** (74 app + 34 shared KMP; 18 new tests), zero
+failures/errors/skips. Both separate Kotlin compile gates and the shared JS
+production distribution/generated TypeScript validation PASS. Focused contract:
+`docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md`. No device deployment.
+Backlog #2 remains independent / Priority UNSET.
+
 ## 2026-10-19 - Day task carry-forward and one-off/carry Theme mode
 
 DAY_CARRY_FORWARD_HOST_20261019
@@ -27,11 +53,9 @@ including 20 new tests. Both separate Kotlin compile gates and diff check PASS.
 Exact counts and behavior: `docs/architecture/CANONICAL-PLANNING-CONTRACT-V3.md`.
 No device deployment or physical acceptance is claimed. Backlog #2 is unchanged.
 
-Observed separate gap: recurrence-v2 templates preserve legacy goalId but do not
-yet propagate generic typed Planning SOURCE/participation to future occurrences.
-This was not silently replaced with RelatedLink or identity inference; completing
-that shared-template/transport integration is a separate medium-sized change,
-not a newly selected milestone or priority.
+At this carry-forward checkpoint the separate recurrence-v2 generic SOURCE gap
+was still open. It is now closed by RECURRENCE_PLANNING_SOURCE_HOST_20261019 above;
+no RelatedLink substitution or identity inference was introduced.
 
 ## 2026-10-19 - Semantic editor linked Workspace navigation and source deletion
 

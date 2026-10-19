@@ -61,6 +61,8 @@ data class RecurringTaskTemplate(
     val projectId: String? = null,
     val taskType: String? = null,
     val executionStrictness: String? = null,
+    /** Explicit creation source; absent in older templates. Never inferred from goalId/projectId. */
+    val planningSource: RecurringTaskPlanningSource? = null,
 )
 
 /** Content/defaults copied into a FOCUS or RESPONSIBILITY DayFocusItem. */

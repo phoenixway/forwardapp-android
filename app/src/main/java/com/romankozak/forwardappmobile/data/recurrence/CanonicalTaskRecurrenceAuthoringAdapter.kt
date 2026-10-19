@@ -1,18 +1,15 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority as AndroidTaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.dao.CanonicalTaskSplitSourceVersion
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.compareLocalDayKeys
-import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyDayOfWeek
-import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyOf
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.previousLocalDayKey
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceOccurrenceId
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceRuleMatchesDay
-import com.romankozak.forwardappmobile.shared.core.models.day.TaskPriority as CanonicalTaskPriority
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceFrequency
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceRule
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
@@ -35,6 +32,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
     constructor(
         private val appDatabase: AppDatabase,
         private val materializationAdapter: CanonicalRecurrenceMaterializationAdapter,
+        private val planningSources: RecurrencePlanningSourceBridge,
     ) {
         suspend fun createSeriesForPlan(
             dayPlanId: String,
@@ -53,7 +51,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             scheduledTime: Long? = null,
             dueTime: Long? = null,
             order: Long? = null,
-        ): DayTask {
+            planningSource: com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskPlanningSource? = null,
+        ): DayTask = appDatabase.withTransaction {
             require(title.isNotBlank()) { "Canonical recurring task title must not be blank" }
 
             val dayPlan =
@@ -93,7 +92,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     template = template,
                 )
 
-            appDatabase.canonicalRecurringSeriesDao().insert(series.toAndroidEntity())
+            require(planningSources.available(planningSource)) { "Recurring task source is unavailable" }
+            appDatabase.canonicalRecurringSeriesDao().insert(series.copy(template = template.copy(planningSource = planningSource)).toAndroidEntity())
 
             val materialization =
                 materializationAdapter.materializeForDate(
@@ -126,7 +126,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             if (authoredOccurrence != occurrence) {
                 appDatabase.dayTaskDao().update(authoredOccurrence)
             }
-            return authoredOccurrence
+            planningSources.materialize(authoredOccurrence, planningSource, now)
+            return@withTransaction authoredOccurrence
         }
 
         suspend fun convertOneOffToSeries(
@@ -143,7 +144,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             points: Int,
             executionStrictness: TaskExecutionStrictness,
             rule: RecurrenceRule,
-        ): DayTask {
+        ): DayTask = appDatabase.withTransaction {
             require(task.recurrenceSeriesId == null) {
                 "Cannot convert already-canonical recurring task ${task.id}"
             }
@@ -188,7 +189,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     rule = canonicalRule,
                     startDayKey = startDayKey,
                     endDayKey = null,
-                    template = template,
+                    template = template.copy(planningSource = planningSources.source(task.id)),
                 )
 
             val occurrence =
@@ -229,7 +230,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 updatedAt = now,
             )
 
-            return checkNotNull(
+            planningSources.replace(task, occurrence, now)
+            return@withTransaction checkNotNull(
                 appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(occurrence.id),
             ) {
                 "Canonical recurring task occurrence was not persisted: ${occurrence.id}"
@@ -250,7 +252,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             points: Int,
             executionStrictness: TaskExecutionStrictness,
             rule: RecurrenceRule,
-        ): DayTask {
+        ): DayTask = appDatabase.withTransaction {
             val oldSeriesId =
                 requireNotNull(task.recurrenceSeriesId) {
                     "Cannot split recurrence for non-recurring task ${task.id}"
@@ -326,11 +328,12 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     rule = canonicalRule,
                     startDayKey = splitDayKey,
                     endDayKey = null,
-                    template = nextTemplate,
+                    template = nextTemplate.copy(planningSource = storedSeries.template.planningSource),
                 )
 
             val liveSourceOccurrences = mutableListOf<CanonicalTaskSplitSourceVersion>()
             val replacementOccurrences = mutableListOf<DayTask>()
+            val replacementBySource = mutableMapOf<String, DayTask>()
             var selectedReplacement: DayTask? = null
 
             occurrences.forEach { source ->
@@ -457,6 +460,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 version = 1,
                             )
                         replacementOccurrences += replacement
+                        replacementBySource[source.id] = replacement
                         if (isSelected) {
                             selectedReplacement = replacement
                         }
@@ -474,7 +478,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 syncedAt = null,
                                 isDeleted = false,
                                 version = 1,
-                            )
+                            ).also { replacementBySource[source.id] = it }
                     }
                 }
             }
@@ -494,7 +498,10 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 updatedAt = now,
             )
 
-            return checkNotNull(
+            occurrences.filter { !it.isDeleted && it.recurrenceOccurrenceDayKey!! >= splitDayKey }.forEach { source ->
+                planningSources.replace(source, replacementBySource[source.id], now)
+            }
+            return@withTransaction checkNotNull(
                 appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(returnedOccurrence.id),
             ) {
                 "Split canonical task occurrence was not persisted: ${returnedOccurrence.id}"
@@ -514,58 +521,10 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             estimatedDurationMinutes: Long?,
             points: Int,
             executionStrictness: TaskExecutionStrictness,
-        ): DayTask {
-            require(task.recurrenceSeriesId != null) {
-                "Cannot edit canonical occurrence for non-recurring task ${task.id}"
-            }
-            require(task.recurrenceOccurrenceDayKey != null) {
-                "Canonical task has no occurrence day key: ${task.id}"
-            }
-            require(!task.isDeleted) {
-                "Cannot edit deleted canonical task occurrence ${task.id}"
-            }
-
-            val template =
-                buildTemplate(
-                    title = title,
-                    description = description,
-                    goalId = goalId,
-                    projectId = projectId,
-                    taskType = taskType,
-                    linkedProjectIds = linkedProjectIds,
-                    linkedAttachmentIds = linkedAttachmentIds,
-                    priority = priority,
-                    estimatedDurationMinutes = estimatedDurationMinutes,
-                    points = points,
-                    executionStrictness = executionStrictness,
-                )
-            val now = System.currentTimeMillis()
-            val updated =
-                task.copy(
-                    title = template.title,
-                    description = template.description,
-                    goalId = template.goalId,
-                    projectId = template.projectId,
-                    projectWorkspaceId = null,
-                    linkedProjectIds = template.linkedProjectIds,
-                    linkedAttachmentIds = template.linkedAttachmentIds,
-                    taskType = effectiveTaskType(template),
-                    priority = priority,
-                    estimatedDurationMinutes = template.estimatedDurationMinutes,
-                    executionStrictness = effectiveExecutionStrictness(template),
-                    points = template.points,
-                    updatedAt = now,
-                    syncedAt = null,
-                    version = task.version + 1,
-                )
-
-            appDatabase.dayTaskDao().update(updated)
-            return checkNotNull(
-                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(updated.id),
-            ) {
-                "Updated canonical task occurrence was not persisted: ${updated.id}"
-            }
-        }
+        ): DayTask = updateCurrentTaskOccurrence(
+            appDatabase, task, title, description, goalId, projectId, taskType,
+            linkedProjectIds, linkedAttachmentIds, priority, estimatedDurationMinutes, points, executionStrictness,
+        )
 
         suspend fun updateSeriesTemplate(
             task: DayTask,
@@ -624,7 +583,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     updatedAt = now,
                     syncedAt = null,
                     version = nextVersion,
-                    template = nextTemplate,
+                    template = nextTemplate.copy(planningSource = storedSeries.template.planningSource),
                 )
 
             val occurrences = seriesDao.getTaskOccurrencesForSeries(seriesId)
@@ -685,7 +644,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
          * The row remains as a canonical tombstone with its recurrence provenance,
          * so deterministic materialization cannot recreate the same series/day key.
          */
-        suspend fun deleteCurrentOccurrence(task: DayTask): DayTask {
+        suspend fun deleteCurrentOccurrence(task: DayTask): DayTask = appDatabase.withTransaction {
             val seriesId =
                 requireNotNull(task.recurrenceSeriesId) {
                     "Cannot delete canonical occurrence for non-recurring task ${task.id}"
@@ -709,7 +668,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 "Cannot delete stale or detached canonical task occurrence: ${task.id}"
             }
 
-            return task.copy(
+            planningSources.retire(task.id, now)
+            return@withTransaction task.copy(
                 isDeleted = true,
                 updatedAt = now,
                 syncedAt = null,
@@ -724,7 +684,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
          * ends on D-1, while the selected and already-materialized future occurrences
          * are retained as tombstones so sync/materialization cannot resurrect them.
          */
-        suspend fun stopSeriesFromOccurrence(task: DayTask) {
+        suspend fun stopSeriesFromOccurrence(task: DayTask): Unit = appDatabase.withTransaction {
             val seriesId =
                 requireNotNull(task.recurrenceSeriesId) {
                     "Cannot stop recurrence for non-recurring task ${task.id}"
@@ -766,9 +726,12 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 endDayKey = previousLocalDayKey(stopDayKey),
                 updatedAt = now,
             )
+            seriesDao.getTaskOccurrencesForSeries(seriesId)
+                .filter { it.isDeleted && it.recurrenceOccurrenceDayKey!! >= stopDayKey }
+                .forEach { planningSources.retire(it.id, now) }
         }
 
-        suspend fun detachCurrentOccurrence(task: DayTask): DayTask {
+        suspend fun detachCurrentOccurrence(task: DayTask): DayTask = appDatabase.withTransaction {
             val seriesId =
                 requireNotNull(task.recurrenceSeriesId) {
                     "Cannot detach non-recurring task ${task.id} from canonical recurrence"
@@ -801,7 +764,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 detachedTask = detached,
                 updatedAt = now,
             )
-            return detached
+            planningSources.replace(task, detached, now)
+            return@withTransaction detached
         }
 
         suspend fun getSeriesForOccurrence(task: DayTask): RecurringTaskSeries? {
@@ -814,89 +778,5 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 "Canonical series $seriesId is ${series.kind}, not TASK"
             }
             return series
-        }
-
-        private fun DayTask.matchesTemplate(template: RecurringTaskTemplate): Boolean =
-            title == template.title &&
-                description?.trim()?.takeIf { it.isNotEmpty() } ==
-                template.description?.trim()?.takeIf { it.isNotEmpty() } &&
-                goalId == template.goalId &&
-                logicalProjectId == template.projectId &&
-                linkedProjectIds.orEmpty() == template.linkedProjectIds &&
-                linkedAttachmentIds.orEmpty() == template.linkedAttachmentIds &&
-                taskType == effectiveTaskType(template) &&
-                priority.name == template.priority.name &&
-                estimatedDurationMinutes == template.estimatedDurationMinutes &&
-                executionStrictness == effectiveExecutionStrictness(template) &&
-                points == template.points
-
-        private fun effectiveTaskType(template: RecurringTaskTemplate): String? =
-            template.taskType ?: if (template.goalId != null) "GOAL" else null
-
-        private fun effectiveExecutionStrictness(
-            template: RecurringTaskTemplate,
-        ): TaskExecutionStrictness =
-            TaskExecutionStrictness.valueOf(template.executionStrictness ?: "NORMAL")
-
-        private fun buildTemplate(
-            title: String,
-            description: String?,
-            goalId: String?,
-            projectId: String?,
-            taskType: String?,
-            linkedProjectIds: List<String>,
-            linkedAttachmentIds: List<String>,
-            priority: AndroidTaskPriority,
-            estimatedDurationMinutes: Long?,
-            points: Int,
-            executionStrictness: TaskExecutionStrictness,
-        ): RecurringTaskTemplate =
-            RecurringTaskTemplate(
-                title = title.trim(),
-                description = description?.trim()?.takeIf { it.isNotEmpty() },
-                goalId = goalId,
-                linkedProjectIds = linkedProjectIds.filter { it.isNotBlank() }.distinct(),
-                linkedAttachmentIds = linkedAttachmentIds.filter { it.isNotBlank() }.distinct(),
-                priority = CanonicalTaskPriority.valueOf(priority.name),
-                estimatedDurationMinutes = estimatedDurationMinutes,
-                points = points,
-                projectId = projectId,
-                taskType = taskType,
-                executionStrictness = executionStrictness.name,
-            )
-
-        private fun RecurrenceRule.normalizedForSeriesStart(startDayKey: String): RecurrenceRule {
-            require(interval >= 1) { "Invalid recurrence interval: $interval" }
-
-            return when (frequency) {
-                RecurrenceFrequency.WEEKLY -> {
-                    val selectedDays = daysOfWeek.orEmpty()
-                    if (selectedDays.isEmpty()) {
-                        copy(daysOfWeek = null)
-                    } else {
-                        val startDay = localDayKeyDayOfWeek(startDayKey)
-                        copy(
-                            daysOfWeek =
-                                (selectedDays + startDay)
-                                    .distinct()
-                                    .sortedBy { it.ordinal },
-                        )
-                    }
-                }
-
-                else -> copy(daysOfWeek = null)
-            }
-        }
-
-        private fun canonicalLocalDayKey(timestamp: Long): String {
-            val calendar =
-                java.util.Calendar.getInstance().apply {
-                    timeInMillis = timestamp
-                }
-            return localDayKeyOf(
-                year = calendar.get(java.util.Calendar.YEAR),
-                month = calendar.get(java.util.Calendar.MONTH) + 1,
-                day = calendar.get(java.util.Calendar.DAY_OF_MONTH),
-            )
         }
     }

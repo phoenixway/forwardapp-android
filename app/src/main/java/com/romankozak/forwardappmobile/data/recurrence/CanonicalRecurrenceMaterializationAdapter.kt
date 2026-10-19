@@ -26,6 +26,7 @@ class CanonicalRecurrenceMaterializationAdapter
     constructor(
         private val appDatabase: AppDatabase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+        private val planningSources: RecurrencePlanningSourceBridge,
     ) {
         suspend fun materializeForDate(
             date: Long,
@@ -66,6 +67,7 @@ class CanonicalRecurrenceMaterializationAdapter
                 recurringSeriesDao
                     .getActiveCandidatesForDay(dayKey)
                     .map { it.toCanonicalSeries() }
+                    .filter { it !is com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries || planningSources.available(it.template.planningSource) }
 
             val recurringSeriesById = recurringSeries.associateBy { it.id }
 
@@ -278,10 +280,19 @@ class CanonicalRecurrenceMaterializationAdapter
 
             if (safeTaskEntities.isNotEmpty()) {
                 dayTaskDao.insertAll(safeTaskEntities)
+                safeTaskEntities.forEach { task ->
+                    val series = recurringSeriesById[task.recurrenceSeriesId] as com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
+                    planningSources.materialize(task, series.template.planningSource, now)
+                }
             }
 
             if (safeFocusEntities.isNotEmpty()) {
                 dayFocusItemDao.insertAll(safeFocusEntities)
+            }
+
+            repairedTasks.filterNot { it.isDeleted }.forEach { task ->
+                val series = recurringSeriesById[task.recurrenceSeriesId] as? com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
+                if (series != null) planningSources.repairMissing(task, series.template.planningSource, now)
             }
 
             val safeTaskIds = safeTaskEntities.mapTo(mutableSetOf()) { it.id }

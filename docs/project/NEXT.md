@@ -1,5 +1,24 @@
 # Next
 
+## Recurrence typed SOURCE: HOST accepted, physical smoke pending
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+108/108 focused HOST XML tests, both separate Kotlin compile gates, shared JS
+distribution/generated TypeScript validation and diff check PASS. Room 201.
+No deployment. After user-controlled `make exp-arm64-cycle`, use disposable data:
+
+- Create a Day task from an Orientation; convert it to recurrence. Verify its
+  SOURCE survives and Library still has one semantic identity.
+- Open the next eligible day: the new task has the same source and a new DAY.TASK
+  participation. Repeat with Aspect/Workspace: references only, no participation.
+- Edit/split/detach a recurrence; verify source stays with the resulting task.
+- Delete an occurrence/stop its series; restart and verify no resurrection and
+  that the canonical source remains live.
+
+Older templates without typed SOURCE are not retroactively guessed from legacy
+goal/project fields. Earlier lost source-to-series mappings are not fabricated.
+
 ## Day carry-forward: HOST accepted, physical smoke pending
 
 DAY_CARRY_FORWARD_HOST_20261019
@@ -17,8 +36,8 @@ use disposable data:
   carry and verify later preparation does not erase existing facts or add more.
 - Browse past days and verify no backfill; smoke existing manual task recurrence.
 
-The separate generic Planning SOURCE/recurrence integration gap is documented
-as an observation in the focused contract, not an automatic next milestone.
+The generic Planning SOURCE/recurrence integration gap noted at that checkpoint
+is closed by RECURRENCE_PLANNING_SOURCE_HOST_20261019 above.
 
 ## Accepted: canonical operational Planning layer
 

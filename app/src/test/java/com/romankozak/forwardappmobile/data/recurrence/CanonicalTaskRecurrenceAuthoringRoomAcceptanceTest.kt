@@ -51,11 +51,13 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = db,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = recurrencePlanningSources(db),
             )
         authoring =
             CanonicalTaskRecurrenceAuthoringAdapter(
                 appDatabase = db,
                 materializationAdapter = materializer,
+                planningSources = recurrencePlanningSources(db),
             )
     }
 

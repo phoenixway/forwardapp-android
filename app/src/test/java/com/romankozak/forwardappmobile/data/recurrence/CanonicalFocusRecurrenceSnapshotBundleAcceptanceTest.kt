@@ -346,6 +346,7 @@ class CanonicalFocusRecurrenceSnapshotBundleAcceptanceTest {
             CanonicalRecurrenceMaterializationAdapter(
                 appDatabase = restoredDb,
                 ioDispatcher = Dispatchers.Unconfined,
+                planningSources = recurrencePlanningSources(restoredDb),
             )
 
         listOf(

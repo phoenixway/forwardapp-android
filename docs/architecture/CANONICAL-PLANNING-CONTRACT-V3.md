@@ -6,6 +6,76 @@ Acceptance date: 2026-10-02
 Scope: shared planning identity, participation, lifecycle, transport, and
 domain-extension boundaries for Day, Tactical Cycle, and Strategic Arc.
 
+## Current implemented extension — recurrence Task SOURCE (2026-10-19)
+
+RECURRENCE_PLANNING_SOURCE_HOST_20261019
+
+**IMPLEMENTED / HOST VERIFIED; PHYSICAL ACCEPTANCE PENDING. Room 201 -> 201.**
+
+Recurrence/Planning/reference/Day execution metadata is SEMANTIC_NOT_HIERARCHY;
+this slice changes no H1 or Context authority. The existing recurrence-v2 Task
+template adds optional `planningSource = { kind, id }`, with closed kinds
+ORIENTATION / ASPECT / WORKSPACE. It is stored in existing templateJson and the
+existing opaque SnapshotBundle template. No new rule, relation table, schema or
+transport generation is introduced. Shared KMP/JS and the Desktop technical
+adapter preserve this field; no new Desktop Planning authoring UI is claimed.
+
+Android materialization creates the exact SOURCE edge and, only for Orientation,
+a new DAY.TASK commitment with the same semantic identity and current DAY scope.
+It uses PlanningDaySourceWriter / CanonicalPlanningReferenceRepository /
+CanonicalPlanningRepository, inside the existing recurrence transaction. A
+source unavailable by exact canonical type/ID prevents new materialization.
+No Workspace, semantic identity, binding, H1 or Context is inferred or created.
+
+Conversion, split and detach transfer live SOURCE/RELATED from each exact old
+Task ID to its explicit replacement. Old task metadata is retired/versioned/
+dirty; no live participation remains owned by a retired execution ID. Participation
+status/priority survive replacement. RELATED stays per occurrence, not global
+series content. Template edits preserve SOURCE. Delete/stop atomically retire
+owned references/participation; tombstoned occurrences still prevent recurrence.
+All changed rows retain existing delta/changedSince/exact-version ACK conventions.
+
+An already imported live occurrence can receive missing metadata from its explicit
+typed series template during Day materialization, without creating another task.
+Existing SOURCE tombstones are not revived; conflicting live sources fail closed.
+Replaying an unchanged occurrence is inert. A same-scope participation conflict
+fails atomically instead of stealing another task's commitment or adding duplicates.
+
+Older templates without planningSource stay untyped. No source is inferred from
+goalId, projectId, title, RelatedLink or matching raw IDs. Unknown/incomplete typed
+sources fail closed on decoding. No lost historical source-to-series mapping is
+fabricated. Full snapshot and canonical Planning Restore/Merge stores preserve
+the template, live edges/participation and tombstones; future materialization from
+restored series is covered for all three source kinds.
+
+### HOST evidence
+
+108/108 unique tests in 17 JUnit XML classes; zero failures/errors/skips:
+
+- RecurringTaskPlanningSourceRoomTest: 14 (new).
+- RecurringTaskPlanningSourceTransportRoomTest: 1 (new; all three kinds x Restore/Merge).
+- CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest: 10.
+- CanonicalFocusRecurrenceRoomAcceptanceTest: 4.
+- CanonicalFocusRecurrenceSnapshotBundleAcceptanceTest: 2.
+- CanonicalFocusRecurrenceMergeRoomAcceptanceTest: 3.
+- DayTaskCarryForwardRoomTest: 7.
+- PlanningSourceCreationRoomTest: 7.
+- CanonicalPlanningReferenceRoomTest: 5.
+- PlanningReferenceRoundTripRoomTest: 1.
+- CanonicalPlanningRepositoryRoomTest: 6.
+- CanonicalPlanningSyncStoreRoomTest: 13.
+- DayTaskDeletionVisibilityRoomTest: 1.
+- shared KMP RecurringTaskPlanningSourceContractTest: 3 (new).
+- shared KMP RecurrenceDomainTest: 13.
+- shared KMP RecurrenceJsFacadeTest: 7.
+- shared KMP RecurrenceMaterializerTest: 11.
+
+Both separate `:app:compileProdDebugKotlin` and
+`:app:compileProdDebugUnitTestKotlin` PASS. Shared
+`:shared-core-domain:jsNodeProductionLibraryDistribution`, including generated
+TypeScript validation, PASS. Diff check PASS. Android instrumentation and full
+Desktop application suites were not run; no physical acceptance is claimed.
+
 ## Current implemented extension — Day carry-forward (2026-10-19)
 
 DAY_CARRY_FORWARD_HOST_20261019
@@ -107,16 +177,13 @@ Final HOST XML **71/71 in 13 classes**, zero failures/errors/skips:
 Both separate Kotlin compile gates and `git diff --check` PASS. Physical device
 acceptance remains pending; no deployment/data reset was performed.
 
-### Observed separate limitation: recurrence and generic Planning SOURCE
+### Historical observation: recurrence and generic Planning SOURCE
 
-The existing recurrence-v2 Task template/materializer retains goalId but does
-not yet carry the new generic typed Planning SOURCE relation/participation into
-future occurrences. One-off conversion also creates a new execution ID outside
-PlanningDaySourceWriter. This existing gap is not fixed by carry-forward and is
-not evidence that recurring generic SOURCE participation is complete. A bounded
-shared-template/transport/materialization integration is required (rough scope:
-medium); do not use RelatedLink, title matching or raw-ID inference as a substitute.
-This observation does not assign priority or select a next global milestone.
+At the carry-forward checkpoint, recurrence templates retained goalId but did not
+carry typed SOURCE/participation into future tasks, and conversion replaced the
+execution ID outside PlanningDaySourceWriter. That separate limitation is now
+closed by RECURRENCE_PLANNING_SOURCE_HOST_20261019 above. It was not fixed by the
+carry-forward implementation itself or by inventing source identity/provenance.
 
 ## Current implemented extension — typed Planning references (2026-10-19)
 
