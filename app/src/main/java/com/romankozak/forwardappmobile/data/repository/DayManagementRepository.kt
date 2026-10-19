@@ -72,6 +72,7 @@ class DayManagementRepository
         private val canonicalOrientationRepository: CanonicalOrientationRepository,
         private val canonicalGoalSemanticReadRepository: CanonicalGoalSemanticReadRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+        private val planningSourceWriter: com.romankozak.forwardappmobile.data.planning.day.PlanningDaySourceWriter? = null,
     ) {
         private companion object {
             const val PRIORITY_RANK_CRITICAL = 0
@@ -218,14 +219,15 @@ class DayManagementRepository
                         syncedAt = null,
                         version = 1,
                 )
-                dayTaskDao.insert(task)
-                reorderTasksByPriority(params.dayPlanId)
-                // DAO admission may move a legacy projectId into projectWorkspaceId.
-                // Downstream consumers must see the canonical persisted entity.
-                val persistedTask =
+                val writeTask: suspend () -> DayTask = {
+                    dayTaskDao.insert(task)
+                    reorderTasksByPriority(params.dayPlanId)
                     requireNotNull(dayTaskDao.getTaskById(task.id)) {
                         "DayTask ${task.id} missing after canonical insert"
                     }
+                }
+                require(params.planningSource == null || planningSourceWriter != null)
+                val persistedTask = planningSourceWriter?.persist(params.planningSource, writeTask) ?: writeTask()
                 taskExecutionAlarmCoordinator.sync(persistedTask)
                 aiEventRepository.emit(
                     TaskCreatedEvent(
@@ -333,38 +335,26 @@ class DayManagementRepository
 
         suspend fun moveTaskToTomorrow(taskToMove: DayTask) =
             withContext(ioDispatcher) {
-                val currentPlan = dayPlanDao.getPlanById(taskToMove.dayPlanId) ?: return@withContext
-
-                val calendar =
-                    Calendar.getInstance().apply {
-                        timeInMillis = currentPlan.date
-                        add(Calendar.DAY_OF_YEAR, 1)
+                val now = System.currentTimeMillis()
+                val carried = requireNotNull(planningSourceWriter) { "Canonical Day source writer is required" }
+                    .carryForward(taskToMove, now) { source ->
+                        val currentPlan = requireNotNull(canonicalDayPlanningAdapter.get(source.dayPlanId))
+                        val calendar = Calendar.getInstance().apply {
+                            timeInMillis = currentPlan.date
+                            add(Calendar.DAY_OF_YEAR, 1)
+                        }
+                        val tomorrow = getDayStart(calendar.timeInMillis)
+                        dayPlanDao.getPlanForDateSync(tomorrow)?.let { existing ->
+                            requireNotNull(canonicalDayPlanningAdapter.get(existing.id))
+                        } ?: canonicalDayPlanningAdapter.createOrUpdate(tomorrow, null, now)
                     }
-                val tomorrowTimestamp = getDayStart(calendar.timeInMillis)
-                val tomorrowsPlan = createOrUpdateDayPlan(tomorrowTimestamp)
-
-                val maxOrder = dayTaskDao.getMaxOrderForDayPlan(tomorrowsPlan.id) ?: 0L
-
-                val updatedTask =
-                    taskToMove.copy(
-                        dayPlanId = tomorrowsPlan.id,
-                        order = maxOrder + 1, // Set order to be the last in the new plan
-                        updatedAt = System.currentTimeMillis(),
-                        syncedAt = null,
-                        version = taskToMove.version + 1,
-                    )
-                dayTaskDao.update(updatedTask)
-                reorderTasksByPriority(tomorrowsPlan.id)
-
-                // Recalculate metrics for both days
-                calculateAndSaveDailyMetrics(currentPlan.id)
-                calculateAndSaveDailyMetrics(tomorrowsPlan.id)
                 aiEventRepository.emit(
                     TaskDeferredEvent(
                         timestamp = java.time.Instant.ofEpochMilli(System.currentTimeMillis()),
                         taskId = taskToMove.id,
                     ),
                 )
+                carried
             }
 
         fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>> =
@@ -800,10 +790,9 @@ class DayManagementRepository
                 val task = dayTaskDao.getTaskById(taskId)
                 if (task != null) {
                     taskExecutionAlarmCoordinator.cancel(task.id)
-                    dayTaskDao.softDelete(
-                        taskId = taskId,
-                        updatedAt = System.currentTimeMillis(),
-                    )
+                    val now = System.currentTimeMillis()
+                    val delete: suspend () -> Unit = { dayTaskDao.softDelete(taskId = taskId, updatedAt = now) }
+                    planningSourceWriter?.deleteTask(taskId, now, delete) ?: delete()
                     calculateAndSaveDailyMetrics(task.dayPlanId)
                 }
             }

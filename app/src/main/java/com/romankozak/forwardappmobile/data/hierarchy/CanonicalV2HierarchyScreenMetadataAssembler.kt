@@ -20,9 +20,9 @@ class CanonicalV2HierarchyScreenMetadataAssembler
             beacons: Collection<CanonicalV2HierarchyScreenOperationalBeaconMetadata>,
         ): CanonicalV2HierarchyScreenMetadata {
             val workspacePresentationsByTargetId =
-                workspacePresentations.associateBy { it.id }
+                read.workspacePresentationsByTargetId
             require(
-                workspacePresentationsByTargetId.size == workspacePresentations.size,
+                workspacePresentations.map { it.id }.distinct().size == workspacePresentations.size,
             ) {
                 "V2 hierarchy screen metadata contains duplicate Workspace presentations"
             }

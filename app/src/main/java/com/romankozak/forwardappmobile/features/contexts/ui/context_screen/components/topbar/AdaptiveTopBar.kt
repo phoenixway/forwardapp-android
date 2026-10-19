@@ -22,6 +22,7 @@ data class AdaptiveTopBarState(
     val areAllSelected: Boolean,
     val currentViewMode: ContextViewMode?,
     val enabledCapabilities: Set<CapabilityId>,
+    val surfaceLabel: String? = null,
 )
 
 data class AdaptiveTopBarActions(
@@ -55,6 +56,7 @@ fun AdaptiveTopBar(
     Column(modifier = modifier.padding(top = topPadding)) {
         if (state.isSelectionModeActive) {
             ListTitleBar(
+                surfaceLabel = state.surfaceLabel,
                 project = state.project?.copy(isContextManagementEnabled = false),
                 presentation = state.presentation,
                 currentViewMode = displayViewMode,
@@ -73,6 +75,7 @@ fun AdaptiveTopBar(
             )
         } else {
             ListTitleBar(
+                surfaceLabel = state.surfaceLabel,
                 project = state.project,
                 presentation = state.presentation,
                 currentViewMode = displayViewMode,

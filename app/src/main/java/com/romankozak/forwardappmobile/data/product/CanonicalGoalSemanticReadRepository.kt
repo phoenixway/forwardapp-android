@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.data.product
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
-import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadResult
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
@@ -12,8 +11,8 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.Orientatio
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 data class CanonicalGoalSemanticProjection(
     val goalId: String,
@@ -35,30 +34,28 @@ class CanonicalGoalSemanticReadRepository
     @Inject
     constructor(
         private val canonicalProductReadRepository: CanonicalProductReadRepository,
-        private val orientationDao: OrientationDao,
     ) {
         fun observeAll(): Flow<List<CanonicalGoalSemanticProjection>> =
-            combine(
-                canonicalProductReadRepository.observe(),
-                orientationDao.observeLegacyMappings(),
-            ) { productRead, mappings -> projectCanonicalGoalSemantics(productRead, mappings) }
+            canonicalProductReadRepository.observeWithLegacyMappings()
+                .map { (productRead, mappings) ->
+                    projectCanonicalGoalSemantics(productRead, mappings)
+                }
 
         suspend fun requireGoal(goalId: String): CanonicalGoalSemanticProjection =
             requireNotNull(observeAll().first().singleOrNull { it.goalId == goalId }) {
                 "Goal $goalId has no live CUT_OVER canonical semantic projection"
             }
 
-        fun projectGoals(legacyGoals: Flow<List<Goal>>): Flow<List<Goal>> =
-            combine(legacyGoals, observeAll()) { goals, semantics ->
-                val semanticsByGoalId = semantics.associateBy(CanonicalGoalSemanticProjection::goalId)
-                goals.map { goal ->
-                    val semantic =
-                        requireNotNull(semanticsByGoalId[goal.id]) {
-                            "Live Goal ${goal.id} has no canonical semantic projection"
-                        }
-                    goal.withCanonicalSemantic(semantic)
+        fun projectGoals(): Flow<List<Goal>> =
+            canonicalProductReadRepository.observeGoalReadFrame()
+                .map { frame ->
+                    val semantics =
+                        projectCanonicalGoalSemantics(
+                            frame.productRead,
+                            frame.legacyMappings,
+                        )
+                    projectLiveGoalsWithSemantics(frame.liveGoals, semantics)
                 }
-            }
 
         suspend fun projectGoal(goal: Goal): Goal = goal.withCanonicalSemantic(requireGoal(goal.id))
     }
@@ -99,6 +96,20 @@ internal fun projectCanonicalGoalSemantics(
                     "CUT_OVER Goal ${mapping.sourceId} canonical lifecycle is missing"
                 },
         )
+    }
+}
+
+internal fun projectLiveGoalsWithSemantics(
+    legacyGoals: List<Goal>,
+    semantics: List<CanonicalGoalSemanticProjection>,
+): List<Goal> {
+    val semanticsByGoalId = semantics.associateBy(CanonicalGoalSemanticProjection::goalId)
+    return legacyGoals.map { goal ->
+        val semantic =
+            requireNotNull(semanticsByGoalId[goal.id]) {
+                "Live Goal ${goal.id} has no canonical semantic projection"
+            }
+        goal.withCanonicalSemantic(semantic)
     }
 }
 

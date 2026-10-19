@@ -19,11 +19,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Man
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -53,19 +55,18 @@ class CanonicalTacticalMissionAdapter
             flow {
                 authorityActivator.requireActivated()
                 emitAll(
-                    combine(
-                        database.tacticalMissionDao().observeAllMissionRows(),
-                        database.planningDao().observeAllCommitments(),
-                        database.orientationDao().observeManagedSubjects(),
-                    ) { rows, commitmentEntities, subjects ->
-                        Triple(rows, commitmentEntities, subjects)
-                    }.map { (rows, commitmentEntities, subjects) ->
-                        val commitments =
-                            commitmentEntities.map {
-                                it.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL)
-                            }
-                        projectLiveRows(rows, commitments, subjects.associateBy { it.id })
-                    },
+                    // An atomic writer does not make independently collected table Flows atomic.
+                    // Read carriers, participation and identities from the same committed frame.
+                    database.invalidationTracker.createFlow(
+                        "tactical_missions", "planning_commitments", "managed_subjects",
+                        "orientations", "legacy_subject_mappings", "arc_quests", "planning_scopes",
+                        "orientation_assessments", "orientation_assessment_revisions", "tactical_iterations", "workspace_backlog_entries",
+                    ).map {
+                        val frame = com.romankozak.forwardappmobile.StartupTrace.measure("Planning.Mission.readFrame") {
+                            database.withTransaction { TacticalMissionReadFrame.load(database) }
+                        }
+                        com.romankozak.forwardappmobile.StartupTrace.measureSync("Planning.Mission.project") { frame.project(orientationRepository) }
+                    }.distinctUntilChanged().flowOn(Dispatchers.Default),
                 )
             }
 
@@ -123,7 +124,10 @@ class CanonicalTacticalMissionAdapter
             }
         }
 
-        suspend fun insertMission(mission: TacticalMission): Long {
+        suspend fun insertMission(
+            mission: TacticalMission,
+            source: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
+        ): Long {
             authorityActivator.requireActivated()
             val admittedMission = admitMissionScope(mission)
             return database.withTransaction {
@@ -139,7 +143,11 @@ class CanonicalTacticalMissionAdapter
                 }
 
                 val orientationId =
-                    when (persisted.sourceType) {
+                    if (source?.kind == com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTargetKind.ORIENTATION) {
+                        require(persisted.sourceType == MissionSourceType.MANUAL) { "Canonical source requires explicit native authoring" }
+                        orientationRepository.requireCompleteActiveOrientationAggregate(source.id)
+                        source.id
+                    } else when (persisted.sourceType) {
                         MissionSourceType.MANUAL ->
                             orientationRepository.createOrientation(
                                 kind = OrientationKind.INTENT,
@@ -162,29 +170,32 @@ class CanonicalTacticalMissionAdapter
                         ),
                     )
                 }
+                source?.let {
+                    com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository(database).attach(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION,
+                            insertedId.toString(),
+                        ), it, com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceRole.SOURCE,
+                        persisted.updatedAt ?: persisted.createdAt,
+                    )
+                }
                 insertedId
             }
         }
 
-        suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
+        suspend fun insertMissionWithAutoOrder(
+            mission: TacticalMission,
+            source: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
+        ): Long {
             authorityActivator.requireActivated()
             val admittedMission = admitMissionScope(mission)
             val scopeId = requireNotNull(admittedMission.iterationId)
 
-            val topOrder =
-                (
-                    getAllMissions()
-                        .first()
-                        .asSequence()
-                        .filter { it.iterationId == scopeId }
-                        .map(TacticalMission::orderInWeek)
-                        .minOrNull()
-                        ?: 0L
-                ) - 1L
-
-            return insertMission(
-                admittedMission.copy(orderInWeek = topOrder),
-            )
+            return database.withTransaction {
+                com.romankozak.forwardappmobile.StartupTrace.mark("Planning.Mission.transaction.entered")
+                val topOrder = (database.tacticalMissionDao().minimumCanonicalOrder(scopeId) ?: 0L) - 1L
+                insertMission(admittedMission.copy(orderInWeek = topOrder), source)
+            }
         }
 
         suspend fun updateMission(mission: TacticalMission) {
@@ -299,6 +310,9 @@ class CanonicalTacticalMissionAdapter
                     }
                 val live = missionCommitments(missionId).filterNot(PlanningCommitment::isDeleted)
                 val now = System.currentTimeMillis()
+                com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository(database).retireOwner(
+                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION, missionId.toString()), now)
 
                 if (live.isEmpty()) {
                     requireDeferredSpecializedOnly(row)
@@ -340,66 +354,6 @@ class CanonicalTacticalMissionAdapter
             }
         }
 
-        private suspend fun projectLiveRows(
-            rows: List<TacticalMission>,
-            commitments: List<PlanningCommitment>,
-            subjectsById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity>,
-        ): List<TacticalMission> {
-            val liveCommitments =
-                commitments
-                    .filter {
-                        it.role == PlanningRoleCode.MISSION &&
-                            !it.isDeleted &&
-                            it.provenance.sourceType == TACTICAL_MISSION_PROVENANCE_SOURCE
-                    }
-                    .groupBy {
-                        requireNotNull(it.provenance.sourceId?.toLongOrNull()) {
-                            "Canonical Tactical MISSION commitment ${it.id.value} has invalid source id"
-                        }
-                    }
-
-            return buildList {
-                rows.sortedBy(TacticalMission::id).forEach { row ->
-                    val live = liveCommitments[row.id].orEmpty()
-                    when {
-                        live.size > 1 ->
-                            error(
-                                "TacticalMission ${row.id} has ${live.size} live canonical MISSION commitments",
-                            )
-
-                        live.size == 1 ->
-                            add(projectCanonical(row, live.single(), subjectsById))
-
-                        !row.isDeleted -> {
-                            val standaloneSubject = requireDeferredSpecializedOnly(row)
-                            val canonicalSubject =
-                                standaloneSubject?.let { subjectsById[it.id] ?: it }
-                            add(
-                                canonicalSubject?.let { subject ->
-                                    row.copy(
-                                        title = subject.title,
-                                        description = subject.description,
-                                    )
-                                } ?: row,
-                            )
-                        }
-                    }
-                }
-
-                val rowIds = rows.map(TacticalMission::id).toSet()
-                val orphan =
-                    liveCommitments.entries.firstOrNull { (missionId, _) ->
-                        missionId !in rowIds
-                    }
-                require(orphan == null) {
-                    "Canonical Tactical MISSION commitment references missing compatibility row ${orphan?.key}"
-                }
-            }.sortedWith(
-                compareBy<TacticalMission> { it.orderInWeek }
-                    .thenByDescending { it.deadline }
-                    .thenBy { it.id },
-            )
-        }
 
         private suspend fun projectCanonical(
             row: TacticalMission,

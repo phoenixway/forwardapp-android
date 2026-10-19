@@ -97,6 +97,9 @@ class StrategicArcViewModel
     ) : ViewModel() {
         private val currentArcKey = MutableStateFlow(YearMonth.now().toString())
         private val _selectedTab = MutableStateFlow(StrategicArcTab.QUESTS)
+        private val _pendingCreatedQuestId = MutableStateFlow<String?>(null)
+        val pendingCreatedQuestId = _pendingCreatedQuestId.asStateFlow()
+        fun consumeCreatedQuest() { _pendingCreatedQuestId.value = null }
         val selectedTab: StateFlow<StrategicArcTab> = _selectedTab.asStateFlow()
 
         @OptIn(ExperimentalCoroutinesApi::class)
@@ -369,6 +372,14 @@ class StrategicArcViewModel
                     ),
                 )
             }
+        }
+
+        suspend fun addArcQuestFromEntity(entity: com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) {
+            val arcKey = currentArcKey.value
+            val id = com.romankozak.forwardappmobile.features.planning.createQuestFromEntity(arcQuestRepository, entity, arcKey)
+            currentArcKey.value = arcKey
+            _selectedTab.value = StrategicArcTab.QUESTS
+            _pendingCreatedQuestId.value = id
         }
 
         fun addArcQuestFromContext(contextId: String) {

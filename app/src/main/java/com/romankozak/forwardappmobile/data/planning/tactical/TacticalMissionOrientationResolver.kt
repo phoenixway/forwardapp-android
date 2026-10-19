@@ -357,6 +357,9 @@ private class TacticalMissionOrientationSnapshotResolver(
             )
         return when (sourceType) {
             ArcQuestSourceType.MANUAL -> error("Handled above")
+            ArcQuestSourceType.ORIENTATION -> resolveOrientationTarget(
+                sourceId, quest.isDeleted, TacticalMissionOrientationResolutionPath.ARC_SOURCE, sourceId,
+            )
             ArcQuestSourceType.MISSION -> {
                 val sourceMissionId = sourceId.toLongOrNull()
                     ?: return failure(

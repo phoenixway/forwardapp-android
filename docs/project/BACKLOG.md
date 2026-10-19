@@ -235,6 +235,47 @@ still relevant to the current implementation.
 
   Cost: `small/medium`.
 
+<!-- BACKLOG_MAINBEACON_PARENTAGE_SEMANTIC_FACT_20261018 -->
+
+- **Backlog addition:** `#3`
+- **Priority:** `UNSET`
+- **Status:** `OPEN`
+
+- **Define authoritative semantic MainBeacon-parentage fact for Library queries.**
+  R2F.2C intentionally did not implement the proposed virtual
+  `No MainBeacon parent yet` Library filter because the current canonical model
+  cannot truthfully distinguish authoritative absence of MainBeacon parentage
+  from unknown / legacy-ambiguous state at entity level.
+
+  Required architectural outcome:
+  - define the canonical entity-level fact or relation that means an entity has
+    a MainBeacon parent;
+  - define explicit `known parent`, `known none`, and `unknown` semantics where
+    historical data cannot be classified safely;
+  - define which canonical entity classes the relation applies to;
+  - establish persistence / transport / merge / restore semantics only if a new
+    durable fact is actually required;
+  - preserve the distinction between semantic parentage, historical GroupScope
+    provenance, exact-occurrence applicability, and H1 / Big Picture placement;
+  - only after the predicate is authoritative may Library expose a virtual
+    `No MainBeacon parent yet` query/filter.
+
+  Must NOT infer semantic parentage or its absence from:
+  - H1 root/nesting position;
+  - Big Picture container membership;
+  - missing GroupScope;
+  - `GroupScope.groupSubjectId = null`;
+  - occurrence `NATIVE / HISTORICAL / LEGACY_UNKNOWN` applicability;
+  - title, Orientation kind, or other presentation heuristics.
+
+  Big Picture placement must remain independent: adding or moving an occurrence
+  does not establish MainBeacon semantic parentage.
+
+  This backlog item owns the missing semantic fact, not the Library UI itself.
+  The eventual Library filter is a consumer of that fact.
+
+  Cost: `medium` pending discovery.
+
 - **POSTPONED — canonical entity lifecycle UI/UX.** Legacy `Context` status,
   completion/scoring and Project-Management-style state are not Workspace
   properties. Orientation-like entities already have canonical lifecycle

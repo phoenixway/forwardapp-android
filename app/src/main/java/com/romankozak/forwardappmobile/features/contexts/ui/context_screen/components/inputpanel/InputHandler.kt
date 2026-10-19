@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -78,9 +79,12 @@ class InputHandler(
     private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
     private val reminderParser: ReminderParser,
+    private val onGoalSubmitError: (String) -> Unit,
 ) {
     private val smartDebouncer = SmartDebouncer(DEFAULT_DEBOUNCE_MS)
     private var nerJob: Job? = null
+    private var pendingGoalSubmit: Job? = null
+    private var inputRevision: Long = 0L
 
     interface ResultListener {
         fun updateInputState(
@@ -128,6 +132,7 @@ class InputHandler(
         newValue: TextFieldValue,
         currentInputMode: InputMode,
     ) {
+        inputRevision++
         resultListener.updateInputState(inputValue = newValue)
         if (currentInputMode == InputMode.AddGoal || currentInputMode == InputMode.AddIssue) {
             if (newValue.text.trim().isNotEmpty()) {
@@ -168,6 +173,7 @@ class InputHandler(
         mode: InputMode,
         currentInputValue: TextFieldValue,
     ) {
+        inputRevision++
         clearAndCancelParsing()
         val searchQuery = if (mode == InputMode.SearchInList) currentInputValue.text else ""
         resultListener.updateInputState(inputMode = mode, localSearchQuery = searchQuery)
@@ -179,7 +185,9 @@ class InputHandler(
     ) {
         val originalText = inputValue.text.trim()
         if (originalText.isNotBlank()) {
-            clearAndCancelParsing()
+            if (inputMode != InputMode.AddGoal) {
+                clearAndCancelParsing()
+            }
 
             when (inputMode) {
                 InputMode.AddGoal -> submitGoalInput(originalText)
@@ -225,14 +233,19 @@ class InputHandler(
     }
 
     private fun submitGoalInput(originalText: String) {
+        if (pendingGoalSubmit?.isActive == true) return
+
         val currentProjectId = projectIdFlow.value
         if (currentProjectId.isBlank()) {
+            onGoalSubmitError("Неможливо додати ціль: Workspace недоступний.")
             return
         }
 
-        resetInput(clearDetectedReminder = true)
+        val submittedRevision = inputRevision
+        nerJob?.cancel()
+        smartDebouncer.cancel()
 
-        scope.launch(Dispatchers.IO) {
+        pendingGoalSubmit = scope.launch(Dispatchers.IO) {
             try {
                 val definitiveResult =
                     reminderParser.parseWithTimeout(originalText, REMINDER_PARSE_TIMEOUT_MS)
@@ -245,13 +258,17 @@ class InputHandler(
                 )
 
                 val preparedGoal = prepareGoalInput(originalText, definitiveResult)
+                var reminderSetupWarning = false
                 val newItemIdentifier =
                     if (preparedGoal.reminderTime != null) {
-                        goalRepository.addGoalWithReminder(
-                            preparedGoal.textToSave,
-                            currentProjectId,
-                            preparedGoal.reminderTime,
-                        ).id
+                        val outcome =
+                            goalRepository.addGoalWithReminder(
+                                preparedGoal.textToSave,
+                                currentProjectId,
+                                preparedGoal.reminderTime,
+                            )
+                        reminderSetupWarning = !outcome.reminderSetupSucceeded
+                        outcome.goal.id
                     } else {
                         goalRepository.addGoalToContext(
                             preparedGoal.textToSave,
@@ -260,10 +277,26 @@ class InputHandler(
                     }
 
                 withContext(Dispatchers.Main) {
+                    if (
+                        inputRevision == submittedRevision &&
+                        projectIdFlow.value == currentProjectId
+                    ) {
+                        resetInput(clearDetectedReminder = true)
+                    }
                     resultListener.updateInputState(newlyAddedItemId = newItemIdentifier)
+                    if (reminderSetupWarning) {
+                        onGoalSubmitError(
+                            "Ціль створено, але нагадування не вдалося налаштувати. Перевірте його.",
+                        )
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(REMINDER_FLOW_TAG, "Submit error: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onGoalSubmitError("Не вдалося додати ціль. Текст збережено.")
+                }
             }
         }
     }

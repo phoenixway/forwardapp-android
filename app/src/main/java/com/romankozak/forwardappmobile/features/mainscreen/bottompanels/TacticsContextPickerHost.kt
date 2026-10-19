@@ -11,21 +11,9 @@ internal fun TacticsContextPickerHost(
     visible: Boolean,
     projectOptions: List<ProjectOption>,
     onDismiss: () -> Unit,
-    onContextSelected: (String) -> Unit,
+    onEntitySelected: suspend (com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) -> Unit,
 ) {
     if (!visible) return
 
-    LinkedTargetsPickerDialog(
-        contextOptions = projectOptions,
-        attachmentOptions = emptyList<AttachmentOption>(),
-        preselectedContextIds = emptySet(),
-        preselectedAttachmentIds = emptySet(),
-        initialTab = LinkPickerTab.CONTEXTS,
-        allowedTabs = setOf(LinkPickerTab.CONTEXTS),
-        onDismiss = onDismiss,
-        onContextSelected = onContextSelected,
-        onAttachmentSelected = {},
-        onCreateRootContext = null,
-        onCreateDocument = null,
-    )
+    com.romankozak.forwardappmobile.features.planning.PlanningEntityPickerDialog(onDismiss, onEntitySelected)
 }

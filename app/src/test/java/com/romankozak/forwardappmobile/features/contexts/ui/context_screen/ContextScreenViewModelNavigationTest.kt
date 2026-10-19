@@ -170,11 +170,31 @@ class ContextScreenViewModelNavigationTest {
             assertThat(retired.tags).containsExactly("canonical-tag")
         }
 
+    @Test
+    fun `canonical route opens operational ViewModel without Direction writes or legacy identity substitution`() = runTest {
+        val fixture = createFixture(savedState = SavedStateHandle(mapOf(
+            "workspaceId" to contextId, "listId" to "stale-legacy", "sourceContextId" to "compatibility-only",
+        )))
+        fixture.contextSessionStore.syncFromConfig(
+            contextId = contextId, config = createConfig(), preferredViewName = null,
+            currentView = ContextViewMode.BACKLOG,
+        )
+        fixture.viewModel.onProjectViewChange(ContextViewMode.BACKLOG)
+
+        coVerify(exactly = 0) { fixture.contextRepository.ensureDirectionFrontLinksForExistingChildren(any()) }
+        coVerify(exactly = 1) {
+            fixture.presentationPreferences.setDefaultViewMode(
+                workspaceId = contextId, defaultViewModeName = ContextViewMode.BACKLOG.name, now = any(),
+            )
+        }
+    }
+
     private fun createFixture(
         pickerActiveContexts: List<Context> = emptyList(),
         pickerAllContextRows: List<Context> = emptyList(),
         pickerWorkspaces: List<WorkspaceEntity> = emptyList(),
         pickerTagsByWorkspace: Map<String, List<String>> = emptyMap(),
+        savedState: SavedStateHandle = SavedStateHandle(mapOf("listId" to contextId)),
     ): Fixture {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val presentationPreferences =
@@ -234,7 +254,7 @@ class ContextScreenViewModelNavigationTest {
                 reminderParser = mockk<ReminderParser>(relaxed = true),
                 activityRepository = mockk<ActivityRepository>(relaxed = true),
                 contextMarkdownExporter = mockk<ContextMarkdownExporter>(relaxed = true),
-                savedStateHandle = SavedStateHandle(mapOf("listId" to contextId)),
+                savedStateHandle = savedState,
                 dayManagementRepository = mockk<DayManagementRepository>(relaxed = true),
                 clearAndNavigateHomeUseCase = mockk<ClearAndNavigateHomeUseCase>(relaxed = true),
                 ioDispatcher = dispatcher,
@@ -273,7 +293,7 @@ class ContextScreenViewModelNavigationTest {
                 workspacePresentationPreferencesRepository = presentationPreferences,
                 systemWorkspacePresentationContextProjector = presentationProjector,
             )
-        return Fixture(viewModel, contextSessionStore, presentationPreferences)
+        return Fixture(viewModel, contextSessionStore, presentationPreferences, contextRepository)
     }
 
     private val listItemRepository = mockk<ListItemRepository>(relaxed = true)
@@ -342,5 +362,6 @@ class ContextScreenViewModelNavigationTest {
         val viewModel: ContextScreenViewModel,
         val contextSessionStore: ContextSessionStore,
         val presentationPreferences: WorkspacePresentationPreferencesRepository,
+        val contextRepository: ContextRepository,
     )
 }

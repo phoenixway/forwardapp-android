@@ -33,6 +33,10 @@ data class CanonicalV2ProductionHierarchyRead(
         CanonicalV2HierarchyPresentationProvenance(),
     /** Native appearances are not historical CoreLevel Beacon appearances. */
     val nativePlacementIds: Set<PlacementId> = emptySet(),
+    /** Retired exact GroupScope decoration for the specialized CoreLevel consumer, not topology. */
+    val historicalCoreLevelGroups: Map<PlacementId, String> = emptyMap(),
+    /** Display metadata admitted in this exact frame, never rejoined from a newer Flow. */
+    val workspacePresentationsByTargetId: Map<String, CanonicalV2WorkspacePresentation> = emptyMap(),
 ) {
     private val presentedOccurrences =
         presentation.entries
@@ -266,6 +270,7 @@ class CanonicalV2ProductionHierarchyReadAdapter(
             hierarchy = hierarchy,
             presentation = presentation,
             presentationProvenance = presentationProvenance,
+            workspacePresentationsByTargetId = admittedWorkspacePresentations.associateBy { it.id },
         )
     }
 }

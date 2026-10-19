@@ -130,6 +130,7 @@ class SnapshotBundleSelectiveImportFilter {
             planningFormatVersion = null,
             planningScopes = null,
             planningCommitments = null,
+            planningReferences = null,
             dayPlanningScopeExtensions = null,
             tacticalPlanningScopeExtensions = null,
             strategicPlanningScopeExtensions = null,

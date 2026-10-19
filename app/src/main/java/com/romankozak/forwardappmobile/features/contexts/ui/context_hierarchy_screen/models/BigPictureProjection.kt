@@ -10,6 +10,7 @@ data class BigPictureNode(
     val entity: CanonicalEntitySummary?,
     val depth: Int,
     val childCount: Int,
+    val operationalEmbodiment: CanonicalEntityRef.Workspace? = null,
 )
 
 /** GENERAL occurrences are structure; catalog identities provide presentation only. */
@@ -66,6 +67,14 @@ fun focusBigPicture(nodes: List<BigPictureNode>, placementId: String?): BigPictu
 }
 
 fun bigPictureDestination(node: BigPictureNode): NavTarget? =
+    node.operationalEmbodiment?.takeIf { bigPictureSemanticDestination(node) != null }
+        ?.let { NavTarget.Workspace(it.id) } ?: bigPictureCanonicalDestination(node)
+
+/** Exact source identity, independent from the optional operational open destination. */
+fun bigPictureSemanticDestination(node: BigPictureNode): NavTarget.SemanticEntityEditor? =
+    bigPictureCanonicalDestination(node) as? NavTarget.SemanticEntityEditor
+
+private fun bigPictureCanonicalDestination(node: BigPictureNode): NavTarget? =
     when (val ref = node.entity?.ref) {
         is CanonicalEntityRef.Orientation -> NavTarget.SemanticEntityEditor(ref.id)
         is CanonicalEntityRef.Aspect -> NavTarget.SemanticEntityEditor(ref.id)

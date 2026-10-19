@@ -47,26 +47,13 @@ fun SemanticEntityCreationDialog(
                     enabled = !state.isSaving,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Сутність")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SemanticEntityClass.entries.forEach { entityClass ->
-                            FilterChip(
-                                selected = state.entityClass == entityClass,
-                                onClick = { onEntityClassChange(entityClass) },
-                                enabled = !state.isSaving,
-                                label = { Text(entityClass.displayLabel()) },
-                            )
-                        }
-                    }
-                }
-                if (state.entityClass == SemanticEntityClass.ORIENTATION) {
-                    OrientationKindSelector(
-                        selected = state.orientationKind,
-                        enabled = !state.isSaving,
-                        onSelected = onOrientationKindChange,
-                    )
-                }
+                SemanticEntityTypeFields(
+                    selectedClass = state.entityClass,
+                    selectedKind = state.orientationKind,
+                    enabled = !state.isSaving,
+                    onClassChange = onEntityClassChange,
+                    onKindChange = onOrientationKindChange,
+                )
                 state.errorMessage?.let { Text(it) }
             }
         },
@@ -85,6 +72,32 @@ fun SemanticEntityCreationDialog(
             }
         },
     )
+}
+
+@Composable
+fun SemanticEntityTypeFields(
+    selectedClass: SemanticEntityClass?,
+    selectedKind: OrientationKind?,
+    enabled: Boolean,
+    onClassChange: (SemanticEntityClass) -> Unit,
+    onKindChange: (OrientationKind) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Сутність")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SemanticEntityClass.entries.forEach { entityClass ->
+                FilterChip(
+                    selected = selectedClass == entityClass,
+                    onClick = { onClassChange(entityClass) },
+                    enabled = enabled,
+                    label = { Text(entityClass.displayLabel()) },
+                )
+            }
+        }
+        if (selectedClass == SemanticEntityClass.ORIENTATION) {
+            OrientationKindSelector(selectedKind, enabled, onKindChange)
+        }
+    }
 }
 
 @Composable

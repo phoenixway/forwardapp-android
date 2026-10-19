@@ -7,6 +7,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -77,6 +78,14 @@ fun HandleDayPlanScreenEffects(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.clearEditTaskDialogOnScreenDispose()
+        }
+    }
+
+    val carryMessage by viewModel.carryForwardMessage.collectAsStateWithLifecycle()
+    LaunchedEffect(carryMessage) {
+        carryMessage?.let { text ->
+            viewModel.clearCarryForwardMessage()
+            presentationState.snackbarHostState.showSnackbar(text)
         }
     }
 

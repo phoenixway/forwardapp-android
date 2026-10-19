@@ -6,6 +6,386 @@ Acceptance date: 2026-10-02
 Scope: shared planning identity, participation, lifecycle, transport, and
 domain-extension boundaries for Day, Tactical Cycle, and Strategic Arc.
 
+## Current implemented extension — Day carry-forward (2026-10-19)
+
+DAY_CARRY_FORWARD_HOST_20261019
+
+**IMPLEMENTED / HOST VERIFIED; PHYSICAL ACCEPTANCE PENDING.** Room **201 -> 201**.
+Planning and specialized Day execution/Theme metadata remain independently owned
+non-hierarchy state; no H1/Context authority is changed.
+
+### Accepted scope and persistence
+
+Day tasks remain one-off or recurring using the existing canonical recurrence-v2
+series. No recurrence field is added to PlanningCommitment and no second rule
+table/scheduler is introduced. Theme Properties expose one-off/carry-forward via
+the existing ThemeDefinition extension's carryForward flag, with normal version,
+dirty-state and transport handling. New editor drafts default one-off; existing
+stored choices are not rewritten. This global future-carry preference does not
+change the identity/history of any already materialized participation.
+
+### Day task carry-forward
+
+The existing "Move to tomorrow" action atomically creates a new DayTask and, when
+the source owns a DAY.TASK commitment, a new commitment preserving Orientation,
+role and priority. Scope is the next calendar DAY resolved through the existing
+Day authority, using calendar arithmetic rather than fixed 24-hour addition.
+The source task, scope and commitment are not moved, tombstoned or version-bumped.
+The new participation starts PLANNED and records common provenance:
+
+```text
+kind = CARRIED_FORWARD
+sourceType = PLANNING_COMMITMENT
+sourceId = exact previous commitment ID
+```
+
+The new task ID is a deterministic namespaced length-prefixed hash of source
+task ID + destination scope ID. Replays are inert; tombstoned carried tasks cannot
+silently resurrect. Completion, actual time, activity record and scheduled alarm
+state are not copied. Carrying a recurring occurrence creates a one-off carry;
+it does not relocate or edit the source series/occurrence schedule.
+
+SOURCE/RELATED references are copied through CanonicalPlanningReferenceRepository.
+Aspect/Workspace references do not create semantic identity or commitments.
+Duplicate live participation in the destination fails atomically under the
+existing `(scope, Orientation, role)` invariant, rather than merging or inventing
+another PRIMARY-like participation. Late failure rolls back task + references +
+commitment. Deletion resolves the new commitment by its canonical deterministic
+task-participation ID, independently of provenance, and leaves its predecessor.
+The canonical common writer also rejects scopeId changes on save/restore.
+UI success/error is explicit; successful confirmation does not wait for metrics.
+
+### Theme carry-forward
+
+Day-entry preparation is explicit (`DayThemeRepository.prepareDay`) and runs
+before the read Flow. Plain observation does not materialize anything. Into an
+opened current/future DRAFT/ACTIVE DAY it considers the closest preceding live
+DAY, not the last nonempty day. Only live active appearances of live, unarchived,
+carry-enabled Theme definitions carry. An intentionally empty prior day stops
+the chain. Past-day browsing never backfills history; missing calendar scopes
+are not fabricated by this command.
+
+Each new DayTheme uses the existing deterministic day+definition ID and a new
+canonical DAY.THEME commitment. Orientation/role are preserved, budget copied,
+order appended deterministically, and common carry provenance points to the
+prior commitment. No new Theme definition/Orientation or entity assignments are
+created. Source rows remain unchanged. Existing IDs, including tombstones,
+block automatic rematerialization. Disabling carry affects future preparation,
+not already materialized facts.
+
+Read/restore compatibility resolves DayTheme ownership by canonical commitment
+ID, not by interpreting provenanceSourceId as an execution-owner ID. Ordinary
+DAY_THEME provenance must still match its exact domain row. CARRIED_FORWARD is
+admitted only in the explicit PLANNING_COMMITMENT provenance form; local creation
+revalidates prior live participation and same semantic target/role. Projection
+also validates the canonical DAY scope/role match.
+
+### Transport and acceptance
+
+Existing snapshot/Restore/Merge wire fields already represent carry provenance;
+there is no new format, schema, migration or compatibility identity. Local new
+rows are dirty/versioned, tombstones persist, and ordinary exact-version ACK and
+equal-version conflict policy remain unchanged. Existing semantic/H1/Workspace
+bindings and recurrence series are not mutated by carry-forward.
+
+Final HOST XML **71/71 in 13 classes**, zero failures/errors/skips:
+
+- DayTaskCarryForwardRoomTest: 7.
+- DayThemeCarryForwardRoomTest: 7.
+- DayThemeCarryForwardFlagsTest: 3.
+- DayTaskCarryForwardUiTest: 3.
+- CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest: 10.
+- CanonicalDayThemeRuntimePlannerTest: 5.
+- CanonicalDayPlanningAuthorityActivatorRoomTest: 2.
+- CanonicalPlanningRepositoryRoomTest: 6.
+- CanonicalPlanningSyncStoreRoomTest: 13.
+- PlanningSourceCreationRoomTest: 7.
+- PlanningMutationLatencyRoomTest: 3.
+- DayTaskDeletionVisibilityRoomTest: 1.
+- ThemeOrientationBridgeRoomTest: 4.
+
+Both separate Kotlin compile gates and `git diff --check` PASS. Physical device
+acceptance remains pending; no deployment/data reset was performed.
+
+### Observed separate limitation: recurrence and generic Planning SOURCE
+
+The existing recurrence-v2 Task template/materializer retains goalId but does
+not yet carry the new generic typed Planning SOURCE relation/participation into
+future occurrences. One-off conversion also creates a new execution ID outside
+PlanningDaySourceWriter. This existing gap is not fixed by carry-forward and is
+not evidence that recurring generic SOURCE participation is complete. A bounded
+shared-template/transport/materialization integration is required (rough scope:
+medium); do not use RelatedLink, title matching or raw-ID inference as a substitute.
+This observation does not assign priority or select a next global milestone.
+
+## Current implemented extension — typed Planning references (2026-10-19)
+
+CANONICAL_PLANNING_REFERENCES_HOST_20261019
+
+**IMPLEMENTED / HOST VERIFIED; PHYSICAL ACCEPTANCE PENDING.** This is the
+user-approved reference extension to the existing Planning contract, not a new
+hierarchy authority. The initial design/implementation checkpoints below remain
+historical evidence for their respective cutovers.
+
+### Authority and identity
+
+PlanningCommitment remains Orientation participation. PlanningReference is the
+independent current relation authority; it is neither RelatedLink, commitment,
+WorkspaceBinding nor an H1 occurrence.
+
+- Owner: typed SCOPE, TACTICAL_MISSION, ARC_QUEST, DAY_TASK or DAY_FOCUS, keyed by
+  exact existing domain-record ID. Mission IDs must be positive canonical decimal
+  IDs. Owner kind disambiguates equal raw IDs across stores.
+- Target v1: ORIENTATION, ASPECT or WORKSPACE + exact canonical ID. No Context
+  target, no raw-ID/type guessing and no Planning-to-Planning support.
+- Role: SOURCE (creation provenance; at most one live source per owner) or RELATED
+  (ordinary independently removable relation). Same target can have both roles.
+- Row: deterministic namespaced UUID from the length-prefixed typed tuple, unique
+  tuple index, createdAt/updatedAt/version/syncedAt/isDeleted. Same live tuple
+  attach is idempotent; intentional reattach resurrects its versioned row.
+- No polymorphic SQL FK is fabricated. Repository and transport validate exact
+  typed endpoints inside Room transactions. The closed target enum can later be
+  extended deliberately without changing the typed-column table shape.
+
+These records are **SEMANTIC_NOT_HIERARCHY** / canonical Planning relations.
+Existing H1 placements, containers and historical GroupScope/applicability retain
+their accepted structural/provenance epochs and authority, unchanged here.
+
+### Creation versus linking
+
+Tactical Mission and Strategic Quest creation on an existing Orientation use that
+exact Orientation in MISSION/FOCUS participation and record SOURCE. No extra
+INTENT/QUEST or fake legacy mapping is created. Existing scope/role uniqueness
+still applies; a duplicate participation in the same scope fails visibly rather
+than producing another identity. Specialized semantic lifecycle rules are not
+generalized by referencing an identity.
+
+Aspect/Workspace sources use normal domain creation: Mission retains its INTENT,
+manual Quest its QUEST; the selected source is an independent typed SOURCE.
+Free-form DayTask stays free-form for Aspect/Workspace. DayTask on Orientation
+adds DAY_TASK participation in its existing canonical Day scope, not a new subject.
+Manual no-source behavior remains unchanged.
+
+Creation, required participation and SOURCE share one domain Room transaction.
+Late reference failure rolls back all newly created domain/semantic rows.
+Properties linking writes RELATED only, creates no identity/participation and
+is visibly saved immediately rather than being mixed into the item's Save.
+SOURCE is displayed read-only. Canceling the picker creates nothing; the dialog
+guards in-flight double submission, shows saving progress and surfaces errors.
+No navigation/SavedState command is persisted for replay.
+
+### Product surfaces and navigation
+
+The existing CanonicalEntityPickerScreen/ViewModel and lightweight catalog serve
+Tactical, Today/Day and Strategic creation, plus Mission/Quest/DayTask/DayFocus/
+Day-scope reference Properties. No second catalog or picker stack is introduced.
+Today exposes a visible "+" entity-based task action beside More in both Day
+Start and Day Plan; users need not discover the Day Plan overflow-menu entry.
+Presentation resolves current title/class via typed canonical identity, with
+deterministic role/title/class/id ordering. Orientation/Aspect open
+SemanticEntityEditor(subjectId); Workspace opens Workspace(workspaceId).
+Catalog/title/deletion and reference changes update Properties reactively.
+
+Legacy links remain explicitly labeled compatibility data and can still be read/
+removed (and opened where the previous UI supplied a safe path). They are not
+silently promoted to canonical references. Global Tactical/Strategic Connections
+remain Settings preferences without a Planning-item owner. Genuine Workspace
+routing for project/backlog/activity slots remains operational routing, not a
+generic related-entity reference. These are real bounded legacy seams; visible
+Planning UI is not declared wholly legacy-free.
+
+### Persistence, lifecycle and transport
+
+Room migration **200 -> 201** creates only `planning_references` and its indexes.
+Schema 201 is exported. Existing Planning, H1 and GroupScope data is preserved.
+No historical Context/Workspace association is converted without proof of source/
+relation semantics; no Context shells or semantic identities are fabricated.
+
+Local edits increment version and clear syncedAt; removal is a tombstone.
+Deleting Mission/Quest/DayTask retires its references atomically with that domain
+command. Target tombstones remain valid historical endpoints; live catalog
+presentation omits deleted/unavailable targets and never recreates them.
+Missing/typed-invalid live-reference endpoints fail transport admission.
+No semantic/H1/Planning cascade is inferred from reference removal.
+
+SnapshotBundle has a separate nullable `planningReferences` stream of versioned
+rows: absent = older/unsupported payload with no replacement authority; [] =
+explicit exact-empty for Restore. Old payloads retain existing reference history
+only if restored endpoint closure remains valid; otherwise replacement fails
+atomically. There is no inferred SOURCE from absent data. Full snapshot reads
+targets, owners, participation and references in one coherent Room transaction.
+Production exact Restore installs references after canonical owners/endpoints,
+preserves syncedAt and rolls back complete replacement on late validation failure.
+
+Peer Merge admits owners and SOURCE in one Room transaction. Higher row version
+wins, lower is ignored, equal identical replay (ignoring syncedAt) is idempotent,
+equal divergence fails closed; tuple identity cannot change. Dirty/changedSince
+and exact-version ACK include reference tombstones. A stale ACK cannot acknowledge
+a newer local reference. Reference-bearing Wi-Fi pushes use the already-loaded
+full canonical dependency frame, sanitized of retired embedded topology; ACK
+covers only exact dirty versions. This is intentionally coarse network closure,
+not a per-row read path; narrowing packet closure remains a non-blocking
+optimization, not a new project commitment.
+
+Selective entity import has no Planning-authority selection contract and strips
+reference/participation streams. It must not import orphan references merely
+because their target was selected. Existing unsupported/frozen client boundaries
+are not advertised as new multi-entity Planning support.
+
+No reference command authors Orientation relations, Aspect membership,
+WorkspaceBinding, Context, H1/Big Picture, MainBeacon/GroupScope or execution/
+reminder/Connections state. Day scheduling/completion/order and existing
+Planning transport remain under their existing authorities.
+
+### Reported device crash paths
+
+Read-only Android crash buffer contained five traces: Goal projection at Oct 18
+22:07/23:43; Tactical cycle extension/MISSION carrier mismatch at Oct 19
+07:14/07:15; Search GroupScope completeness at 07:40.
+The existing coherent Goal/product frame fix is preserved and tested. Tactical
+cycle/Mission observers now reread all required tables in one Room transaction
+on invalidation, rather than combining pre/post-write table emissions. Genuine
+persisted missing extensions/carriers still fail closed. Search consumes the
+existing structural read frame, including exact applicability, retired scope
+history and materialized-container receipts; it never invents GroupScope for
+native roots. No phone data was changed and runtime re-acceptance is pending.
+
+### Planning mutation latency follow-up (2026-10-19)
+
+PLANNING_MUTATION_LATENCY_HOST_20261019
+
+**IMPLEMENTED / HOST VERIFIED; PHYSICAL PERFORMANCE ACCEPTANCE PENDING.**
+Room **201 -> 201**; no schema, transport, Room-library or authority change.
+
+Device ANR evidence: Main blocked at
+`ObservedTableStates.onObserverAdded -> TriggerBasedInvalidationTracker.createFlow`.
+The transaction executor was inside
+`TacticalMissionReadFrame predecessor -> requireDeferredSpecializedOnly ->
+requireCompleteActiveOrientationAggregate -> getAllAssessments`.
+Thus an atomic writer alone did not prevent a long read transaction and repeated
+full aggregate reads from starving writes/observer registration.
+
+The runtime now loads an immutable Tactical/Strategic frame in one short Room
+transaction. Tactical assessment/current-revision dependencies are scoped to
+resolvable legacy targets (batches <=500 IDs), loaded once per frame; each unique
+aggregate is validated with the existing canonical gate outside the transaction.
+Projection performs no DAO reads. Individual aggregate admission likewise uses
+only its exact subtype/current/revision. All existing integrity failures remain
+fail-closed. Relevant upstream observers/projections run off Main.
+
+Mission/Quest Add no longer awaits a cold full-list Flow for minimum order.
+Narrow SQL reads preserve canonical participation order plus legitimate deferred
+carrier ordering, in the same transaction as insertion. Source identity reuse,
+SOURCE/reference atomicity, normal manual/Aspect/Workspace creation and transport
+contracts are unchanged.
+
+Day lists combine one tasks stream, one reminders stream, one canonical Goal
+projection with bulk Goal->Workspace placement metadata and the existing
+Workspace presentation stream. They do not recreate metadata subscriptions on
+each task update. An initial empty metadata value is permitted, but never a
+legacy semantic fallback. Committed task changes emit independently of metadata;
+unchanged projected lists are deduplicated. Selection clears when its committed
+task disappears. Exact-provenance deletion still tombstones task, participation
+and references atomically; metrics remain post-commit and do not gate the list.
+
+The user chose automatic reveal. Creation captures cycle/stream or arc and
+returns a committed exact ID. Quest selects its captured arc and QUESTS tab.
+Mission retains its captured cycle/stream. Scroll lookup uses the actual Draft,
+execution or status-section row order, not an unrelated input index. The transient
+pending ID is consumed only after its real LazyColumn key is visible; neither
+navigation nor SavedState replays a create command.
+
+Debug `ForwardStartup` markers cover `Planning.Mission.confirmed/persist/
+transaction.entered/readFrame/project`, `Planning.Quest.persist/
+transaction.entered`, `Planning.DayTask.delete.command/queued/
+transaction.entered/committed`, `Planning.DayTask.list.emitted` and
+`Planning.reveal.visible`. These distinguish queue time, transaction, projection
+and render delay without logging titles.
+
+HOST evidence: **147 unique passing tests across 25 XML classes**, zero final
+failures/errors/skips, including 11 new tests. The 146-test regression found one
+obsolete bootstrap-repair expectation; the unchanged HEAD already short-circuits
+completed bootstrap. That test now proves finite bootstrap plus canonical runtime
+winner despite raw carrier drift. Its 9-test class was rerun green together with
+the new real-repository deletion/blocked-metrics test. Counts below represent
+latest successful XML for each class, not a claim of a single 147-test command.
+
+| Class | Tests |
+| --- | ---: |
+| `CanonicalStrategicPlanningAuthorityActivatorRoomTest` | 20 |
+| `PlanningReferencesViewModelTest` | 5 |
+| `TacticalMissionVisibilityTest` | 3 |
+| `TacticalReactiveCreationRoomTest` | 2 |
+| `TacticalMissionRevealTest` | 3 |
+| `CanonicalEntityPickerContractTest` | 5 |
+| `EditTaskViewModelRecurrenceEditTest` | 2 |
+| `PlanningReferenceExactRestoreRoomTest` | 2 |
+| `DayTaskListReadTest` | 2 |
+| `CanonicalProductReadRoomSourceTest` | 4 |
+| `PlanningMutationLatencyRoomTest` | 3 |
+| `TacticalMissionReadPerformanceRoomTest` | 2 |
+| `PlanningSourceCreationRoomTest` | 7 |
+| `CanonicalPlanningSyncStoreRoomTest` | 13 |
+| `CanonicalTacticalPlanningAuthorityActivatorRoomTest` | 9 |
+| `CanonicalPlanningReferenceRoomTest` | 5 |
+| `QuestOrientationBridgeRoomTest` | 9 |
+| `CanonicalTacticalPlanningAdapterRoomTest` | 4 |
+| `PlanningReferenceRoundTripRoomTest` | 1 |
+| `CanonicalTacticalMissionAdapterRoomTest` | 16 |
+| `CanonicalOrientationRoomRoundTripTest` | 3 |
+| `CanonicalStrategicPlanningMappingTest` | 14 |
+| `DayTaskDaoWorkspaceProjectRoomTest` | 10 |
+| `PlanningRelatedPropertiesRoomTest` | 2 |
+| `DayTaskDeletionVisibilityRoomTest` | 1 |
+
+Both subsequent separate Kotlin compile gates PASS; `git diff --check` PASS.
+No phone deployment/data mutation performed. Physical acceptance must measure
+warm confirmation -> visible result against **<=2 seconds** and verify no ANR.
+That target is not yet measured or claimed achieved. Existing general ProductRead
+performance debt remains independent of this bounded repair.
+
+### HOST acceptance evidence
+
+Final filtered HOST runs: **173/173 app tests in 25 XML classes + 12/12 sync
+tests in 3 classes**, all zero failures/errors/skips. This is focused regression,
+not a full-project suite. Exact JUnit XML class counts:
+
+| Module | Class | Tests |
+| --- | --- | ---: |
+| app | `EntityLibraryNavigationContractTest` | 4 |
+| app | `PlanningSourceCreationRoomTest` | 7 |
+| app | `PlanningReferencesViewModelTest` | 5 |
+| app | `PlanningRelatedPropertiesRoomTest` | 2 |
+| app | `CanonicalEntityPickerContractTest` | 5 |
+| app | `EditTaskViewModelRecurrenceEditTest` | 2 |
+| app | `SearchRepositoryTest` | 26 |
+| app | `CanonicalSearchHierarchyReadRoomTest` | 1 |
+| app | `CanonicalPlanningSyncStoreRoomTest` | 13 |
+| app | `CanonicalProductReadRoomSourceTest` | 4 |
+| app | `PlanningReferenceRoundTripRoomTest` | 1 |
+| app | `CanonicalPlanningReferenceRoomTest` | 5 |
+| app | `CanonicalGoalSemanticReadRepositoryTest` | 4 |
+| app | `CanonicalV2SourceDeletionReactiveReadRoomTest` | 4 |
+| app | `CanonicalTacticalPlanningAdapterRoomTest` | 4 |
+| app | `CanonicalEntityCatalogRepositoryTest` | 3 |
+| app | `CanonicalTacticalMissionAdapterRoomTest` | 16 |
+| app | `Migration200To201PlanningReferencesRoomTest` | 1 |
+| app | `CanonicalStrategicPlanningMappingTest` | 14 |
+| app | `Migration199To200GroupScopeCoverageRoomTest` | 1 |
+| app | `PlanningReferenceExactRestoreRoomTest` | 2 |
+| app | `DayTaskDaoWorkspaceProjectRoomTest` | 10 |
+| app | `CanonicalStrategicPlanningAuthorityActivatorRoomTest` | 20 |
+| app | `TacticalReactiveCreationRoomTest` | 2 |
+| app | `HierarchyPlacementRestoreRoomTest` | 17 |
+| sync | `PlanningReferenceTransportTest` | 3 |
+| sync | `CanonicalPlanningWifiPushPlanTest` | 8 |
+| sync | `CanonicalPlanningSelectiveImportTest` | 1 |
+
+Tasks: `:app:testProdDebugUnitTest` and `:sync:testDebugUnitTest`, filtered
+to the classes above through `tools/agent-test`. Separate subsequent
+`:app:compileProdDebugKotlin` and `:app:compileProdDebugUnitTestKotlin`
+both PASS. `git diff --check` PASS. No physical deployment or acceptance claimed.
+
 This document defines the accepted Canonical V3 planning boundary identified
 by the completed Global Canonical Model Census. It is not an implementation
 record, schema specification, or authorization to migrate production data.
@@ -968,3 +1348,34 @@ This accepted contract freezes:
 
 It does not authorize schema creation, repository work, production migration,
 or UI changes.
+
+## Physical acceptance
+
+CANONICAL_PLANNING_REFERENCES_PHYSICAL_ACCEPTED_20261019
+
+The canonical Planning reference model is physically accepted on the EXP device.
+
+Verified live behavior includes:
+
+- Mission creation from existing Orientation without duplicate INTENT;
+- Quest creation from existing Orientation without duplicate QUEST;
+- Day Planning creation from existing Orientation;
+- Aspect and standalone Workspace as typed SOURCE references;
+- RELATED add/remove in Planning Properties;
+- exact canonical navigation for Orientation / Aspect / Workspace;
+- Tactical cycle creation;
+- Goal quick-add regression;
+- Search regression;
+- persistence across application restart.
+
+The accepted model remains:
+
+```text
+PlanningCommitment = Orientation participation
+PlanningReference  = typed SOURCE / RELATED canonical relation
+```
+
+Operational Planning is functionally complete for the current product scope.
+Remaining legacy seams do not redefine this authority model.
+
+Room schema is 201.

@@ -67,6 +67,12 @@ class BigPictureMutationViewModel @Inject constructor(
 
     fun cancelCut() { if (!state.value.busy) savedState["bigPictureCut"] = null }
 
+    fun discardMissingClipboard(liveNodes: Set<H1TypedNode>) {
+        val encoded = clipboard.value ?: return
+        val node = runCatching { decodeStructuralNode(encoded) }.getOrNull()
+        if (node !in liveNodes) savedState["bigPictureCut"] = null
+    }
+
     fun paste(destination: H1StructuralParent) {
         val source = clipboard.value ?: return
         mutate {

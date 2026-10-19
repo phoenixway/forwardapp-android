@@ -798,7 +798,7 @@ class CanonicalExpStartupRealDatabaseAcceptanceTest {
 
             val canonicalGoals =
                 withTimeout(180_000L) {
-                    CanonicalGoalSemanticReadRepository(repository, dao)
+                    CanonicalGoalSemanticReadRepository(repository)
                         .observeAll()
                         .first()
                 }

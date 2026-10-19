@@ -40,6 +40,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
             presentationProvenance: CanonicalV2HierarchyPresentationProvenance,
             hierarchyId: HierarchyId = HierarchyId.GENERAL,
             applicability: Collection<GroupScopeApplicabilityEntity> = emptyList(),
+            materializedHistoricalGroupSubjects: Set<String> = emptySet(),
         ): CanonicalV2ProductionHierarchyRead {
             require(hierarchyId == HierarchyId.GENERAL) {
                 "Canonical V2 production assembler currently supports only GENERAL"
@@ -82,13 +83,31 @@ class CanonicalV2HierarchyReadSnapshotAssembler
                         .toSet(),
                 )
 
+            val historicalIds = applicability.filter { it.mode == "HISTORICAL" }
+                .mapTo(hashSetOf()) { it.placementId }
+            val groupBySubject = groups.associateBy { it.canonicalSubjectId }
+            val occurrenceById = hierarchy.occurrences.associateBy { it.placementId.value }
+            val memberships = relations.filter { !it.isDeleted && it.relationType == "PART_OF" }
+                .mapTo(hashSetOf()) { it.fromOrientationId to it.toOrientationId }
+
             return CanonicalV2ProductionHierarchyRead(
                 hierarchy = hierarchy,
                 presentation = presentation,
                 presentationProvenance = presentationProvenance,
+                workspacePresentationsByTargetId = admittedWorkspacePresentations.associateBy { it.id },
                 nativePlacementIds = applicability.asSequence()
                     .filter { it.mode == "NATIVE" }
                     .map { PlacementId(it.placementId) }.toSet(),
+                historicalCoreLevelGroups = groupScopes.asSequence().filter {
+                    it.isDeleted && it.groupSubjectId in materializedHistoricalGroupSubjects &&
+                        it.placementId in historicalIds
+                }.mapNotNull { scope ->
+                    val group = groupBySubject[scope.groupSubjectId]
+                    val occurrence = occurrenceById[scope.placementId]
+                    if (group != null && occurrence != null &&
+                        (occurrence.target.id to scope.groupSubjectId) in memberships
+                    ) PlacementId(scope.placementId) to group.id else null
+                }.toMap(),
             )
         }
 

@@ -2,6 +2,8 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import androidx.room.withTransaction
+
 import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
@@ -209,7 +211,10 @@ class MergeLocalDataSourceImpl
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
             requireCanonicalMergeIngress(bundle)
-            applyCanonicalSnapshotBundle(bundle)
+            if (bundle.planningReferences != null) {
+                // A new item, participation and its SOURCE must be admitted as one persisted unit.
+                db.withTransaction { applyCanonicalSnapshotBundle(bundle) }
+            } else applyCanonicalSnapshotBundle(bundle)
         }
 
         override suspend fun applySelectiveSnapshotBundle(bundle: SnapshotBundle) {
@@ -781,6 +786,10 @@ class MergeLocalDataSourceImpl
                 bigPicturePresentationRepository.merge(
                     bundle.bigPicturePresentation ?: BigPicturePresentationSnapshot()
                 )
+                com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover(db).materialize(
+                    if (selectiveHierarchyDelta) bundle.hierarchyPlacementGroupScopes.orEmpty()
+                        .mapNotNullTo(hashSetOf()) { it.groupSubjectId } else null,
+                )
                 canonicalHierarchyPlacementSyncStore.requireCurrentHierarchyValid()
                 // Both structural streams have now been admitted. Validate
                 // their combined typed graph in the SAME outer transaction.
@@ -860,6 +869,9 @@ class MergeLocalDataSourceImpl
                 strategicPlanningAuthorityActivator.ensureActivated()
             }
             strategicPlanningAdapter?.projectCompatibilityRows()
+
+            com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceSyncStore(db)
+                .merge(bundle.planningReferences)
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

@@ -47,6 +47,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
+import com.romankozak.forwardappmobile.features.workspace.WORKSPACE_SEMANTIC_BOOTSTRAP_ACTION
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 
 private data class OptionsMenuLabels(
@@ -171,6 +173,12 @@ private fun buildMenuItems(
 
     return buildList {
         addAll(buildPrimaryMenuItems(labels = labels, handlers = handlers))
+        menu.onSemanticBootstrap?.let { bootstrap ->
+            add(MenuItem(text = WORKSPACE_SEMANTIC_BOOTSTRAP_ACTION, icon = Icons.Default.Edit, onClick = {
+                handlers.onDismiss()
+                bootstrap()
+            }))
+        }
         addAll(
             buildMarkdownMenuItems(
                 currentView = state.currentView,
@@ -190,12 +198,12 @@ private fun buildMenuItems(
 @Composable
 private fun buildOptionsMenuLabels(state: NavPanelState): OptionsMenuLabels {
     val shareListText = stringResource(R.string.share_list)
-    val deleteListText = stringResource(R.string.delete_list)
+    val deleteListText = WorkspaceSurfaceCopy.DELETE
     val focusToggleText =
         if (state.isCurrentContextFocused) {
-            "Зняти фокус з контексту"
+            WorkspaceSurfaceCopy.FOCUS_REMOVE
         } else {
-            "Додати контекст у фокус"
+            WorkspaceSurfaceCopy.FOCUS_ADD
         }
     val focusToggleIcon =
         if (state.isCurrentContextFocused) {
@@ -217,7 +225,7 @@ private fun buildPrimaryMenuItems(
 ): List<MenuItem> =
     listOf(
         MenuItem(
-            text = "Properties",
+            text = WorkspaceSurfaceCopy.PROPERTIES,
             icon = Icons.Default.Edit,
             onClick = {
                 handlers.onEditList()
@@ -241,7 +249,7 @@ private fun buildPrimaryMenuItems(
             },
         ),
         MenuItem(
-            text = "Start tracking current project",
+            text = WorkspaceSurfaceCopy.START_TRACKING,
             icon = Icons.Outlined.PlayCircle,
             onClick = {
                 handlers.onStartTrackingCurrentProject()

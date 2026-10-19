@@ -66,10 +66,7 @@ class BigPictureViewModelTest {
         vm.focusPlacement(null)
         advanceUntilIdle()
         assertThat((vm.uiState.value as BigPictureUiState.Ready).activeNode).isNull()
-        assertThat((vm.uiState.value as BigPictureUiState.Ready).nodes).isEmpty()
-        assertThat((vm.uiState.value as BigPictureUiState.Ready).scopes.map { it.id }).containsExactly(CANONICAL_V2_NO_BEACON_SCOPE_ID)
-        vm.focusScope(CANONICAL_V2_NO_BEACON_SCOPE_ID)
-        advanceUntilIdle()
+        assertThat((vm.uiState.value as BigPictureUiState.Ready).scopes).isEmpty()
         assertThat((vm.uiState.value as BigPictureUiState.Ready).nodes.map { it.placement.id.value }).containsExactly("root")
         vm.focusPlacement("child") // A descendant cannot bypass the visible focus level.
         advanceUntilIdle()
@@ -95,7 +92,7 @@ class BigPictureViewModelTest {
         val workspace = p("workspace", "w", "aspect-root").copy(target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "w"))
         val orientation = p("orientation", "o", "workspace")
         every { repository.observe() } returns flowOf(BigPictureStructure(
-            listOf(root, workspace, orientation), groupOrder = mapOf("group" to 1),
+            listOf(root, workspace, orientation),
         ))
         every { catalog.observeCatalog() } returns flowOf(listOf(
             CanonicalEntitySummary(CanonicalEntityRef.Aspect("a"), "Aspect"),
@@ -108,7 +105,7 @@ class BigPictureViewModelTest {
         advanceUntilIdle()
         fun ready() = vm.uiState.value as BigPictureUiState.Ready
         assertThat(ready().nodes.single().entity?.ref).isEqualTo(CanonicalEntityRef.Aspect("a"))
-        assertThat(ready().scopes.single().title).isEqualTo("Historical group")
+        assertThat(ready().scopes).isEmpty() // Semantic/compatibility metadata alone cannot create a parent.
         vm.focusPlacement("aspect-root")
         advanceUntilIdle()
         assertThat(ready().activeScope).isNull()
@@ -127,7 +124,12 @@ class BigPictureViewModelTest {
         val beacon = p("b", "beacon").copy(target = HierarchyTargetRef(HierarchyTargetType.MANAGED_SUBJECT, "beacon"))
         every { repository.observe() } returns flowOf(BigPictureStructure(
             listOf(beacon, p("w", "workspace", "b").copy(target = HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "workspace"))),
-            mapOf(PlacementId("b") to "group"), mapOf("group" to 1),
+            presentation = com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot(
+                containers = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureContainerSnapshot(
+                    "group-container", "GENERAL", "Group", null, null, 0, 1, 1, null, false, 1)),
+                memberships = listOf(com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPictureMembershipSnapshot(
+                    "b", "GENERAL", "group-container", 1, 1, null, false, 1)),
+            ),
         ))
         every { catalog.observeCatalog() } returns flowOf(listOf(
             CanonicalEntitySummary(CanonicalEntityRef.Orientation("group"), "Group"),
@@ -174,8 +176,8 @@ class BigPictureViewModelTest {
         assertThat((vm.uiState.value as BigPictureUiState.Ready).breadcrumbs).hasSize(2)
         vm.focusPlacement(null)
         advanceUntilIdle()
-        assertThat((vm.uiState.value as BigPictureUiState.Ready).nodes).isEmpty()
-        assertThat((vm.uiState.value as BigPictureUiState.Ready).scopes).hasSize(1)
+        assertThat((vm.uiState.value as BigPictureUiState.Ready).nodes).hasSize(1)
+        assertThat((vm.uiState.value as BigPictureUiState.Ready).scopes).isEmpty()
     }
 
     private fun p(id: String, target: String, parent: String? = null) = HierarchyPlacement(

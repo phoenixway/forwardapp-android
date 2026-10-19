@@ -32,6 +32,24 @@ class CanonicalV2HierarchyConsumerReadiness {
     ): List<CanonicalV2CoreLevelOccurrence> {
         val occurrences = read.hierarchy.occurrences.associateBy { it.placementId }
         val admitted = mutableMapOf<PlacementId, Boolean>()
+        val inheritedHistoricalGroups = mutableMapOf<PlacementId, String?>()
+        fun historicalGroupFor(id: PlacementId): String? {
+            val path = mutableListOf<PlacementId>()
+            var cursor: PlacementId? = id
+            var group: String? = null
+            while (cursor != null) {
+                if (inheritedHistoricalGroups.containsKey(cursor)) {
+                    group = inheritedHistoricalGroups[cursor]
+                    break
+                }
+                path += cursor
+                read.historicalCoreLevelGroups[cursor]?.let { group = it }
+                if (group != null) break
+                cursor = occurrences.getValue(cursor).parentPlacementId
+            }
+            path.forEach { inheritedHistoricalGroups[it] = group }
+            return group
+        }
 
         // A legal mixed Big Picture branch may not fit the historical Beacon
         // surface. Exclude that entire branch here, preserving H1 unchanged.
@@ -45,8 +63,9 @@ class CanonicalV2HierarchyConsumerReadiness {
                 path += current
                 val scope = read.syntheticScopeFor(current)
                 if (node.target.type != HierarchyTargetType.MANAGED_SUBJECT ||
-                    current in read.nativePlacementIds || scope == null ||
-                    scope.kind == CanonicalV2SyntheticScopeKind.NO_BEACON
+                    current in read.nativePlacementIds ||
+                    (scope == null && historicalGroupFor(current) == null) ||
+                    scope?.kind == CanonicalV2SyntheticScopeKind.NO_BEACON
                 ) {
                     admitted[current] = false
                     break
@@ -83,11 +102,8 @@ class CanonicalV2HierarchyConsumerReadiness {
                         "${projected.parentPlacementId?.value}"
                 }
 
-                val scope =
-                    requireNotNull(read.syntheticScopeFor(projected.placementId)) {
-                        "CoreLevel occurrence ${projected.placementId.value} has no synthetic scope"
-                    }
-                require(scope.kind != CanonicalV2SyntheticScopeKind.NO_BEACON) {
+                val scope = read.syntheticScopeFor(projected.placementId)
+                require(scope?.kind != CanonicalV2SyntheticScopeKind.NO_BEACON) {
                     "CoreLevel ManagedSubject occurrence ${projected.placementId.value} " +
                         "cannot be presented in NoBeacon"
                 }
@@ -100,9 +116,8 @@ class CanonicalV2HierarchyConsumerReadiness {
                     placementKind = projected.placementKind,
                     siblingOrder = projected.siblingOrder,
                     groupPresentationId =
-                        scope.id.takeIf {
-                            scope.kind == CanonicalV2SyntheticScopeKind.GROUP
-                        },
+                        if (scope?.kind == CanonicalV2SyntheticScopeKind.GROUP) scope.id
+                        else historicalGroupFor(projected.placementId),
                 )
             }
             .toList()

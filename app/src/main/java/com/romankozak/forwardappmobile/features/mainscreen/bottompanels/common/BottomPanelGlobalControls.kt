@@ -9,6 +9,7 @@ fun BottomPanelMoreActionButton(
     actions: BottomPanelGlobalActions,
     modifier: Modifier = Modifier.size(BottomPanelTokens.ActionButtonSize),
     additionalActions: List<MoreSheetAction> = emptyList(),
+    onShowRecents: (() -> Unit)? = null,
 ) {
     CommandDeckMoreActionButton(
         onNavigateToProjectHierarchy = actions.onNavigateToProjectHierarchy,
@@ -33,6 +34,7 @@ fun BottomPanelMoreActionButton(
         onNavigateToEntityLibrary = actions.onNavigateToEntityLibrary,
         onShowAbout = actions.onShowAbout,
         additionalActions = additionalActions,
+        onShowRecents = onShowRecents,
         featureToggles = actions.featureToggles,
         modifier = modifier,
     )

@@ -383,15 +383,15 @@ class CanonicalOrientationRepository
          * Orientation. It verifies the complete live aggregate without
          * imposing migration-specific revision provenance.
          */
-        suspend fun requireCompleteActiveOrientationAggregate(subjectId: String) {
+        suspend fun requireCompleteActiveOrientationAggregate(subjectId: String) = database.withTransaction {
+            val currents = dao.getAssessmentsFor(listOf(subjectId))
             requireCompleteActiveOrientationAggregate(
                 subjectId = subjectId,
                 subject = dao.getManagedSubject(subjectId),
                 orientationNodes =
-                    dao.getAllOrientations().filter { it.subjectId == subjectId },
-                currents =
-                    dao.getAllAssessments().filter { it.orientationId == subjectId },
-                revisions = dao.getAllAssessmentRevisions(),
+                    listOfNotNull(dao.getOrientation(subjectId)),
+                currents = currents,
+                revisions = dao.getAssessmentRevisionsByIds(currents.map { it.revisionId }),
             )
         }
 

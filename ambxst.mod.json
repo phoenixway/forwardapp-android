@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Axenide/Ambxst/main/docs/mods/manifest.schema.json",
+  "manifestVersion": 1,
+  "id": "dev.hyperland.quiet-notifications",
+  "name": "Quiet Notifications",
+  "version": "1.0.0",
+  "description": "Theme-aware unread bell in bar; click to view native notification history; no automatic toasts.",
+  "license": "MIT",
+  "author": "Hyperland",
+  "compatibility": {
+    "api": 1,
+    "ambxst": ">=1.3.8 <1.4.0",
+    "testedBaseCommits": ["1e1a56493582f34e5e5593bc9d3c2f87246266fb"]
+  },
+  "dependencies": [],
+  "dependencySources": {},
+  "conflicts": [],
+  "commands": [],
+  "permissions": ["Reads and updates notification read markers in Ambxst's existing local history"],
+  "operations": [
+    {"type": "overlay", "source": "payload/QuietNotificationButton.qml", "target": "modules/bar/QuietNotificationButton.qml"},
+    {"type": "patch", "source": "patches/quiet-notifications.patch"}
+  ]
+}

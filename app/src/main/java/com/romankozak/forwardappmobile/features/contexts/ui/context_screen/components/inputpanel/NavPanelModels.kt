@@ -35,6 +35,7 @@ data class NavPanelActions(
 )
 
 data class OptionsMenuActions(
+    val onSemanticBootstrap: (() -> Unit)? = null,
     val onEditList: () -> Unit,
     val onToggleProjectManagement: (Boolean) -> Unit,
     val onStartTrackingCurrentProject: () -> Unit,

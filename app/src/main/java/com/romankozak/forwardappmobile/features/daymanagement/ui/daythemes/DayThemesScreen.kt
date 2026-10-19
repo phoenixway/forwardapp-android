@@ -72,6 +72,11 @@ fun DayThemesScreen(
 
     LaunchedEffect(initialDayPlanId) { viewModel.loadPlan(initialDayPlanId) }
 
+    state.error?.let { error ->
+        Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp))
+        return
+    }
+
     DayThemesContent(
         state = state,
         onAdd = { editedTheme = null; editorVisible = true },
@@ -234,6 +239,7 @@ private fun DayThemeEditorSheet(
     var budget by remember(theme?.id) { mutableStateOf(theme?.budgetPercent?.toString() ?: "0") }
     var color by remember(theme?.id) { mutableStateOf(theme?.colorArgb ?: dayThemeColors[4]) }
     var icon by remember(theme?.id) { mutableStateOf(theme?.iconKey ?: "target") }
+    var carryForward by remember(theme?.id) { mutableStateOf(theme?.carryForward ?: false) }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(
             modifier =
@@ -243,6 +249,11 @@ private fun DayThemeEditorSheet(
                     .navigationBarsPadding(),
         ) {
             Text(if (theme == null) "Нова тема" else "Властивості теми", style = MaterialTheme.typography.titleLarge)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(if (carryForward) "Переносити в наступний день" else "Разова тема цього дня")
+                Switch(checked = carryForward, onCheckedChange = { carryForward = it })
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(title, { title = it }, label = { Text("Назва") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
@@ -289,7 +300,7 @@ private fun DayThemeEditorSheet(
             }
             Spacer(Modifier.height(18.dp))
             Button(
-                onClick = { onSave(DayThemeDraft(title, color, icon, comment, budget.toIntOrNull() ?: 0)) },
+                onClick = { onSave(DayThemeDraft(title, color, icon, comment, budget.toIntOrNull() ?: 0, carryForward)) },
                 enabled = title.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Зберегти") }

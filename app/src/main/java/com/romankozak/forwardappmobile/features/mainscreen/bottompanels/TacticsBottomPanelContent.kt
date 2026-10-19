@@ -129,7 +129,7 @@ internal fun TacticsBottomPanelContent(
                     leadingContent = {
                         BottomPanelIconButton(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Додати місію",
+                            contentDescription = "Створити Mission на основі сутності",
                             onClick = onAddMissionFromContext,
                         )
                         BottomPanelIconButton(

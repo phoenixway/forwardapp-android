@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
@@ -49,12 +52,35 @@ import com.romankozak.forwardappmobile.features.semantic.displayLabel
 fun SemanticEntityEditorScreen(
     navController: NavHostController,
     viewModel: SemanticEntityEditorViewModel = hiltViewModel(),
+    workspaceCreation: EmbodyingWorkspaceViewModel = hiltViewModel(),
+    deletion: SemanticEntityDeleteViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val workspaceState by workspaceCreation.state.collectAsStateWithLifecycle()
+    val deleteState by deletion.state.collectAsStateWithLifecycle()
+    LaunchedEffect(deleteState.deleted) {
+        if (deletion.consumeDeleted()) navController.popBackStack()
+    }
+    SemanticEntityDeleteDialog(deleteState, deletion::confirm, deletion::cancel)
+    LaunchedEffect(workspaceState.createdId) {
+        workspaceCreation.consumeCreatedId()?.let { id ->
+            viewModel.refreshWorkspaceBindings()
+            navController.navigate(NavTargetRouter.routeOf(NavTarget.Workspace(id)))
+        }
+    }
+    EmbodyingWorkspaceDialog(workspaceState, workspaceCreation)
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDiscard by remember { mutableStateOf(false) }
     val loaded = state as? SemanticEntityEditorUiState.Loaded
+    LaunchedEffect(loaded?.model?.id, loaded?.model?.version) { deletion.prepare(loaded?.model?.id) }
     val editorEntry = remember(navController) { requireNotNull(navController.currentBackStackEntry) }
+    DisposableEffect(editorEntry, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshWorkspaceBindings()
+        }
+        editorEntry.lifecycle.addObserver(observer)
+        onDispose { editorEntry.lifecycle.removeObserver(observer) }
+    }
     val pickerResult by
         editorEntry.savedStateHandle
             .getStateFlow<List<String>?>(CANONICAL_ENTITY_PICKER_RESULT_KEY, null)
@@ -65,6 +91,7 @@ fun SemanticEntityEditorScreen(
             .collectAsStateWithLifecycle()
 
     fun requestBack() {
+        if (deleteState.busy) return
         if (loaded?.model?.isDirty == true) confirmDiscard = true else navController.popBackStack()
     }
 
@@ -103,7 +130,13 @@ fun SemanticEntityEditorScreen(
                 },
                 actions = {
                     loaded?.model?.let { model ->
-                        IconButton(onClick = viewModel::save, enabled = model.canSave) {
+                        EmbodyingWorkspaceAction(model, workspaceState,
+                            onOpen = { workspaceCreation.open(model) },
+                            onDelete = (deletion::request).takeIf { deleteState.target?.subjectId == model.id },
+                            deleteLabel = "Видалити ${deleteState.target?.classLabel ?: "сутність"}…",
+                            blocked = deleteState.busy,
+                        )
+                        IconButton(onClick = viewModel::save, enabled = model.canSave && !workspaceState.busy && !deleteState.busy) {
                             if (model.isSaving) {
                                 CircularProgressIndicator()
                             } else {
@@ -121,13 +154,14 @@ fun SemanticEntityEditorScreen(
             is SemanticEntityEditorUiState.Unavailable -> UnavailableContent(current.message, padding)
             is SemanticEntityEditorUiState.Loaded ->
                 EditorContent(
-                    model = current.model,
+                    model = if (deleteState.busy) current.model.copy(isSaving = true, isRelationMutationInFlight = true) else current.model,
                     padding = padding,
                     onNameChange = viewModel::setName,
                     onAddAspect = { openPicker(SemanticRelationPickerKind.ASPECT) },
                     onRemoveAspect = viewModel::removeAspectAssociation,
                     onAddWorkspace = { openPicker(SemanticRelationPickerKind.WORKSPACE) },
                     onRemoveWorkspace = viewModel::removeWorkspaceBinding,
+                    onOpenWorkspace = { binding -> navController.navigate(NavTargetRouter.routeOf(binding.destination())) },
                     onAddOrientation = { openPicker(SemanticRelationPickerKind.ORIENTATION) },
                     onRemoveOrientation = viewModel::removeOrientationRelation,
                 )
@@ -189,6 +223,7 @@ private fun EditorContent(
     onRemoveAspect: (String) -> Unit,
     onAddWorkspace: () -> Unit,
     onRemoveWorkspace: (String) -> Unit,
+    onOpenWorkspace: (WorkspaceBindingItem) -> Unit,
     onAddOrientation: () -> Unit,
     onRemoveOrientation: (String, Long) -> Unit,
 ) {
@@ -208,7 +243,7 @@ private fun EditorContent(
         if (model.canEditAspects) {
             AspectAssociationsSection(model, onAddAspect, onRemoveAspect)
         }
-        WorkspaceBindingsSection(model, onAddWorkspace, onRemoveWorkspace)
+        WorkspaceBindingsSection(model, onAddWorkspace, onRemoveWorkspace, onOpenWorkspace)
         if (model.canEditOrientationRelations) {
             OrientationGraphRelationsSection(model, onAddOrientation, onRemoveOrientation)
         }

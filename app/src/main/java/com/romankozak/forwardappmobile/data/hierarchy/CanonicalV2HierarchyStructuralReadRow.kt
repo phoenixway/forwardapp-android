@@ -20,4 +20,6 @@ data class CanonicalV2HierarchyStructuralReadRow(
     val linkedAppearance: HierarchyPlacementLinkedAppearanceEntity?,
     @Embedded(prefix = "applicability_")
     val applicability: GroupScopeApplicabilityEntity? = null,
+    /** Compatibility receipt only, including a deleted container; never an H1 parent. */
+    val materializedHistoricalGroupSubjectId: String? = null,
 )

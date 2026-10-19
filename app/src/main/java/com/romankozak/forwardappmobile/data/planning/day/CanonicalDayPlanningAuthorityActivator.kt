@@ -190,9 +190,9 @@ class CanonicalDayPlanningAuthorityActivator
                     planningDao.getAllCommitments()
                         .map { it.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL) }
                         .filter { it.role == com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleCode.DAY_THEME }
-                        .associateBy { it.provenance.sourceId }
+                        .associateBy { it.id }
                 dayThemeDao.getAllDayThemesSync().filterNot { it.isDeleted }.forEach { legacy ->
-                    val commitment = requireNotNull(commitments[legacy.id]) {
+                    val commitment = requireNotNull(commitments[canonicalDayThemeCommitmentId(legacy.id)]) {
                         "DayTheme ${legacy.id} is missing its canonical commitment"
                     }
                     dayThemeDao.projectPlanningFields(

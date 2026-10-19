@@ -56,6 +56,7 @@ internal fun WorkspaceBindingsSection(
     model: SemanticEntityEditorModel,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
+    onOpen: (WorkspaceBindingItem) -> Unit,
 ) {
     RelationSectionHeader("Робочі простори", model.isRelationMutationInFlight, onAdd)
     if (model.workspaceBindings.isEmpty()) {
@@ -67,6 +68,7 @@ internal fun WorkspaceBindingsSection(
                 subtitle = binding.bindingType.displayLabel() + if (binding.isPrimary) " · основний" else "",
                 enabled = !model.isRelationMutationInFlight,
                 onRemove = { onRemove(binding.bindingId) },
+                onOpen = { onOpen(binding) },
             )
         }
     }
@@ -127,8 +129,10 @@ private fun RelationRow(
     enabled: Boolean,
     onRemove: () -> Unit,
     canRemove: Boolean = true,
+    onOpen: (() -> Unit)? = null,
 ) {
     ListItem(
+        modifier = if (onOpen != null) Modifier.clickable(enabled = enabled, onClick = onOpen) else Modifier,
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle) },
         trailingContent = {

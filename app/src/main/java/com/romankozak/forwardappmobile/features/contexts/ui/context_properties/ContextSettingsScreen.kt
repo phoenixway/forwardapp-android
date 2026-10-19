@@ -79,8 +79,6 @@ import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenActions
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
-import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
-import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabState
@@ -92,7 +90,8 @@ fun ProjectSettingsScreen(
     navigationManager: EnhancedNavigationManager? = null,
     workspaceProperties: Boolean = false,
 ) {
-    if (workspaceProperties) {
+    val legacyEditId = remember(navController) { navController.currentBackStackEntry?.arguments?.getString("projectId") }
+    if (workspaceProperties || legacyEditId != null) {
         WorkspacePropertiesContent(navController = navController)
     } else {
         LegacyContextProjectSettingsScreen(
@@ -110,8 +109,6 @@ private fun LegacyContextProjectSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showPresetDialog by remember { mutableStateOf(false) }
-    var showPresetPicker by remember { mutableStateOf(false) }
     var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     val capabilitySettingsTabs =
@@ -142,9 +139,9 @@ private fun LegacyContextProjectSettingsScreen(
         }
     }
 
-    val baseTabs = listOf("General", "Display", "Features", "Evaluation", "Reminders", "Links")
+    val baseTabs = listOf("General", "Display", "Features", "Reminders", "Links")
     val baseTabIcons =
-        listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications, Icons.Default.Edit)
+        listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.Notifications, Icons.Default.Edit)
     val tabs = baseTabs + capabilitySettingsTabs.map { it.descriptor.tabTitle }
     val tabIcons = baseTabIcons + List(capabilitySettingsTabs.size) { Icons.Default.Build }
     val selectedTabIndex = uiState.selectedTabIndex.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))
@@ -227,34 +224,8 @@ private fun LegacyContextProjectSettingsScreen(
                     )
                 "Features" ->
                     FeaturesTabContent(
-                        currentPreset = uiState.currentPresetLabel,
-                        onApplyPreset = { showPresetPicker = true },
                         features = uiState.features,
                         onToggleFeature = viewModel::onToggleFeature,
-                    )
-                "Evaluation" ->
-                    EvaluationTabContent(
-                        uiState =
-                            EvaluationTabUiState(
-                                valueImportance = uiState.valueImportance,
-                                valueImpact = uiState.valueImpact,
-                                effort = uiState.effort,
-                                cost = uiState.cost,
-                                risk = uiState.risk,
-                                weightEffort = uiState.weightEffort,
-                                weightCost = uiState.weightCost,
-                                weightRisk = uiState.weightRisk,
-                                rawScore = uiState.rawScore,
-                                scoringStatus = uiState.scoringStatus,
-                                isScoringEnabled = uiState.isScoringEnabled,
-                                isAssessmentEnabled = uiState.isCanonicalAssessmentAvailable,
-                                supportsAssessmentUnset = true,
-                                relativeSize = 0,
-                                isBeaconProgressExpanded = uiState.isBeaconProgressExpanded,
-                                isRelativeSizeExpanded = uiState.isRelativeSizeExpanded,
-                                showRelativeSizeSection = false,
-                            ),
-                        onViewModelAction = viewModel,
                     )
                 "Reminders" ->
                     RemindersTabContent(
@@ -280,34 +251,6 @@ private fun LegacyContextProjectSettingsScreen(
                 }
             }
         }
-    }
-
-    if (showPresetDialog) {
-        AddPresetDialog(
-            onDismiss = { showPresetDialog = false },
-            onConfirm = { code, label, description ->
-                // Editor екран обробить створення, діалог не використовується
-                showPresetDialog = false
-            },
-        )
-    }
-
-    if (showPresetPicker) {
-        PresetChooserDialog(
-            presets = uiState.availablePresets,
-            onDismiss = { showPresetPicker = false },
-            onSelect = { code ->
-                viewModel.onApplyPreset(code)
-                showPresetPicker = false
-            },
-            onEditPresets = {
-                showPresetPicker = false
-                navigationManager.navigateOrFallback(
-                    navController = navController,
-                    target = NavTarget.StructurePresets,
-                )
-            },
-        )
     }
 
     if (uiState.isDescriptionEditorOpen) {
@@ -398,8 +341,6 @@ private fun CapabilitySettingsTabContent(
 
 @Composable
 private fun FeaturesTabContent(
-    currentPreset: String?,
-    onApplyPreset: () -> Unit,
     features: Map<String, Boolean>,
     onToggleFeature: (String, Boolean) -> Unit,
 ) {
@@ -411,7 +352,7 @@ private fun FeaturesTabContent(
                 .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        PresetCard(currentPreset = currentPreset, onApplyPreset = onApplyPreset)
+        // Structural presets are not Workspace properties. Keep feature controls only.
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -456,57 +397,6 @@ fun FeatureRow(
     }
 }
 
-@Composable
-private fun PresetCard(
-    currentPreset: String?,
-    onApplyPreset: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            colors =
-                                listOf(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                                ),
-                        ),
-                    )
-                    .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Structural preset", style = MaterialTheme.typography.titleMedium)
-            Text(
-                currentPreset ?: "Не вибрано",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Button(
-                    onClick = onApplyPreset,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = "Apply preset", modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Choose", maxLines = 1)
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun FeatureFlagCard(
@@ -570,96 +460,4 @@ private fun FeatureFlagCard(
             }
         }
     }
-}
-
-@Composable
-private fun PresetChooserDialog(
-    presets: List<ContextRoleProfile>,
-    onDismiss: () -> Unit,
-    onSelect: (String) -> Unit,
-    onEditPresets: () -> Unit,
-) {
-    if (presets.isEmpty()) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
-            title = { Text("Немає пресетів") },
-            text = { Text("Спершу створіть пресет.") },
-        )
-        return
-    }
-    var selected by remember { mutableStateOf(presets.first()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onSelect(selected.code) }) { Text("Застосувати") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Скасувати", maxLines = 1) }
-        },
-        title = { Text("Оберіть пресет") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                presets.forEach { preset ->
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable { selected = preset },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(preset.label)
-                        if (preset.id == selected.id) {
-                            Icon(Icons.Default.Check, contentDescription = null)
-                        }
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    OutlinedButton(
-                        onClick = onEditPresets,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Редагувати пресети", maxLines = 1)
-                    }
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun AddPresetDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (code: String, label: String, description: String?) -> Unit,
-) {
-    var code by remember { mutableStateOf("") }
-    var label by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                if (code.isNotBlank() && label.isNotBlank()) {
-                    onConfirm(code, label, description.ifBlank { null })
-                }
-            }) { Text("Створити") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
-        title = { Text("Новий пресет") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Code") })
-                OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Label") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-            }
-        },
-    )
 }

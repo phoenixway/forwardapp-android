@@ -33,6 +33,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
                 id = { it.id },
                 version = { it.version },
                 updatedAt = { it.updatedAt },
+                isTombstone = { it.isDeleted },
             )
         } else {
             incomingSubjects
@@ -72,6 +73,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             { it.orientationId },
             { it.version },
             { it.updatedAt },
+            { it.isDeleted },
         )
     val revisions =
         mergeByFreshnessIfNeeded(
@@ -91,6 +93,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
                 { it.orientationId },
                 { it.version },
                 { it.updatedAt },
+                { it.isDeleted },
             )
         }.orEmpty()
     val mappings =
@@ -110,6 +113,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             { it.id },
             { it.version },
             { it.updatedAt },
+            { it.isDeleted },
         )
     val aspectRefs =
         mergeByFreshnessIfNeeded(
@@ -119,6 +123,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             { it.id },
             { it.version },
             { it.updatedAt },
+            { it.isDeleted },
         )
     val bindings =
         mergeByFreshnessIfNeeded(
@@ -128,6 +133,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             { it.id },
             { it.version },
             { it.updatedAt },
+            { it.isDeleted },
         )
     val capabilities =
         mergeByFreshnessIfNeeded(
@@ -157,6 +163,11 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
     if (bindings.isNotEmpty()) upsertWorkspaceBindings(bindings)
     if (capabilities.isNotEmpty()) upsertWorkspaceCapabilities(capabilities)
     if (views.isNotEmpty()) upsertSavedViews(views)
+    // Incoming validity alone is insufficient: a peer may carry an older live
+    // subject plus a new edge, while our newer local subject is tombstoned.
+    // Production callers own the Room transaction, so rejection rolls back all writes.
+    requireLiveSemanticEndpoints(getAllManagedSubjects(), getAllOrientationRelations(),
+        getAllAspectOrientationRefs(), getAllWorkspaceBindings(), getAllAspects())
 }
 
 private fun WorkspaceEntity.normalizeProvenanceForPersistence(): WorkspaceEntity {
@@ -203,7 +214,8 @@ private fun <T> mergeByFreshnessIfNeeded(
     id: (T) -> String,
     version: (T) -> Long,
     updatedAt: (T) -> Long,
-): List<T> = if (merge) mergeByFreshness(local, incoming, id, version, updatedAt) else incoming
+    isTombstone: (T) -> Boolean = { false },
+): List<T> = if (merge) mergeByFreshness(local, incoming, id, version, updatedAt, isTombstone) else incoming
 
 /** Returns only incoming winners, so local rows are never rewritten or re-acknowledged. */
 internal fun <T> mergeByFreshness(
@@ -212,10 +224,13 @@ internal fun <T> mergeByFreshness(
     id: (T) -> String,
     version: (T) -> Long,
     updatedAt: (T) -> Long,
+    isTombstone: (T) -> Boolean = { false },
 ): List<T> {
     val localById = local.associateBy(id)
     return incoming.filter { candidate ->
         val current = localById[id(candidate)] ?: return@filter true
+        // Wall-clock skew cannot resurrect a semantic tombstone at the same version.
+        if (isTombstone(current) && !isTombstone(candidate) && version(candidate) <= version(current)) return@filter false
         version(candidate) > version(current) ||
             (version(candidate) == version(current) && updatedAt(candidate) > updatedAt(current))
     }

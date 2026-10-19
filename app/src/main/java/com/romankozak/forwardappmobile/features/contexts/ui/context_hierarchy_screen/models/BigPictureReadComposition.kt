@@ -28,9 +28,8 @@ sealed interface BigPictureReadEntry {
 }
 
 /**
- * Root compatibility scopes remain display-only. Generic memberships win
- * display precedence for exact root occurrence IDs, without modifying
- * historical GroupScope or creating synthetic H1 ancestry.
+ * Only persisted typed H1 parents participate in Big Picture structure.
+ * Historical GroupScope is provenance, never an additional visual parent.
  */
 class BigPictureReadComposition(
     val nodes: List<BigPictureNode>,
@@ -80,29 +79,16 @@ class BigPictureReadComposition(
         row.id to section
     }
 
-    private val genericRootMemberships = liveMemberships.filter { member ->
-        liveContainers.any { container ->
-            container.id == member.containerId && container.anchorPlacementId == null
-        }
-    }.mapTo(hashSetOf()) { PlacementId(it.placementId) }
-
-    val historicalScopes: List<BigPictureContainer> = historicalScopes.map { scope ->
-        require(scope.origin != BigPictureContainerOrigin.PRESENTATION) {
-            "Persisted generic sections must use the presentation snapshot"
-        }
-        scope.copy(rootPlacementIds = scope.rootPlacementIds - genericRootMemberships)
+    init {
+        require(historicalScopes.isEmpty()) { "Synthetic Big Picture structural parents are retired" }
     }
 
-    val rootScopes: List<BigPictureContainer> = this.historicalScopes +
+    val rootScopes: List<BigPictureContainer> =
         liveContainers.filter {
             it.anchorPlacementId == null && it.parentContainerId == null
         }.map { genericById.getValue(it.id) }
 
-    val allScopes: List<BigPictureContainer> = this.historicalScopes +
-        liveContainers.map { genericById.getValue(it.id) }
-
-    private val historicalRootMembers =
-        this.historicalScopes.flatMapTo(hashSetOf()) { it.rootPlacementIds }
+    val allScopes: List<BigPictureContainer> = liveContainers.map { genericById.getValue(it.id) }
 
     fun section(uiId: String): BigPictureContainer? =
         allScopes.singleOrNull { it.id == uiId }
@@ -114,21 +100,7 @@ class BigPictureReadComposition(
         liveMemberships.singleOrNull { it.placementId == placementId }
             ?.containerId?.let(genericById::get)
 
-    fun historicalScopeForRoot(placementId: PlacementId): BigPictureContainer? =
-        historicalScopes.firstOrNull { placementId in it.rootPlacementIds }
-
-    fun rootEntries(): List<BigPictureReadEntry> {
-        val history = historicalScopes.mapIndexed { index, scope ->
-            // Retain historical root scope precedence and stable legacy order.
-            BigPictureReadEntry.Container(scope, Long.MIN_VALUE + index)
-        }
-        val generic = genericEntries(anchorPlacementId = null, parentContainerId = null)
-            .filterNot { entry ->
-                entry is BigPictureReadEntry.Occurrence &&
-                    entry.node.placement.id in historicalRootMembers
-            }
-        return history + generic
-    }
+    fun rootEntries(): List<BigPictureReadEntry> = genericEntries(null, null)
 
     fun occurrenceEntries(placementId: String): List<BigPictureReadEntry> {
         require(placementId in byNode) { "Unknown focused occurrence" }
@@ -140,14 +112,6 @@ class BigPictureReadComposition(
             "Unknown presentation section"
         }
         return genericEntries(row.anchorPlacementId, row.id)
-    }
-
-    fun historicalEntries(uiId: String): List<BigPictureReadEntry> {
-        val scope = requireNotNull(historicalScopes.singleOrNull { it.id == uiId }) {
-            "Unknown historical scope"
-        }
-        return nodes.filter { it.placement.id in scope.rootPlacementIds }
-            .map(BigPictureReadEntry::Occurrence)
     }
 
     fun genericAncestors(uiId: String): List<BigPictureContainer> {

@@ -8,6 +8,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkspaceBacklogEntryDao {
+    @Query("""
+        SELECT m.sourceId AS goalId, e.workspaceId AS workspaceId
+        FROM legacy_subject_mappings m JOIN workspace_backlog_entries e
+            ON e.targetKind='ORIENTATION' AND e.targetId=m.subjectId AND e.isDeleted=0
+        WHERE m.sourceType='GOAL' AND m.state='CUT_OVER' AND m.isDeleted=0
+        ORDER BY e.workspaceId, e.entryOrder, e.id
+    """)
+    fun observeGoalWorkspaceParents(): Flow<List<GoalWorkspaceParent>>
     @Query(
         """
         SELECT * FROM workspace_backlog_entries
@@ -171,3 +179,5 @@ interface WorkspaceBacklogEntryDao {
     @Query("DELETE FROM workspace_backlog_entries")
     suspend fun deleteAll()
 }
+
+data class GoalWorkspaceParent(val goalId: String, val workspaceId: String)

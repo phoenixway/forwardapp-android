@@ -43,13 +43,14 @@ fun LinksTabContent(
     onAddWebLink: () -> Unit,
     onAddObsidianLink: () -> Unit,
     onRemoveLink: (String) -> Unit,
+    showContextAction: Boolean = true,
 ) {
     Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            FilledTonalButton(onClick = onAddProjectLink, modifier = Modifier.weight(1f)) {
+            if (showContextAction) FilledTonalButton(onClick = onAddProjectLink, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.size(4.dp))
                 Text("Context")

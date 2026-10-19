@@ -79,6 +79,22 @@ class CanonicalOrdinaryCapabilitySettings
             return true
         }
 
+        /** One explicit toggle, never a preset or a multi-family Save. Typed owners validate eligibility. */
+        suspend fun setEnabled(workspaceId: String, capabilityId: CapabilityId, enabled: Boolean) {
+            require(workspaceRepository.hasLiveWorkspace(workspaceId)) { "Workspace недоступний" }
+            when (capabilityId.raw) {
+                BACKLOG -> backlogRepository.setEnabled(workspaceId, enabled)
+                INBOX -> inboxRepository.setEnabled(workspaceId, enabled)
+                DIRECTION -> directionRepository.setEnabled(workspaceId, enabled)
+                CONNECTIONS -> connectionsRepository.setEnabled(workspaceId, enabled)
+                INBOX_SORTING -> inboxSortingRepository.setEnabled(workspaceId, enabled)
+                KEY_PROBLEMS -> keyProblemsRepository.setEnabled(workspaceId, enabled)
+                DASHBOARD -> dashboardRepository.setEnabled(workspaceId, enabled)
+                EXECUTION_LOG -> executionLogRepository.setEnabled(workspaceId, enabled)
+                else -> error("Unsupported Workspace capability: ${capabilityId.raw}")
+            }
+        }
+
         suspend fun persistIfOwned(
             workspaceId: String,
             enabledCapabilityIds: Set<CapabilityId>,

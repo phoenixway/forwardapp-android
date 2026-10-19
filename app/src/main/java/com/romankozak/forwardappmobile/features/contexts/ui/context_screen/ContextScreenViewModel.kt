@@ -199,11 +199,8 @@ class ContextScreenViewModel
                 scope = viewModelScope,
             )
         private val activityManager = ActivityManager(activityRepository, viewModelScope)
-        private val contextIdFlow: StateFlow<String> =
-            savedStateHandle.getStateFlow(
-                "listId",
-                savedStateHandle.get<String>("workspaceId").orEmpty(),
-            )
+        private val operationalRoute = com.romankozak.forwardappmobile.features.workspace.WorkspaceOperationalRoute(savedStateHandle)
+        private val contextIdFlow: StateFlow<String> = operationalRoute.id
         private val initialTagQuery: String? = savedStateHandle.get<String>("initialTagQuery")
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
@@ -248,6 +245,7 @@ class ContextScreenViewModel
                 contextIdFlow,
                 this,
                 reminderParser,
+                onGoalSubmitError = { message -> showSnackbar(message, null) },
             )
         val inboxHandler =
             InboxHandler(
@@ -642,7 +640,9 @@ class ContextScreenViewModel
                 }
             setupContextObserver()
             observeContextIdChanges()
-            observeDirectionFrontAutoLinkSyncOnOpen()
+            com.romankozak.forwardappmobile.features.workspace.observeLegacyDirectionLinksOnOpen(
+                operationalRoute, viewModelScope, ioDispatcher, contextRepository,
+            )
             tagManager.loadTags()
             activityManager.observeCurrentActivity()
         }
@@ -656,21 +656,6 @@ class ContextScreenViewModel
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                         _attachmentItems.value = emptyList()
-                    }
-            }
-        }
-
-        private fun observeDirectionFrontAutoLinkSyncOnOpen() {
-            viewModelScope.launch(ioDispatcher) {
-                contextIdFlow
-                    .filter { it.isNotBlank() }
-                    .distinctUntilChanged()
-                    .collectLatest { contextId ->
-                        runCatching {
-                            contextRepository.ensureDirectionFrontLinksForExistingChildren(contextId)
-                        }.onFailure { error ->
-                            Log.w(TAG, "Failed to sync child context links into direction front for context=$contextId", error)
-                        }
                     }
             }
         }

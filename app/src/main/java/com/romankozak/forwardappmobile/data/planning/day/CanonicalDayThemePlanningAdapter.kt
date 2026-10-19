@@ -36,7 +36,7 @@ class CanonicalDayThemePlanningAdapter
             planningDao.getLiveCommitmentsForRole(dayPlanId, PlanningRoleCode.DAY_THEME.value)
                 .map { it.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL) }
 
-        suspend fun applyProjectionChanges(changes: List<DayThemeSnapshot>) {
+        suspend fun applyProjectionChanges(changes: List<DayThemeSnapshot>, carriedFrom: Map<String, PlanningCommitmentId> = emptyMap()) {
             authorityActivator.requireActivated()
             changes.forEach { source ->
                 val id = canonicalDayThemeCommitmentId(source.id)
@@ -61,6 +61,14 @@ class CanonicalDayThemePlanningAdapter
                 val orientationId = themeBridge.requireLiveThemeSubjectId(source.themeId)
                 val desiredStatus =
                     if (source.isActive) PlanningCommitmentStatus.ACTIVE else PlanningCommitmentStatus.PAUSED
+                carriedFrom[source.id]?.let { originId ->
+                    val origin = requireNotNull(planningDao.getCommitment(originId.value))
+                        .toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL)
+                    require(!origin.isDeleted && origin.orientationId == orientationId &&
+                        origin.role == PlanningRoleCode.DAY_THEME && origin.scopeId.value != source.dayPlanId) {
+                        "Invalid Day theme carry-forward origin"
+                    }
+                }
                 if (existing == null) {
                     planningDao.upsertCommitment(
                         PlanningCommitment(
@@ -71,8 +79,9 @@ class CanonicalDayThemePlanningAdapter
                             order = source.order,
                             priorityLevel = null,
                             status = desiredStatus,
-                            provenance =
-                                PlanningProvenance(
+                            provenance = carriedFrom[source.id]?.let { previous ->
+                                PlanningProvenance(PlanningProvenanceKind.CARRIED_FORWARD, "PLANNING_COMMITMENT", previous.value)
+                            } ?: PlanningProvenance(
                                     PlanningProvenanceKind.MANUAL,
                                     sourceType = "DAY_THEME",
                                     sourceId = source.id,
@@ -111,17 +120,26 @@ class CanonicalDayThemePlanningAdapter
             rows: List<DayThemeSnapshot>,
             commitments: List<PlanningCommitment>,
         ): List<DayThemeSnapshot> {
-            val bySourceId =
+            val byId =
                 commitments.associateBy { commitment ->
-                    require(commitment.provenance.sourceType == "DAY_THEME") {
+                    require(commitment.provenance.sourceType == "DAY_THEME" ||
+                        (commitment.provenance.kind == PlanningProvenanceKind.CARRIED_FORWARD &&
+                            commitment.provenance.sourceType == "PLANNING_COMMITMENT" &&
+                            !commitment.provenance.sourceId.isNullOrBlank())) {
                         "DAY.THEME commitment ${commitment.id.value} has invalid provenance"
                     }
-                    requireNotNull(commitment.provenance.sourceId)
+                    commitment.id
                 }
             return rows.map { row ->
                 if (row.isDeleted) return@map row
-                val commitment = requireNotNull(bySourceId[row.id]) {
+                val commitment = requireNotNull(byId[canonicalDayThemeCommitmentId(row.id)]) {
                     "DayTheme ${row.id} is missing canonical DAY.THEME commitment"
+                }
+                require(commitment.scopeId.value == row.dayPlanId && commitment.role == PlanningRoleCode.DAY_THEME) {
+                    "DayTheme ${row.id} has mismatched canonical participation"
+                }
+                if (commitment.provenance.sourceType == "DAY_THEME") {
+                    require(commitment.provenance.sourceId == row.id) { "Day Theme provenance source mismatch" }
                 }
                 row.copy(
                     order = commitment.order,

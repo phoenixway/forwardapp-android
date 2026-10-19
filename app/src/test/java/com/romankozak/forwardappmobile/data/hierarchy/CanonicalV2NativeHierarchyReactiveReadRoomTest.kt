@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.*
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import io.mockk.every
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -32,6 +33,7 @@ class CanonicalV2NativeHierarchyReactiveReadRoomTest {
     private fun reader(db: AppDatabase, workspacePresentations: List<ContextPresentation> = emptyList()): CanonicalV2ReactiveHierarchyReadSource {
         val workspaces = mockk<SystemWorkspacePresentationContextProjector>()
         every { workspaces.observePresentationUniverse() } returns flowOf(workspacePresentations)
+        coEvery { workspaces.projectPresentationUniverse() } returns workspacePresentations
         return CanonicalV2ReactiveHierarchyReadSource(db, workspaces, CanonicalV2HierarchyReadSnapshotAssembler())
     }
 

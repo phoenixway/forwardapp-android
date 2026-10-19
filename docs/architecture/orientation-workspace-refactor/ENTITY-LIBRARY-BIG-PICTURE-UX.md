@@ -1,6 +1,302 @@
 # Entity Library and Big Picture UX Contract
 
+## Adaptive operational representation, HOST verified 2026-10-19
+
+BIG_PICTURE_ADAPTIVE_OPERATIONAL_HOST_20261019
+
+**Semantic-first composition / Action-first navigation.**
+
+H1 remains the accepted current typed structural authority. This slice changes
+only its derived presentation, not any persisted structural authority. Canonical
+WorkspaceBinding remains `SEMANTIC_NOT_HIERARCHY` and is the sole embodiment
+authority. The inverse read is a presentation projection, not new hierarchy.
+
+- Both admitted semantic classes, Orientation and Aspect, are supported.
+- Exactly one live EMBODIES binding to a live catalog-admitted Workspace enables
+  an operational indicator while retaining semantic title/class. Canonical binding
+  commands enforce at most one embodied Workspace per subject and one embodied
+  subject per Workspace; the projection also fails closed on ambiguous/duplicate
+  binding or catalog data. REALIZES/SUPPORTS/MONITORS never enable this behavior.
+- Child-card tap still focuses the exact occurrence. Focused title and the
+  existing primary open menu action open `NavTarget.Workspace(binding.workspaceId)`.
+  The adaptive menu separately exposes `Відкрити орієнтир` / `Відкрити аспект`,
+  opening the exact original `SemanticEntityEditor(subjectId)`.
+- Without eligible embodiment, existing semantic presentation/navigation remain.
+  Real Workspace occurrences remain Workspace occurrences.
+- Add/remove/tombstone of binding or Workspace updates the same occurrence
+  reactively. Workspace disappearance falls back to semantic navigation, never
+  deleting/replacing the semantic occurrence.
+- Placement ID, typed target, PRIMARY/LINK, parent, sibling order and container
+  membership are unchanged. No H1 writes, semantic writes or automatic placements.
+- Source-delete resolution/confirmation still use the original typed target.
+  Opening an operational embodiment does not transfer destructive ownership:
+  semantic source delete remains semantic; remove appearance remains exact H1.
+
+Read shape: one existing coherent H1/presentation frame extended with a narrow
+inverse EMBODIES batch query joining live Workspaces, plus the existing canonical
+catalog Flow, then pure in-memory decoration. Binding/Workspace invalidations
+participate in that frame; no per-card queries, ProductRead, Context, title/raw-ID
+heuristics, additional persistence or transport. Room **201 -> 201**.
+
+HOST XML acceptance: **66/66, 12 classes**, zero failures/errors/skips:
+
+- `BigPictureOperationalEmbodimentsTest`: 10.
+- `BigPictureOperationalEmbodimentsRoomTest`: 3.
+- `BigPictureProjectionTest`: 11.
+- `BigPictureViewModelTest`: 6.
+- `BigPictureGenericNavigationTest`: 5.
+- `BigPictureReadCompositionTest`: 4.
+- `BigPictureMutationViewModelTest`: 10.
+- `BigPictureSourceDeleteFocusTest`: 3.
+- `BigPictureSourceDeleteRoomTest`: 3.
+- `BigPictureTargetActionsTest`: 5.
+- `BigPictureAtomicReactiveReadRoomTest`: 2.
+- `CanonicalWorkspaceBindingRepositoryRoomTest`: 4.
+
+Both separate Kotlin compile gates and `git diff --check` PASS. Physical adaptive
+acceptance remains pending; no device deployment/data mutation was performed.
+Safe smoke after `make exp-arm64-cycle`: ordinary semantic focus/open; bind
+EMBODIES; same occurrence gains indicator and focused title opens Workspace;
+secondary menu opens exact semantic editor; unbind/delete disposable Workspace
+restores semantic behavior; exact appearance removal and semantic source-delete
+remain distinct; restart preserves the derived result. Use disposable data.
+
+## Source lifecycle from Big Picture, physically accepted 2026-10-18
+
+R2A4_R2F2D_SOURCE_LIFECYCLE_PHYSICAL_ACCEPTED_20261018
+
+Big Picture now exposes two deliberately different destructive actions for
+canonical entity occurrences.
+
+```text
+Remove from Big Picture
+    -> retire exact occurrence only
+
+Delete underlying source
+    -> invoke typed canonical domain lifecycle
+    -> retire source identity
+    -> domain lifecycle retires every live appearance
+```
+
+Big Picture remains a lens and structural consumer. It does not own Workspace,
+Orientation or Aspect lifecycle and does not implement source-delete cascades.
+
+Deleting one appearance never implies deleting the source. Deleting the source
+removes all of its PRIMARY/LINK appearances as a consequence of domain lifecycle.
+
+Generic H1 Containers have no semantic/operational source and therefore expose
+only structural actions.
+
+The physical EXP acceptance confirmed exact-occurrence removal, source deletion
+from PRIMARY/LINK, focus/breadcrumb recovery and restart non-resurrection.
+Unsupported/specialized targets remain fail-closed.
+
+Room schema remains 200.
+
+## R2F.2D occurrence removal vs underlying-source lifecycle, 2026-10-18
+
+R2F_2D_BIG_PICTURE_SOURCE_DELETE_HOST_20261018
+
+Implemented/HOST verified; physical source-delete acceptance pending.
+The ordinary and focused occurrence card's existing menu distinguishes:
+
+- `Прибрати з Big Picture`: remove only this exact occurrence through H1;
+  canonical identity and other appearances remain.
+- `Видалити орієнтир…` / `Видалити аспект…` / `Видалити робочий простір…`:
+  invoke the corresponding canonical domain lifecycle for the exact typed source;
+  all its appearances disappear through that authority, never a UI-owned cascade.
+
+Source actions are offered only for R2A.4-supported unmapped ordinary semantic
+identities and canonical-owned non-System Workspace. Context-backed/System
+Workspace and specialized/unknown/mapped semantic identities omit the action.
+Containers have no canonical source and never offer it, regardless of provenance.
+Source capability resolution uses coherent bulk canonical identity reads, not
+per-card queries. Lifecycle revalidates admission and expected source version.
+
+Confirmation names the exact class/title, deletion of the source itself and all
+its Big Picture appearances, while distinguishing unrelated bound identities.
+Cancel creates no domain writes; busy state guards double confirmation and
+structural controls. Confirmation is not SavedState command state and cannot be
+replayed on recreation. A lifecycle rejection remains visible without success.
+Surviving unrelated H1 children or live Planning participation reject deletion;
+no extra cascade is invented to make a button succeed.
+
+After deletion, reactive canonical reads update Library/Unplaced and Big Picture.
+Missing focused occurrence recovers through its saved typed structural path to
+the nearest surviving occurrence/container, otherwise root. Dead focus/clipboard
+IDs are cleared; breadcrumbs remain structural. Workspace destination no longer
+admits a tombstoned Workspace. No canonical navigation route changes.
+
+HOST evidence: 142/142 tests across 22 XML classes (20 new tests), zero failures,
+errors or skips; separate production/unit-test Kotlin compile gates PASS. Final
+tests used process-only `JAVA_TOOL_OPTIONS=-XX:TieredStopAtLevel=1` after a HOST
+JVM C2 compiler crash. No project JVM/schema change; Room 200 -> 200. Existing
+R2F.2B physical acceptance is not claimed as acceptance of this new action.
+
+## R2F.2C Library placement entry, 2026-10-18
+
+R2F_2C_LIBRARY_ADD_HOST_20261018
+
+Implemented/HOST verified; physical EXP acceptance pending for this entry flow.
+Library row menu -> Add to Big Picture -> existing typed destination selector
+-> H1 `addAppearance`. Orientation, Aspect and Workspace preserve canonical
+typed identity. Root, exact Occurrence and Container are supported; historical
+containers have no special destination path. H1 atomically owns PRIMARY/LINK.
+Success stays in Library with confirmation. Failure keeps the chosen entity
+recoverable; cancel writes nothing. SavedState restoration restores intent only.
+Existing catalog/presence Flows update Unplaced and retain one identity row
+regardless of occurrence count. Destination reads are lazy; normal catalog
+browsing does not preload hierarchy screen data. No semantic writes or new
+transport/schema are introduced.
+
+Virtual `No MainBeacon parent yet`: **BLOCKED_AUTHORITATIVE_PREDICATE**.
+The current model has no accepted entity-level parent-absence predicate with
+known-none versus unknown coverage. Occurrence applicability is lineage,
+GroupScope null-group is NoGroup, and H1 is presentation. None proves absent
+semantic MainBeacon parentage. Generic PART_OF and specialized Beacon->Group
+membership must not be reinterpreted. No guessed Orientation/Aspect/Workspace
+filter, synthetic wrapper or persisted query membership is created. A future
+authoritative query remains independent of visual placement.
+
+HOST evidence: 111/111 tests across 17 XML classes, zero failures/errors/skips;
+separate production and unit-test Kotlin compile gates PASS. Room 200 -> 200.
+R2F.2B physical acceptance remains valid; no new physical acceptance claimed.
+
+## R2F.2B physical acceptance and final lens contract, 2026-10-18
+
+R2F_2B_PHYSICAL_ACCEPTED_20261018
+
+R2F.2B is COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+
+The final product contract is:
+
+```text
+canonical semantic model
+    -> queried and understood as semantic truth
+
+H1 occurrence/container arrangement
+    -> authored structural arrangement
+
+Big Picture
+    -> one user-authored lens over that model/arrangement
+
+Library
+    -> canonical inventory and query surface
+```
+
+Big Picture is therefore not itself the canonical semantic graph. Visual nesting
+does not create semantic relations.
+
+For Big Picture structural interaction, one stronger invariant does hold:
+
+```text
+visible direct children
+=
+canonical H1 direct children
+=
+reorder items
+=
+Move/Paste structural identities
+```
+
+Physical EXP re-acceptance confirms this for historical-materialized groups.
+LINK insertion into those groups works as ordinary Container insertion.
+
+Named historical groups are persisted H1 Containers for Big Picture structure.
+Historical semantic identity and GroupScope provenance survive independently.
+
+Synthetic `NoGroup` / `NoBeacon` structural parents are retired from Big
+Picture. `No MainBeacon parent yet` belongs to Library as a virtual query/filter.
+A similarly named Big Picture section exists only when explicitly created and
+populated by the user.
+
+Room schema remains 200. R2F.2C may now connect Library selection to the already
+accepted Big Picture Add/destination/H1 insertion flow without introducing a
+second placement authority.
+
+
 Status: ACCEPTED PRODUCT DIRECTION
+
+## Current structural cutover — historical groups are H1 containers, 2026-10-18
+
+HISTORICAL_GROUP_H1_CONTAINER_CUTOVER_20261018
+
+**IMPLEMENTED / HOST VERIFIED; physical re-acceptance pending.** Every visible
+Big Picture structural parent is an H1 Occurrence or Container. The read model
+uses persisted placements/containers/memberships in one atomic frame plus the
+lightweight canonical catalog. Historical synthetic Group/NoGroup/NoBeacon
+composition is retired from this surface. Focus navigation and breadcrumbs
+continue to show the open location and its direct children.
+
+Interaction: tapping any direct child focuses that exact occurrence/container.
+Breadcrumbs sit above a highlighted title card for the current location; its
+direct children appear below. The shared focused-card treatment applies to
+Orientation, Aspect, Workspace and sections. Tapping an entity title card
+opens the semantic editor or canonical Workspace destination (which reuses the
+former Context screen). The live Workspace destination always renders that
+existing `ProjectsScreen` operational surface, including admitted standalone,
+retired-shell and System Workspaces; compatibility Context presence does not
+select a separate simplified page. Workspace identity and existing canonical
+capability/read admission remain authoritative. The same opening action is in ⋮ alongside Cut/Remove;
+there is no separate arrow button. Presentation sections retain structural
+menu actions and do not acquire a semantic editor identity. Big Picture wraps
+its breadcrumb chips to keep section display titles visible.
+
+Named historical groups materialize as ordinary root containers using reserved
+deterministic ID `historical-group:v1:<canonical-group-subject-id>`. The exact
+suffix is reversible provenance, not semantic container identity. Initial
+title is canonical; order preserves explicit legacy group order with stable
+title/id ties. Each exact active named GroupScope member moves through
+`H1StructuralMutationCoordinator`; PlacementId, PRIMARY/LINK and descendant
+ancestry survive. All container creation, member moves, mixed ordering,
+GroupScope retirement and coverage validation share one outer Room transaction.
+Failure rolls everything back. No semantic relation/PART_OF, Aspect ref,
+WorkspaceBinding, Planning or Context mutation is inferred from containment.
+
+The historical semantic group remains independent. GroupScope becomes inert
+versioned provenance; applicability stays HISTORICAL. Any existing container
+identity (including moved/renamed/deleted state) is a durable cutover receipt.
+Reconciliation cannot recreate a deleted container or reapply historical
+membership over user-authored canonical structure. Container deletion uses
+ordinary H1 direct mixed-child promotion and preserves semantic group identity.
+Historical and generic containers have identical Move/Paste/reorder behavior.
+
+Required product invariants now share the same typed graph:
+
+```
+visibleDirectChildren(parent) == canonicalH1Children(parent)
+reorderItems(parent) == visibleDirectChildren(parent)
+PasteDestination(parent) == that same canonical H1 node
+```
+
+Startup has a narrow SQL receipt/active-scope gate, with no repeated full
+semantic scan once cut over. Full backup establishes cutover before exporting.
+Restore/Merge admit older representations through the same finite materializer;
+selective Merge limits materialization to the imported group provenance. A
+present canonical presentation stream keeps existing exact/strict transport
+semantics; absence retains the established pre-container compatibility policy.
+Repeated old payloads respect admitted local versions and container receipts,
+including tombstones. Provenance admission remains conservative for missing
+coverage; final validation uses durable lineage. Equal-version divergence still
+fails closed. New snapshots transport the actual H1 containers/memberships.
+Schema stays 200; there is no migration or second structural model.
+
+NoGroup/NoBeacon occurrences stay at their real H1 locations. A manually created
+similarly named section is ordinary user-authored structure with no automatic
+membership. TODO / DEFERRED_UI: Library virtual “No MainBeacon parent yet” must
+use an explicitly defined semantic/provenance predicate; H1 parentlessness
+alone is not that predicate. This task adds no Library filter or R2F.2C action.
+
+CoreLevel remains a specialized compatibility consumer. Retired historical
+GroupScope plus an admitted materialization receipt and explicit PART_OF may
+preserve its grouping metadata; that read never adds a Big Picture parent.
+
+HOST JUnit XML: app 192/192 (37 classes, including 11 cutover Room tests),
+sync 23/23 (4 classes), zero failures/errors/skips; both separately run app
+Kotlin compilation gates PASS. Physical reorder/LINK-paste/restart acceptance
+is still pending. The earlier dated sections describe predecessor checkpoints;
+their synthetic-group destination restrictions are superseded here.
+Backlog #2 remains Priority: UNSET.
 
 ## Physical Add-root/startup regression — production read conformance
 
@@ -37,9 +333,15 @@ R2F_2B_ACTIVATION_20261018
 The existing focus/breadcrumb/direct-child Big Picture shell now actively
 exposes the accepted H1-backed mutation UX. `Add` opens either the canonical
 SINGLE entity picker (Orientation, Aspect, Workspace) or generic Group/Section
-creation. A separate typed structural destination chooser answers where a new
-occurrence/container is placed: Root, occurrence, or generic container. It
-never creates semantic relations.
+creation. Add uses the currently open Root, occurrence, or generic container;
+there is no extra destination chooser. The entity flow captures the typed
+destination in SavedState before opening the picker and consumes its result
+once before mutation. Group creation requires only title → Create here.
+Missing/invalid captured destinations fail closed, never defaulting to root.
+At this predecessor checkpoint, historical synthetic Group/NoGroup/NoBeacon
+scopes were not H1 destinations. The current container cutover above removes
+that limitation for named groups; NoGroup/NoBeacon wrappers are removed.
+It never creates semantic relations.
 
 The familiar exact-occurrence Cut → navigate → Paste flow remains active.
 Remove means only remove this placement; container delete delegates direct

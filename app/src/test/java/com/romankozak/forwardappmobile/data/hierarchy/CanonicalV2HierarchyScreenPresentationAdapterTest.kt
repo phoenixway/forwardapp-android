@@ -105,6 +105,37 @@ class CanonicalV2HierarchyScreenPresentationAdapterTest {
         )
     }
 
+    @Test
+    fun `Workspace deletion cannot combine old occurrences with missing newer metadata`() {
+        val workspace = CanonicalV2WorkspacePresentation("w", "Before deletion", null, null, emptyList())
+        val read = workspaceRead(workspace)
+        val metadata = CanonicalV2HierarchyScreenMetadataAssembler().assemble(read, emptyList(), emptyList())
+        val rows = screenAdapter.adapt(read, metadata)
+        assertEquals(listOf(PlacementId("primary"), PlacementId("link")),
+            rows.mapNotNull { it.node.placementId })
+        val deleted = readAdapter.read(emptyList(), emptyList(), emptyList())
+        val deletedMetadata = CanonicalV2HierarchyScreenMetadataAssembler().assemble(deleted, listOf(workspace), emptyList())
+        assertTrue(screenAdapter.adapt(deleted, deletedMetadata).isEmpty())
+    }
+
+    @Test
+    fun `Workspace display fields come from the same admitted read as occurrence identity`() {
+        val workspace = CanonicalV2WorkspacePresentation("w", "Snapshot title", "Snapshot description", null, listOf("old"))
+        val read = workspaceRead(workspace)
+        val metadata = CanonicalV2HierarchyScreenMetadataAssembler().assemble(read,
+            listOf(workspace.copy(name = "Newer title", description = null, tags = emptyList())), emptyList())
+        val rows = screenAdapter.adapt(read, metadata).mapNotNull { it.node as? OrientationHierarchyNode.WorkspaceNode }
+        assertEquals(listOf("Snapshot title", "Snapshot title"), rows.map { it.presentation.name })
+        assertEquals(listOf("Snapshot description", "Snapshot description"), rows.map { it.presentation.description })
+    }
+
+    private fun workspaceRead(workspace: CanonicalV2WorkspacePresentation) = readAdapter.read(
+        placements = listOf(
+            placement("primary", HierarchyTargetRef(HierarchyTargetType.WORKSPACE, workspace.id), PlacementKind.PRIMARY, 0),
+            placement("link", HierarchyTargetRef(HierarchyTargetType.WORKSPACE, workspace.id), PlacementKind.LINK, 1),
+        ), admittedWorkspacePresentations = listOf(workspace), managedSubjects = emptyList(),
+    )
+
     private fun placement(
         id: String,
         target: HierarchyTargetRef,

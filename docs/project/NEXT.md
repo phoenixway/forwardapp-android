@@ -1,6 +1,473 @@
 # Next
 
+## Day carry-forward: HOST accepted, physical smoke pending
+
+DAY_CARRY_FORWARD_HOST_20261019
+
+71/71 focused HOST tests, both separate Kotlin compile gates and diff check PASS;
+Room 201 unchanged. No deployment. After user-controlled `make exp-arm64-cycle`,
+use disposable data:
+
+- Carry a Day task to the next day: today's task/participation stay unchanged,
+  tomorrow has a new identity referencing the same source; replay adds nothing.
+- Remove tomorrow's task and verify today's record/semantic source survive.
+- Create one-off and carry-enabled Themes; open tomorrow and verify only the
+  carry-enabled active Theme gets a new participation, not a new semantic entity.
+- Remove the carried Theme, reopen/restart and verify no resurrection. Disable
+  carry and verify later preparation does not erase existing facts or add more.
+- Browse past days and verify no backfill; smoke existing manual task recurrence.
+
+The separate generic Planning SOURCE/recurrence integration gap is documented
+as an observation in the focused contract, not an automatic next milestone.
+
+## Accepted: canonical operational Planning layer
+
+CANONICAL_PLANNING_REFERENCES_PHYSICAL_ACCEPTED_20261019
+
+Canonical Planning entity references are COMPLETE / HOST VERIFIED / PHYSICAL
+ACCEPTED.
+
+Accepted model:
+
+```text
+PlanningCommitment
+    = Orientation participation
+
+PlanningReference
+    = typed SOURCE / RELATED relation
+      to Orientation / Aspect / Workspace
+```
+
+Existing Orientation identity is reused when a Planning item is created from an
+Orientation. Semantic duplicates must not be introduced merely because an entity
+participates in Strategic, Tactical or Day planning.
+
+The visible operational Planning foundation is now considered functionally
+complete for the current product scope.
+
+Remaining Planning work should be treated as bounded follow-up only:
+- legacy Context-era model/storage retirement where proven safe;
+- compatibility cleanup;
+- optional UX polish;
+- narrower sync dependency frames;
+- separately justified lifecycle/deletion audits.
+
+Room schema is 201.
+
+## Planning latency fix HOST accepted; physical timing remains pending
+
+PLANNING_MUTATION_LATENCY_HOST_20261019
+
+147 unique tests / 25 classes final green; both separate Kotlin compile gates
+PASS; Room 201 unchanged. No deployment. The previous Planning reference
+checkpoint remains valid; the current follow-up addresses its reported latency.
+
+After user-controlled `make exp-arm64-cycle`, use disposable sources/tasks:
+
+1. Warm Tactical once; create Missions from distinct Orientation/Aspect/Workspace
+   sources. Check picker completion and automatic visibility of the exact item.
+2. Repeat for Quest; captured arc and QUESTS tab should reveal the new row.
+3. Delete disposable Day tasks with reminders/Goal parents; disappearance must
+   follow commit without the former 40-second metadata/metrics wait.
+4. Repeat warm operations and measure confirmation -> visible result against the
+   2-second target; verify responsive input and no new ANR.
+5. On any remaining delay inspect `ForwardStartup` stage markers
+   `Planning.Mission.*`, `Planning.Quest.*`, `Planning.DayTask.*`,
+   `Planning.reveal.visible`; do not replace evidence with a longer spinner.
+6. Restart and verify persistence, unchanged semantic identities/bindings and
+   no automatic H1/Big Picture appearances.
+
+Physical timing/UX acceptance is pending, not claimed. No global milestone or
+priority decision; Backlog #2 remains `Priority: UNSET`.
+
+## Canonical Planning references HOST accepted; physical checks pending
+
+CANONICAL_PLANNING_REFERENCES_HOST_20261019
+
+HOST: 173 app + 12 sync tests green; both separate Kotlin compile gates PASS;
+Room 200 -> 201; diff check PASS. PlanningCommitment stays Orientation-only;
+SOURCE/RELATED use independent typed PlanningReference.
+
+User-controlled acceptance after `make exp-arm64-cycle`, with disposable data:
+
+1. Tactical -> create Mission on existing Orientation. Selection must show saving
+   progress, complete without crash and create no duplicate INTENT.
+2. Repeat for Quest and Day task; confirm exact Orientation participation/source.
+3. Use Aspect and standalone Workspace sources; verify normal creation + SOURCE.
+4. Existing Mission/Quest/Day task/Focus/scope Properties -> link all three classes.
+   RELATED creates no identity, participation, WorkspaceBinding or H1 appearance.
+5. Open exact semantic/Workspace destination; remove RELATED; cancel picker;
+   verify deleted/unavailable target is safe.
+6. Exercise Tactical cycle creation, Goal quick-add and Search with native roots:
+   no recorded read-frame/GroupScope coverage crash should recur.
+7. Restart and verify source/reference persistence and unchanged scheduling/status.
+
+Physical acceptance is pending. Other unrelated checkpoints below remain valid.
+No global milestone/priority decision; Backlog #2 remains `Priority: UNSET`.
+
+## Semantic Editor -> embodying Workspace HOST accepted; physical acceptance pending
+
+SEMANTIC_EDITOR_EMBODYING_WORKSPACE_HOST_20261019
+
+HOST XML 66/66 in 8 classes; both separate Kotlin compile gates PASS; Room 200
+unchanged. The new explicit editor action creates a separate unplaced Workspace
+and a primary EMBODIES binding atomically. It does not convert the semantic source,
+save its draft, create Context/H1/Planning state or replace an existing EMBODIES.
+
+Safe manual acceptance after `make exp-arm64-cycle`, using disposable subjects:
+
+1. Open Orientation -> menu -> `Створити embodying workspace`.
+2. Check editable defaults, Cancel, and verify nothing was created.
+3. Confirm creation; exact canonical Workspace opens and its dashboard/Properties
+   show the same semantic subject via EMBODIES.
+4. Back to editor: binding is visible, a pre-existing name draft survives and
+   creation is disabled while EMBODIES exists. Unbind through Properties and
+   return: creation becomes available again without resetting the draft.
+5. Repeat with Aspect. Verify Library contains the new Workspace, Big Picture
+   has no automatic appearance, and identity/binding persist after restart.
+
+Physical acceptance is not claimed; no deployment performed. Other accepted
+Workspace features and pending unrelated work remain unchanged. No global
+milestone/priority choice; Backlog #2 remains `Priority: UNSET`.
+
+## Accepted: Workspace dashboard semantic references
+
+R2D6A_WORKSPACE_DASHBOARD_SEMANTICS_PHYSICAL_ACCEPTED_20261019
+
+R2D.6A is COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+
+The Workspace dashboard now exposes canonical WorkspaceBinding relations to
+Orientation / Aspect and opens the exact semantic identity in the Universal
+Semantic Editor.
+
+No further functional Workspace-binding dashboard work is required for this
+slice.
+
+The remaining Workspace/Context surface work is implementation cleanup:
+rename UI symbols that now genuinely represent Workspace while preserving
+legitimate Context compatibility/storage/history names.
+
+Room schema remains 200.
+
+## R2D.6A HOST accepted; dashboard semantic-reference physical acceptance pending
+
+R2D_6A_WORKSPACE_DASHBOARD_SEMANTIC_REFERENCES_HOST_20261019
+
+Workspace dashboard now shows canonical Orientation/Aspect references directly,
+using the existing binding/catalog ViewModel and Universal Semantic Editor route.
+HOST XML 49/49 in 10 classes; both separate Kotlin compile gates PASS; Room 200
+unchanged. This is read/navigation UI, not another relation writer or Context
+semantic authority. Existing bootstrap/Properties acceptance remains valid.
+
+User acceptance with `make exp-arm64-cycle`, using disposable bindings:
+
+1. Open a canonical Workspace without bindings; verify compact empty state.
+2. In Properties add an Orientation binding; return to dashboard without refresh.
+3. Check exact canonical title and relation kind, then open its exact Semantic Editor.
+4. Add an Aspect binding and repeat; multiple kinds for one subject remain visible.
+5. Remove one binding in Properties; dashboard must update without restart.
+6. Repeat with a historical Context-backed Workspace; no legacy semantic fields
+   or Context identity substitute for canonical references.
+7. Restart and verify ordinary canonical binding persistence/read/navigation.
+
+Physical dashboard acceptance is not claimed; no deployment performed here.
+No next global milestone or priority change. Backlog #2 stays `Priority: UNSET`.
+
+## Accepted: Workspace semantic bootstrap
+
+R2D5B_WORKSPACE_SEMANTIC_BOOTSTRAP_PHYSICAL_ACCEPTED_20261019
+
+R2D.5B Workspace -> semantic entity bootstrap is COMPLETE / HOST VERIFIED /
+PHYSICAL EXP ACCEPTED.
+
+Accepted product contract:
+
+```text
+Workspace
+!=
+semantic entity
+
+explicit user action
+→ create Orientation / Aspect
+→ explicit WorkspaceBinding
+```
+
+No semantic identity is inferred automatically from Workspace state, Context
+compatibility, H1 placement, Big Picture structure or capabilities.
+
+The dashboard-reference continuation identified at this checkpoint is now
+implemented and HOST verified in R2D.6A above; its physical acceptance is separate.
+
+Room schema remains 200.
+
+## Accepted: Workspace Backlog Quick-Add crash resolved
+
+WORKSPACE_BACKLOG_QUICK_ADD_RACE_FIX_PHYSICAL_20261019
+
+The Workspace -> Backlog -> bottom Quick-Add Goal crash is DONE / HOST VERIFIED
+/ PHYSICAL ACCEPTED.
+
+The accepted consistency rule is now:
+
+```text
+legacy/cutover Goal evidence
++
+canonical semantic projection
++
+mapping evidence
+=
+one transactionally consistent Room snapshot
+```
+
+Do not reintroduce independently combined reactive streams for data that must
+represent one admitted canonical state.
+
+Goal + reminder creation also has an explicit partial-success contract: a
+successfully persisted Goal must not be retried merely because reminder setup
+fails afterward.
+
+No further work is required for this crash. Absence of every possible historical
+orphan Goal record is not proven and remains separate from this fixed runtime
+race.
+
+Room schema remains 200.
+
+## Accepted: canonical source deletion from Big Picture
+
+R2A4_R2F2D_SOURCE_LIFECYCLE_PHYSICAL_ACCEPTED_20261018
+
+R2A.4 canonical semantic deletion lifecycle and R2F.2D Big Picture source-delete
+integration are COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+
+The live contract is now:
+
+```text
+Remove from Big Picture
+    = exact appearance lifecycle only
+
+Delete source
+    = canonical Workspace / Orientation / Aspect lifecycle
+      + all source appearances retire through domain authority
+```
+
+Do not merge these actions or move source-lifecycle policy into Big Picture.
+
+R2D.5B Workspace -> semantic entity bootstrap remains separately HOST VERIFIED
+until its own physical UX checklist is explicitly accepted.
+
+## R2F.2D HOST accepted; source-delete physical acceptance pending
+
+R2F_2D_BIG_PICTURE_SOURCE_DELETE_HOST_20261018
+
+Big Picture now consumes canonical source lifecycle separately from occurrence
+removal. HOST XML 142/142 in 22 classes; both separate Kotlin compile gates PASS;
+Room 200 unchanged. Final test bundle used process-local C2 disablement after a
+HOST JVM compiler crash; project JVM configuration is unchanged.
+
+User acceptance only, using `make exp-arm64-cycle` and disposable data:
+
+1. Use a canonical-owned/non-System Workspace with PRIMARY and LINK appearances.
+   Remove one appearance: Workspace and the other appearance must survive.
+2. Delete its source from the remaining card: strong confirmation names the
+   Workspace and all appearances; Cancel changes nothing. Confirm removes its
+   live Library row, appearances and live Workspace destination, not bound subjects.
+3. Repeat with an unmapped ordinary Orientation and an unmapped Aspect, including
+   source deletion from LINK; other identities and bound Workspaces must survive.
+4. Delete a focused source inside a surviving section; verify parent/root recovery,
+   breadcrumbs, clipboard and reactive Library/Unplaced. Containers have no source
+   delete; specialized/mapped subjects and Context-backed/System Workspaces omit it.
+5. Restart and verify tombstones persist. Use leaf appearances or move unrelated
+   children first; live Planning participation must be retired through Planning.
+
+No physical acceptance is claimed. Existing Workspace/H1 acceptance stays valid;
+R2D.5B bootstrap acceptance remains separately pending. Context-backed destructive
+lifecycle remains with its compatibility owner, not a new Big Picture fallback.
+No global milestone/priority change; Backlog #2 remains `Priority: UNSET`.
+
+## Previous R2A.4 domain checkpoint (consumer integrated by R2F.2D above)
+
+R2A_4_CANONICAL_SEMANTIC_DELETION_HOST_20261018
+
+The domain tombstone command now exists for unmapped Aspect and the four ordinary
+Orientation kinds INTENT/MILESTONE/ONGOING_STANDARD/OPPORTUNITY. HOST XML 127/127
+in 17 classes; both separate compile gates PASS; Room 200 unchanged.
+
+Consumer seam only: a separately authorized Big Picture source-delete action
+can pass canonical semantic id/type/version to CanonicalSemanticEntityLifecycleCoordinator.
+It must stay distinct from removing one appearance, confirm source deletion,
+honestly surface child-policy/Planning/version/specialized-owner rejections, and
+must not enumerate/cascade appearances in UI. Workspace deletion remains owned
+by Workspace/compatibility lifecycle, not by this semantic coordinator.
+
+No source-delete UI or global milestone is chosen here. R2D.5B's pending physical
+bootstrap acceptance below is unchanged; previously accepted Workspace/H1 UI
+and backlog priorities are preserved.
+
+## R2D.5B HOST accepted; physical bootstrap acceptance pending
+
+R2D_5B_WORKSPACE_SEMANTIC_BOOTSTRAP_HOST_20261018
+
+Workspace -> new Orientation/Aspect + explicit WorkspaceBinding is implemented.
+HOST XML 73/73 in 13 classes; both separate Kotlin compile gates PASS; schema
+200 unchanged. Existing Workspace surface/Properties physical acceptance remains
+valid; the new bootstrap flow has not yet been physically accepted.
+
+Safe user continuation with `make exp-arm64-cycle`: use a disposable Workspace,
+open the new semantic creation action, explicitly choose type/kind/binding,
+check editable canonical title/Markdown, confirm, then inspect the new identity
+in Library and its reactive Properties binding. Check exact Semantic Editor
+navigation, no automatic Big Picture appearance, cancellation, Aspect, and
+persistence after restart. Do not target irreplaceable historical data.
+
+Dashboard semantic references and ContextScreen naming remain separate work;
+neither is implemented or selected as a next global milestone here.
+
+## Previous continuation: Workspace semantic bootstrap (implemented above)
+
+R2D_WORKSPACE_SURFACE_PHYSICAL_ACCEPTED_20261018
+
+The canonical Workspace surface and consolidated Workspace Properties are
+COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+
+Next bounded product slice: provide an explicit user action that extracts
+historically implicit semantic meaning from a Workspace by creating a canonical
+semantic entity and binding it to the Workspace.
+
+Required boundary:
+
+```text
+Workspace
+!=
+semantic entity
+
+Workspace
+<-> explicit canonical semantic binding
+```
+
+Do not infer semantic identity automatically. The user chooses the admitted
+semantic type. Reuse canonical semantic creation, picker/editor and
+WorkspaceBinding authorities. Preserve schema 200 if possible.
+
+After this slice, Workspace dashboard semantic references and canonical
+ContextScreen -> WorkspaceScreen implementation naming remain separate work.
+## Current: unified Workspace properties HOST accepted
+
+WORKSPACE_PROPERTIES_UNIFIED_20261018
+
+The requested consolidation is implemented: one existing tabbed settings shell
+for canonical Workspace fields, semantic links and operational settings. No
+second Context-settings jump, structural preset controls or scoring controls.
+Scores/preset data are preserved. HOST XML 68/68 in 13 classes; both separate
+Kotlin compile gates PASS; Room 200 unchanged.
+
+Safe user smoke, when desired: open Properties for Context-backed and standalone
+Workspace, edit name/Markdown/tags, change display or one capability, inspect its
+registered settings, edit a semantic binding and reminder, then Back/reopen.
+Check that presets/Evaluation are absent. No physical deployment was performed.
+No next global milestone or priority is selected.
+
+## R2D.4 handoff: Workspace surface HOST accepted
+
+R2D_4_WORKSPACE_SURFACE_HOST_20261018
+
+R2D.4 is COMPLETE / HOST VERIFIED: 100/100 tests in 14 XML classes and both
+separate Kotlin compile gates PASS; schema 200 unchanged. Canonical workspaceId
+owns the reused operational screen and Properties routes, independent of a
+Context shell. Workspace product copy and canonical live title updates are in
+place. Opening this route does not run legacy Direction auto-link mutation.
+No physical deployment/acceptance is claimed for this slice.
+
+Pre-consolidation finding, now resolved by WORKSPACE_PROPERTIES_UNIFIED_20261018:
+the legacy private PresetCard and preset dialogs were removable from properties
+without deleting role presets or changing StructurePresetService. The unified
+surface also removes Evaluation controls and preserves canonical binding editing.
+
+## Current: R2F.2C Library Add physical acceptance pending
+
+R2F_2C_LIBRARY_ADD_HOST_20261018
+
+Library -> Add to Big Picture is implemented/HOST verified: 111/111 tests in
+17 XML classes and both separate Kotlin compile gates PASS. Room stays 200.
+Use safe test identities after the user's `make exp-arm64-cycle`: Add from
+Library to Root/Occurrence/Container, including a historical container; add a
+second appearance; verify one Library row, reactive Unplaced, correct Big
+Picture destinations, independent removal, cancellation and restart persistence.
+No device deployment/acceptance is claimed by the implementation agent.
+
+The virtual `No MainBeacon parent yet` view is explicitly
+BLOCKED_AUTHORITATIVE_PREDICATE. Required before implementation: an accepted
+entity-level semantic/provenance parent predicate with known-none versus
+unknown coverage. Occurrence applicability, null GroupScope, kind and H1
+position are not substitutes. No fake filter or structural section was added.
+R2F.2B remains COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+Backlog #2 remains `Priority: UNSET`; no global milestone is selected here.
+
+## Accepted predecessor / original R2F.2C handoff
+
+R2F_2B_PHYSICAL_ACCEPTED_20261018
+
+R2F.2B is COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED. Do not reopen the
+Big Picture structural model.
+
+The accepted R2F.2C handoff was: from Entity Library, allow an existing canonical
+Orientation, Aspect or Workspace to initiate Add to Big Picture, choose a typed
+Big Picture destination, and create the appropriate PRIMARY/LINK occurrence
+through the existing H1 structural authority.
+
+Preserve the established separation:
+
+- Library = canonical identity inventory/query surface.
+- Big Picture = one user-authored lens/arrangement over canonical entities.
+- H1 = occurrence/container structural arrangement used by that lens.
+- semantic relations remain independent from visual placement.
+
+`NoGroup` / `NoBeacon` must not return as Big Picture parents. A future/current
+Library `No MainBeacon parent yet` view is a virtual query/filter, not an H1
+container. Room schema remains 200. Backlog #2 remains `Priority: UNSET`.
+
+
 Status: CANONICAL
+
+## Current: physical re-acceptance of the historical-group H1 cutover
+
+HISTORICAL_GROUP_H1_CONTAINER_CUTOVER_20261018
+
+HOST acceptance is complete: app 192/192 (37 XML classes), sync 23/23
+(4 classes), both separately run Kotlin compile gates PASS. Room stays 200.
+Named historical groups are ordinary H1 containers; GroupScope is provenance
+only. Synthetic NoGroup/NoBeacon parents are gone. The enabled mutation UX and
+Add-to-current-location interaction remain active.
+
+User/Orchestrator re-acceptance on safe data after the established APK update:
+
+1. Open Big Picture; verify historical named group titles/member order.
+2. Enter a historical group; compare Reorder with its visible direct children.
+3. Reorder those direct children and confirm the displayed result.
+4. Paste a LINK into that group; confirm the other appearance stays put.
+5. Move the LINK back out using ordinary Cut/Paste.
+6. Create a generic section inside the historical container.
+7. Move a safe occurrence between historical and generic containers.
+8. Confirm Add Entity/Section inserts at the open location without a destination dialog.
+9. Confirm no synthetic NoGroup/NoBeacon parent appears; uncontained rows remain visible.
+10. Check breadcrumbs and Back through occurrence/container nesting.
+11. Restart; verify persisted structure and no GroupScope startup crash.
+12. Verify historical semantic identity/provenance still exists. If testing
+    container deletion, use disposable data and verify child promotion and no recreation.
+
+Physical acceptance is pending; no device deployment was performed here.
+R2F.2C and Library virtual “No MainBeacon parent yet” UI remain deferred.
+Backlog #2 remains Priority: UNSET. Earlier checkpoints below are predecessor
+instructions; this section supersedes their synthetic-group limitations.
+
+## Big Picture Add follow-up: physical verification
+
+After updating the APK, open root, an occurrence, and a generic section.
+For each, Add Entity should insert the picked identity here without asking
+for destination; Add Group/Section should need only title → Create.
+Historical synthetic groups remain unsupported Add destinations, with no
+fallback to root. Focused HOST XML is 15/15 PASS; production and unit-test
+Kotlin compilation passed in the test graph. This does not replace the crash
+re-test and broader safe physical checklist below. Room remains 200.
 
 ## Immediate: re-test repaired Add-root/startup crash on EXP
 

@@ -514,30 +514,8 @@ class SearchRepository
 
         private suspend fun loadCanonicalV2SearchRead(
             presentations: List<ContextPresentation>,
-        ): CanonicalV2ProductionHierarchyRead = database.withTransaction {
-            val placements =
-                database.hierarchyPlacementDao().getLiveHierarchy(HierarchyId.GENERAL.value)
-                    .map { it.toHierarchyPlacementStrict() }
-                    .sortedWith(hierarchyPlacementSiblingComparator)
-            canonicalV2ReadAssembler.assemble(
-                placements = placements,
-                admittedWorkspacePresentations =
-                    presentations.map { it.toCanonicalV2WorkspacePresentation() },
-                managedSubjects = database.orientationDao().getAllManagedSubjects(),
-                legacySubjectMappings = database.orientationDao().getAllLegacyMappings(),
-                relations = database.orientationDao().getAllOrientationRelations(),
-                groupScopes =
-                    database.hierarchyPlacementGroupScopeDao()
-                        .getLiveForHierarchy(HierarchyId.GENERAL.value),
-                legacyGroups = database.mainBeaconDao().getAllGroupsSync(),
-                presentationProvenance = CanonicalV2HierarchyPresentationProvenance(
-                    linkedAppearancePlacementIds =
-                        database.hierarchyPlacementLinkedAppearanceDao()
-                            .getLiveForHierarchy(HierarchyId.GENERAL.value)
-                            .mapTo(linkedSetOf()) { PlacementId(it.placementId) },
-                ),
-            )
-        }
+        ): CanonicalV2ProductionHierarchyRead =
+            loadCanonicalV2SearchHierarchyRead(database, presentations, canonicalV2ReadAssembler)
 
         private fun buildAttachmentSearchResult(
             result: AttachmentLibraryQueryResult,

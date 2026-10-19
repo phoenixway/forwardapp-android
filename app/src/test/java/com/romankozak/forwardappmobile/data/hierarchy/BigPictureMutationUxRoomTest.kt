@@ -105,7 +105,7 @@ class BigPictureMutationUxRoomTest {
             val structure = BigPictureStructureRepository(db).observe().first()
             val catalog = CanonicalEntityCatalogRepository(db.canonicalEntityCatalogDao()).observeCatalog().first()
             val nodes = projectBigPicture(structure.placements, catalog)
-            val read = BigPictureReadComposition(nodes, bigPictureScopes(structure, nodes, catalog), structure.presentation)
+            val read = BigPictureReadComposition(nodes, emptyList(), structure.presentation)
             val index = BigPictureStructuralIndex(read)
             assertThat(read.occurrenceEntries(primary.value).map { it.structuralRef(index) })
                 .containsExactly(H1TypedNode.Container(inner), H1TypedNode.Occurrence(aspect.value)).inOrder()
@@ -153,7 +153,7 @@ class BigPictureMutationUxRoomTest {
         } finally { db.close() }
     }
 
-    @Test fun `historical grouping does not truncate the canonical root reorder set`() = runBlocking {
+    @Test fun `visible root children equal the complete canonical root reorder set`() = runBlocking {
         val db = database()
         try {
             val writer = H1StructuralMutationCoordinator(db)
@@ -163,15 +163,15 @@ class BigPictureMutationUxRoomTest {
             val structure = BigPictureStructureRepository(db).observe().first()
             val catalog = CanonicalEntityCatalogRepository(db.canonicalEntityCatalogDao()).observeCatalog().first()
             val nodes = projectBigPicture(structure.placements, catalog)
-            val read = BigPictureReadComposition(nodes, bigPictureScopes(structure, nodes, catalog), structure.presentation)
+            val read = BigPictureReadComposition(nodes, emptyList(), structure.presentation)
             val index = BigPictureStructuralIndex(read)
-            assertThat(read.rootEntries().filterIsInstance<BigPictureReadEntry.Occurrence>()).isEmpty()
+            assertThat(read.rootEntries().filterIsInstance<BigPictureReadEntry.Occurrence>().map { it.node.placement.id })
+                .containsExactly(workspace)
             assertThat(index.children(H1StructuralParent.Root).map { it.ref }).containsExactly(
                 H1TypedNode.Occurrence(workspace.value), H1TypedNode.Container(section),
             ).inOrder()
-            val historical = read.rootEntries().filterIsInstance<BigPictureReadEntry.Container>()
-                .single { it.section.origin == BigPictureContainerOrigin.HISTORICAL_NO_BEACON }
-            assertThat(historical.structuralRef(index)).isNull()
+            assertThat(read.rootEntries().map { it.structuralRef(index) })
+                .containsExactlyElementsIn(index.children(H1StructuralParent.Root).map { it.ref }).inOrder()
             assertThat(index.sections["presentation:$section"]).isEqualTo(H1TypedNode.Container(section))
         } finally { db.close() }
     }

@@ -109,6 +109,7 @@ fun CanonicalEntityBrowserList(
     selectedRefs: Set<CanonicalEntityRef> = emptySet(),
     multiSelect: Boolean = false,
     showSelectionControl: Boolean = false,
+    rowActions: (@Composable (CanonicalEntitySummary) -> Unit)? = null,
 ) {
     if (items.isEmpty()) {
         Text(
@@ -125,6 +126,7 @@ fun CanonicalEntityBrowserList(
                     multiSelect = multiSelect,
                     showSelectionControl = showSelectionControl,
                     onClick = { onSelect(item.ref) },
+                    actions = { rowActions?.invoke(item) },
                 )
             }
         }
@@ -138,6 +140,7 @@ fun CanonicalEntityRow(
     selected: Boolean = false,
     multiSelect: Boolean = false,
     showSelectionControl: Boolean = false,
+    actions: (@Composable () -> Unit)? = null,
 ) {
     val metadata =
         when (item.ref.entityClass) {
@@ -159,7 +162,7 @@ fun CanonicalEntityRow(
                 Checkbox(checked = selected, onCheckedChange = null)
             } else if (showSelectionControl) {
                 RadioButton(selected = selected, onClick = null)
-            }
+            } else actions?.invoke()
         },
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     )

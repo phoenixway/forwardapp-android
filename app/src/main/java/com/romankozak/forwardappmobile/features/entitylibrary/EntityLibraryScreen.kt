@@ -19,6 +19,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,9 +46,19 @@ fun EntityLibraryScreen(
     onOpenSemanticEditor: (String) -> Unit,
     onOpenWorkspace: (String) -> Unit,
     viewModel: EntityLibraryViewModel = hiltViewModel(),
+    placements: EntityLibraryPlacementViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val placement by placements.state.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(placement.message) {
+        placement.message?.let { snackbar.showSnackbar(it); placements.clearMessage() }
+    }
+    if (placement.pendingRef != null) EntityLibraryPlacementDialog(
+        mutation = placement, onDismiss = placements::cancel, onChoose = placements::place,
+    )
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Library") },
@@ -74,6 +87,7 @@ fun EntityLibraryScreen(
                     onSearchChange = viewModel::setSearchText,
                     onFilterChange = viewModel::setFilter,
                     onSortChange = viewModel::setSort,
+                    onAddToBigPicture = placements::begin,
                     onSelect = { ref ->
                         when (val destination = entityLibraryDestination(ref)) {
                             is EntityLibraryDestination.SemanticEditor ->
@@ -95,6 +109,7 @@ private fun EntityLibraryReadyContent(
     onFilterChange: (EntityLibraryFilter) -> Unit,
     onSortChange: (EntityLibrarySort) -> Unit,
     onSelect: (CanonicalEntityRef) -> Unit,
+    onAddToBigPicture: (CanonicalEntityRef) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
@@ -134,6 +149,7 @@ private fun EntityLibraryReadyContent(
             items = state.items,
             emptyMessage = if (state.isCatalogEmpty) "Бібліотека порожня" else "Нічого не знайдено",
             onSelect = onSelect,
+            rowActions = { item -> EntityLibraryItemMenu(item.ref, onAddToBigPicture) },
             modifier = Modifier.weight(1f),
         )
     }

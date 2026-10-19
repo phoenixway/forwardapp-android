@@ -38,6 +38,7 @@ internal fun RootHeaderRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    isFocused: Boolean = false,
     actionMenu: (@Composable () -> Unit)? = null,
 ) {
     val indentation = (level * 18).dp
@@ -48,9 +49,12 @@ internal fun RootHeaderRow(
                 .clickable(enabled = enabled, onClick = onClick)
                 .padding(start = indentation, top = 4.dp, bottom = 2.dp),
         shape = RoundedCornerShape(14.dp),
-        color = tint.copy(alpha = 0.10f),
-        tonalElevation = 0.dp,
-        border = BorderStroke(width = 1.dp, color = tint.copy(alpha = 0.20f)),
+        color = tint.copy(alpha = if (isFocused) 0.18f else 0.10f),
+        tonalElevation = if (isFocused) 1.dp else 0.dp,
+        border = BorderStroke(
+            width = if (isFocused) 1.5.dp else 1.dp,
+            color = tint.copy(alpha = if (isFocused) 0.48f else 0.20f),
+        ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),

@@ -11,10 +11,7 @@ data class HierarchyPlacedTargetRow(
     val targetId: String,
 )
 
-@Dao
-interface HierarchyPlacementDao {
-    @Query(
-        """
+private const val LIVE_STRUCTURAL_READ_FRAME_QUERY = """
         SELECT
             p.*,
             gs.placementId AS groupScope_placementId,
@@ -38,7 +35,8 @@ interface HierarchyPlacementDao {
             ga.createdAt AS applicability_createdAt,
             ga.updatedAt AS applicability_updatedAt,
             ga.syncedAt AS applicability_syncedAt,
-            ga.version AS applicability_version
+            ga.version AS applicability_version,
+            CASE WHEN hc.id IS NOT NULL THEN gs.groupSubjectId ELSE NULL END AS materializedHistoricalGroupSubjectId
         FROM hierarchy_placements AS p
         LEFT JOIN hierarchy_placement_group_scopes AS gs
           ON gs.placementId = p.id
@@ -46,6 +44,9 @@ interface HierarchyPlacementDao {
         LEFT JOIN hierarchy_group_scope_applicability AS ga
           ON ga.placementId = p.id
          AND ga.hierarchyId = p.hierarchyId
+        LEFT JOIN big_picture_containers AS hc
+          ON hc.id = 'historical-group:v1:' || gs.groupSubjectId
+         AND hc.hierarchyId = p.hierarchyId
         LEFT JOIN hierarchy_placement_linked_appearances AS la
           ON la.placementId = p.id
          AND la.hierarchyId = p.hierarchyId
@@ -53,11 +54,17 @@ interface HierarchyPlacementDao {
         WHERE p.hierarchyId = :hierarchyId
           AND p.isDeleted = 0
         ORDER BY p.parentPlacementId ASC, p.siblingOrder ASC, p.id ASC
-        """,
-    )
+        """
+
+@Dao
+interface HierarchyPlacementDao {
+    @Query(LIVE_STRUCTURAL_READ_FRAME_QUERY)
     fun observeLiveStructuralReadFrame(
         hierarchyId: String,
     ): Flow<List<CanonicalV2HierarchyStructuralReadRow>>
+
+    @Query(LIVE_STRUCTURAL_READ_FRAME_QUERY)
+    suspend fun getLiveStructuralReadFrame(hierarchyId: String): List<CanonicalV2HierarchyStructuralReadRow>
 
     @Query(
         """

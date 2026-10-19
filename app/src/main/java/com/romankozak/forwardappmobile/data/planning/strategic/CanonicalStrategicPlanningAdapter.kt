@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.planning.strategic
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,7 +81,7 @@ class CanonicalStrategicPlanningAdapter
                                     extension.legacyArcKey
                                 }.sorted()
                             }
-                        }.distinctUntilChanged(),
+                        }.distinctUntilChanged().flowOn(Dispatchers.Default),
                 )
             }
 
@@ -99,28 +102,13 @@ class CanonicalStrategicPlanningAdapter
                             "workspace_backlog_entries",
                             emitInitialState = true,
                         ).map {
-                            database.withTransaction {
-                                val rows = database.arcQuestDao().getAllSync()
-                                projectArc(
-                                    arcKey = arcKey,
-                                    rows = rows,
-                                    commitments =
-                                        database.planningDao().getAllCommitments().map {
-                                            it.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL)
-                                        },
-                                    subjects =
-                                        database.orientationDao().getAllManagedSubjects()
-                                            .associateBy(ManagedSubjectEntity::id),
-                                    scopes =
-                                        database.planningDao().getAllScopes()
-                                            .map { it.toPlanningScopeStrict() },
-                                    extensions =
-                                        database.strategicPlanningScopeExtensionDao().getAll()
-                                            .map { it.toDomainStrict() },
-                                    resolutionSnapshot = loadResolutionSnapshot(rows),
-                                )
-                            }
-                        }.distinctUntilChanged(),
+                            val frame = database.withTransaction { StrategicQuestReadFrame.load(database) }
+                            projectArc(
+                                arcKey, frame.rows, frame.commitments,
+                                frame.resolution.subjects.associateBy { it.id }, frame.scopes,
+                                frame.extensions, frame.resolution,
+                            )
+                        }.distinctUntilChanged().flowOn(Dispatchers.Default),
                 )
             }
 
@@ -138,18 +126,24 @@ class CanonicalStrategicPlanningAdapter
             ).singleOrNull { it.id == id }
         }
 
-        suspend fun addQuest(quest: ArcQuestEntity) {
+        suspend fun addQuest(
+            quest: ArcQuestEntity,
+            source: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
+        ) {
             authorityActivator.requireActivated()
             require(quest.arcKey.isNotBlank()) { "Strategic arcKey must not be blank" }
-            val current = observeArcQuests(quest.arcKey).first()
             val now = System.currentTimeMillis()
             database.withTransaction {
                 require(database.arcQuestDao().getById(quest.id) == null) {
                     "ArcQuest ${quest.id} already exists"
                 }
+                com.romankozak.forwardappmobile.StartupTrace.mark("Planning.Quest.transaction.entered")
+                val sourceQuest = if (source?.kind == com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTargetKind.ORIENTATION) {
+                    quest.copy(sourceType = ArcQuestSourceType.ORIENTATION.name, sourceId = source.id)
+                } else quest
                 val stored =
-                    quest.copy(
-                        order = (current.minOfOrNull(ArcQuestEntity::order) ?: 0L) - 1L,
+                    sourceQuest.copy(
+                        order = (database.arcQuestDao().minimumCanonicalOrder(canonicalStrategicArcScopeId(quest.arcKey).value, quest.arcKey) ?: 0L) - 1L,
                         updatedAt = now,
                         syncedAt = null,
                         version = 1L,
@@ -165,6 +159,14 @@ class CanonicalStrategicPlanningAdapter
                     is StrategicParticipantMapping.Deferred -> Unit
                     is StrategicParticipantMapping.IntegrityFailure ->
                         error("ArcQuest ${stored.id} cannot be admitted: ${result.code}: ${result.detail}")
+                }
+                source?.let {
+                    com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository(database).attach(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
+                            stored.id,
+                        ), it, com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceRole.SOURCE, now,
+                    )
                 }
             }
         }
@@ -235,6 +237,9 @@ class CanonicalStrategicPlanningAdapter
                     requireNotNull(database.arcQuestDao().getById(quest.id)) {
                         "ArcQuest ${quest.id} does not exist"
                     }
+                com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository(database).retireOwner(
+                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, row.id), now)
                 val commitment = strategicCommitment(row.id)
                 if (commitment == null) {
                     requireDeferred(row)
@@ -430,7 +435,7 @@ class CanonicalStrategicPlanningAdapter
             cached: Map<String, ManagedSubjectEntity>? = null,
             allowDeleted: Boolean = false,
         ): ManagedSubjectEntity {
-            val subject = cached?.get(orientationId) ?: database.orientationDao().getManagedSubject(orientationId)
+            val subject = if (cached != null) cached[orientationId] else database.orientationDao().getManagedSubject(orientationId)
             require(
                 subject != null &&
                     subject.subjectType == ManagedSubjectType.ORIENTATION.name &&

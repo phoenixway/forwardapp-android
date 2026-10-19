@@ -51,6 +51,7 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper
 
     @Inject lateinit var canonicalHierarchyAuthorityActivator: CanonicalHierarchyAuthorityActivator
+    @Inject lateinit var historicalGroupContainerCutover: com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover
 
     @Inject lateinit var databaseInitializer: DatabaseInitializer
 
@@ -215,6 +216,7 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 StartupTrace.measure("Application.hierarchyAuthorityEstablishment") {
                     canonicalHierarchyAuthorityActivator.ensureEstablished()
                 }
+            historicalGroupContainerCutover.materialize()
             if (report.performed) {
                 Timber.i(
                     "Canonical Hierarchy authority established: outcome=%s occurrences=%d",

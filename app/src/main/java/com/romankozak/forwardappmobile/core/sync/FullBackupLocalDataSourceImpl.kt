@@ -155,6 +155,7 @@ class FullBackupLocalDataSourceImpl
 
         override suspend fun loadUnsyncedCanonicalPlanning(): CanonicalPlanningSyncPayload =
             CanonicalPlanningSyncPayload(
+                references = db.planningReferenceDao().getUnsynced(),
                 scopes = canonicalPlanningSyncStore.loadUnsyncedScopes(),
                 commitments = canonicalPlanningSyncStore.loadUnsyncedCommitments(),
                 dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadUnsynced(),
@@ -166,6 +167,7 @@ class FullBackupLocalDataSourceImpl
             timestamp: Long,
         ): CanonicalPlanningSyncPayload =
             CanonicalPlanningSyncPayload(
+                references = db.planningReferenceDao().getChangedSince(timestamp),
                 scopes = canonicalPlanningSyncStore.loadScopesChangedSince(timestamp),
                 commitments = canonicalPlanningSyncStore.loadCommitmentsChangedSince(timestamp),
                 dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadChangedSince(timestamp),
@@ -183,6 +185,10 @@ class FullBackupLocalDataSourceImpl
             canonicalDayPlanningScopeExtensionSyncStore.markSynced(ack.dayScopeExtensions)
             canonicalTacticalPlanningScopeExtensionSyncStore.markSynced(ack.tacticalScopeExtensions)
             canonicalStrategicPlanningScopeExtensionSyncStore.markSynced(ack.strategicScopeExtensions)
+            db.withTransaction {
+                val now = System.currentTimeMillis()
+                ack.references.forEach { db.planningReferenceDao().acknowledge(it.id, it.version, now) }
+            }
         }
 
         override suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload =
@@ -439,24 +445,29 @@ class FullBackupLocalDataSourceImpl
         }
 
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
-            val base = loadBaseFullSnapshotBundle()
-            val planning = loadCanonicalPlanningForFullSnapshot()
-
-            return base.copy(
-                planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
-                planningScopes = planning.scopes,
-                planningCommitments = planning.commitments,
-                dayPlanningScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadAll(),
-                tacticalPlanningScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadAll(),
-                strategicPlanningScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadAll(),
-            )
-        }
-
-        private suspend fun loadBaseFullSnapshotBundle(): SnapshotBundle {
+            // Establish finite authorities before taking the coherent read frame (no bootstrap mutex under it).
             canonicalDayThemeBootstrapper.ensureBootstrapped()
             canonicalOrientationBootstrapper.ensureBootstrapped()
             canonicalScoringAuthorityActivator.ensureActivated()
             canonicalWorkspaceBootstrapper.ensureBootstrapped()
+            com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover(db).materialize()
+            return db.withTransaction {
+                val base = loadBaseFullSnapshotBundle()
+                val planning = loadCanonicalPlanningForFullSnapshot()
+
+                base.copy(
+                    planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
+                    planningScopes = planning.scopes,
+                    planningCommitments = planning.commitments,
+                    planningReferences = db.planningReferenceDao().getAll(),
+                    dayPlanningScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadAll(),
+                    tacticalPlanningScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadAll(),
+                    strategicPlanningScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadAll(),
+                )
+            }
+        }
+
+        private suspend fun loadBaseFullSnapshotBundle(): SnapshotBundle {
             val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
                 db.withTransaction {
                     Triple(

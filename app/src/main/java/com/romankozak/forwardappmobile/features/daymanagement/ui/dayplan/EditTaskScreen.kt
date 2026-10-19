@@ -454,12 +454,13 @@ private fun EditTaskBody(
         when (selectedTab) {
             EditTaskTab.Main -> {
                 SummaryChips(uiState = uiState)
-                ContextLinksSection(
-                    contextLinks = uiState.contextLinks,
-                    onAddContextLink = actions.onAddContextLink,
-                    onOpenContextLink = actions.onOpenContextLink,
-                    onRemoveContextLink = actions.onRemoveContextLink,
-                )
+                uiState.task?.let { task ->
+                    com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_TASK, task.id),
+                        uiState.contextLinks.map { it.id to it.name }, actions.onRemoveContextLink, actions.onOpenContextLink,
+                    )
+                }
             }
             EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
             EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
@@ -494,12 +495,13 @@ private fun SheetExpandedBody(
                     colors = outlinedFieldColors(),
                 )
                 SummaryChips(uiState = uiState)
-                ContextLinksSection(
-                    contextLinks = uiState.contextLinks,
-                    onAddContextLink = actions.onAddContextLink,
-                    onOpenContextLink = actions.onOpenContextLink,
-                    onRemoveContextLink = actions.onRemoveContextLink,
-                )
+                uiState.task?.let { task ->
+                    com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_TASK, task.id),
+                        uiState.contextLinks.map { it.id to it.name }, actions.onRemoveContextLink, actions.onOpenContextLink,
+                    )
+                }
             }
             EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
             EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)

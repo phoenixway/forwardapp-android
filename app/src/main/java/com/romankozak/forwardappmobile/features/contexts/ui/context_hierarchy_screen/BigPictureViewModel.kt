@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.di.DefaultDispatcher
 import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository
 import com.romankozak.forwardappmobile.data.hierarchy.BigPictureStructureRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -27,6 +29,7 @@ sealed interface BigPictureUiState {
         val parentSectionId: String? = null,
         val directSectionId: String? = null,
         val structure: BigPictureStructuralIndex? = null,
+        val navigationBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     ) : BigPictureUiState
     data class Error(val message: String) : BigPictureUiState
 }
@@ -49,10 +52,12 @@ class BigPictureViewModel @Inject constructor(
         repository.observe(),
         catalog.observeCatalog(),
     ) { structure, entities ->
-        val nodes = projectBigPicture(structure.placements, entities)
+        val nodes = withOperationalEmbodiments(
+            projectBigPicture(structure.placements, entities), structure.embodimentBindings, entities,
+        )
         val read = BigPictureReadComposition(
             nodes = nodes,
-            historicalScopes = bigPictureScopes(structure, nodes, entities),
+            historicalScopes = emptyList(),
             persisted = structure.presentation,
         )
         read to BigPictureStructuralIndex(read)
@@ -74,12 +79,10 @@ class BigPictureViewModel @Inject constructor(
             )
 
             val scope = if (focus.activeNode != null) {
-                // Nearest presentation membership takes precedence.
-                // Otherwise preserve the historical root Group/NoBeacon scope.
+                // Containers, including materialized historical groups, are ordinary H1 parents.
                 focus.breadcrumbs.asReversed().firstNotNullOfOrNull { node ->
                     read.containingGenericSection(node.placement.id.value)
-                } ?: focus.breadcrumbs.firstOrNull()?.placement?.id
-                    ?.let(read::historicalScopeForRoot)
+                }
             } else {
                 scopeId?.let(read::section)
             }
@@ -89,7 +92,6 @@ class BigPictureViewModel @Inject constructor(
                     read.occurrenceEntries(focus.activeNode.placement.id.value)
                 scope?.origin == BigPictureContainerOrigin.PRESENTATION ->
                     read.sectionEntries(scope.id)
-                scope != null -> read.historicalEntries(scope.id)
                 else -> read.rootEntries()
             }
 
@@ -120,6 +122,17 @@ class BigPictureViewModel @Inject constructor(
                 directSectionId = focus.activeNode
                     ?.placement?.id?.value
                     ?.let(read::containingGenericSection)?.id,
+                navigationBreadcrumbs = structuralIndex.breadcrumbs(
+                    focus.activeNode?.let {
+                        H1StructuralParent.Node(
+                            H1TypedNode.Occurrence(it.placement.id.value),
+                        )
+                    } ?: scope?.let {
+                        H1StructuralParent.Node(
+                            structuralIndex.sections.getValue(it.id),
+                        )
+                    } ?: H1StructuralParent.Root,
+                ),
             ) as BigPictureUiState
         }
             .catch {
@@ -138,10 +151,14 @@ class BigPictureViewModel @Inject constructor(
 
     fun focusPlacement(placementId: String?) {
         val current = uiState.value as? BigPictureUiState.Ready ?: return
-        if (placementId != null && (current.nodes + current.breadcrumbs).none { it.placement.id.value == placementId }) return
+        if (placementId != null &&
+            current.nodes.none { it.placement.id.value == placementId } &&
+            current.navigationBreadcrumbs.none { it.placementId == placementId }
+        ) return
         savedStateHandle["bigPictureFocus"] = placementId
         if (placementId == null) savedStateHandle["bigPictureScope"] = null
         savedStateHandle["bigPictureRevealRequested"] = false
+        rememberPath(current, placementId?.let { H1StructuralParent.Node(H1TypedNode.Occurrence(it)) } ?: H1StructuralParent.Root)
     }
 
     fun focusScope(scopeId: String?) {
@@ -149,6 +166,44 @@ class BigPictureViewModel @Inject constructor(
         if (scopeId != null && current.availableScopes.none { it.id == scopeId }) return
         savedStateHandle["bigPictureScope"] = scopeId
         savedStateHandle["bigPictureFocus"] = null
+        savedStateHandle["bigPictureRevealRequested"] = false
+        rememberPath(current, scopeId?.let { current.structure?.sections?.get(it)?.let(H1StructuralParent::Node) } ?: H1StructuralParent.Root)
+    }
+
+    /** Presentation-only recovery; never a source/structural mutation. */
+    fun rememberCurrentLocation() {
+        val current = uiState.value as? BigPictureUiState.Ready ?: return
+        val location = current.structuralDestination() ?: H1StructuralParent.Root
+        rememberPath(current, location)
+        setLocation(location)
+    }
+
+    fun recoverMissingFocus() {
+        val current = uiState.value as? BigPictureUiState.Ready ?: return
+        val index = current.structure ?: return
+        val requested = focusedPlacementId.value?.let { H1TypedNode.Occurrence(it) }
+            ?: focusedScopeId.value?.let { index.sections[it] ?: H1TypedNode.Container(it.removePrefix("presentation:")) }
+            ?: return
+        if (index.items.any { it.ref == requested }) return
+        val history = savedStateHandle.get<List<String>>("bigPictureFocusPath").orEmpty()
+        val survivor = history.asReversed().mapNotNull { runCatching { decodeStructuralNode(it) }.getOrNull() }
+            .firstOrNull { candidate -> index.items.any { it.ref == candidate } }
+        val location = survivor?.let { H1StructuralParent.Node(it) } ?: H1StructuralParent.Root
+        rememberPath(current, location)
+        setLocation(location)
+    }
+
+    private fun rememberPath(current: BigPictureUiState.Ready, location: H1StructuralParent) {
+        val index = current.structure ?: return
+        savedStateHandle["bigPictureFocusPath"] = index.breadcrumbs(location).map { crumb ->
+            encodeStructuralNode(crumb.placementId?.let { H1TypedNode.Occurrence(it) } ?: index.sections.getValue(crumb.id))
+        }
+    }
+
+    private fun setLocation(location: H1StructuralParent) {
+        val node = (location as? H1StructuralParent.Node)?.ref
+        savedStateHandle["bigPictureFocus"] = (node as? H1TypedNode.Occurrence)?.id
+        savedStateHandle["bigPictureScope"] = (node as? H1TypedNode.Container)?.id?.let { "presentation:$it" }
         savedStateHandle["bigPictureRevealRequested"] = false
     }
 

@@ -218,6 +218,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         SavedOrientationViewEntity::class,
         PlanningScopeEntity::class,
         PlanningCommitmentEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceEntity::class,
         DayPlanningScopeExtensionEntity::class,
         TacticalPlanningScopeExtensionEntity::class,
         StrategicPlanningScopeExtensionEntity::class,
@@ -234,11 +235,12 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 200,
+    version = 201,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun planningReferenceDao(): com.romankozak.forwardappmobile.data.planning.PlanningReferenceDao
     abstract fun groupScopeApplicabilityDao(): com.romankozak.forwardappmobile.data.hierarchy.GroupScopeApplicabilityDao
     abstract fun canonicalEntityCatalogDao():
         com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogDao

@@ -67,6 +67,7 @@ data class CanonicalPlanningSyncPayload(
     val dayScopeExtensions: List<DayPlanningScopeExtensionSnapshot> = emptyList(),
     val tacticalScopeExtensions: List<TacticalPlanningScopeExtensionSnapshot> = emptyList(),
     val strategicScopeExtensions: List<StrategicPlanningScopeExtensionSnapshot> = emptyList(),
+    val references: List<com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceEntity> = emptyList(),
 )
 
 data class CanonicalPlanningSyncAck(
@@ -75,6 +76,7 @@ data class CanonicalPlanningSyncAck(
     val dayScopeExtensions: List<DayPlanningScopeExtensionSyncVersion> = emptyList(),
     val tacticalScopeExtensions: List<TacticalPlanningScopeExtensionSyncVersion> = emptyList(),
     val strategicScopeExtensions: List<StrategicPlanningScopeExtensionSyncVersion> = emptyList(),
+    val references: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningReferenceSyncVersion> = emptyList(),
 )
 
 data class CanonicalRecurringSeriesSyncVersion(

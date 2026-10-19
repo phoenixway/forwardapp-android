@@ -19,6 +19,7 @@ data class DayTheme(
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
+    val carryForward: Boolean = true,
 )
 
 data class DayThemeAssignment(
@@ -37,6 +38,7 @@ data class DayThemesUiState(
     val themes: List<DayTheme> = emptyList(),
     val assignments: Map<String, Set<String>> = emptyMap(),
     val isLoading: Boolean = true,
+    val error: String? = null,
 ) {
     val activeThemes: List<DayTheme> get() = themes.filter(DayTheme::isActive)
     val totalBudgetPercent: Int get() = activeThemes.sumOf(DayTheme::budgetPercent)
@@ -53,6 +55,7 @@ data class DayThemeDraft(
     val iconKey: String,
     val comment: String,
     val budgetPercent: Int,
+    val carryForward: Boolean = false,
 )
 
 internal fun canonicalDayThemeIconKey(key: String): String =

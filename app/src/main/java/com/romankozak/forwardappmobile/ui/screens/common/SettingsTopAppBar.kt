@@ -18,11 +18,12 @@ fun SettingsTopAppBar(
     navController: NavController,
     onSave: () -> Unit,
     isSaveEnabled: Boolean,
+    onBack: (() -> Unit)? = null,
 ) {
     TopAppBar(
         title = { Text(title) },
         navigationIcon = {
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = { onBack?.invoke() ?: navController.popBackStack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
             }
         },

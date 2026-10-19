@@ -6,8 +6,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import io.mockk.coEvery
+import io.mockk.Called
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -40,6 +45,17 @@ class WorkspaceCompatibilityProjectionRepositoryTest {
 
         assertThat(projection?.sourceContext).isNull()
         coVerify(exactly = 0) { contextDao.getContextById(any()) }
+    }
+
+    @Test
+    fun `destination scalar observation uses one canonical Workspace row without compatibility graph reads`() = runTest {
+        val workspace = workspace("workspace-only", null)
+        every { workspaceDao.observeById("workspace-only") } returns flowOf(workspace)
+
+        assertThat(repository.observeWorkspace("workspace-only").first()).isEqualTo(workspace)
+
+        verify(exactly = 1) { workspaceDao.observeById("workspace-only") }
+        verify { contextDao wasNot Called; orientationDao wasNot Called }
     }
 
     private fun stubCommon(workspace: WorkspaceEntity) {

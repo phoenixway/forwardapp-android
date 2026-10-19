@@ -14,8 +14,10 @@ import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenTopAppBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.bigPictureDestination
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.bigPictureSemanticDestination
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.structuralDestination
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureMutationControls
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureSourceDeleteDialog
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.entitypicker.CANONICAL_ENTITY_PICKER_RESULT_KEY
 
@@ -31,11 +33,14 @@ fun ProjectHierarchyScreen(
     navController: NavController,
     viewModel: BigPictureViewModel = hiltViewModel(),
     mutations: BigPictureMutationViewModel = hiltViewModel(),
+    sourceDeletion: BigPictureSourceDeleteViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val ready = state as? BigPictureUiState.Ready
     val mutation by mutations.state.collectAsStateWithLifecycle()
+    val sourceState by sourceDeletion.state.collectAsStateWithLifecycle()
+    val sourceTargets by sourceDeletion.targets.collectAsStateWithLifecycle()
     val clipboard by mutations.clipboard.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val entry = remember(navController) { navController.currentBackStackEntry!! }
@@ -45,6 +50,14 @@ fun ProjectHierarchyScreen(
     LaunchedEffect(mutation.message) {
         mutation.message?.let { snackbar.showSnackbar(it); mutations.clearMessage() }
     }
+    LaunchedEffect(sourceState.message) {
+        sourceState.message?.let { snackbar.showSnackbar(it); sourceDeletion.clearMessage() }
+    }
+    LaunchedEffect(ready) {
+        viewModel.recoverMissingFocus()
+        ready?.structure?.items?.mapTo(hashSetOf()) { it.ref }?.let(mutations::discardMissingClipboard)
+    }
+    BigPictureSourceDeleteDialog(sourceState, sourceDeletion::confirm, sourceDeletion::cancel)
     BackHandler(enabled = ready?.activeNode != null || ready?.activeScope != null) { viewModel.goUp() }
     LaunchedEffect(ready?.activeNode?.placement?.id, ready?.activeScope?.id) {
         listState.scrollToItem(0)
@@ -58,7 +71,7 @@ fun ProjectHierarchyScreen(
                 onHierarchyBackClick = viewModel::goUp,
                 isSelectionMode = false,
                 selectedCount = 0,
-                canPasteToFocusedContext = BIG_PICTURE_MUTATION_UX_ENABLED && clipboard != null && ready?.structuralDestination() != null && !mutation.busy,
+                canPasteToFocusedContext = BIG_PICTURE_MUTATION_UX_ENABLED && clipboard != null && ready?.structuralDestination() != null && !mutation.busy && !sourceState.busy,
                 onCopySelection = {},
                 onCutSelection = {},
                 onPasteToFocusedContext = { ready?.structuralDestination()?.let(mutations::paste) },
@@ -70,7 +83,7 @@ fun ProjectHierarchyScreen(
                 pasteDescription = "Вставити / перемістити сюди",
                 actions = {
                     if (BIG_PICTURE_MUTATION_UX_ENABLED) ready?.let {
-                        BigPictureMutationControls(it, mutations) { destination ->
+                        BigPictureMutationControls(it, mutations, blocked = sourceState.busy) { destination ->
                             mutations.beginAdd(destination)
                             entry.savedStateHandle[CANONICAL_ENTITY_PICKER_RESULT_KEY] = null
                             entry.savedStateHandle["bigPicturePickerPending"] = true
@@ -101,10 +114,20 @@ fun ProjectHierarchyScreen(
                             navController.navigate(NavTargetRouter.routeOf(target))
                         }
                     },
+                    onOpenSemantic = { node ->
+                        bigPictureSemanticDestination(node)?.let { target ->
+                            navController.navigate(NavTargetRouter.routeOf(target))
+                        }
+                    },
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    mutationEnabled = BIG_PICTURE_MUTATION_UX_ENABLED && !mutation.busy,
+                    mutationEnabled = BIG_PICTURE_MUTATION_UX_ENABLED && !mutation.busy && !sourceState.busy,
                     onCut = mutations::cut,
                     onRemove = mutations::remove,
+                    sourceDeleteTargets = sourceTargets,
+                    onDeleteSource = { target ->
+                        viewModel.rememberCurrentLocation()
+                        sourceDeletion.request(target)
+                    },
                 )
         }
     }

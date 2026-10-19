@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceCompatibilityProj
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceCompatibilityProjectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,21 +58,26 @@ class WorkspaceDestinationViewModel
 
         init {
             viewModelScope.launch {
-                _uiState.value =
-                    if (workspaceId.isBlank()) {
-                        WorkspaceDestinationUiState.Unavailable("Некоректний ідентифікатор робочого простору")
-                    } else {
-                        runCatching { repository.get(workspaceId) }
-                            .fold(
-                                onSuccess = { projection ->
-                                    projection?.toDestinationState()
-                                        ?: WorkspaceDestinationUiState.Unavailable("Робочий простір недоступний")
-                                },
-                                onFailure = {
-                                    WorkspaceDestinationUiState.Unavailable("Не вдалося завантажити робочий простір")
-                                },
-                            )
+                if (workspaceId.isBlank()) {
+                    _uiState.value = WorkspaceDestinationUiState.Unavailable("Некоректний ідентифікатор робочого простору")
+                    return@launch
+                }
+                try {
+                    // Compatibility evidence is optional. Subsequent scalar/lifecycle updates
+                    // come from this exact Workspace row, never from Context or a full graph.
+                    val initial = repository.get(workspaceId)
+                    _uiState.value = initial?.toDestinationState()
+                        ?: WorkspaceDestinationUiState.Unavailable("Робочий простір недоступний")
+                    if (initial != null) repository.observeWorkspace(workspaceId).collect { workspace ->
+                        _uiState.value = workspace?.let {
+                            initial.copy(workspace = it).toDestinationState()
+                        } ?: WorkspaceDestinationUiState.Unavailable("Робочий простір недоступний")
                     }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    _uiState.value = WorkspaceDestinationUiState.Unavailable("Не вдалося завантажити робочий простір")
+                }
             }
         }
     }

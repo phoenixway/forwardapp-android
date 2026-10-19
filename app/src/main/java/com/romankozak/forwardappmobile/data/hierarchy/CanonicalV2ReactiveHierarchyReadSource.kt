@@ -1,48 +1,26 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.StartupTrace
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
-import com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementGroupScopeEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
-import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.hierarchyPlacementSiblingComparator
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-
-private data class CanonicalV2ReactiveStructuralState(
-    val placements: List<HierarchyPlacement>,
-    val groupScopes: List<HierarchyPlacementGroupScopeEntity>,
-    val presentationProvenance: CanonicalV2HierarchyPresentationProvenance,
-    val applicability: List<GroupScopeApplicabilityEntity>,
-)
-
-private data class CanonicalV2ReactiveOrientationState(
-    val managedSubjects: List<ManagedSubjectEntity>,
-    val mappings: List<LegacySubjectMappingEntity>,
-    val relations: List<OrientationRelationEntity>,
-)
-
-private data class CanonicalV2ReactivePresentationState(
-    val workspaces: List<CanonicalV2WorkspacePresentation>,
-    val groups: List<MainBeaconGroup>,
-)
 
 /**
  * Reactive production V2 read source.
  *
  * H1, exact GroupScope, and exact linked-presentation provenance are read from
- * one SQLite statement snapshot. Presentation provenance is never inferred from
- * PlacementKind or target ancestry.
+ * one Room transaction with target identity and display metadata. Independent
+ * Flow combines can mix pre-delete structure with post-delete targets even when
+ * the writer is atomic. Provenance is never inferred from placement or ancestry.
  */
 @Singleton
 class CanonicalV2ReactiveHierarchyReadSource
@@ -60,84 +38,42 @@ class CanonicalV2ReactiveHierarchyReadSource
                 "Canonical V2 reactive read currently supports only GENERAL"
             }
 
-            val orientationDao = database.orientationDao()
-            val mainBeaconDao = database.mainBeaconDao()
-
-            val structural =
-                database.hierarchyPlacementDao()
-                    .observeLiveStructuralReadFrame(hierarchyId.value)
-                    .map { rows ->
-                        CanonicalV2ReactiveStructuralState(
-                            placements =
-                                rows.map { it.placement.toHierarchyPlacementStrict() }
-                                    .sortedWith(hierarchyPlacementSiblingComparator),
-                            groupScopes =
-                                rows.mapNotNull { it.groupScope }
-                                    .distinctBy { it.placementId },
+            return database.invalidationTracker.createFlow(
+                "hierarchy_placements", "hierarchy_placement_group_scopes",
+                "hierarchy_placement_linked_appearances", "hierarchy_group_scope_applicability",
+                "big_picture_containers", "managed_subjects", "legacy_subject_mappings",
+                "orientation_relations", "main_beacon_groups", "workspaces", "contexts",
+                "workspace_tag_refs", "system_workspace_tag_seed_states",
+            ).map {
+                database.withTransaction {
+                    val rows = database.hierarchyPlacementDao().getLiveStructuralReadFrame(hierarchyId.value)
+                    val dao = database.orientationDao()
+                    val workspaces = systemWorkspacePresentationContextProjector.projectPresentationUniverse()
+                        .map { it.toCanonicalV2WorkspacePresentation() }
+                    val subjects = dao.getAllManagedSubjects()
+                    val mappings = dao.getAllLegacyMappings()
+                    val relations = dao.getAllOrientationRelations()
+                    val groups = database.mainBeaconDao().getAllGroupsSync()
+                    StartupTrace.measureSync("Hierarchy.project") {
+                        assembler.assemble(
+                            placements = rows.map { it.placement.toHierarchyPlacementStrict() }
+                                .sortedWith(hierarchyPlacementSiblingComparator),
+                            admittedWorkspacePresentations = workspaces,
+                            managedSubjects = subjects,
+                            legacySubjectMappings = mappings,
+                            relations = relations,
+                            groupScopes = rows.mapNotNull { it.groupScope }.distinctBy { it.placementId },
+                            legacyGroups = groups,
+                            presentationProvenance = CanonicalV2HierarchyPresentationProvenance(
+                                rows.mapNotNull { it.linkedAppearance?.placementId?.let(::PlacementId) }.toSet(),
+                            ),
+                            hierarchyId = hierarchyId,
                             applicability = rows.mapNotNull { it.applicability },
-                            presentationProvenance =
-                                CanonicalV2HierarchyPresentationProvenance(
-                                    linkedAppearancePlacementIds =
-                                        rows.mapNotNull { row ->
-                                            row.linkedAppearance
-                                                ?.placementId
-                                                ?.let(::PlacementId)
-                                        }.toSet(),
-                                ),
+                            materializedHistoricalGroupSubjects = rows.mapNotNullTo(hashSetOf()) { it.materializedHistoricalGroupSubjectId },
                         )
                     }
-
-            val orientation =
-                combine(
-                    orientationDao.observeManagedSubjects(),
-                    orientationDao.observeLegacyMappings(),
-                    orientationDao.observeOrientationRelations(),
-                ) { managedSubjects, mappings, relations ->
-                    CanonicalV2ReactiveOrientationState(
-                        managedSubjects = managedSubjects,
-                        mappings = mappings,
-                        relations = relations,
-                    )
                 }
-
-            val workspaces =
-                systemWorkspacePresentationContextProjector
-                    .observePresentationUniverse()
-                    .map { presentations ->
-                        presentations.map { it.toCanonicalV2WorkspacePresentation() }
-                    }
-
-            val presentation =
-                combine(
-                    workspaces,
-                    mainBeaconDao.observeGroups(),
-                ) { workspacePresentations, groups ->
-                    CanonicalV2ReactivePresentationState(
-                        workspaces = workspacePresentations,
-                        groups = groups,
-                    )
-                }
-
-            return combine(
-                structural,
-                orientation,
-                presentation,
-            ) { structuralState, orientationState, presentationState ->
-                StartupTrace.measureSync("Hierarchy.project") {
-                    assembler.assemble(
-                        placements = structuralState.placements,
-                        admittedWorkspacePresentations = presentationState.workspaces,
-                        managedSubjects = orientationState.managedSubjects,
-                        legacySubjectMappings = orientationState.mappings,
-                        relations = orientationState.relations,
-                        groupScopes = structuralState.groupScopes,
-                        legacyGroups = presentationState.groups,
-                        presentationProvenance = structuralState.presentationProvenance,
-                        hierarchyId = hierarchyId,
-                        applicability = structuralState.applicability,
-                    )
-                }
-            }
+            }.distinctUntilChanged()
         }
 
         fun observeCanonicalWorkspacePresentations(): Flow<List<CanonicalV2WorkspacePresentation>> =

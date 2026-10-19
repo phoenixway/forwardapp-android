@@ -46,7 +46,7 @@ internal fun StrategicArcBottomPanelContent(
             trailingContent = {
                 BottomPanelIconButton(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Додати контекст як ArcQuest",
+                    contentDescription = "Створити Quest на основі сутності",
                     onClick = onShowContextPicker,
                 )
                 BottomPanelGlobalRail(

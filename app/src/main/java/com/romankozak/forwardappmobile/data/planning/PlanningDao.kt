@@ -33,6 +33,9 @@ interface PlanningDao {
     @Query("SELECT * FROM planning_commitments ORDER BY id ASC")
     suspend fun getAllCommitments(): List<PlanningCommitmentEntity>
 
+    @Query("SELECT * FROM planning_commitments WHERE provenanceSourceType=:type AND provenanceSourceId=:sourceId AND isDeleted=0")
+    suspend fun getLiveForProvenance(type: String, sourceId: String): List<PlanningCommitmentEntity>
+
     @Query("SELECT * FROM planning_commitments ORDER BY id ASC")
     fun observeAllCommitments(): Flow<List<PlanningCommitmentEntity>>
 

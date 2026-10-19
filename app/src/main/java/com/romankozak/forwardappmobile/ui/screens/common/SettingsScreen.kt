@@ -48,15 +48,19 @@ fun SettingsScreen(
     state: SettingsScreenState,
     actions: SettingsScreenActions,
     navController: NavController,
+    onBack: (() -> Unit)? = null,
+    snackbarHost: @Composable () -> Unit = {},
     content: @Composable (Int) -> Unit,
 ) {
     Scaffold(
+        snackbarHost = snackbarHost,
         topBar = {
             SettingsTopAppBar(
                 title = state.title,
                 navController = navController,
                 onSave = actions.onSave,
                 isSaveEnabled = state.isSaveEnabled,
+                onBack = onBack,
             )
         },
     ) { paddingValues ->

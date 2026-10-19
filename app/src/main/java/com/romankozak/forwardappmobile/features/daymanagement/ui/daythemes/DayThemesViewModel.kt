@@ -7,7 +7,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,16 +30,22 @@ class DayThemesViewModel
                 if (currentPlanId == null) {
                     flowOf(DayThemesUiState())
                 } else {
-                    repository.observe(currentPlanId).map { document ->
+                    flow {
+                        repository.prepareDay(currentPlanId)
+                        emitAll(repository.observe(currentPlanId))
+                    }.map { document ->
                         DayThemesUiState(
                             dayPlanId = currentPlanId,
                             themes = document.themes.sortedWith(compareBy(DayTheme::order, DayTheme::createdAt)),
                             assignments = document.assignments.associate { it.entityId to it.themeIds },
                             isLoading = false,
                         )
+                    }.catch { failure ->
+                        emit(DayThemesUiState(dayPlanId = currentPlanId, isLoading = false,
+                            error = failure.message ?: "Не вдалося завантажити теми дня"))
                     }
                 }
-            }.stateIn(
+            }.flowOn(Dispatchers.IO).stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 DayThemesUiState(),
@@ -42,7 +53,6 @@ class DayThemesViewModel
 
         fun loadPlan(dayPlanId: String) {
             planId.value = dayPlanId
-            viewModelScope.launch { repository.migrateLegacyDayIfNeeded(dayPlanId) }
         }
 
         fun saveTheme(themeId: String?, draft: DayThemeDraft) {
@@ -60,6 +70,7 @@ class DayThemesViewModel
                             iconKey = safeDraft.iconKey,
                             comment = safeDraft.comment.trim(),
                             budgetPercent = safeDraft.budgetPercent,
+                            carryForward = safeDraft.carryForward,
                             updatedAt = now,
                         ) ?: DayTheme(
                             dayPlanId = dayPlanId,
@@ -68,6 +79,7 @@ class DayThemesViewModel
                             iconKey = safeDraft.iconKey,
                             comment = safeDraft.comment.trim(),
                             budgetPercent = safeDraft.budgetPercent,
+                            carryForward = safeDraft.carryForward,
                             order = (document.themes.maxOfOrNull(DayTheme::order) ?: -1L) + 1L,
                             createdAt = now,
                             updatedAt = now,

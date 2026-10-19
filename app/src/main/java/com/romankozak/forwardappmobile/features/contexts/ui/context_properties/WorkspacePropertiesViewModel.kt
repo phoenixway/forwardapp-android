@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository
 import com.romankozak.forwardappmobile.data.orientation.CanonicalWorkspaceBindingRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceCompatibilityProjectionRepository
 import com.romankozak.forwardappmobile.data.workspace.WorkspacePropertiesSnapshot
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
@@ -63,7 +62,6 @@ sealed interface WorkspacePropertiesUiState {
 
 sealed interface WorkspacePropertiesEvent {
     data object Saved : WorkspacePropertiesEvent
-    data class OpenLegacyContextSettings(val contextId: String) : WorkspacePropertiesEvent
     data class Message(val text: String) : WorkspacePropertiesEvent
 }
 
@@ -73,11 +71,10 @@ class WorkspacePropertiesViewModel
     constructor(
         savedStateHandle: SavedStateHandle,
         private val workspaceRepository: CanonicalWorkspaceRepository,
-        private val compatibilityRepository: WorkspaceCompatibilityProjectionRepository,
         private val bindingRepository: CanonicalWorkspaceBindingRepository,
         private val catalogRepository: CanonicalEntityCatalogRepository,
     ) : ViewModel() {
-        private val workspaceId = savedStateHandle.get<String>("workspaceId").orEmpty()
+        private val workspaceId = workspaceSettingsIdentity(savedStateHandle)
         private val _uiState = MutableStateFlow<WorkspacePropertiesUiState>(WorkspacePropertiesUiState.Loading)
         val uiState: StateFlow<WorkspacePropertiesUiState> = _uiState.asStateFlow()
 
@@ -112,45 +109,6 @@ class WorkspacePropertiesViewModel
 
         fun dismissPendingBinding() = updateReady { copy(pendingSubject = null) }
 
-        fun openLegacyContextSettings() {
-            val model = readyModel() ?: return
-            val contextId = model.sourceContextId ?: return
-            if (model.isSystem || contextId != model.workspaceId || model.isDirty || model.isSaving || model.isRelationMutationInFlight) return
-
-            viewModelScope.launch {
-                val admissible =
-                    runCatching { compatibilityRepository.get(model.workspaceId) }
-                        .getOrNull()
-                        ?.let { projection ->
-                            !projection.workspace.isDeleted &&
-                                projection.workspace.id == model.workspaceId &&
-                                projection.workspace.sourceContextId == contextId &&
-                                projection.sourceContext?.let {
-                                    !it.isDeleted && it.id == contextId
-                                } == true
-                        } == true
-
-                // Admission must still hold after the suspending repository read.
-                val current = readyModel() ?: return@launch
-                if (
-                    current.workspaceId != model.workspaceId ||
-                    current.sourceContextId != contextId ||
-                    current.version != model.version ||
-                    current.isSystem ||
-                    current.isDirty ||
-                    current.isSaving ||
-                    current.isRelationMutationInFlight
-                ) {
-                    return@launch
-                }
-
-                if (admissible) {
-                    _events.send(WorkspacePropertiesEvent.OpenLegacyContextSettings(contextId))
-                } else {
-                    _events.send(WorkspacePropertiesEvent.Message("Пов’язаний Context недоступний"))
-                }
-            }
-        }
 
         fun save() {
             val model = readyModel() ?: return

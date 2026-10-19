@@ -54,10 +54,7 @@ fun StrategicArcBottomPanel(
             },
         preselectedContextIds = uiState.arcQuests.mapNotNull { it.linkedContextId }.toSet(),
         onDismiss = { showContextPicker = false },
-        onContextSelected = { contextId ->
-            viewModel.addArcQuestFromContext(contextId)
-            showContextPicker = false
-        },
+        onEntitySelected = viewModel::addArcQuestFromEntity,
         onCreateRootContext = viewModel::createRootContextForPicker,
     )
 }

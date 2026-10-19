@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -176,6 +177,7 @@ class DayPlanViewModel
         private val settingsRepository: SettingsRepository,
         private val missionRepository: MissionRepository,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
+        private val dayTaskGoalParentRead: com.romankozak.forwardappmobile.data.planning.day.DayTaskGoalParentRead? = null,
 ) : ViewModel() {
     private companion object {
         const val UI_STATE_STOP_TIMEOUT_MILLIS = 5000L
@@ -198,6 +200,8 @@ class DayPlanViewModel
         }
 
         private val _planId = MutableStateFlow<String?>(null)
+        private val _selectedTask = MutableStateFlow<DayTaskWithReminder?>(null)
+        val selectedTask: StateFlow<DayTaskWithReminder?> = _selectedTask.asStateFlow()
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
         private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
@@ -209,6 +213,7 @@ class DayPlanViewModel
         private val allContextsFlow =
             systemWorkspacePresentationContextProjector
                 .observePresentationUniverse()
+                .flowOn(Dispatchers.Default)
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
@@ -217,6 +222,7 @@ class DayPlanViewModel
         private val attachmentLibraryFlow =
             attachmentsRepository
                 .getAttachmentLibraryItems()
+                .flowOn(Dispatchers.Default)
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
@@ -329,75 +335,16 @@ class DayPlanViewModel
                                 dayPlan?.let { dayManagementRepository.materializeCanonicalRecurrenceForDate(it.date) }
                             }
 
-                    val tasksFlow =
-                        dayManagementRepository.getTasksForDay(planId)
-                            .flatMapLatest { tasks ->
-                                Log.d(
-                                    "DayPlanViewModel",
-                                    "tasksFlow: Received ${tasks.size} tasks for planId: $planId",
-                                )
-                                if (tasks.isEmpty()) {
-                                    flowOf(emptyList())
-                                } else {
-                                    combine(
-                                        tasks.map { task ->
-                                            val reminderFlow = reminderRepository.getRemindersForEntityFlow(task.id)
-                                            val parentInfoFlow: Flow<ParentInfo?> =
-                                                if (task.goalId != null) {
-                                                    flow {
-                                                        val goal =
-                                                            dayManagementRepository.getGoal(task.goalId!!)
-                                                        val projectId =
-                                                            goal?.let {
-                                                                dayManagementRepository.findProjectIdForGoal(
-                                                                    it.id,
-                                                                )
-                                                            }
-                                                        emit(
-                                                            goal?.let {
-                                                                ParentInfo(
-                                                                    it.id,
-                                                                    it.text,
-                                                                    ParentType.GOAL,
-                                                                    projectId,
-                                                                )
-                                                            },
-                                                        )
-                                                    }
-                                                } else if (task.logicalProjectId != null) {
-                                                    flow {
-                                                        emit(
-                                                            dayManagementRepository.getProjectPresentation(
-                                                                requireNotNull(task.logicalProjectId),
-                                                            ),
-                                                        )
-                                                    }.map { project ->
-                                                        project?.let {
-                                                            ParentInfo(
-                                                                it.id,
-                                                                it.name,
-                                                                ParentType.PROJECT,
-                                                                it.id,
-                                                            )
-                                                        }
-                                                    }
-                                                } else {
-                                                    flowOf(null)
-                                                }
-                                            combine(
-                                                reminderFlow,
-                                                parentInfoFlow,
-                                            ) { reminders, parentInfo ->
-                                                DayTaskWithReminder(
-                                                    task,
-                                                    reminders.firstOrNull(),
-                                                    parentInfo,
-                                                )
-                                            }
-                                        },
-                                    ) { it.toList() }
-                                }
-                            }
+                    val tasksFlow = observeDayTaskList(
+                        tasks = dayManagementRepository.getTasksForDay(planId),
+                        reminders = reminderRepository.getAllReminders(),
+                        goals = dayTaskGoalParentRead?.observe() ?: flowOf(emptyMap()),
+                        workspaces = allContextsFlow,
+                    ).onEach { rows ->
+                        com.romankozak.forwardappmobile.StartupTrace.mark("Planning.DayTask.list.emitted count=${rows.size}")
+                        val selected = selectedTask.value
+                        if (selected?.dayTask?.dayPlanId == planId && rows.none { it.dayTask.id == selected.dayTask.id }) clearSelectedTask()
+                    }
 
                     val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
                     val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
@@ -477,6 +424,7 @@ class DayPlanViewModel
                         )
                     }
                 }
+                .flowOn(Dispatchers.Default)
                 .catch { e ->
                     Log.e("DayPlanViewModel", "Error in uiState flow", e)
                     emit(DayPlanUiState(isLoading = false, error = "Помилка завантаження даних: ${e.localizedMessage}"))
@@ -509,9 +457,6 @@ class DayPlanViewModel
         private val _isAddTaskDialogOpen = MutableStateFlow(false)
         val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
 
-        private val _selectedTask = MutableStateFlow<DayTaskWithReminder?>(null)
-        val selectedTask: StateFlow<DayTaskWithReminder?> = _selectedTask.asStateFlow()
-
         private val _showDeleteConfirmationDialog = MutableStateFlow<DayTaskWithReminder?>(null)
         val showDeleteConfirmationDialog: StateFlow<DayTaskWithReminder?> = _showDeleteConfirmationDialog.asStateFlow()
 
@@ -522,6 +467,9 @@ class DayPlanViewModel
 
         private val _uiEvent = Channel<DayPlanUiEvent>()
         val uiEvent = _uiEvent.receiveAsFlow()
+        private val _carryForwardMessage = MutableStateFlow<String?>(null)
+        val carryForwardMessage = _carryForwardMessage.asStateFlow()
+        fun clearCarryForwardMessage() { _carryForwardMessage.value = null }
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), "")
@@ -817,6 +765,12 @@ class DayPlanViewModel
             _pendingScrollToTaskId.value = null
         }
 
+        suspend fun addTaskFromEntity(entity: com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) {
+            val planId = requireNotNull(uiState.value.dayPlan?.id) { "Спочатку відкрийте план дня" }
+            val order = (uiState.value.tasks.minOfOrNull { it.dayTask.order } ?: 0L) - MIN_TOP_ORDER_OFFSET
+            com.romankozak.forwardappmobile.features.planning.createDayTaskFromEntity(dayManagementRepository, entity, planId, order)
+        }
+
         fun addTaskFromContext(contextId: String) {
             val dayPlanId = uiState.value.dayPlan?.id ?: return
             val sourceContext =
@@ -938,7 +892,9 @@ class DayPlanViewModel
         fun deleteTask(taskId: String) {
             viewModelScope.launch {
                 try {
-                    dayManagementRepository.deleteTask(taskId)
+                    com.romankozak.forwardappmobile.StartupTrace.measure("Planning.DayTask.delete.command") {
+                        dayManagementRepository.deleteTask(taskId)
+                    }
                     clearSelectedTask()
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error deleting task", e)
@@ -1117,11 +1073,8 @@ class DayPlanViewModel
 
         fun moveTaskToTomorrow(taskToMoveWithReminder: DayTaskWithReminder) {
             viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    dayManagementRepository.moveTaskToTomorrow(taskToMoveWithReminder.dayTask)
-                    clearSelectedTask()
-                } catch (e: Exception) {
-                    Log.e("DayPlanViewModel", "Error moving task to tomorrow", e)
+                carryDayTaskToTomorrow(dayManagementRepository, taskToMoveWithReminder, ::clearSelectedTask) {
+                    _carryForwardMessage.value = it
                 }
             }
         }

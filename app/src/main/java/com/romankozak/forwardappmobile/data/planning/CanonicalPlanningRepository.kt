@@ -148,6 +148,9 @@ class CanonicalPlanningRepository
                     "Use restoreCommitment to restore a tombstoned planning commitment"
                 }
                 existing?.let { current ->
+                    require(current.scopeId == commitment.scopeId) {
+                        "Planning commitment scope is immutable; carry-forward creates a new identity"
+                    }
                     requireForwardRevision(
                         currentVersion = current.version,
                         incomingVersion = commitment.version,
@@ -173,6 +176,9 @@ class CanonicalPlanningRepository
                         "Planning commitment does not exist"
                     }
                 require(existing.isDeleted) { "Planning commitment is already live" }
+                require(existing.scopeId == commitment.scopeId) {
+                    "Restoring a commitment cannot move it to another scope"
+                }
                 requireForwardRevision(
                     currentVersion = existing.version,
                     incomingVersion = commitment.version,

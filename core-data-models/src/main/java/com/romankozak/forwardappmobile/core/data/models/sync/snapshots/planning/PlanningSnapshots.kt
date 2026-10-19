@@ -128,6 +128,8 @@ data class PlanningCommitmentSyncVersion(
     val version: Long,
 )
 
+data class PlanningReferenceSyncVersion(val id: String, val version: Long)
+
 data class DayPlanningScopeExtensionSyncVersion(
     val scopeId: String,
     val version: Long,

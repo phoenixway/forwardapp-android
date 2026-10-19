@@ -42,7 +42,10 @@ class MissionRepository
         suspend fun insertMission(mission: TacticalMission): Long =
             canonicalMissionAdapter.insertMission(mission)
 
-        suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
+        suspend fun insertMissionWithAutoOrder(
+            mission: TacticalMission,
+            source: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
+        ): Long {
             val now = System.currentTimeMillis()
             return canonicalMissionAdapter.insertMissionWithAutoOrder(
                 mission.copy(
@@ -51,6 +54,7 @@ class MissionRepository
                     syncedAt = null,
                     version = mission.version + 1,
                 ),
+                source,
             )
         }
 

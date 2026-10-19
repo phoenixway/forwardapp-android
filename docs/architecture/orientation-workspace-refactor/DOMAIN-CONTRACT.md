@@ -17,6 +17,54 @@ The machine-readable companion is
 [domain-contract-v1.json](domain-contract-v1.json). Current implementation
 evidence remains in [BASELINE.md](BASELINE.md).
 
+## Semantic editor source actions, HOST verified 2026-10-19
+
+SEMANTIC_EDITOR_WORKSPACE_DELETE_HOST_20261019
+
+The Universal Semantic Editor is a consumer, not a new lifecycle authority.
+Its Workspace binding rows open exact canonical `NavTarget.Workspace(workspaceId)`
+for EMBODIES/REALIZES/SUPPORTS/MONITORS; no title lookup or Context fallback.
+The existing row remove icon still unbinds only the explicit relation.
+
+The entity menu exposes source deletion through the existing
+`CanonicalSemanticEntityLifecycleCoordinator.tombstone`, using a captured
+canonical subject ID, ManagedSubjectType and expected version. The coordinator's
+read-only `deletionTarget` capability admits Aspect and unmapped Orientation
+INTENT/MILESTONE/ONGOING_STANDARD/OPPORTUNITY only; specialized/unknown kinds,
+missing/deleted subjects and legacy-mapped identities fail closed. Other mandatory
+Planning/PART_OF/H1/version constraints are still revalidated by the existing
+atomic lifecycle command, not duplicated or bypassed by the editor.
+
+Confirmation names the saved canonical entity and states that all of its Big
+Picture appearances disappear, bound Workspaces survive and unsaved drafts are
+discarded. Cancel creates nothing. Busy state prevents duplicate confirmation
+and competing editor actions. Only committed success emits a single consumable
+close result, bypassing the unsaved-draft prompt for the now-deleted source.
+Failure retains the editor/confirmation with its error. No destructive intent or
+success event is persisted in SavedState; recreation cannot replay the command.
+
+There is no new delete implementation, structural cascade, transport or schema.
+Canonical lifecycle still owns identity/relation/binding tombstones and all H1
+appearance retirement atomically. Workspace navigation itself writes nothing.
+Room **201 -> 201**.
+
+HOST XML: **60/60 across 8 classes**, zero failures/errors/skips:
+
+- `SemanticEntityDeleteViewModelTest`: 6.
+- `SemanticDeletionCapabilityRoomTest`: 2.
+- `CanonicalSemanticEntityLifecycleRoomTest`: 13.
+- `SemanticEntityEditorViewModelTest`: 18.
+- `SemanticEntityEditorNavigationContractTest`: 2.
+- `EmbodyingWorkspaceViewModelTest`: 6.
+- `BigPictureOperationalEmbodimentsTest`: 10.
+- `BigPictureOperationalEmbodimentsRoomTest`: 3.
+
+Both separate Kotlin compile gates and `git diff --check` PASS. Physical acceptance
+is pending: open a bound Workspace from the editor; on disposable ordinary
+Orientation/Aspect test Cancel, then confirmed source deletion; verify editor
+closes, Library/Big Picture update, bound Workspace survives and restart does not
+resurrect the source. Deploy only through the user's `make exp-arm64-cycle`.
+
 ## Architecture epoch note
 
 This file is the accepted **Canonical V1** domain contract.
@@ -275,6 +323,207 @@ In a combined presentation:
 - specialized actions remain owned by the specialized entity;
 - existing Context routes remain compatibility entry points until an explicit
   navigation migration.
+
+### Current Workspace operational destination (R2D.4)
+
+The current product entry is `Workspace(workspaceId)`, including from Library.
+It reuses the Context-era operational UI behind canonical Workspace admission.
+Workspace existence, visible operational name/description and Properties route
+come from Workspace, independently of an optional live compatibility Context.
+`sourceContextId` never substitutes for route identity, and standalone/System
+Workspaces must not manufacture Context rows to render. The same-key live-shell
+adapter remains a deliberately limited compatibility operation boundary.
+
+Canonical title/description and tombstone changes are observed from the exact
+Workspace row. The semantic combined-presentation rules above remain separate:
+this operational destination does not rename the embodied subject or own its
+lifecycle. H1, after its explicit cutover, owns structural arrangement; old
+Context hierarchy and GroupScope do not acquire authority through this screen.
+Opening the Workspace route does not create Direction links from H1 children.
+Explicit legacy routes retain their compatibility policy until separately retired.
+
+Workspace Properties is one existing tabbed properties surface, keyed by
+workspaceId. Legacy edit-route aliases admit the canonical Workspace directly;
+there is no second Context-settings product screen or navigation command.
+General/Markdown/tags, semantic bindings, display, capabilities, reminders and
+registered capability settings share UI, not persistence ownership. Each family
+keeps independent commands; header Save owns Workspace name/description only.
+Structural preset and scoring/Evaluation controls are excluded. Existing presets
+and semantic scores are neither deleted nor copied onto Workspace.
+Context.relatedLinks are not promoted to Workspace scalars or semantic bindings.
+Workspace reminder identity uses the existing PROJECT transport type; type-scoped
+reading/clearing must preserve other entities sharing the same raw ID.
+No persistence/schema or semantic/Planning/H1 mutation authority changes here.
+
+### Workspace dashboard semantic references (R2D.6A)
+
+The current canonical Workspace dashboard consumes the existing WorkspaceBinding
+read model and lightweight canonical entity catalog, keyed by canonical workspaceId.
+It shows Orientation/Aspect canonical titles and classes; binding kinds remain
+EMBODIES/REALIZES/SUPPORTS/MONITORS, never inferred from visual placement or
+operational configuration. Multiple binding types share one semantic subject row.
+Locale-independent title/class/id ordering and stable relation labels are used.
+
+Row taps route the exact subjectId to the existing Universal Semantic Editor.
+Properties binding changes and canonical title/lifecycle changes are observed
+reactively without refresh or restart. Empty bindings are valid. Under the
+existing fail-closed projection, unavailable/ambiguous targets and malformed
+binding kinds do not expose navigation; there is no resurrection or new read-side
+cleanup policy. Standalone and Context-backed Workspaces use the same authority.
+
+The dashboard is read/navigation only. It does not mutate WorkspaceBinding,
+Context, H1/Big Picture, GroupScope, MainBeacon, Planning, capabilities, reminders,
+Connections or lifecycle. Existing Properties and bootstrap commands retain their
+separate ownership. No schema/transport change; Room 200. HOST XML 49/49 tests in
+10 classes and both separate Kotlin compile gates PASS; physical acceptance pending.
+
+### Semantic Editor -> new embodying Workspace
+
+`SemanticEmbodyingWorkspaceCoordinator.create` is an explicit product command,
+not generic semantic creation or Workspace conversion. It accepts the exact
+live Orientation/Aspect subject type/id/version and confirmed Workspace overrides.
+Saved semantic title/Markdown are editable defaults only; operational overrides
+do not rename the subject or create ongoing title-copy synchronization.
+
+One Room transaction joins CanonicalWorkspaceRepository.createIdentity and
+CanonicalWorkspaceBindingRepository.bind(EMBODIES). Identity creation reuses the
+normal standalone Workspace writer, without the H1 occurrence authored by the
+existing create/placement workflow. Source identity/data remain unchanged.
+Only the Workspace and explicit primary binding are new. Live subtype and
+binding uniqueness remain canonical binding authority; existing EMBODIES is
+not displaced. Invalid/stale source, duplicate submission or late binding failure
+cannot leave an extra Workspace through partial commit.
+
+The new Workspace is canonical/native and sourceContextId is null. No Context,
+H1/Big Picture, GroupScope, Planning, capabilities or Connections are manufactured.
+It appears in canonical catalog/Library independently of placement. UI confirmation
+is transient/non-replayed; success opens Workspace(workspaceId) once. Returning
+refreshes bindings only and preserves unsaved semantic name/version state.
+Both canonical types are admitted according to existing WorkspaceBinding rules,
+not inferred from Orientation kind, Context role, title or visual ancestry.
+
+HOST XML 66/66 tests in 8 classes (13 new), both separate Kotlin compile gates
+PASS; Room 200 unchanged, no transport format or schema change. Native identity
+and binding round-trip through canonical JSON Restore/Merge. Physical acceptance
+remains pending.
+
+### Explicit Workspace -> semantic bootstrap (R2D.5B)
+
+The canonical Workspace action sheet can create a **new** Orientation or Aspect
+and explicitly bind it to the initiating canonical workspaceId. The Workspace is
+not converted, renamed, or semantically reclassified. This command is separate
+from ordinary identity-only creation and from attaching an existing subject.
+
+Semantic class, ordinary-authoring Orientation kind and binding type are explicit
+user choices. DAY_THEME/ARC_QUEST compatibility kinds are not authoring choices.
+All four existing binding types are available; only EMBODIES is primary, under
+the existing zero/one embodied subject and Workspace uniqueness policy. A conflict
+fails rather than replacing an existing binding or choosing another type.
+
+Editable prefill is canonical Workspace title/name and Markdown description only.
+No Context name fallback or role/type inference. Tags are not copied: normal
+semantic creation currently has no canonical tag field. Operational capabilities,
+reminders, display/preset/scoring, Connections, H1 and Planning are not inputs.
+
+WorkspaceSemanticBootstrapCoordinator uses one Room transaction around the normal
+CanonicalOrientationRepository.createOrientation / CanonicalAspectRepository.create
+and CanonicalWorkspaceBindingRepository.bind commands. It owns product composition,
+not either family's invariants. Binding failure rolls back the subject, subtype,
+initial assessment/revision and relation writes. Context-backed and standalone
+owners use the same canonical Workspace admission; no Context writes/fabrication.
+
+In-flight submission is guarded. Cancellation before confirmation creates nothing.
+SavedState never replays creation: completed subject navigation is consumed once;
+an interrupted confirmation warns on reopening to inspect bindings before a new
+explicit creation. No persistent request ledger or automatic retry is introduced.
+Success opens the exact Universal Semantic Editor. Catalog/Library and Properties
+bindings update via existing canonical flows. Snapshot/JSON and canonical payload
+Restore/Merge use ordinary identities/bindings, with no bootstrap-specific format.
+
+H1 occurrences/containers (CURRENT after explicit V2 cutover), historical
+GroupScope provenance, Planning, Context and capability-owned content remain
+untouched. Room 200 unchanged. HOST evidence: 73/73 tests in 13 XML classes and
+both separate Kotlin compile gates PASS; physical bootstrap acceptance pending.
+
+### Canonical semantic source deletion (R2A.4)
+
+`CanonicalSemanticEntityLifecycleCoordinator.tombstone(subjectId, subjectType,
+expectedVersion, now)` is the domain entry, independent of Library/editor/H1 UI.
+ManagedSubject, Orientation/Aspect and semantic relations remain
+SEMANTIC_NOT_HIERARCHY. Placements/containers use CURRENT typed H1 authority after
+the already accepted V2 cutover; this command changes no structural owner.
+Historical GroupScope remains compatibility provenance only.
+
+Exact generic admission:
+
+| Target / kind | R2A.4 classification |
+| --- | --- |
+| Aspect without legacy mapping | SUPPORTED_BY_GENERIC_LIFECYCLE |
+| INTENT | SUPPORTED_BY_GENERIC_LIFECYCLE, without legacy mapping |
+| MILESTONE | SUPPORTED_BY_GENERIC_LIFECYCLE, without legacy mapping |
+| ONGOING_STANDARD | SUPPORTED_BY_GENERIC_LIFECYCLE, without legacy mapping |
+| OPPORTUNITY | SUPPORTED_BY_GENERIC_LIFECYCLE, without legacy mapping |
+| MAIN_BEACON | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| MAIN_BEACON_GROUP | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| GOAL | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| DIRECTION | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| THEME | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| DAY_THEME | SPECIALIZED_LIFECYCLE compatibility vocabulary; blocked |
+| QUEST | SPECIALIZED_LIFECYCLE; generic entry blocked |
+| ARC_QUEST | SPECIALIZED_LIFECYCLE compatibility vocabulary; blocked |
+| Unknown kind, incomplete subtype, legacy-mapped subject | BLOCKED / UNKNOWN for generic entry |
+
+This is a conservative admission matrix, not a claim that every unmapped instance
+of a specialized kind has a discovered owner. Such instances are deliberately
+not generalized here. Any existing mapping (even tombstoned history) prevents
+the generic command from guessing native provenance. Live PART_OF also rejects.
+
+One outer Room transaction performs the following:
+
+- retire all exact semantic-target PRIMARY and LINK placements through typed H1,
+  leaves first when appearances of that same target are nested;
+- retire membership, ordering and applicable sidecar state through H1, never UI;
+- tombstone incident Orientation graph relations, Aspect refs and WorkspaceBindings
+  through their existing authorities while endpoints are still live;
+- tombstone ManagedSubject, increment version, set updatedAt and clear syncedAt;
+- for Orientation, tombstone current assessment/scoring override, retaining subtype
+  and immutable assessment revision evidence;
+- for Aspect, reuse its canonical taxonomy-child-to-root promotion and lifecycle.
+
+Unrelated Workspace identities, semantic targets, Context and containers survive.
+Surviving unrelated occurrence/container children trigger the existing H1
+non-leaf rejection policy, not automatic promotion/deletion. Live Planning
+commitments are an explicit precondition failure; Planning must first retire its
+own participation. Cancellation or late persistence/validation failure rolls back
+the whole command. A current-version deleted replay is idempotent; stale subject
+versions fail closed. No physical erasure or implicit lifecycle-value rewrite.
+
+Live catalog/Library, including Unplaced, omit deleted subjects. Old semantic
+editor routes return unavailable without recreation. The existing canonical
+Orientation Global Search path excludes deleted identities via ProductRead;
+Aspect is not a standalone Global Search result class in the current product.
+
+Restore/Merge admission rejects live semantic relations/Aspect refs/bindings to
+missing/deleted endpoints, both in incoming payload and the final merged state.
+Older or equal-version live rows cannot resurrect semantic tombstones merely
+because their wall clock is later. Exact current tombstone transport, existing
+version-authoritative higher-version merge and exact-version ACK remain; no new
+payload format. Actual Workspace selective-import closure and ingress are covered
+alongside JSON Restore/Merge; no orphan live target is fabricated.
+
+HOST evidence: 127/127 tests in 17 XML classes (22 new lifecycle/read/transport
+tests), both separate Kotlin compile gates PASS, Room 200 unchanged. R2A.4 itself
+included no product delete UI or physical deployment. R2F.2D now consumes this
+command from typed Big Picture card actions; removing one occurrence remains a
+completely different structural command.
+
+R2F.2D also consumes CanonicalWorkspaceRepository.tombstone for canonical-owned,
+non-System Workspace only. It checks the captured expected version and retires
+all typed Workspace appearances/memberships/mixed order inside the existing
+owned-content and binding lifecycle transaction. Bound semantic identities and
+containers survive; unrelated live typed children reject the command. Context-backed
+Workspace lifecycle is not generalized or delegated through a UI compatibility
+fallback. Big Picture owns neither source deletion nor source cleanup policy.
 
 ## 5. Ownership, placement, and relation
 

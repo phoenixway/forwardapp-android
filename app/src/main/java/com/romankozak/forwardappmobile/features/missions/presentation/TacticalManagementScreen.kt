@@ -205,14 +205,12 @@ private fun TacticalManagementRoute(
         selectedMissionIds = selectedMissionIds.filter { it in existingIds }.toSet()
     }
 
-    LaunchedEffect(pendingScrollToMissionId, visibleMissions) {
-        val targetId = pendingScrollToMissionId ?: return@LaunchedEffect
-        val targetIndex = visibleMissions.indexOfFirst { it.id == targetId }
-        if (targetIndex >= 0) {
-            missionListState.animateScrollToItem(targetIndex)
-            viewModel.consumePendingScrollToMission()
-        }
-    }
+    com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
+        missionListState,
+        tacticalRenderedMissionIds(visibleMissions, activeIteration?.status),
+        pendingScrollToMissionId,
+        viewModel::consumePendingScrollToMission,
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.uiMessages.collect { message ->

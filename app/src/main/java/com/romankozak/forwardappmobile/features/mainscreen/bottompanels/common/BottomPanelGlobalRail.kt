@@ -7,7 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,9 +57,9 @@ fun BottomPanelGlobalRail(
 
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
-            imageVector = Icons.Outlined.History,
-            contentDescription = "Недавні",
-            onClick = { showRecentSheet = true },
+            imageVector = Icons.Outlined.AccountTree,
+            contentDescription = "Big Picture",
+            onClick = actions.onNavigateToProjectHierarchy,
         )
     }
     if (mode == BottomPanelGlobalRailMode.FULL) {
@@ -82,6 +82,7 @@ fun BottomPanelGlobalRail(
     BottomPanelMoreActionButton(
         actions = actions,
         additionalActions = additionalActions,
+        onShowRecents = if (mode == BottomPanelGlobalRailMode.FULL) ({ showRecentSheet = true }) else null,
     )
 
     NewRecentListsSheet(

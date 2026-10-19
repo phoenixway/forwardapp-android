@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBack
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import androidx.room.withTransaction
 import java.util.UUID
@@ -47,6 +48,15 @@ private fun com.romankozak.forwardappmobile.shared.core.models.orientation.Legac
         isDeleted = isDeleted,
         version = version,
     )
+
+/**
+ * Goal persistence succeeded when this result is returned.
+ * Reminder setup may have failed after the Goal was committed.
+ */
+data class GoalWithReminderOutcome(
+    val goal: Goal,
+    val reminderSetupSucceeded: Boolean,
+)
 
 @Singleton
 class GoalRepository
@@ -120,12 +130,11 @@ class GoalRepository
             return backlogItemId
         }
 
-        @androidx.room.Transaction
         suspend fun addGoalWithReminder(
             title: String,
             contextId: String,
             reminderTime: Long,
-        ): Goal {
+        ): GoalWithReminderOutcome {
             val currentTime = System.currentTimeMillis()
             val newGoal =
                 Goal(
@@ -136,25 +145,31 @@ class GoalRepository
                     createdAt = currentTime,
                     updatedAt = currentTime,
                 )
-            goalDao.insertGoal(newGoal)
-            createCanonicalGoalSubject(newGoal)
-            backlogPlacementCommands.addToContextBacked(
-                contextId = contextId,
-                itemType = BacklogItemTypeValues.GOAL,
-                entityId = newGoal.id,
-            )
+            // Reuse the canonical writer: Goal, Orientation, mapping, and
+            // Backlog placement commit together in its Room transaction.
+            addGoalToContext(newGoal, contextId)
 
-            reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
+            // AlarmScheduler is an Android side effect, not a Room write.
+            // Never schedule an alarm inside the canonical write transaction.
+            val reminderSetupSucceeded =
+                try {
+                    reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
+                    true
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e(
+                        "GoalRepository",
+                        "Goal ${newGoal.id} created but reminder setup failed",
+                        e,
+                    )
+                    false
+                }
 
-            syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
-            contextMarkerHandler.handleContextsOnCreate(newGoal)
-            val associatedContexts = tagAssociationHandler.syncGoalAssociations(newGoal, contextId)
-            applyBacklogAutoMovePolicy(
-                goalId = newGoal.id,
-                sourceContextId = contextId,
-                associatedContextIds = associatedContexts.keys,
+            return GoalWithReminderOutcome(
+                goal = newGoal,
+                reminderSetupSucceeded = reminderSetupSucceeded,
             )
-            return newGoal
         }
 
         private suspend fun createCanonicalGoalSubject(goal: Goal) {
@@ -254,7 +269,7 @@ class GoalRepository
             goalDao.getGoalById(id)?.let { canonicalGoalSemanticReadRepository.projectGoal(it) }
 
         fun getAllGoalsFlow(): Flow<List<Goal>> =
-            canonicalGoalSemanticReadRepository.projectGoals(goalDao.getAllVisibleGoalsFlow())
+            canonicalGoalSemanticReadRepository.projectGoals()
 
         // У GoalRepository.kt перевірте модифікатор доступу
         suspend fun createGoalLinks(

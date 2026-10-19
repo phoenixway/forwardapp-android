@@ -12,6 +12,10 @@ internal fun validateCanonicalPayloadReferences(
     bundle: SnapshotBundle,
     validateEmbeddedWorkspaceTopology: Boolean,
 ) {
+    requireLiveSemanticEndpoints(
+        requireNotNull(bundle.managedSubjects), requireNotNull(bundle.orientationRelations),
+        requireNotNull(bundle.aspectOrientationRefs), requireNotNull(bundle.workspaceBindings), requireNotNull(bundle.aspects),
+    )
     bundle.orientationScoringOverrides?.let { overrides ->
         val orientationIds = requireNotNull(bundle.orientations).mapTo(hashSetOf()) { it.subjectId }
         require(overrides.map { it.orientationId }.distinct().size == overrides.size) {

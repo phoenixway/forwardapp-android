@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -52,6 +54,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.LogContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import java.util.Locale
 
@@ -81,6 +84,7 @@ fun GoalDetailContent(
     onUnlinkDirectionRequest: (String) -> Unit,
     onOpenLinkedDirectionContext: (String) -> Unit,
     linkedContextNames: Map<String, String>,
+    dashboardSemanticContent: @Composable (() -> Unit)? = null,
 ) {
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
@@ -241,6 +245,7 @@ fun GoalDetailContent(
         }
         ContextViewMode.DASHBOARD -> {
             DashboardOverview(
+                semanticContent = dashboardSemanticContent,
                 modifier = modifier,
                 presentation = projectPresentation,
                 backlogCount = listContent.size,
@@ -312,6 +317,7 @@ private fun DashboardOverview(
     enableAttachments: Boolean,
     enableLog: Boolean,
     enableKeyProblems: Boolean,
+    semanticContent: @Composable (() -> Unit)?,
 ) {
     val countsByMode =
         remember(backlogCount, inboxCount, directionCount, attachments.size) {
@@ -333,12 +339,12 @@ private fun DashboardOverview(
                     )
                 }
         }
-    val contextTitle = presentation?.name?.trim().orEmpty().ifBlank { "Контекст" }
+    val contextTitle = presentation?.name?.trim().orEmpty().ifBlank { WorkspaceSurfaceCopy.TITLE }
     val roleBadge = presentation?.roleCode.toRoleBadgeText()
     val previewAttachments = attachments.take(6)
 
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         ElevatedCard(
@@ -375,7 +381,7 @@ private fun DashboardOverview(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "Context Dashboard",
+                            text = WorkspaceSurfaceCopy.DASHBOARD,
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -388,7 +394,7 @@ private fun DashboardOverview(
                         )
                     }
                     IconButton(onClick = onShowProperties) {
-                        Icon(Icons.Default.Settings, contentDescription = "Context properties")
+                        Icon(Icons.Default.Settings, contentDescription = WorkspaceSurfaceCopy.PROPERTIES)
                     }
                 }
                 FlowRow(
@@ -414,6 +420,8 @@ private fun DashboardOverview(
             }
         }
 
+        semanticContent?.invoke()
+
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -430,7 +438,7 @@ private fun DashboardOverview(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Обери, який режим контексту відкрити зараз",
+                    text = WorkspaceSurfaceCopy.CHOOSE_VIEW,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -484,7 +492,7 @@ private fun DashboardOverview(
                     )
                     if (attachments.isEmpty()) {
                         Text(
-                            text = "Поки немає зв'язків у цьому контексті",
+                            text = WorkspaceSurfaceCopy.EMPTY_CONNECTIONS,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -279,7 +279,13 @@ fun DayFocusItemEditorSheet(
                         }
                     }
 
-                DayFocusEditorTab.LINKS ->
+                DayFocusEditorTab.LINKS -> Column {
+                    existingItem?.let { item ->
+                        com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_FOCUS, item.id),
+                        )
+                    }
                     LinksTabContent(
                         links = links,
                         onAddProjectLink = {
@@ -301,7 +307,9 @@ fun DayFocusItemEditorSheet(
                         onRemoveLink = { identity ->
                             links = links.filterNot { link -> relatedLinkIdentity(link) == identity || link.target == identity }
                         },
+                        showContextAction = false,
                     )
+                }
             }
 
             HorizontalDivider()
@@ -348,6 +356,7 @@ fun DayFocusItemEditorSheet(
             preselectedAttachmentIds = selectedAttachmentIds,
             initialTab = initialTab,
             initialCreateAction = pendingCreateAction,
+            allowedTabs = setOf(LinkPickerTab.ATTACHMENTS),
             onDismiss = {
                 activePickerTab = null
                 pendingCreateAction = null

@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowOutward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.BigPictureUiState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.BigPictureSourceDeleteTarget
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.sourceDeleteTarget
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.*
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass
 import com.romankozak.forwardappmobile.features.entitybrowser.displayLabel
@@ -32,63 +33,45 @@ fun ProjectHierarchyView(
     mutationEnabled: Boolean = false,
     onCut: (H1TypedNode) -> Unit = {},
     onRemove: (H1TypedNode) -> Unit = {},
+    sourceDeleteTargets: Map<CanonicalEntityRef, BigPictureSourceDeleteTarget> = emptyMap(),
+    onDeleteSource: (BigPictureSourceDeleteTarget) -> Unit = {},
+    onOpenSemantic: (BigPictureNode) -> Unit = {},
 ) {
     Column(modifier.background(Brush.verticalGradient(listOf(
         MaterialTheme.colorScheme.surface,
         MaterialTheme.colorScheme.surfaceContainerLowest,
         MaterialTheme.colorScheme.surface,
     )))) {
-        val occurrenceCrumbs = state.breadcrumbs.map { node ->
-            BreadcrumbItem(
-                id = node.placement.id.value,
-                name = node.entity?.title ?: "Сутність недоступна",
-                level = node.depth,
-                target = BreadcrumbTarget.OrientationNode,
-                placementId = node.placement.id.value,
-            )
-        }
-        val sectionCrumbs = state.scopeBreadcrumbs.mapIndexed { index, scope ->
-            BreadcrumbItem(
-                id = scope.id,
-                name = scope.title,
-                level = index,
-                target = BreadcrumbTarget.OrientationNode,
-            )
-        }
-        // Place presentation sections after their H1 anchor when that
-        // ancestor is part of the currently focused occurrence path.
-        val anchorIndex = state.scopeAnchorPlacementId?.let { anchor ->
-            occurrenceCrumbs.indexOfFirst { it.placementId == anchor }
-        } ?: -1
-        val navigationCrumbs = if (anchorIndex >= 0) {
-            occurrenceCrumbs.take(anchorIndex + 1) +
-                sectionCrumbs +
-                occurrenceCrumbs.drop(anchorIndex + 1)
-        } else {
-            sectionCrumbs + occurrenceCrumbs
-        }
-
         BreadcrumbNavigation(
-            breadcrumbs = navigationCrumbs,
+            breadcrumbs = state.navigationBreadcrumbs,
             onNavigate = { if (it.placementId == null) onFocusScope(it.id) else onFocus(it.placementId) },
             onClearNavigation = { onFocus(null) },
             onFocusedListMenuClick = {},
+            showRootWhenEmpty = true,
+            rootLabel = "Корінь",
+            wrap = true,
         )
-        state.activeNode?.let { active ->
+        if (state.activeNode != null || state.activeScope != null) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-                BigPictureUnitCard(active, onClick = { onOpen(active) }, onOpen = { onOpen(active) },
-                    mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove)
-            }
-            HorizontalDivider()
-        }
-        if (state.activeScope != null && state.activeNode == null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(state.activeScope.title, style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f).padding(16.dp))
-                if (mutationEnabled) state.structure?.sections?.get(state.activeScope.id)?.let { ref ->
-                    BigPictureNodeMenu(ref, mutationEnabled, onCut, onRemove)
+                val active = state.activeNode
+                if (active != null) {
+                    BigPictureUnitCard(
+                        active, onClick = { onOpen(active) }, onOpen = { onOpen(active) },
+                        mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
+                        focused = true, childCount = state.entries.size,
+                        onOpenSemantic = { onOpenSemantic(active) },
+                        sourceDeleteTarget = sourceDeleteTarget(active, sourceDeleteTargets), onDeleteSource = onDeleteSource,
+                    )
+                } else state.activeScope?.let { section ->
+                    BigPictureSectionCard(
+                        section, state.structure?.sections?.get(section.id),
+                        childCount = state.entries.size, focused = true,
+                        onFocus = { onFocusScope(section.id) },
+                        mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
+                    )
                 }
             }
+            HorizontalDivider()
         }
         val atRoot = state.activeNode == null && state.activeScope == null
         if (state.entries.isEmpty()) {
@@ -109,21 +92,12 @@ fun ProjectHierarchyView(
                     when (entry) {
                         is BigPictureReadEntry.Container -> {
                             val section = entry.section
-                            RootHeaderRow(
-                                title = section.title,
-                                subtitle = if (
-                                    section.origin == BigPictureContainerOrigin.PRESENTATION
-                                ) "Секція" else "Група представлення",
-                                symbol = "▦",
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                level = 0,
-                                childCount = section.rootPlacementIds.size,
-                                onClick = { onFocusScope(section.id) },
-                                actionMenu = {
-                                    if (mutationEnabled) state.structure?.sections?.get(section.id)?.let { ref ->
-                                        BigPictureNodeMenu(ref, mutationEnabled, onCut, onRemove)
-                                    }
-                                },
+                            val ref = state.structure?.sections?.get(section.id)
+                            BigPictureSectionCard(
+                                section, ref,
+                                childCount = ref?.let { state.structure.childCount(it) } ?: section.rootPlacementIds.size,
+                                onFocus = { onFocusScope(section.id) },
+                                mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
                             )
                         }
                         is BigPictureReadEntry.Occurrence -> {
@@ -132,9 +106,12 @@ fun ProjectHierarchyView(
                                 node,
                                 onClick = { onFocus(node.placement.id.value) },
                                 onOpen = { onOpen(node) },
+                                onOpenSemantic = { onOpenSemantic(node) },
                                 mutationEnabled = mutationEnabled,
                                 onCut = onCut,
                                 onRemove = onRemove,
+                                childCount = state.structure?.childCount(H1TypedNode.Occurrence(node.placement.id.value)) ?: node.childCount,
+                                sourceDeleteTarget = sourceDeleteTarget(node, sourceDeleteTargets), onDeleteSource = onDeleteSource,
                             )
                         }
                     }
@@ -148,6 +125,10 @@ fun ProjectHierarchyView(
 private fun BigPictureUnitCard(
     node: BigPictureNode, onClick: () -> Unit, onOpen: () -> Unit,
     mutationEnabled: Boolean, onCut: (H1TypedNode) -> Unit, onRemove: (H1TypedNode) -> Unit,
+    focused: Boolean = false, childCount: Int = node.childCount,
+    sourceDeleteTarget: BigPictureSourceDeleteTarget? = null,
+    onDeleteSource: (BigPictureSourceDeleteTarget) -> Unit = {},
+    onOpenSemantic: () -> Unit = {},
 ) {
     val entity = node.entity
     val tint = when (entity?.ref?.entityClass) {
@@ -158,7 +139,12 @@ private fun BigPictureUnitCard(
     }
     RootHeaderRow(
         title = entity?.title ?: "Сутність недоступна",
-        subtitle = listOfNotNull(entity?.ref?.entityClass?.displayLabel(), node.placement.placementKind.name)
+        subtitle = listOfNotNull(
+            // Keep semantic class and operational cue before optional text: this row ellipsizes.
+            if (node.operationalEmbodiment != null) "${entity?.ref?.entityClass?.displayLabel()} · ▣ є Workspace" else null,
+            if (focused) "Поточна локація" else null,
+            entity?.ref?.entityClass?.displayLabel()?.takeIf { node.operationalEmbodiment == null },
+            node.placement.placementKind.name)
             .joinToString(" · "),
         symbol = when (entity?.ref?.entityClass) {
             CanonicalEntityClass.ORIENTATION -> "◎"
@@ -168,14 +154,40 @@ private fun BigPictureUnitCard(
         },
         tint = tint,
         level = 0,
-        childCount = node.childCount,
+        childCount = childCount,
         onClick = onClick,
         enabled = entity != null,
+        isFocused = focused,
         actionMenu = {
-            if (mutationEnabled) BigPictureNodeMenu(H1TypedNode.Occurrence(node.placement.id.value), true, onCut, onRemove)
-            IconButton(onClick = onOpen, enabled = entity != null) {
-                Icon(Icons.Outlined.ArrowOutward, contentDescription = "Відкрити сутність")
-            }
+            BigPictureNodeMenu(
+                H1TypedNode.Occurrence(node.placement.id.value), mutationEnabled, onCut, onRemove,
+                onOpen = onOpen.takeIf { entity != null },
+                openLabel = if (entity?.ref?.entityClass == CanonicalEntityClass.WORKSPACE || node.operationalEmbodiment != null)
+                    "Відкрити робочий простір" else "Відкрити редактор",
+                onOpenSemantic = onOpenSemantic.takeIf { node.operationalEmbodiment != null },
+                semanticOpenLabel = if (entity?.ref is CanonicalEntityRef.Aspect) "Відкрити аспект" else "Відкрити орієнтир",
+                sourceDeleteTarget = sourceDeleteTarget,
+                onDeleteSource = onDeleteSource,
+            )
+        },
+    )
+}
+
+@Composable
+private fun BigPictureSectionCard(
+    section: BigPictureContainer, ref: H1TypedNode?, childCount: Int,
+    onFocus: () -> Unit, mutationEnabled: Boolean,
+    onCut: (H1TypedNode) -> Unit, onRemove: (H1TypedNode) -> Unit,
+    focused: Boolean = false,
+) {
+    RootHeaderRow(
+        title = section.title,
+        subtitle = if (focused) "Поточна локація · Секція" else "Секція",
+        symbol = "▦", tint = MaterialTheme.colorScheme.tertiary,
+        level = 0, childCount = childCount, isFocused = focused,
+        onClick = onFocus,
+        actionMenu = {
+            if (mutationEnabled && ref != null) BigPictureNodeMenu(ref, true, onCut, onRemove)
         },
     )
 }

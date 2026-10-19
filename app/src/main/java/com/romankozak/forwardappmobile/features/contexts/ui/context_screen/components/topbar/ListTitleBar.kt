@@ -379,6 +379,7 @@ fun ListTitleBar(
     currentViewMode: ContextViewMode? = null,
     onInboxClick: () -> Unit,
     onPasteClick: (() -> Unit)? = null,
+    surfaceLabel: String? = null,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }
 
@@ -398,6 +399,7 @@ fun ListTitleBar(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
+            surfaceLabel?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
             Row(
                 modifier =
                     Modifier

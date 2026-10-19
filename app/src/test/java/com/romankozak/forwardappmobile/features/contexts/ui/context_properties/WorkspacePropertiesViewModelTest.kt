@@ -2,14 +2,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository
 import com.romankozak.forwardappmobile.data.orientation.CanonicalWorkspaceBindingRepository
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceRepository
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceCompatibilityProjection
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceCompatibilityProjectionRepository
 import com.romankozak.forwardappmobile.data.workspace.WorkspacePropertiesSnapshot
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
@@ -20,13 +16,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -149,143 +141,40 @@ class WorkspacePropertiesViewModelTest {
     }
 
     @Test
-    fun `standalone and System Workspace never request legacy Context settings`() =
-        runTest(dispatcher) {
-            val standalone = fixture(snapshot(sourceContextId = null))
-            standalone.viewModel.openLegacyContextSettings()
-            coVerify(exactly = 0) { standalone.compatibilityRepository.get(any()) }
-
-            val system = fixture(snapshot(sourceContextId = "workspace-1", isSystem = true))
-            system.viewModel.openLegacyContextSettings()
-            coVerify(exactly = 0) { system.compatibilityRepository.get(any()) }
-        }
+    fun `legacy edit route resolves canonical Workspace without a Context-settings hop`() = runTest(dispatcher) {
+        val f = fixture(snapshot(), saved = SavedStateHandle(mapOf("projectId" to "workspace-1")))
+        assertThat(f.viewModel.ready().workspaceId).isEqualTo("workspace-1")
+        f.viewModel.onNameChange("Canonical edit")
+        f.viewModel.save()
+        coVerify(exactly = 1) { f.workspaceRepository.updatePropertiesPresentation("workspace-1", "Canonical edit", any(), any()) }
+    }
 
     @Test
-    fun `different source Context identity cannot enter legacy settings`() =
-        runTest(dispatcher) {
-            val fixture = fixture(snapshot(sourceContextId = "other-context"))
-            fixture.viewModel.openLegacyContextSettings()
-            coVerify(exactly = 0) { fixture.compatibilityRepository.get(any()) }
-        }
+    fun `canonical blank route cannot fall back to restored legacy properties identity`() = runTest(dispatcher) {
+        val f = fixture(snapshot(), saved = SavedStateHandle(mapOf("workspaceId" to "", "projectId" to "workspace-1")))
+        assertThat(f.viewModel.uiState.value).isInstanceOf(WorkspacePropertiesUiState.Unavailable::class.java)
+        io.mockk.verify(exactly = 0) { f.workspaceRepository.observeProperties(any()) }
+    }
 
     @Test
-    fun `live explicitly sourced Context emits compatibility navigation event`() =
-        runTest(dispatcher) {
-            val fixture = fixture(snapshot(sourceContextId = "workspace-1"))
-            coEvery { fixture.compatibilityRepository.get("workspace-1") } returns
-                compatibleProjection()
-
-            val event = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
-                fixture.viewModel.events.first()
-            }
-
-            fixture.viewModel.openLegacyContextSettings()
-            advanceUntilIdle()
-
-            assertThat(event.await())
-                .isEqualTo(WorkspacePropertiesEvent.OpenLegacyContextSettings("workspace-1"))
-            coVerify(exactly = 1) { fixture.compatibilityRepository.get("workspace-1") }
-        }
-
-    @Test
-    fun `deleted compatibility Context never emits navigation event`() =
-        runTest(dispatcher) {
-            val fixture = fixture(snapshot(sourceContextId = "workspace-1"))
-            coEvery { fixture.compatibilityRepository.get("workspace-1") } returns
-                compatibleProjection(contextDeleted = true)
-
-            val event = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
-                fixture.viewModel.events.first()
-            }
-
-            fixture.viewModel.openLegacyContextSettings()
-            advanceUntilIdle()
-
-            assertThat(event.await())
-                .isEqualTo(WorkspacePropertiesEvent.Message("Пов’язаний Context недоступний"))
-        }
-
-    @Test
-    fun `dirty draft during suspended admission prevents legacy navigation`() =
-        runTest(dispatcher) {
-            val fixture = fixture(snapshot(sourceContextId = "workspace-1"))
-            val pending = CompletableDeferred<WorkspaceCompatibilityProjection?>()
-            coEvery { fixture.compatibilityRepository.get("workspace-1") } coAnswers {
-                pending.await()
-            }
-
-            val event = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
-                fixture.viewModel.events.first()
-            }
-
-            fixture.viewModel.openLegacyContextSettings()
-            advanceUntilIdle()
-            coVerify(exactly = 1) { fixture.compatibilityRepository.get("workspace-1") }
-
-            fixture.viewModel.onNameChange("Unsaved change")
-            pending.complete(compatibleProjection())
-            advanceUntilIdle()
-
-            assertThat(fixture.viewModel.ready().isDirty).isTrue()
-            assertThat(event.isCompleted).isFalse()
-        }
-
-    @Test
-    fun `Workspace version change during suspended admission prevents legacy navigation`() =
-        runTest(dispatcher) {
-            val fixture = fixture(snapshot(sourceContextId = "workspace-1"))
-            val pending = CompletableDeferred<WorkspaceCompatibilityProjection?>()
-            coEvery { fixture.compatibilityRepository.get("workspace-1") } coAnswers {
-                pending.await()
-            }
-
-            val event = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
-                fixture.viewModel.events.first()
-            }
-
-            fixture.viewModel.openLegacyContextSettings()
-            advanceUntilIdle()
-            coVerify(exactly = 1) { fixture.compatibilityRepository.get("workspace-1") }
-
-            fixture.workspaceFlow.value =
-                snapshot(sourceContextId = "workspace-1").copy(version = 4L)
-            advanceUntilIdle()
-
-            pending.complete(compatibleProjection())
-            advanceUntilIdle()
-
-            assertThat(fixture.viewModel.ready().version).isEqualTo(4L)
-            assertThat(event.isCompleted).isFalse()
-        }
-
-    private fun compatibleProjection(
-        contextDeleted: Boolean = false,
-    ): WorkspaceCompatibilityProjection {
-        val workspace = mockk<WorkspaceEntity>()
-        every { workspace.id } returns "workspace-1"
-        every { workspace.sourceContextId } returns "workspace-1"
-        every { workspace.isDeleted } returns false
-
-        val context = mockk<Context>()
-        every { context.id } returns "workspace-1"
-        every { context.isDeleted } returns contextDeleted
-
-        val projection = mockk<WorkspaceCompatibilityProjection>()
-        every { projection.workspace } returns workspace
-        every { projection.sourceContext } returns context
-
-        return projection
+    fun `independent binding refresh preserves unsaved scalar draft`() = runTest(dispatcher) {
+        val bindings = MutableStateFlow<List<WorkspaceBindingEntity>>(emptyList())
+        val f = fixture(snapshot(), bindings)
+        f.viewModel.onNameChange("Unsaved")
+        bindings.value = listOf(binding())
+        assertThat(f.viewModel.ready().name).isEqualTo("Unsaved")
+        assertThat(f.viewModel.ready().bindings).hasSize(1)
+        coVerify(exactly = 0) { f.workspaceRepository.updatePropertiesPresentation(any(), any(), any(), any()) }
     }
 
     private fun fixture(
         snapshot: WorkspacePropertiesSnapshot?,
         bindings: MutableStateFlow<List<WorkspaceBindingEntity>> = MutableStateFlow(emptyList()),
+        saved: SavedStateHandle = SavedStateHandle(mapOf("workspaceId" to "workspace-1")),
     ): Fixture {
         val workspaceRepository = mockk<CanonicalWorkspaceRepository>()
         val bindingRepository = mockk<CanonicalWorkspaceBindingRepository>()
-        val compatibilityRepository = mockk<WorkspaceCompatibilityProjectionRepository>()
         val catalogRepository = mockk<CanonicalEntityCatalogRepository>()
-        coEvery { compatibilityRepository.get(any()) } returns null
         val workspaceFlow = MutableStateFlow(snapshot)
         every { workspaceRepository.observeProperties("workspace-1") } returns workspaceFlow
         every { bindingRepository.observeBindingsForWorkspace("workspace-1") } returns bindings
@@ -296,14 +185,12 @@ class WorkspacePropertiesViewModelTest {
         return Fixture(
             viewModel =
                 WorkspacePropertiesViewModel(
-                    SavedStateHandle(mapOf("workspaceId" to "workspace-1")),
+                    saved,
                     workspaceRepository,
-                    compatibilityRepository,
                     bindingRepository,
                     catalogRepository,
                 ),
             workspaceRepository = workspaceRepository,
-            compatibilityRepository = compatibilityRepository,
             bindingRepository = bindingRepository,
             workspaceFlow = workspaceFlow,
         )
@@ -357,7 +244,6 @@ class WorkspacePropertiesViewModelTest {
     private data class Fixture(
         val viewModel: WorkspacePropertiesViewModel,
         val workspaceRepository: CanonicalWorkspaceRepository,
-        val compatibilityRepository: WorkspaceCompatibilityProjectionRepository,
         val bindingRepository: CanonicalWorkspaceBindingRepository,
         val workspaceFlow: MutableStateFlow<WorkspacePropertiesSnapshot?>,
     )

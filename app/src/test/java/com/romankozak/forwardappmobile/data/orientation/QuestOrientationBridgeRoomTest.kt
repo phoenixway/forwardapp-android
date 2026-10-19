@@ -223,7 +223,7 @@ class QuestOrientationBridgeRoomTest {
     }
 
     @Test
-    fun `bootstrap repairs post-cutover ArcQuest compatibility drift without changing canonical winner`() = runBlocking {
+    fun `completed bootstrap stays finite and runtime ignores post-cutover ArcQuest compatibility drift`() = runBlocking {
         withDatabase { database ->
             val repository = repository(database)
             val quest = manualQuest(id = "drift")
@@ -253,12 +253,15 @@ class QuestOrientationBridgeRoomTest {
             val repaired = requireNotNull(database.arcQuestDao().getById(quest.id))
 
             assertTrue(report.issues.isEmpty())
+            assertFalse(report.performed)
             assertEquals(canonicalBefore, canonicalAfter)
-            assertEquals(canonicalBefore.title, repaired.title)
-            assertEquals(canonicalBefore.description, repaired.description)
-            assertEquals(canonicalBefore.isDeleted, repaired.isDeleted)
+            assertEquals("Incoming drift", repaired.title)
+            assertTrue(repaired.isDeleted)
             assertEquals(compatibilityBefore.version + 5L, repaired.version)
-            assertFalse(repaired.isDeleted)
+            val projected = requireNotNull(repository.getById(quest.id))
+            assertEquals(canonicalBefore.title, projected.title)
+            assertEquals(canonicalBefore.description, projected.description)
+            assertFalse(projected.isDeleted)
         }
     }
 

@@ -113,6 +113,7 @@ class SnapshotRestoreLocalDataSourceImpl
             projectH1UnifiedStructuralGraph(decodedHierarchy, presentationSnapshot)
 
             val planningStore = CanonicalPlanningSyncStore(database)
+            val referenceSnapshots = bundle.planningReferences ?: database.planningReferenceDao().getAll()
             val planningScopeSnapshots =
                 bundle.planningScopes ?: planningStore.loadAllScopes()
             val planningCommitmentSnapshots =
@@ -168,6 +169,7 @@ class SnapshotRestoreLocalDataSourceImpl
                     planningFormatVersion = null,
                     planningScopes = null,
                     planningCommitments = null,
+                    planningReferences = null,
                     dayPlanningScopeExtensions = null,
                     tacticalPlanningScopeExtensions = null,
                     strategicPlanningScopeExtensions = null,
@@ -193,6 +195,7 @@ class SnapshotRestoreLocalDataSourceImpl
                 )
                 linkedAppearanceStore.restoreExactDecoded(decodedLinkedAppearances)
                 presentationRepository.restoreExact(presentationSnapshot)
+                com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover(database).materialize()
                 coverageStore.validateCurrent()
                 canonicalScoringAuthorityActivator.ensureActivated()
                 dayPlanningAuthorityActivator.ensureActivated()
@@ -210,6 +213,9 @@ class SnapshotRestoreLocalDataSourceImpl
                     strategicPlanningAuthorityActivator.ensureActivated()
                 }
                 strategicPlanningAdapter?.projectCompatibilityRows()
+
+                com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceSyncStore(database)
+                    .restore(referenceSnapshots)
 
                 assertRestoreInvariants(bundle)
                 // Final persisted graph must agree with preclear admission.

@@ -38,6 +38,8 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
+import com.romankozak.forwardappmobile.features.workspace.workspacePropertiesDestination
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
@@ -71,7 +73,9 @@ fun ProjectsScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     workspacePresentationOverride: ContextPresentation? = null,
     canonicalWorkspaceId: String? = null,
+    onSemanticBootstrap: (() -> Unit)? = null,
     linkedSemanticContent: @Composable (() -> Unit)? = null,
+    dashboardSemanticContent: @Composable (() -> Unit)? = null,
 ) {
     TransparentSystemBars()
 
@@ -134,7 +138,9 @@ fun ProjectsScreen(
                 animatedVisibilityScope = animatedVisibilityScope,
                 workspacePresentationOverride = workspacePresentationOverride,
                 canonicalWorkspaceId = canonicalWorkspaceId,
+                onSemanticBootstrap = onSemanticBootstrap,
                 linkedSemanticContent = linkedSemanticContent,
+                dashboardSemanticContent = dashboardSemanticContent,
             )
         }
     }
@@ -151,7 +157,9 @@ private fun ProjectScaffold(
     animatedVisibilityScope: AnimatedVisibilityScope,
     workspacePresentationOverride: ContextPresentation?,
     canonicalWorkspaceId: String?,
+    onSemanticBootstrap: (() -> Unit)?,
     linkedSemanticContent: @Composable (() -> Unit)?,
+    dashboardSemanticContent: @Composable (() -> Unit)?,
 ) {
     val reminderViewModel: com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -301,6 +309,7 @@ private fun ProjectScaffold(
                             AdaptiveTopBar(
                                 state =
                                     AdaptiveTopBarState(
+                                        surfaceLabel = canonicalWorkspaceId?.let { WorkspaceSurfaceCopy.TITLE },
                                         isSelectionModeActive = uiState.isSelectionModeActive,
                                         project = project,
                                         presentation = displayedProjectPresentation,
@@ -379,6 +388,7 @@ private fun ProjectScaffold(
                         onMenuExpandedChange = { menuExpanded = it },
                         projectId = projectPresentation?.id ?: project?.id,
                         canonicalWorkspaceId = canonicalWorkspaceId,
+                        onSemanticBootstrap = onSemanticBootstrap,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
                         navigationManager = navigationManager,
                         holdMenuController = holdMenuController,
@@ -423,8 +433,7 @@ private fun ProjectScaffold(
                         menuExpanded = false
                         navigationManager.navigate(
                             target =
-                                canonicalWorkspaceId?.let { NavTarget.WorkspaceProperties(it) }
-                                    ?: NavTarget.ProjectSettings(projectId = projectPresentation?.id ?: project?.id),
+                                workspacePropertiesDestination(canonicalWorkspaceId, projectPresentation?.id ?: project?.id),
                         )
                     },
                     onSwitchView = viewModel::onProjectViewChange,
@@ -438,6 +447,7 @@ private fun ProjectScaffold(
                         viewModel.openLinkedContext(contextId)
                     },
                     linkedContextNames = uiState.linkedContextNames,
+                    dashboardSemanticContent = dashboardSemanticContent,
                 )
             }
         }
@@ -470,7 +480,7 @@ private fun ContextDocumentsDialog(
         text = {
             if (documents.isEmpty()) {
                 Text(
-                    text = "No documents are linked to this context.",
+                    text = WorkspaceSurfaceCopy.EMPTY_DOCUMENTS,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -532,6 +542,7 @@ private fun ProjectBottomBar(
     onMenuExpandedChange: (Boolean) -> Unit,
     projectId: String?,
     canonicalWorkspaceId: String?,
+    onSemanticBootstrap: (() -> Unit)?,
     onShowDisplayPropertiesClick: () -> Unit,
     navigationManager: EnhancedNavigationManager,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
@@ -609,11 +620,11 @@ private fun ProjectBottomBar(
                     onMenuExpandedChange(false)
                     navigationManager.navigate(
                         target =
-                            canonicalWorkspaceId?.let { NavTarget.WorkspaceProperties(it) }
-                                ?: NavTarget.ProjectSettings(projectId = projectId),
+                            workspacePropertiesDestination(canonicalWorkspaceId, projectId),
                     )
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdown() },
+                onSemanticBootstrap = onSemanticBootstrap,
                 onDeleteList = { showTargetDeleteConfirmation = true },
                 onSetReminder = { viewModel.onSetReminderForProject() },
                 onToggleFocusContext = viewModel::toggleCurrentContextFocus,

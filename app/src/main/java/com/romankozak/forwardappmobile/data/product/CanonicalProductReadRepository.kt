@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.data.product
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.StartupTrace
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
@@ -89,6 +91,8 @@ private data class CanonicalProductRows(
     val workspaces: List<WorkspaceEntity>,
     val placements: List<com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity>,
     val planning: PlanningRows,
+    val legacyMappings: List<LegacySubjectMappingEntity>,
+    val liveGoals: List<Goal>,
 )
 
 private val PRODUCT_READ_TABLES =
@@ -97,6 +101,8 @@ private val PRODUCT_READ_TABLES =
         "orientations",
         "orientation_assessments",
         "orientation_assessment_revisions",
+        "legacy_subject_mappings",
+        "goals",
         "aspects",
         "workspace_bindings",
         "orientation_relations",
@@ -110,9 +116,17 @@ private val PRODUCT_READ_TABLES =
         "strategic_planning_scope_extensions",
     )
 
+internal data class CanonicalGoalReadFrame(
+    val productRead: CanonicalProductReadResult,
+    val legacyMappings: List<LegacySubjectMappingEntity>,
+    val liveGoals: List<Goal>,
+)
+
 internal sealed interface CanonicalProductPersistenceFrame {
     data class Ready(
         val snapshot: CanonicalProductReadSnapshot,
+        val legacyMappings: List<LegacySubjectMappingEntity> = emptyList(),
+        val liveGoals: List<Goal> = emptyList(),
     ) : CanonicalProductPersistenceFrame
 
     data class IntegrityFailure(
@@ -153,6 +167,8 @@ internal class CanonicalProductReadRoomSource
                             workspaces = rows.workspaces,
                             placements = rows.placements,
                             planning = rows.planning,
+                            legacyMappings = rows.legacyMappings,
+                            liveGoals = rows.liveGoals,
                         )
                     }
                 }.flowOn(Dispatchers.Default)
@@ -160,6 +176,8 @@ internal class CanonicalProductReadRoomSource
         private suspend fun loadRows(): CanonicalProductRows =
             database.withTransaction {
                 CanonicalProductRows(
+                    legacyMappings = orientationDao.getAllLegacyMappings(),
+                    liveGoals = database.goalDao().getAllVisible(),
                     orientationCore =
                         OrientationCoreRows(
                             subjects = orientationDao.getAllManagedSubjects(),
@@ -193,6 +211,8 @@ internal class CanonicalProductReadRoomSource
             workspaces: List<WorkspaceEntity>,
             placements: List<com.romankozak.forwardappmobile.core.data.models.entities.hierarchy.HierarchyPlacementEntity>,
             planning: PlanningRows,
+            legacyMappings: List<LegacySubjectMappingEntity>,
+            liveGoals: List<Goal>,
         ): CanonicalProductPersistenceFrame {
             val violations = mutableListOf<CanonicalProductReadViolation>()
 
@@ -267,7 +287,7 @@ internal class CanonicalProductReadRoomSource
             if (violations.isNotEmpty() || snapshot == null) {
                 return CanonicalProductPersistenceFrame.IntegrityFailure(violations)
             }
-            return CanonicalProductPersistenceFrame.Ready(snapshot)
+            return CanonicalProductPersistenceFrame.Ready(snapshot, legacyMappings, liveGoals)
         }
 
         private fun OrientationEntity.toDomainNodeOrNull(
@@ -423,6 +443,54 @@ class CanonicalProductReadRepository
                 started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
                 replay = 1,
             )
+
+        /**
+         * Canonical identities and legacy mappings share one Room snapshot.
+         * Never combine separately observed mapping and identity streams.
+         */
+        internal fun observeWithLegacyMappings():
+            Flow<Pair<CanonicalProductReadResult, List<LegacySubjectMappingEntity>>> =
+            sharedFrames.map { frame ->
+                when (frame) {
+                    is CanonicalProductPersistenceFrame.Ready ->
+                        projectCanonicalProductRead(
+                            frame.snapshot.copy(currentScopeIds = emptySet()),
+                        ) to frame.legacyMappings
+
+                    is CanonicalProductPersistenceFrame.IntegrityFailure ->
+                        CanonicalProductReadResult.IntegrityFailure(
+                            frame.violations,
+                        ) to emptyList()
+                }
+            }.distinctUntilChanged()
+                .flowOn(Dispatchers.Default)
+
+        /**
+         * Live Goal locators, CUT_OVER mappings and canonical identities
+         * originate from one Room read transaction and one emission.
+         */
+        internal fun observeGoalReadFrame(): Flow<CanonicalGoalReadFrame> =
+            sharedFrames.map { frame ->
+                when (frame) {
+                    is CanonicalProductPersistenceFrame.Ready ->
+                        CanonicalGoalReadFrame(
+                            productRead =
+                                projectCanonicalProductRead(
+                                    frame.snapshot.copy(currentScopeIds = emptySet()),
+                                ),
+                            legacyMappings = frame.legacyMappings,
+                            liveGoals = frame.liveGoals,
+                        )
+
+                    is CanonicalProductPersistenceFrame.IntegrityFailure ->
+                        CanonicalGoalReadFrame(
+                            productRead = CanonicalProductReadResult.IntegrityFailure(frame.violations),
+                            legacyMappings = emptyList(),
+                            liveGoals = emptyList(),
+                        )
+                }
+            }.distinctUntilChanged()
+                .flowOn(Dispatchers.Default)
 
         fun observe(
             currentScopeIds: Flow<Set<PlanningScopeId>> = flowOf(emptySet()),

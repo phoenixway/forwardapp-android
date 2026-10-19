@@ -1,0 +1,69 @@
+--- a/modules/services/Notifications.qml
++++ b/modules/services/Notifications.qml
+@@ -26,5 +26,6 @@
+         property string summary: ""
+         property double time
+         property string urgency: "normal"
++        property bool quietUnread: true
+         property int historyPriority: 0
+         property string replaceKey: ""
+@@ -86,5 +87,6 @@
+             "summary": notif.summary,
+             "time": notif.time,
+             "urgency": notif.urgency,
++            "quietUnread": notif.quietUnread,
+             "historyPriority": notif.historyPriority,
+             "replaceKey": notif.replaceKey,
+@@ -131,7 +133,30 @@
+     }
+ 
+-    property bool silent: false
++    // Quiet by default; the existing DND toggle can re-enable popups.
++    property bool silent: true
+     property list<Notif> list: []
+     property var popupList: list.filter(notif => notif.popup)
+     property bool popupInhibited: silent
++    property var quietUnreadList: list.filter(notif => notif && notif.quietUnread)
++    property int quietUnreadCount: quietUnreadList.length
++    property bool quietHasCriticalUnread: quietUnreadList.some(notif => {
++        const urgency = String(notif.urgency || "").toLowerCase();
++        return urgency === "critical" || urgency === "2";
++    })
++    function quietMarkRead(ids) {
++        if (!ids || ids.length === 0) return;
++        const snapshot = {};
++        ids.forEach(id => { snapshot[id] = true; });
++        let changed = false;
++        root.list.forEach(notif => {
++            if (notif && notif.quietUnread && snapshot[notif.id]) {
++                notif.quietUnread = false;
++                changed = true;
++            }
++        });
++        if (changed) {
++            root.list = root.list.slice();
++            saveNotifications();
++        }
++    }
+     property var latestTimeForApp: ({})
+@@ -168,5 +193,6 @@
+             "summary": json.summary,
+             "time": json.time,
+             "urgency": json.urgency,
++            "quietUnread": json.quietUnread === true,
+             "historyPriority": json.historyPriority || 0,
+             "replaceKey": json.replaceKey || "",
+--- a/modules/bar/BarContent.qml
++++ b/modules/bar/BarContent.qml
+@@ -457,7 +457,11 @@
+                             Layout.fillWidth: true
+                             visible: !(root.orientation === "horizontal" && integratedDockEnabled)
+                         }
++                        // Quiet Notifications native mod: before the right group.
++                        QuietNotificationButton {
++                            bar: root
++                        }
+                         PresetsButton {
+                             id: presetsButton
+                             startRadius: root.dockAtEnd ? root.innerRadius : root.outerRadius
+                             endRadius: root.innerRadius

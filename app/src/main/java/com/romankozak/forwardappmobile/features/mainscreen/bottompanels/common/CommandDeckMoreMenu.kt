@@ -55,6 +55,7 @@ fun CommandDeckMoreActionButton(
     additionalActions: List<MoreSheetAction> = emptyList(),
     featureToggles: Map<FeatureFlag, Boolean>,
     modifier: Modifier = Modifier,
+    onShowRecents: (() -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val modalSheetState =
@@ -102,6 +103,7 @@ fun CommandDeckMoreActionButton(
                 onNavigateToPresets = { runAfterSheetDismiss(onNavigateToPresets) },
                 onNavigateToAiInsights = { runAfterSheetDismiss(onNavigateToAiInsights) },
                 onNavigateToProjectHierarchy = { runAfterSheetDismiss(onNavigateToProjectHierarchy) },
+                onShowRecents = onShowRecents?.let { action -> { runAfterSheetDismiss(action) } },
                 onShowContextMarkersSheet = { runAfterSheetDismiss(onShowContextMarkersSheet) },
                 onNavigateToInbox = { runAfterSheetDismiss(onNavigateToInbox) },
                 onNavigateToAiChat = { runAfterSheetDismiss(onNavigateToAiChat) },

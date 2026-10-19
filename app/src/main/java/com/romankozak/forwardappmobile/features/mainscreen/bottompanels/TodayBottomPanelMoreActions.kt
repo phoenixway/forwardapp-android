@@ -40,7 +40,7 @@ internal fun buildTodayAdditionalMoreActions(
         DayManagementTab.DAY_PLAN ->
             listOf(
                 MoreSheetAction(
-                    label = "Додати задачу з контексту",
+                    label = "Створити завдання на основі сутності",
                     onClick = callbacks.onAddTaskFromContext,
                 ),
                 MoreSheetAction(

@@ -610,6 +610,17 @@ class TacticalMissionViewModel
             )
         }
 
+        suspend fun addWeeklyMissionFromEntity(entity: com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) {
+            val cycle = _activeIteration.value
+            val stream = activeMissionStreamId()
+            val id = com.romankozak.forwardappmobile.features.planning.createTacticalFromEntity(
+                missionRepository, entity, currentWeekKey, cycle?.id, stream,
+            )
+            if (cycle != null) _activeIteration.value = cycle
+            if (activeMissionStreamId() != stream) selectMissionStream(stream)
+            _pendingScrollToMissionId.value = id
+        }
+
         fun addWeeklyMissionFromContext(contextId: String) {
             val context = allContexts.value.firstOrNull { it.id == contextId }
             val projectName = context?.name ?: projectOwnerLabels.value[contextId] ?: return

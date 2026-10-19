@@ -732,8 +732,19 @@ class CanonicalWorkspaceRepositoryRoomTest {
                 assertTrue(placements.getLiveAppearances(target).isEmpty())
                 assertEquals(legacyChildBefore, database.workspaceDao().getById("legacy-child"))
                 assertEquals(independentBefore, database.workspaceDao().getById("independent"))
+                // Typed H1 compacts the complete surviving sibling set. The source
+                // and child occurrence stay unchanged; only root presentation order
+                // (and its version/dirty metadata) changes on the surviving root.
                 assertEquals(
-                    unaffectedBefore,
+                    listOf(
+                        unaffectedBefore[0].copy(
+                            siblingOrder = 0L,
+                            updatedAt = 20L,
+                            syncedAt = null,
+                            version = unaffectedBefore[0].version + 1L,
+                        ),
+                        unaffectedBefore[1],
+                    ),
                     listOf(independent, legacyChildPlacement).map { id ->
                         requireNotNull(database.hierarchyPlacementDao().getById(id.value))
                     },

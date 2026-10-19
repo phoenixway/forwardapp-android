@@ -60,7 +60,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 scopes = candidates,
                 requireComplete = true,
                 coverage = coverage,
-                placementIds = if (coverage != null) incomingPlacementIds else null,
+                placementIds = incomingPlacementIds,
             )
             val localByPlacementId =
                 dao.getAll().associateBy { it.placementId }
@@ -95,10 +95,15 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 }
             }
 
+            // Missing wire coverage stays conservative for incoming admission above.
+            // Final state uses durable local lineage, including retired historical scopes.
+            GroupScopeCoverageStore(database).ensureLegacy(
+                database.hierarchyPlacementDao().getAll().map { it.toHierarchyPlacementStrict() }, prospective.values,
+            )
             validateAgainstCurrentDatabase(
                 scopes = prospective.values,
                 requireComplete = true,
-                coverage = if (coverage != null) GroupScopeCoverageStore(database).snapshot() else null,
+                coverage = GroupScopeCoverageStore(database).snapshot(),
             )
 
             if (winners.isNotEmpty()) {
@@ -194,10 +199,11 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 }
             }
 
+            GroupScopeCoverageStore(database).ensureLegacy(allPlacements, prospective.values)
             validateAgainstCurrentDatabase(
                 scopes = prospective.values,
                 requireComplete = true,
-                coverage = if (coverage != null) GroupScopeCoverageStore(database).snapshot() else null,
+                coverage = GroupScopeCoverageStore(database).snapshot(),
             )
 
             if (winners.isNotEmpty()) {

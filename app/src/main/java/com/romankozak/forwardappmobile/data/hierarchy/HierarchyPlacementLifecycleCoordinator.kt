@@ -1,16 +1,22 @@
 package com.romankozak.forwardappmobile.data.hierarchy
 
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralMutationCoordinator
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
+import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
+import com.romankozak.forwardappmobile.data.hierarchy.container.projectH1UnifiedStructuralGraph
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyPlacement
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Lifecycle-dependent persistence for canonical target owners.
  *
- * It does not own target lifecycle and does not open a transaction. Callers
- * invoke it inside the same AppDatabase transaction that tombstones the target.
+ * It does not own target lifecycle. Callers invoke it inside the same
+ * AppDatabase transaction that tombstones the target; typed-H1 commands join
+ * that transaction. Legacy compatibility helpers below do not open one.
  */
 @Singleton
 class HierarchyPlacementLifecycleCoordinator
@@ -18,6 +24,42 @@ class HierarchyPlacementLifecycleCoordinator
     constructor(
         private val database: AppDatabase,
     ) {
+        /**
+         * Current typed-H1 cleanup for generic semantic deletion. Caller owns the outer
+         * target transaction. Unlike legacy placement-only retirement, H1 also retires
+         * container memberships and updates complete mixed sibling ordering.
+         * Unrelated live children still reject deletion; no subtree cascade is inferred.
+         */
+        suspend fun retireSemanticTargetAppearances(targetId: String, now: Long) =
+            retireTypedTargetAppearances(HierarchyTargetType.MANAGED_SUBJECT, targetId, now)
+
+        suspend fun retireWorkspaceTargetAppearances(targetId: String, now: Long) =
+            retireTypedTargetAppearances(HierarchyTargetType.WORKSPACE, targetId, now)
+
+        private suspend fun retireTypedTargetAppearances(targetType: HierarchyTargetType, targetId: String, now: Long) {
+            val placements = database.hierarchyPlacementDao().getAll().map { it.toHierarchyPlacementStrict() }
+            val graph = projectH1UnifiedStructuralGraph(placements, BigPicturePresentationRepository(database).snapshot())
+            val affected = placements.filter {
+                !it.isDeleted && it.target.type == targetType && it.target.id == targetId
+            }
+            // Multiple appearances of the same target may be nested. Retire leaves first,
+            // while the H1 authority rejects any surviving unrelated typed child.
+            fun depth(id: String): Int {
+                var node: H1TypedNode? = H1TypedNode.Occurrence(id)
+                var depth = 0
+                while (node != null) {
+                    node = graph.parentOf(node)
+                    depth++
+                }
+                return depth
+            }
+            H1StructuralMutationCoordinator(database).removeOccurrences(
+                affected.sortedWith(compareByDescending<HierarchyPlacement> {
+                    depth(it.id.value)
+                }.thenBy { it.id.value }).map { it.id }, now,
+            )
+        }
+
         suspend fun tombstoneManagedSubjectTarget(
             targetId: String,
             now: Long,

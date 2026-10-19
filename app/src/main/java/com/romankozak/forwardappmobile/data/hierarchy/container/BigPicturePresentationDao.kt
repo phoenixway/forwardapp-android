@@ -6,6 +6,20 @@ import androidx.room.Upsert
 
 @Dao
 interface BigPicturePresentationDao {
+    /** Fast steady-state admission gate. Tombstones count as durable materialization receipts. */
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM legacy_subject_mappings m
+            JOIN managed_subjects s ON s.id = m.subjectId AND s.isDeleted = 0 AND s.subjectType = 'ORIENTATION'
+            JOIN orientations o ON o.subjectId = s.id AND o.kind = 'MAIN_BEACON_GROUP'
+            LEFT JOIN big_picture_containers c ON c.id = 'historical-group:v1:' || m.subjectId
+            WHERE m.isDeleted = 0 AND m.state = 'CUT_OVER' AND m.sourceType = 'MAIN_BEACON_GROUP' AND c.id IS NULL
+        ) OR EXISTS(
+            SELECT 1 FROM hierarchy_placement_group_scopes WHERE isDeleted = 0 AND groupSubjectId IS NOT NULL
+        )
+    """)
+    suspend fun needsHistoricalGroupCutover(): Boolean
+
     @Query("SELECT * FROM big_picture_containers ORDER BY id")
     suspend fun containers(): List<BigPictureContainerEntity>
     @Query("SELECT * FROM big_picture_memberships ORDER BY placementId")

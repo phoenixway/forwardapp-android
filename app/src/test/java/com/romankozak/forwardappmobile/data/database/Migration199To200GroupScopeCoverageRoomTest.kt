@@ -55,11 +55,11 @@ class Migration199To200GroupScopeCoverageRoomTest {
                 sql.execSQL("INSERT INTO legacy_subject_mappings VALUES ('mapping','MAIN_BEACON','legacy','b',1,'CUT_OVER',1,2,NULL,0,1)")
             }
             val db = Room.databaseBuilder(context, AppDatabase::class.java, name)
-                .addMigrations(MIGRATION_199_200).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_199_200, MIGRATION_200_201).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 fun scalar(query: String) = sql.query(query).use { it.moveToFirst(); it.getString(0) }
-                assertThat(scalar("PRAGMA user_version")).isEqualTo("200")
+                assertThat(scalar("PRAGMA user_version")).isEqualTo("201")
                 assertThat(scalar("SELECT COUNT(*) FROM hierarchy_group_scope_applicability WHERE mode='NATIVE'")).isEqualTo("1")
                 assertThat(scalar("SELECT COUNT(*) FROM hierarchy_group_scope_applicability WHERE mode='HISTORICAL'")).isEqualTo("1")
                 assertThat(scalar("SELECT COUNT(*) FROM hierarchy_group_scope_applicability WHERE mode='LEGACY_UNKNOWN'")).isEqualTo("2")

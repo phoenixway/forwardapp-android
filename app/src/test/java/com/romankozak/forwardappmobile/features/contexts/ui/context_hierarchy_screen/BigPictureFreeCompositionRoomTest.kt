@@ -51,7 +51,7 @@ class BigPictureFreeCompositionRoomTest {
             val catalog = CanonicalEntityCatalogRepository(db.canonicalEntityCatalogDao()).observeCatalog().first()
             val nodes = projectBigPicture(structure.placements, catalog)
             assertThat(nodes.map { it.placement.id }).containsExactly(orientation, aspect, workspace, link).inOrder()
-            assertThat(bigPictureRootOccurrences(nodes, bigPictureScopes(structure, nodes, catalog))
+            assertThat(bigPictureRootOccurrences(nodes, emptyList())
                 .map { it.placement.id }).containsExactly(orientation)
             assertThat(nodes.first().entity?.ref).isEqualTo(nodes.last().entity?.ref)
 

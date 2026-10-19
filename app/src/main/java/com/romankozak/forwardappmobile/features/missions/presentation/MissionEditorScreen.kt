@@ -107,6 +107,7 @@ private data class MissionEditorDraft(
 )
 
 private data class MissionEditorContentState(
+    val missionId: Long,
     val draft: MissionEditorDraft,
     val reminderTime: Long?,
     val projectLinks: List<String>,
@@ -165,7 +166,7 @@ private fun MissionEditorRoute(
             listOf(
                 TabSpec("General", Icons.Outlined.Description),
                 TabSpec("Attachments", Icons.Outlined.AttachFile),
-                TabSpec("Context Links", Icons.Outlined.AccountTree),
+                TabSpec("Пов’язані сутності", Icons.Outlined.AccountTree),
             )
         }
 
@@ -183,6 +184,7 @@ private fun MissionEditorRoute(
     MissionEditorContent(
         state =
             MissionEditorContentState(
+                missionId = input.mission.id,
                 draft = draft,
                 reminderTime = input.reminderTime,
                 projectLinks = projectLinks,
@@ -321,11 +323,11 @@ private fun MissionEditorContent(
                             onOpenAttachments = actions.onOpenAttachments,
                         )
                     else ->
-                        ContextLinksTab(
-                            projectLinks = state.projectLinks,
-                            projectOptions = projectOptions,
-                            onRemoveProject = actions.onRemoveProject,
-                            onOpenContexts = actions.onOpenContexts,
+                        com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
+                            owner = com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION, state.missionId.toString()),
+                            compatibilityLinks = state.projectLinks.map { id -> id to (projectOptions.firstOrNull { it.id == id }?.name ?: "Недоступний історичний зв’язок") },
+                            onRemoveCompatibility = actions.onRemoveProject,
                         )
                 }
 
@@ -1093,6 +1095,7 @@ private fun MissionEditorOverlays(
             preselectedAttachmentIds = attachmentLinks.toSet(),
             initialTab = initialTab,
             onDismiss = onLinkPickerDismiss,
+            allowedTabs = setOf(LinkPickerTab.ATTACHMENTS),
             onContextSelected = onContextSelected,
             onAttachmentSelected = onAttachmentSelected,
             onCreateRootContext = onCreateRootContext,

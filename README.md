@@ -1,59 +1,90 @@
-# ForwardAppMobile
+# Quiet Notifications v1 (native Ambxst mod)
 
-ForwardAppMobile is an Android app for managing projects, goals, and personal productivity: backlog, daily plan, reminders, activity tracking, strategic view, and experimental capabilities (AI/files/Wi‑Fi sync).
+**Delivery:** installable mod package, offline preflight verified. **Not deployed** to an actual Hyprland session. Requires local ref validation and an isolated runtime check before enabling in production.
 
-## Highlights
-- Project backlog with swipes, selection/reorder, and quick actions (add to day plan, start tracking, reminders).
-- Rich navigation: main screen with planning modes, history, search, contexts; dedicated screens for day plan, tracker, and strategic management.
-- Reminders and activity tracking: `ReminderPropertiesDialog`, ActivityTracker, integration with project/goal records.
-- Attachments and documents: experimental attachment library, document/checklist editor, external links.
-- Wi‑Fi sync/import (experimental) with feature toggles to disable in production.
-- Feature flags: `FeatureFlag`/`FeatureToggles` persisted via DataStore and controlled from Settings.
+## User contract
 
-See `docs/architecture/FEATURES2.md` for a feature/file map.
+* An unobtrusive 17px notification bell appears **immediately left of the right group** in the horizontal topbar.
+* Zero unread notifications → bell entirely absent and no width reserved.
+* Ordinary unread → simple `Icons.bell`, styled with the active theme (`Colors.outline`).
+* Any unread `urgency=critical` → `Icons.bellRinging`, theme's `Colors.errorContainer` background and `Colors.overErrorContainer` foreground, with **no pulsing/blinking**.
+* Click → an existing Ambxst `BarPopup` containing existing `NotificationDelegate` card components; notifications and their native actions remain intact.
+* On closing the popup, **only the unread IDs captured on opening** are marked read. A message arriving while the popup is open remains unread, and can retain the bell after closing.
+* Marking as read does not dismiss, delete, or purge a notification. The unread marker is written into Ambxst's existing notification-history JSON.
+* Preexisting cached notifications, which have no `quietUnread` field, load as read (no flood of legacy messages on first boot).
+* New notifications remain stored, but transient popups are disabled by default (`Notifications.silent: true`). The existing notch's silent/DND control can change this at runtime.
 
-## Architecture at a Glance
-- **UI/Compose**: `ui/screens/*`, `ui/features/*`, shared components in `features/common`.
-- **Domain/Repositories**: `data/repository/*`, models/DAO in `data/database/*`.
-- **Navigation**: graphs in `routes/*`.
-- **Feature toggles**: `config/FeatureFlag.kt`, `config/FeatureToggles.kt`, settings UI in `ui/screens/settings/*`.
-- **Integrations**: Wi‑Fi sync (`ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`), AI/chat routes (`routes/ChatRoute.kt`).
+## Architecture
 
-## Getting Started (local)
+`ambxst.mod.json` declares:
+
+1. An overlay adding `modules/bar/QuietNotificationButton.qml`.
+2. A focused patch to `modules/bar/BarContent.qml` (widget placement) and `modules/services/Notifications.qml` (per-message read marker, priority, serialization, DND default).
+
+No separate notification daemon, background polling, `hyprctl`, additional service process, or new DBus server.
+
+The component is inserted only in the **horizontal** bar. Vertical bars are unchanged. The existing notch bell is not removed to preserve upstream behavior.
+
+## Verification
+
+Unzip the `.zip` so that `ambxst.mod.json` is directly inside the extracted folder, then:
+
 ```bash
-# Check Gradle wrapper
-./gradlew tasks
-
-# Build
-./gradlew :app:assembleDebug
-
-# Tests (optional)
-./gradlew :app:testDebugUnitTest
-
-# Sync contract tests (offline, shared fixtures from android-sync/)
-./gradlew :app:syncContractTest   # або make sync-contract
+cd ~/.local/src/ambxst
+python3 ~/Downloads/amx-quiet-notifications-v1/tests/check.py \
+  --repo "$PWD" \
+  --ref 1e1a56493582f34e5e5593bc9d3c2f87246266fb
 ```
 
-## Local Secrets Setup
-The repository does not keep production secrets.
+The checker performs:
 
-- Copy `app/google-services.json.example` to `app/google-services.json` and fill real Firebase values.
-- Keep signing data in `signing.properties` (already ignored by git).
-- Do not commit `.jks`, `.keystore`, `google-services.json`, logs, or local databases.
+- manifest and target checks;
+- static behavior checks;
+- **synthetic** patch apply using `git apply --check --whitespace=error-all`;
+- read-only `git show` of files from the specified local ref and patch check against those exact local bytes.
 
-## Feature Toggles
-- Stored in DataStore (`SettingsRepository.featureTogglesFlow`).
-- UI controls: Settings → Experimental Features (Attachments library, Planning modes, Wi‑Fi sync, Strategic management, System project moves, etc.).
-- Programmatic check: `FeatureToggles.isEnabled(FeatureFlag.X)`; update via `SettingsViewModel` helpers.
+A passing `HOST_BASE_PATCH` checks the selected Git ref, **not the final composition with every installed mod**. Only the manager's own compatibility composition can check interactions with other bar mods.
 
-## Useful Paths
-- Main screen & navigation: `ui/screens/mainscreen/*`, `routes/AppNavigation.kt`.
-- Backlog/project: `ui/screens/projectscreen/*`, `ui/features/backlog/*`.
-- Reminders: `ui/reminders/dialogs/ReminderPropertiesDialog.kt`, handlers in `ProjectScreenViewModel.kt`.
-- Attachments: `features/attachments/ui/library/*`.
-- Sync: `ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`.
+If host preflight passes, install **without enabling**:
 
-## Documentation
-- Architecture notes: `docs/architecture/mechanisms/ARCHITECTURE_NOTES.md`.
-- Feature/file overview: `docs/architecture/FEATURES2.md`.
-- HoldMenu2 component: `docs/ui/HoldMenu2-manual.md`.
+```bash
+ambxst mods install ~/Downloads/amx-quiet-notifications-v1
+ambxst mods list
+```
+
+When the restore-safe isolated return path has been verified and the manager compatibility review has passed, enable the package and test in the isolated candidate shell, not the active session:
+
+```bash
+ambxst mods enable dev.hyperland.quiet-notifications
+```
+
+Enabling composes a generation, which is picked up at the **next** Ambxst start. **Do not restart** the production `ambxst.service` as part of this package's installation. The project already identified restart/session-restore risks.
+
+Sample runtime acceptance notifications (run in the isolated candidate):
+
+```bash
+notify-send -u normal   'AMX quiet test' 'Ordinary message'
+notify-send -u critical 'AMX quiet test' 'Critical message'
+```
+
+Check: no bell with empty unread; normal theme bell; critical theme accent; native popup opens; actions/dismissal work; closing popup marks only its snapshot read; a fresh message while open remains unread; persistence after a **restore-safe** shell return.
+
+## Recovery
+
+Use the Ambxst manager's built-in rollback if the candidate fails:
+
+```bash
+ambxst mods disable dev.hyperland.quiet-notifications
+# If a newly activated generation fails:
+ambxst mods rollback
+```
+
+These commands are documented, **not automatically executed**.
+
+## Boundaries
+
+- Source anchor: upstream Ambxst `1e1a56493582f34e5e5593bc9d3c2f87246266fb` (v1.3.x).
+- No `qmlformat`, `qmllint`, or live Quickshell acceptance is possible inside the artifact-building container.
+- Ambxst's existing history retention policy still applies; unread status does not override the policy.
+- Behavior depends on the native notification-server urgency format and the existing `NotificationDelegate` QML API. Test `urgency=critical` on the actual build.
+- Another mod may also change `Notifications.silent` and should be checked in the final composition.

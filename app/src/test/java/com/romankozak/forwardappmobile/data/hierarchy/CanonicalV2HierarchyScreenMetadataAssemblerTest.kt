@@ -56,6 +56,7 @@ class CanonicalV2HierarchyScreenMetadataAssemblerTest {
 
         val read =
             CanonicalV2ProductionHierarchyRead(
+                workspacePresentationsByTargetId = mapOf(workspace.id to workspace),
                 hierarchy =
                     CanonicalV2HierarchyProjection(
                         hierarchyId = HierarchyId.GENERAL,

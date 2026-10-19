@@ -170,6 +170,18 @@ private fun DayPlanLinkPickerDialogHost(
     val availableAttachmentIds = state.uiState.availableAttachments.map { it.id }.toSet()
 
     overlayState.activeLinkPickerTab.value?.let { initialTab ->
+        if (initialTab == LinkPickerTab.CONTEXTS && overlayState.pendingCreateAction.value == null) {
+            state.uiState.dayPlan?.id?.let { id ->
+                com.romankozak.forwardappmobile.features.planning.PlanningRelatedEntityPicker(
+                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.SCOPE, id),
+                    onDismiss = {
+                        overlayState.activeLinkPickerTab.value = null
+                        overlayState.pendingCreateAction.value = null
+                    },
+                )
+            }
+        } else {
         LinkedTargetsPickerDialog(
             contextOptions =
                 state.uiState.availableProjects.map { project ->
@@ -215,7 +227,9 @@ private fun DayPlanLinkPickerDialogHost(
             },
             onCreateRootContext = viewModel::createRootContextForPicker,
             onCreateDocument = viewModel::createPlanDocumentForPicker,
+            allowedTabs = setOf(initialTab),
         )
+        }
     }
 }
 

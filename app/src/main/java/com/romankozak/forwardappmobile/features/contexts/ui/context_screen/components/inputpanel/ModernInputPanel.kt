@@ -45,6 +45,7 @@ fun ModernInputPanel(
     onShowProjectHierarchy: () -> Unit,
     onNavigateHome: () -> Unit,
     onEditList: () -> Unit,
+    onSemanticBootstrap: (() -> Unit)? = null,
     onShareList: () -> Unit,
     onDeleteList: () -> Unit,
     onSetReminder: () -> Unit,
@@ -138,6 +139,7 @@ fun ModernInputPanel(
             menuActions =
                 OptionsMenuActions(
                     onEditList = onEditList,
+                    onSemanticBootstrap = onSemanticBootstrap,
                     onToggleProjectManagement = onToggleProjectManagement,
                     onStartTrackingCurrentProject = onStartTrackingCurrentProject,
                     onShareList = onShareList,

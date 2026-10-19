@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.outlined.Info
@@ -53,6 +54,7 @@ internal fun MoreBottomSheetContent(
     onNavigateToSettings: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     containerColor: Color,
+    onShowRecents: (() -> Unit)? = null,
 ) {
     Box(
         modifier =
@@ -65,9 +67,9 @@ internal fun MoreBottomSheetContent(
             Text("More Options", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(16.dp))
             MoreSheetMenuItem(
-                icon = Icons.Outlined.AccountTree,
-                label = "Big Picture",
-                onClick = onNavigateToProjectHierarchy,
+                icon = if (onShowRecents != null) Icons.Outlined.History else Icons.Outlined.AccountTree,
+                label = if (onShowRecents != null) "Недавні" else "Big Picture",
+                onClick = onShowRecents ?: onNavigateToProjectHierarchy,
             )
             MoreSheetMenuItem(
                 icon = Icons.Outlined.AccountTree,

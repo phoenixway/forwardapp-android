@@ -264,6 +264,7 @@ private fun resolveTarget(
     snapshot: StrategicPlanningResolutionSnapshot,
 ): StrategicTargetResolution =
     when (sourceType) {
+        ArcQuestSourceType.ORIENTATION -> resolveDirectOrientation(quest, snapshot)
         ArcQuestSourceType.MANUAL ->
             resolveMappedTarget(
                 quest = quest,
@@ -279,6 +280,23 @@ private fun resolveTarget(
             resolveSourceBacked(quest, LegacyOrientationSourceType.MAIN_BEACON_GROUP, snapshot)
         ArcQuestSourceType.MISSION -> resolveMissionTarget(quest, snapshot)
     }
+
+private fun resolveDirectOrientation(
+    quest: ArcQuestEntity,
+    snapshot: StrategicPlanningResolutionSnapshot,
+): StrategicTargetResolution {
+    val id = quest.sourceId?.takeIf { it.isNotBlank() }
+        ?: return StrategicTargetResolution.Failure(StrategicParticipantIntegrityCode.MISSING_SOURCE_REFERENCE, "Missing Orientation source")
+    val subject = snapshot.subjects.singleOrNull { it.id == id }
+    val orientation = snapshot.orientations.singleOrNull { it.subjectId == id }
+    if (subject?.subjectType != ManagedSubjectType.ORIENTATION.name || orientation == null) {
+        return StrategicTargetResolution.Failure(StrategicParticipantIntegrityCode.INVALID_ORIENTATION_TARGET, "Invalid typed Orientation source")
+    }
+    if (!quest.isDeleted && subject.isDeleted) {
+        return StrategicTargetResolution.Failure(StrategicParticipantIntegrityCode.TOMBSTONED_ORIENTATION_TARGET, "Deleted Orientation source")
+    }
+    return StrategicTargetResolution.Resolved(id)
+}
 
 private fun resolveSourceBacked(
     quest: ArcQuestEntity,

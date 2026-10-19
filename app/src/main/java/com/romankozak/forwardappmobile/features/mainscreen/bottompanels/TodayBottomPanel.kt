@@ -157,6 +157,7 @@ fun TodayBottomPanel(
                 else -> submitTask()
             }
         },
+        onAddTaskFromEntity = { showContextPicker = true },
         onSelectTodayTab = onSelectTodayTab,
         onStartFinalization = onStartFinalization,
         onSleep = onSleep,
@@ -166,10 +167,7 @@ fun TodayBottomPanel(
         visible = showContextPicker,
         contextOptions = contextOptions,
         onDismiss = { showContextPicker = false },
-        onContextSelected = { contextId ->
-            dayPlanViewModel.addTaskFromContext(contextId)
-            showContextPicker = false
-        },
+        onEntitySelected = dayPlanViewModel::addTaskFromEntity,
     )
 
     TodayJournalDialogsHost(

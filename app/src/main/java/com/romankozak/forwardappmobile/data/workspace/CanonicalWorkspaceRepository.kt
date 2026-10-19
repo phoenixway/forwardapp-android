@@ -172,6 +172,15 @@ class CanonicalWorkspaceRepository
                     )
             }
 
+        /** Canonical identity only; placement and semantic bindings are separate explicit commands. */
+        suspend fun createIdentity(
+            nameOverride: String,
+            descriptionOverride: String? = null,
+            now: Long = System.currentTimeMillis(),
+        ): String = database.withTransaction {
+            createInCurrentTransaction(nameOverride, descriptionOverride, roleCode = null, now = now)
+        }
+
         suspend fun create(
             nameOverride: String,
             descriptionOverride: String? = null,
@@ -460,12 +469,14 @@ class CanonicalWorkspaceRepository
         suspend fun tombstone(
             id: String,
             now: Long = System.currentTimeMillis(),
+            expectedVersion: Long? = null,
         ) = database.withTransaction {
             require(!SystemContexts.isSystem(ContextId(id))) {
                 "Reserved System Workspace cannot be tombstoned"
             }
 
             val current = workspaceDao.getById(id) ?: error("Workspace does not exist")
+            require(expectedVersion == null || current.version == expectedVersion) { "Workspace version conflict" }
             require(current.isCanonicalWorkspaceOwner()) {
                 "Context-backed Workspace lifecycle remains owned by Context"
             }
@@ -480,7 +491,7 @@ class CanonicalWorkspaceRepository
             connectionsRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             backlogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             executionLogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
-            hierarchyPlacementLifecycleCoordinator.tombstoneWorkspaceTarget(id, now)
+            hierarchyPlacementLifecycleCoordinator.retireWorkspaceTargetAppearances(id, now)
             workspaceDao.upsert(listOf(current.bump(now).copy(isDeleted = true)))
 
             orientationDao.upsertWorkspaceBindings(
@@ -575,7 +586,7 @@ private fun WorkspaceEntity.bump(now: Long) =
 
 private fun String?.normalized(): String? = this?.trim()?.ifEmpty { null }
 
-private fun WorkspaceEntity.isCanonicalWorkspaceOwner(): Boolean =
+internal fun WorkspaceEntity.isCanonicalWorkspaceOwner(): Boolean =
     sourceContextId == null &&
         (
             provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||

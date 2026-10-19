@@ -16,9 +16,12 @@ import com.romankozak.forwardappmobile.shared.core.domain.planning.TacticalPlann
 import com.romankozak.forwardappmobile.shared.core.domain.planning.validatePlanningScope
 import com.romankozak.forwardappmobile.shared.core.domain.planning.validateTacticalPlanningScopeExtensionDependency
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,11 +43,12 @@ class CanonicalTacticalPlanningAdapter
             flow {
                 authorityActivator.requireActivated()
                 emitAll(
-                    combine(
-                        database.tacticalPlanningAuthorityStateDao().observe(),
-                        database.planningDao().observeAllScopes(),
-                        database.tacticalPlanningScopeExtensionDao().observeAll(),
-                    ) { marker, scopeEntities, extensionEntities ->
+                    database.invalidationTracker.createFlow(
+                        "tactical_planning_authority_state", "planning_scopes", "tactical_planning_scope_extensions",
+                    ).map { database.withTransaction {
+                        val marker = database.tacticalPlanningAuthorityStateDao().get()
+                        val scopeEntities = database.planningDao().getAllScopes()
+                        val extensionEntities = database.tacticalPlanningScopeExtensionDao().getAll()
                         requireNotNull(marker) {
                             "Canonical Tactical planning authority is not activated"
                         }
@@ -74,7 +78,7 @@ class CanonicalTacticalPlanningAdapter
                                 compareByDescending<TacticalIteration> { it.startedAt }
                                     .thenByDescending { it.createdAt },
                             )
-                    },
+                    } }.distinctUntilChanged().flowOn(Dispatchers.Default),
                 )
             }
 

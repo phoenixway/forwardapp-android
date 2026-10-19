@@ -59,6 +59,7 @@ data class ArcQuestEntity(
 )
 
 enum class ArcQuestSourceType {
+    ORIENTATION,
     MANUAL,
     CONTEXT,
     MISSION,

@@ -2,13 +2,17 @@ package com.romankozak.forwardappmobile.data.product
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.initialOrientationAssessment
 import com.romankozak.forwardappmobile.shared.core.domain.planning.DayPlanningScopeExtension
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitment
@@ -27,6 +31,8 @@ import com.romankozak.forwardappmobile.shared.core.domain.planning.TacticalPlann
 import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadResult
 import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadSnapshot
 import com.romankozak.forwardappmobile.shared.core.domain.product.CanonicalProductReadViolation
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubject
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
@@ -51,6 +57,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -58,6 +65,194 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalProductReadRoomSourceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `transactional Goal insert emits matching canonical semantic projection`() = runBlocking {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        val readScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val orientationDao = database.orientationDao()
+            val orientationRepository = CanonicalOrientationRepository(database, orientationDao)
+            val productRepository =
+                CanonicalProductReadRepository(
+                    CanonicalProductReadRoomSource(database),
+                    readScope,
+                )
+            val goalReader = CanonicalGoalSemanticReadRepository(productRepository)
+            val observed = mutableListOf<List<Goal>>()
+            val initialReceived = CompletableDeferred<Unit>()
+
+            val collection =
+                launch(Dispatchers.Default) {
+                    goalReader.projectGoals().take(2).collect { goals ->
+                        observed += goals
+                        if (observed.size == 1) initialReceived.complete(Unit)
+                    }
+                }
+
+            withTimeout(5_000) { initialReceived.await() }
+            assertThat(observed.single()).isEmpty()
+
+            database.withTransaction {
+                database.goalDao().insertGoal(
+                    Goal(
+                        id = "goal-atomic",
+                        text = "Legacy title",
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 10L,
+                    ),
+                )
+
+                val graph =
+                    createGoalLikeCanonicalSubject(
+                        goalId = "goal-atomic",
+                        subjectId = "orientation-atomic",
+                        assessmentId = "assessment-atomic",
+                        mappingId = "mapping-atomic",
+                        title = "Canonical title",
+                        description = null,
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 10L,
+                        migrationVersion = 1,
+                    )
+
+                orientationRepository.saveOrientation(
+                    graph.subject,
+                    graph.orientation,
+                    graph.revision,
+                )
+                orientationDao.upsertLegacyMappings(
+                    listOf(
+                        LegacySubjectMappingEntity(
+                            id = "mapping-atomic",
+                            sourceType = LegacyOrientationSourceType.GOAL.name,
+                            sourceId = "goal-atomic",
+                            subjectId = graph.subject.id,
+                            migrationVersion = 1,
+                            state = LegacySubjectMappingState.CUT_OVER.name,
+                            createdAt = 10L,
+                            updatedAt = 10L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        ),
+                    ),
+                )
+            }
+
+            withTimeout(5_000) { collection.join() }
+
+            assertThat(observed).hasSize(2)
+            assertThat(observed.first()).isEmpty()
+            assertThat(observed.last()).hasSize(1)
+            assertThat(observed.last().single().id).isEqualTo("goal-atomic")
+            assertThat(observed.last().single().text).isEqualTo("Canonical title")
+        } finally {
+            readScope.cancel()
+            database.close()
+        }
+    }
+
+    @Test
+    fun `genuinely unmapped live Goal remains a fail closed violation`() {
+        val orphan =
+            Goal(
+                id = "orphan-goal",
+                text = "Orphan",
+                completed = false,
+                createdAt = 10L,
+                updatedAt = 10L,
+            )
+        assertThrows(IllegalArgumentException::class.java) {
+            projectLiveGoalsWithSemantics(listOf(orphan), emptyList())
+        }
+    }
+
+    @Test
+    fun `Backlog Goal quick add observes canonical identity and CUT_OVER mapping atomically`() = runBlocking {
+        val database =
+            Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
+        val readScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val orientationDao = database.orientationDao()
+            val canonicalRepository = CanonicalOrientationRepository(database, orientationDao)
+            val productRepository =
+                CanonicalProductReadRepository(
+                    CanonicalProductReadRoomSource(database),
+                    readScope,
+                )
+            val goalReader = CanonicalGoalSemanticReadRepository(productRepository)
+            val observed = mutableListOf<List<CanonicalGoalSemanticProjection>>()
+            val initialReceived = CompletableDeferred<Unit>()
+
+            val collection =
+                launch(Dispatchers.Default) {
+                    goalReader.observeAll().take(2).collect { goals ->
+                        observed += goals
+                        if (observed.size == 1) initialReceived.complete(Unit)
+                    }
+                }
+
+            withTimeout(5_000) { initialReceived.await() }
+            assertThat(observed.single()).isEmpty()
+
+            database.withTransaction {
+                val graph =
+                    createGoalLikeCanonicalSubject(
+                        goalId = "goal-quick-add",
+                        subjectId = "orientation-quick-add",
+                        assessmentId = "assessment-quick-add",
+                        mappingId = "mapping-quick-add",
+                        title = "Backlog quick add",
+                        description = null,
+                        completed = false,
+                        createdAt = 10L,
+                        updatedAt = 10L,
+                        migrationVersion = 1,
+                    )
+                canonicalRepository.saveOrientation(
+                    graph.subject,
+                    graph.orientation,
+                    graph.revision,
+                )
+                orientationDao.upsertLegacyMappings(
+                    listOf(
+                        LegacySubjectMappingEntity(
+                            id = "mapping-quick-add",
+                            sourceType = LegacyOrientationSourceType.GOAL.name,
+                            sourceId = "goal-quick-add",
+                            subjectId = graph.subject.id,
+                            migrationVersion = 1,
+                            state = LegacySubjectMappingState.CUT_OVER.name,
+                            createdAt = 10L,
+                            updatedAt = 10L,
+                            syncedAt = null,
+                            isDeleted = false,
+                            version = 1L,
+                        ),
+                    ),
+                )
+            }
+
+            withTimeout(5_000) { collection.join() }
+
+            assertThat(observed).hasSize(2)
+            assertThat(observed.first()).isEmpty()
+            assertThat(observed.last()).hasSize(1)
+            assertThat(observed.last().single().goalId).isEqualTo("goal-quick-add")
+            assertThat(observed.last().single().title).isEqualTo("Backlog quick add")
+        } finally {
+            readScope.cancel()
+            database.close()
+        }
+    }
 
     @Test
     fun `transactional semantic create emits one coherent product frame`() = runBlocking {

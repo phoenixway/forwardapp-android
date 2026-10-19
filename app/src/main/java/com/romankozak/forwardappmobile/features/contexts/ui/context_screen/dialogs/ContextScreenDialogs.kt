@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderProper
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,7 +124,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
                                 checked = addSourceContextLink,
                                 onCheckedChange = { addSourceContextLink = it },
                             )
-                            Text("Додати посилання на вихідний контекст")
+                            Text(WorkspaceSurfaceCopy.SOURCE_LINK)
                         }
                     }
                 }
@@ -149,7 +150,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
                 }
             },
             title = { Text("Вставка вкладень") },
-            text = { Text("У буфері є вкладення. Додати їх у секцію вкладень поточного контексту?") },
+            text = { Text(WorkspaceSurfaceCopy.PASTE_ATTACHMENTS) },
         )
     }
 

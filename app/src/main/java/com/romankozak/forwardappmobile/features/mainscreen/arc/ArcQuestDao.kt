@@ -35,6 +35,14 @@ interface ArcQuestDao {
     @Query("SELECT * FROM arc_quests")
     suspend fun getAllSync(): List<ArcQuestEntity>
 
+    @Query("""
+        SELECT MIN(COALESCE(c.commitmentOrder, q.quest_order)) FROM arc_quests q
+        LEFT JOIN planning_commitments c ON c.scopeId=:scopeId AND c.role='FOCUS'
+            AND c.provenanceSourceType='ARC_QUEST' AND c.provenanceSourceId=q.id
+        WHERE q.arc_key=:arcKey AND ((c.id IS NOT NULL AND c.isDeleted=0) OR (c.id IS NULL AND q.is_deleted=0))
+    """)
+    suspend fun minimumCanonicalOrder(scopeId: String, arcKey: String): Long?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(quests: List<ArcQuestEntity>)
 

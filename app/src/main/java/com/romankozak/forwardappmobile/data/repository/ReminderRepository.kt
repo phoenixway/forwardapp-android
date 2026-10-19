@@ -69,6 +69,15 @@ class ReminderRepository
 
         suspend fun clearRemindersForEntity(entityId: String) {
             val reminders = reminderDao.getRemindersForEntity(entityId).first()
+            clearReminderRows(reminders)
+        }
+
+        /** Typed consumer boundary: colliding raw IDs from other classes must survive. */
+        suspend fun clearRemindersForEntityType(entityId: String, entityType: String) {
+            clearReminderRows(reminderDao.getActiveRemindersForEntity(entityId, entityType))
+        }
+
+        private suspend fun clearReminderRows(reminders: List<Reminder>) {
             reminders.forEach { reminder ->
                 alarmScheduler.cancel(reminder)
             }

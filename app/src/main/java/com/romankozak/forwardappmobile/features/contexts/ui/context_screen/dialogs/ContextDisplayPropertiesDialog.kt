@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
 
 @Composable
 fun ProjectDisplayPropertiesDialog(
@@ -40,7 +41,7 @@ fun ProjectDisplayPropertiesDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Просунутий режим проєкту")
+                    Text(WorkspaceSurfaceCopy.ADVANCED_MODE)
                     Switch(
                         checked = isAdvancedModeEnabled,
                         onCheckedChange = { isAdvancedModeEnabled = it },

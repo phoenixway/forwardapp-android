@@ -18,12 +18,15 @@ class GroupScopeCoverageStore(private val db: AppDatabase) {
         versions.forEach { dao.ack(it.placementId, it.version, now) }
     }
 
-    suspend fun ensureLegacy(placements: List<HierarchyPlacement>) {
+    suspend fun ensureLegacy(
+        placements: List<HierarchyPlacement>,
+        admittedScopes: Collection<HierarchyPlacementGroupScopeEntity>? = null,
+    ) {
         val existing = dao.all().mapTo(hashSetOf()) { it.placementId }
         val missing = placements.filter { it.needsGroupScopeCoverage() && it.id.value !in existing }
         if (missing.isEmpty()) return // Ordinary CRUD must never rescan semantic migration evidence.
         val o = db.orientationDao()
-        val classified = classifyLegacyCoverage(missing, db.hierarchyPlacementGroupScopeDao().getAll(),
+        val classified = classifyLegacyCoverage(missing, admittedScopes?.toList() ?: db.hierarchyPlacementGroupScopeDao().getAll(),
             o.getAllManagedSubjects(), o.getAllAspects(), o.getAllLegacyMappings())
         dao.upsert(classified.filter { it.placementId !in existing }.map(::GroupScopeApplicabilityEntity))
     }

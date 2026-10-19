@@ -28,6 +28,9 @@ class WorkspaceCompatibilityProjectionRepository
     ) {
         fun observeWorkspaces(): Flow<List<WorkspaceEntity>> = workspaceDao.observeAll()
 
+        /** Narrow canonical identity/presentation updates; Context is not the observable authority. */
+        fun observeWorkspace(workspaceId: String): Flow<WorkspaceEntity?> = workspaceDao.observeById(workspaceId)
+
         fun observeDiagnostics(): Flow<List<WorkspaceBootstrapIssueEntity>> =
             workspaceDao.observeOpenBootstrapIssues()
 

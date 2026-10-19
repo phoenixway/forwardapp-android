@@ -64,7 +64,9 @@ data class WorkspaceBindingItem(
     val title: String,
     val bindingType: WorkspaceBindingType,
     val isPrimary: Boolean,
-)
+) {
+    fun destination() = com.romankozak.forwardappmobile.core.navigation.NavTarget.Workspace(workspaceId)
+}
 
 sealed interface PendingSemanticRelation {
     data class Aspect(val aspectId: String) : PendingSemanticRelation
@@ -130,6 +132,17 @@ class SemanticEntityEditorViewModel
         init { load() }
 
         fun setName(name: String) = updateModel { copy(name = name, errorMessage = null) }
+
+        /** Refresh this command's relation result without saving/replacing an unsaved identity draft. */
+        fun refreshWorkspaceBindings() {
+            if (loadedModel() == null) return
+            viewModelScope.launch {
+                runCatching { loadModel() }.onSuccess { refreshed ->
+                    if (refreshed == null) publishLoaded(null)
+                    else updateModel { copy(workspaceBindings = refreshed.workspaceBindings) }
+                }.onFailure { failure -> relationError(failure.message ?: "Не вдалося оновити робочі простори") }
+            }
+        }
 
         fun load() {
             if (subjectId.isBlank()) {

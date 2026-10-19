@@ -1,6 +1,480 @@
 # ForwardApp Decisions
 
+## 2026-10-19 - Day participation history, task recurrence and Theme carry-forward
+
+DAY_CARRY_FORWARD_HOST_20261019
+
+Accepted product clarification: Day tasks may be one-off or recurring; retain
+the existing canonical recurrence-v2 rule/occurrence separation. Themes may be
+one-off or carry-forward. No parallel Day recurrence table/scheduler is needed
+for this bounded scope.
+
+Carry-forward is a new participation identity in another DAY scope, not mutation
+of the source commitment.scopeId. Reuse common provenance
+`CARRIED_FORWARD / PLANNING_COMMITMENT / priorCommitmentId`; do not add a redundant
+carriedFrom field. The source remains historical fact. Day execution records
+must follow the same boundary: new task/day-theme identity, not relocation of
+the source row. Scope immutability also applies to restoring a commitment.
+
+Theme carry preference remains in the existing specialized ThemeDefinition
+extension, independent from per-day commitment history. Turning it off stops
+future preparation; it does not erase already materialized participation.
+Canonical deterministic ownership IDs resolve execution rows to commitments;
+provenance describes origin and must not be overloaded as the current owner ID.
+Strict legacy DAY_THEME provenance validation remains preserved.
+
+New Day-entry materialization is an explicit command, not an effect of a plain
+repository read. It cannot resurrect tombstones or rewrite past-day browsing.
+Room remains 201; no H1, semantic or Workspace authority cutover is involved.
+
+## 2026-10-19 - Planning participation and Planning references are separate axes
+
+CANONICAL_PLANNING_REFERENCES_PHYSICAL_ACCEPTED_20261019
+
+Physical acceptance confirms the canonical Planning distinction:
+
+```text
+PlanningCommitment
+!=
+PlanningReference
+```
+
+PlanningCommitment owns Orientation participation.
+
+PlanningReference owns explicit typed SOURCE / RELATED relations to canonical
+Orientation, Aspect or Workspace identities.
+
+Creating a Planning item from an existing Orientation must reuse that Orientation
+identity rather than create a semantic duplicate.
+
+Creating from Aspect or Workspace does not make those identities Planning
+participants; they remain explicit typed references while the Planning item keeps
+its normal lifecycle.
+
+Relation editing in Properties changes references only.
+
+This model is now physically accepted across Strategic, Tactical and Day flows.
+Room schema is 201.
+
+## 2026-10-19 - Coherent Planning reads need short snapshots, not per-row transactions
+
+PLANNING_MUTATION_LATENCY_HOST_20261019
+
+The latency repair preserves accepted authority and validation:
+
+- Related persisted facts are loaded once in a coherent Room frame; pure
+  projection and canonical aggregate validation run after releasing the
+  transaction. No independent pre/post-write Flow mixing is reintroduced.
+- Legacy validation uses the same canonical gate with scoped current/revision
+  rows. It neither skips history checks nor repeatedly reads whole tables.
+- Creation reads canonical sibling order directly, atomically with insert;
+  compatibility carrier order contributes only for admitted deferred rows.
+- Day committed rows do not await metadata/metrics. This is reactive persisted
+  truth, not optimistic removal before commit.
+- The user selected automatic reveal of newly created Mission/Quest. Pending
+  exact IDs are consumed only once the real rendered key is visible; no creation
+  command is persisted/replayed. Existing semantic and structural ownership is
+  unchanged.
+- Completed bootstrap remains finite. Runtime reads canonical winners despite
+  carrier drift; tests must not require repeatedly restoring carrier state by
+  rerunning the bootstrap.
+
+HOST verified; physical timing pending. Room 201 unchanged. This is contract
+conformance/performance work, not a new Planning or hierarchy architecture.
+
+## 2026-10-19 - Planning reference is separate from Orientation participation
+
+CANONICAL_PLANNING_REFERENCES_HOST_20261019
+
+The user-approved distinction is implemented:
+
+- PlanningCommitment remains scope + Orientation + planning role/state.
+- PlanningReference is a typed, versioned SOURCE/RELATED edge from an exact
+  Scope/Mission/ArcQuest/DayTask/DayFocus locator to Orientation/Aspect/Workspace.
+  No RelatedLink, raw-ID inference or Planning-to-Planning target support.
+- Create on Orientation reuses that identity as participant + SOURCE, without
+  duplicate INTENT/QUEST. Aspect/Workspace retain normal creation + SOURCE and
+  never become commitment subjects. Manual creation remains unchanged.
+- Existing Properties link RELATED only; no identity, participation,
+  WorkspaceBinding, Context or H1 side effect.
+- Creation + required source/participation is atomic. Deterministic tuple IDs,
+  one live SOURCE per owner, tombstones, strict equal-version conflict admission
+  and exact-version ACK govern references.
+- Room 201 is additive. Legacy Context links/operational routing do not prove
+  SOURCE and are retained rather than guessed. Absent stream means legacy/no
+  authority; explicit empty is exact empty in Restore. Selective entity import
+  does not implicitly import Planning authority.
+- Deleted targets remain representable history but disappear from live catalog
+  presentation/navigation. Missing or typed-invalid endpoints fail admission.
+- Integrity-critical reactive joins read one Room snapshot. Tactical crash paths
+  use this rule; Search passes persisted coverage/history rather than guessing.
+
+HOST acceptance: 173 app + 12 sync tests and both separate compile gates.
+Physical acceptance pending; no hierarchy authority or project priority change.
+
+## 2026-10-19 - Workspace dashboard is a consumer of canonical semantic bindings
+
+R2D6A_WORKSPACE_DASHBOARD_SEMANTICS_PHYSICAL_ACCEPTED_20261019
+
+Workspace dashboard semantic references are derived exclusively from canonical
+WorkspaceBinding state.
+
+Dashboard presentation and navigation do not infer semantic meaning from Context,
+H1, Big Picture, GroupScope, MainBeacon, tags or operational Connections.
+
+A displayed semantic reference resolves by exact canonical subject identity and
+opens the Universal Semantic Editor.
+
+Context-backed Workspace compatibility does not regain semantic authority.
+
+Room schema remains 200.
+
+## 2026-10-19 - R2D.6A dashboard is a canonical binding consumer
+
+R2D_6A_WORKSPACE_DASHBOARD_SEMANTIC_REFERENCES_HOST_20261019
+
+The dashboard reuses R2D.3's WorkspaceLinkedSemanticsViewModel and read projection,
+fed by CanonicalWorkspaceBindingRepository.observeBindingsForWorkspace(workspaceId)
+and the lightweight canonical catalog. The header/dialog and inline dashboard
+card share the same route-scoped model; there is no second semantic relation
+repository, per-row lookup, persisted dashboard membership or transport format.
+
+One canonical subject is one row, even with multiple binding kinds. Orientation
+and Aspect display their current canonical titles/class and exact relation labels;
+ordering uses locale-independent title normalization plus typed identity ties.
+Opening passes exact subjectId to the existing Universal Semantic Editor.
+
+Context, title similarity, capabilities, tags, Connections and H1 never determine
+semantic references. A missing/deleted/ambiguous target or malformed relation
+stays non-navigable under the accepted read-model policy; the dashboard neither
+resurrects entities nor repairs edges. Empty bindings are valid. Mutation remains
+in Properties/domain authorities; the dashboard adds read/navigation only.
+
+HOST XML 49/49 in 10 classes, separate compile gates PASS, schema 200 unchanged.
+Physical dashboard acceptance pending; no global priority or milestone change.
+
+## 2026-10-19 - Workspace semantic bootstrap preserves separate identities
+
+R2D5B_WORKSPACE_SEMANTIC_BOOTSTRAP_PHYSICAL_ACCEPTED_20261019
+
+Physical acceptance confirms that historical semantic meaning carried by a
+Workspace is extracted only through an explicit user command.
+
+Workspace remains an operational container. Orientation and Aspect remain
+separate canonical semantic identities.
+
+The bootstrap command may prefill compatible editable fields, but it must not
+infer semantic type or convert Workspace identity in place.
+
+The durable relation between the two is WorkspaceBinding.
+
+Product-level atomicity requires semantic creation and binding to succeed
+together or leave no bootstrap result.
+
+No hierarchy placement, Big Picture appearance, Planning participation or
+operational relation is implied by semantic bootstrap.
+
+Room schema remains 200.
+
+## 2026-10-19 - Canonical projections that must agree are read from one snapshot
+
+WORKSPACE_BACKLOG_QUICK_ADD_RACE_FIX_PHYSICAL_20261019
+
+The Workspace Backlog crash established a general consistency boundary:
+
+When legacy/cutover evidence, mapping evidence and canonical semantic projection
+jointly describe one admitted canonical state, they must not be exposed to
+product logic through independently updating reactive streams if transient
+cross-product states are invalid.
+
+Such state must be assembled from one transactionally consistent Room snapshot.
+
+This does not weaken fail-closed canonical integrity. Truly inconsistent
+persisted state continues to fail integrity checks.
+
+Goal creation with optional reminder setup also distinguishes persisted-domain
+success from secondary reminder failure. A secondary failure must not cause the
+already-created Goal to be submitted again.
+
+This decision was verified by focused HOST tests and physical Android acceptance.
+Room schema remains 200.
+
+## 2026-10-18 - Big Picture may invoke source lifecycle but never own it
+
+R2A4_R2F2D_SOURCE_LIFECYCLE_PHYSICAL_ACCEPTED_20261018
+
+Physical EXP acceptance closes the occurrence/source lifecycle distinction.
+
+A Big Picture occurrence is presentation structure. Removing it changes only
+that exact appearance.
+
+Deleting the underlying source is a separate explicit domain command. Big
+Picture resolves the typed canonical target and invokes its accepted lifecycle;
+the Workspace or semantic domain owns tombstone/version/dependency behavior and
+coordinates retirement of all live H1 appearances.
+
+Therefore:
+
+```text
+appearance lifecycle != source lifecycle
+```
+
+A LINK occurrence has no lesser ownership than PRIMARY for source deletion:
+invoking Delete source from either refers to the same canonical target.
+
+Containers have no canonical source and therefore never expose source-delete.
+
+Unsupported target classes must fail closed rather than approximate deletion.
+
+Room schema remains 200.
+
+## 2026-10-18 - R2F.2D consumes source lifecycle, never owns its cascade
+
+R2F_2D_BIG_PICTURE_SOURCE_DELETE_HOST_20261018
+
+Occurrence lifecycle != source lifecycle. Big Picture's typed target-action
+resolver only resolves capability/title/version and dispatches canonical identity
+to CanonicalSemanticEntityLifecycleCoordinator or CanonicalWorkspaceRepository.
+It does not enumerate/delete appearances or write source DAOs. Containers have
+no source identity, including those with historical semantic provenance.
+
+Source deletion is explicitly named and strongly confirmed, independent of
+`Прибрати з Big Picture`. Domain admission remains authoritative: R2A.4's four
+ordinary unmapped Orientation kinds/unmapped Aspect and canonical-owned non-System
+Workspace only. No Context-backed fallback or specialized lifecycle inference.
+Workspace target cleanup joins typed H1 in the existing Workspace transaction;
+unrelated typed children reject rather than being promoted/deleted implicitly.
+Surviving siblings may be reordered/versioned by H1's existing compaction rule.
+
+Confirmation is transient and non-replayable; expected source version is checked
+inside the domain transaction. Busy guards prevent duplicate confirmation.
+Focus/breadcrumb/clipboard recovery is presentation-only, using surviving exact
+typed identities, not semantic ancestry. Generic placement remains independent
+of semantic graph, Planning and Context authority.
+
+HOST XML 142/142 in 22 classes; separate compile gates PASS; schema 200 unchanged.
+Final tests used a process-only C2 workaround after a HOST CompilerThread crash;
+project toolchain configuration is untouched. Physical acceptance is pending.
+Backlog #2 remains `Priority: UNSET`; no new global milestone is selected.
+
+## 2026-10-18 - R2A.4 semantic deletion is target lifecycle, not occurrence removal
+
+R2A_4_CANONICAL_SEMANTIC_DELETION_HOST_20261018
+
+The narrow CanonicalSemanticEntityLifecycleCoordinator owns product-independent
+semantic deletion composition, with explicit ManagedSubjectType and expected
+subject version. It joins existing family-specific relation/Aspect commands and
+H1 target-dependent cleanup in the same Room transaction. It is not a universal
+entity/Workspace deletion service and is not owned by Big Picture.
+
+R2A.4 admits only unmapped Aspect and unmapped INTENT/MILESTONE/ONGOING_STANDARD/
+OPPORTUNITY. MAIN_BEACON/MAIN_BEACON_GROUP/GOAL/DIRECTION/THEME/DAY_THEME/QUEST/
+ARC_QUEST remain outside generic admission due to specialized/compatibility
+lifecycle boundaries. Unmapped newly authored instances of those eight kinds
+are also conservatively blocked; absence of a mapping is not proof that a
+specialized kind can be generically retired. Unknown codes and any legacy mapping,
+including historical mapping evidence, fail closed rather than inventing ownership.
+
+ManagedSubject is tombstoned/versioned, subtype/history retained. Orientation
+current assessment and scoring override are tombstoned; immutable assessment
+revisions remain evidence. Aspect taxonomy-child promotion stays with the Aspect
+authority. Incident non-PART_OF graph, Aspect association and WorkspaceBinding
+rows are tombstoned through their authorities, never physically erased.
+
+Current typed H1 authority retires all exact PRIMARY/LINK occurrences, memberships
+and sidecars atomically; containers/other targets are not deleted. Non-target live
+typed children still reject deletion. Live Planning participation must be ended
+explicitly through Planning first. No hierarchy-derived semantic cascade exists.
+
+Incoming and merged-state semantic endpoint admission fail closed on live orphan
+edges. Same/older live semantic identity/assessment/scoring/edge versions cannot
+resurrect local tombstones using a future updatedAt. Other merge freshness rules
+and exact-version ACK are preserved; transport fields/formats are unchanged.
+
+HOST XML 127/127 in 17 classes; both separate compile gates PASS; schema 200.
+Big Picture source-delete UI remains separately scoped and was not implemented.
+
+## 2026-10-18 - Explicit Workspace semantic bootstrap composes two authorities
+
+R2D_5B_WORKSPACE_SEMANTIC_BOOTSTRAP_HOST_20261018
+
+The Workspace action creates a NEW ManagedSubject (Orientation or Aspect), not
+a Workspace conversion. The user chooses semantic class, admitted Orientation
+kind when applicable, and binding type (EMBODIES/REALIZES/SUPPORTS/MONITORS).
+No default binding type or semantic classification is inferred from legacy data.
+EMBODIES primary/uniqueness remains owned by the existing binding authority.
+
+Only canonical Workspace title and Markdown description provide editable
+defaults. Tags have no compatible creation field and are not copied. No Context
+fallback, capabilities, Connections, reminders, presets, scores, H1 or Planning
+state is copied or changed. Ordinary semantic creation remains identity-only.
+
+The narrow WorkspaceSemanticBootstrapCoordinator joins canonical creation and
+WorkspaceBinding commands in one Room transaction, including assessment writes.
+Any binding failure rolls back identity creation. Successful canonical rows use
+normal catalog, editing and transport paths without source-specific semantics.
+
+Confirmation is imperative, guarded in flight, and never replayed from SavedState.
+Completed result navigation is consumed once. A process-interrupted confirmation
+is not retried automatically; the next explicit action warns to inspect Properties.
+This is a no-replay contract, not a new persistent idempotency ledger. Cancellation
+before confirmation writes nothing; scalar form state is not a mutation intent.
+
+HOST 73/73 in 13 XML classes and both separate compile gates PASS; Room 200.
+Physical bootstrap acceptance remains pending; accepted Workspace surface is unchanged.
+
+## 2026-10-18 - Workspace is the accepted operational product surface
+
+R2D_WORKSPACE_SURFACE_PHYSICAL_ACCEPTED_20261018
+
+The physical EXP acceptance confirms Workspace as the user-facing operational
+identity. Canonical `workspaceId` owns product navigation; Context remains a
+bounded compatibility implementation detail where still required.
+
+Workspace Properties is one consolidated Workspace-owned product surface.
+General fields, semantic bindings, display, capabilities, reminders and
+capability configuration may coexist in that UI while retaining their separate
+domain write authorities.
+
+Structural presets and scoring/Evaluation are not canonical Workspace
+properties. Their historical persisted data is preserved, but normal Workspace
+Properties no longer exposes those controls.
+
+Historical Workspaces that carried semantic meaning must not be silently
+reclassified. Any extraction into the canonical semantic model must be an
+explicit user action that creates a separate semantic identity and an explicit
+WorkspaceBinding.
+
+Room schema remains 200.
+## 2026-10-18 - One Workspace properties surface; no preset/scoring controls
+
+WORKSPACE_PROPERTIES_UNIFIED_20261018
+
+User-requested consolidation is implemented in the existing tabbed settings
+shell, not another product destination. Workspace edit aliases admit a canonical
+Workspace row; they do not re-establish Context identity authority. The separate
+legacy-settings navigation event/command is retired.
+
+Workspace name/description Save, WorkspaceBinding, tag membership, display,
+individual capability toggles and reminders keep separate canonical commands.
+No cross-family Save or preset application is introduced. Structural presets
+and Evaluation controls are absent; existing preset/scoring data and semantic
+assessment editors elsewhere remain untouched. Context.relatedLinks are not
+copied into new Workspace fields or reinterpreted as semantic bindings.
+
+Workspace reminder UI uses the existing PROJECT discriminator and type-scoped
+clear command, rather than clearing all classes sharing a raw ID. Legacy clear
+callers retain their prior behavior. Room proof covers canonical operational
+changes without Context/scoring/H1 writes. HOST 68/68 in 13 XML classes; both
+compile gates PASS, schema 200 unchanged, no physical acceptance claim.
+
+## 2026-10-18 - R2D.4 Workspace owns the operational product destination
+
+R2D_4_WORKSPACE_SURFACE_HOST_20261018
+
+The accepted Workspace product-authority cutover is implemented without
+renaming/replacing the Context-era operational screen or removing Context
+persistence. Canonical Workspace route presence takes precedence over restored
+legacy listId; missing/invalid canonical identity fails closed. Explicit optional
+sourceContextId may support legacy operations, never identity or title fallback.
+Canonical row observation owns visible title/description updates and tombstones.
+Both properties actions retain exact Workspace identity and use the existing
+Workspace properties form.
+
+Canonical Workspace opening is not intent to author Direction entries from H1
+nesting. That legacy on-open write is restricted to explicit legacy routes;
+semantic graph, Aspect membership, WorkspaceBinding, Planning and H1 are not
+mutated by this cutover. Existing operational commands/history remain available.
+This is a legacy-to-canonical product-surface change, not a persistence or H1
+authority migration. H1 remains the cut-over CURRENT V2 structural owner;
+Context structural state remains LEGACY compatibility, not new authority.
+
+Preset findings: the private legacy FeaturesTabContent/PresetCard is removable
+locally from properties; StructurePresetService itself has capability, role and
+optional structural effects and must not be recast as a Workspace scalar save.
+Leave cleanup for R2D.5. Existing canonical binding editing stays intact; no new
+relation semantics are introduced. HOST: 100/100 tests in 14 XML classes and
+both separate compile gates PASS. Room 200 unchanged; no physical claim.
+
+## 2026-10-18 - R2F.2C consumes H1; no inferred MainBeacon-parent query
+
+R2F_2C_LIBRARY_ADD_HOST_20261018
+
+Library Add is a consumer of the accepted H1 authority, not a second placement
+writer. Existing `addAppearance` owns atomic first PRIMARY/additional LINK
+selection. Existing typed Big Picture destination dialog receives persisted
+Occurrence/Container IDs, including historical containers. Library stays open;
+pending canonical identity is SavedState-backed and never replayed on restore.
+Presence invalidation, rather than optimistic UI writes, updates Unplaced.
+
+No MainBeacon parent yet is a virtual query concept, not an H1 section. Its
+implementation fails closed pending a defined entity-level canonical predicate
+and authoritative known-none/unknown coverage. GroupScope `groupSubjectId=null`
+means no historical Group, not no MainBeacon parent. NATIVE/HISTORICAL/
+LEGACY_UNKNOWN are exact-occurrence lineage; semantic PART_OF/group-membership
+contracts do not define the proposed generic parent query. Do not guess from
+visual placement or absence of sidecars. No Aspect/Workspace applicability is
+invented. This records a concrete limitation, not a replacement architecture.
+
+HOST: 111/111 tests in 17 XML classes; both separate compile gates PASS.
+Room 200 unchanged. Physical acceptance of R2F.2C is pending; R2F.2B remains
+physically accepted. Backlog #2 stays `Priority: UNSET`.
+
+## 2026-10-18 - Big Picture is a lens; R2F.2B physically accepted
+
+R2F_2B_PHYSICAL_ACCEPTED_20261018
+
+R2F.2B is COMPLETE / HOST VERIFIED / PHYSICAL EXP ACCEPTED.
+
+Big Picture is not the canonical semantic graph. It is one user-authored lens
+over the canonical model. Its visible structural parents and children must,
+however, correspond exactly to canonical typed H1 structural nodes used by
+navigation and mutation.
+
+Physical EXP re-acceptance confirms the historical-group cutover: named
+historical groups are ordinary H1 Containers for Big Picture structure, reorder
+addresses the same direct children the user sees, and LINK can be inserted into
+those containers using the normal typed H1 destination.
+
+Synthetic `NoGroup` / `NoBeacon` parents are not part of Big Picture structure.
+The concept `No MainBeacon parent yet` belongs to Library as a virtual
+query/filter. If the user wants such a section in Big Picture, they explicitly
+create an ordinary section and populate it.
+
+Historical GroupScope/MainBeacon provenance remains compatibility/semantic
+history and does not determine Big Picture topology. Room schema remains 200.
+
+
 Status: CANONICAL
+
+## 2026-10-18 - Every visible Big Picture parent is a typed H1 node
+
+HISTORICAL_GROUP_H1_CONTAINER_CUTOVER_20261018
+
+The accepted cutover is implemented using schema-200 persistence, without a
+new authority/table. Historical named groups have deterministic H1 container
+IDs `historical-group:v1:<canonical-group-subject-id>`; the reserved prefix
+separates them from generated user-container UUIDs and preserves exact
+provenance identity. Their initial title/order comes from canonical identity
+and explicit legacy display order; exact historical member occurrences move
+through H1. GroupScope is retired atomically, retaining versions/history and
+HISTORICAL lineage. No semantic identity or relation is changed.
+
+Container identity, including a tombstone, is the durable cutover receipt.
+After materialization, H1 is user-authored: changing/deleting a container or
+moving a member is never undone merely because a semantic group still exists.
+Old payload admission preserves provenance and materializes missing receipts
+once; existing canonical structure is respected. Invalid provenance/topology
+fails transactionally, and strict equal-version conflict/ACK rules remain.
+
+Big Picture has no synthetic Group, NoGroup or NoBeacon structural wrapper.
+Every displayed parent, mixed reorder input and Add/Paste destination refers
+to an ordinary occurrence/container. Historical CoreLevel grouping remains a
+separate compatibility read; it does not feed Big Picture topology.
+Future Library “No MainBeacon parent yet” is a virtual semantic/provenance
+query, not a structural section or automatic membership maintainer. Its UI
+and R2F.2C remain deferred. HOST: 192 app + 23 sync tests and two separate
+Kotlin gates PASS; physical re-acceptance pending. Backlog #2 Priority: UNSET.
 
 ## 2026-10-18 - GroupScope coverage applies to production reads too
 

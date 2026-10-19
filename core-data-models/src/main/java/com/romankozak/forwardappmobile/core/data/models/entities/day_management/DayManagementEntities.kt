@@ -39,6 +39,7 @@ data class NewTaskParameters(
     val points: Int = 0,
     val linkedProjectIds: List<String>? = null,
     val linkedAttachmentIds: List<String>? = null,
+    val planningSource: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
 )
 
 enum class DayFocusType {

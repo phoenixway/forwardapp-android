@@ -146,13 +146,12 @@ class ProjectHierarchyScreenStateUseCase
             val orientationHierarchyFlow: Flow<List<OrientationHierarchyItem>> =
                 combine(
                     canonicalV2ReadFlow,
-                    observeHierarchyPresentationUniverse(),
                     mainBeaconRepository.observeMainBeaconDetails(),
-                ) { read, workspacePresentations, beacons ->
+                ) { read, beacons ->
                     val metadata =
                         canonicalV2HierarchyScreenMetadataAssembler.assemble(
                             read = read,
-                            workspacePresentations = workspacePresentations,
+                            workspacePresentations = read.workspacePresentationsByTargetId.values,
                             beacons =
                                 beacons.map { beacon ->
                                     CanonicalV2HierarchyScreenOperationalBeaconMetadata(

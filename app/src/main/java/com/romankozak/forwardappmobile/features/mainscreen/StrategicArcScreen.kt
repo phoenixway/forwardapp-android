@@ -106,6 +106,7 @@ fun StrategicArcScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
+    val pendingCreatedQuestId by viewModel.pendingCreatedQuestId.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
@@ -281,6 +282,8 @@ fun StrategicArcScreen(
                     StrategicArcTab.QUESTS ->
                         ArcQuestList(
                             quests = uiState.arcQuests,
+                            revealQuestId = pendingCreatedQuestId,
+                            onQuestRevealed = viewModel::consumeCreatedQuest,
                             contextNames = uiState.allProjects.associate { it.id to it.name },
                             onQuestClick = { quest ->
                                 quest.linkedContextId?.let {
@@ -359,7 +362,7 @@ fun StrategicArcScreen(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Контекст як ArcQuest") },
+                        text = { Text("Quest на основі сутності") },
                         leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                         onClick = {
                             isFabMenuExpanded = false
@@ -477,24 +480,9 @@ fun StrategicArcScreen(
     }
 
     if (showQuestContextPicker) {
-        LinkedTargetsPickerDialog(
-            contextOptions =
-                uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name)
-                },
-            attachmentOptions = emptyList(),
-            preselectedContextIds = uiState.arcQuests.mapNotNull { it.linkedContextId }.toSet(),
-            preselectedAttachmentIds = emptySet(),
-            initialTab = LinkPickerTab.CONTEXTS,
-            allowedTabs = setOf(LinkPickerTab.CONTEXTS),
+        com.romankozak.forwardappmobile.features.planning.PlanningEntityPickerDialog(
             onDismiss = { showQuestContextPicker = false },
-            onContextSelected = { id ->
-                viewModel.addArcQuestFromContext(id)
-                showQuestContextPicker = false
-            },
-            onAttachmentSelected = {},
-            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
-            onCreateDocument = null,
+            onSelected = viewModel::addArcQuestFromEntity,
         )
     }
 
@@ -657,6 +645,8 @@ private fun StrategicArcMonthHeader(
 @Composable
 private fun ArcQuestList(
     quests: List<ArcQuestEntity>,
+    revealQuestId: String?,
+    onQuestRevealed: () -> Unit,
     contextNames: Map<String, String>,
     onQuestClick: (ArcQuestEntity) -> Unit,
     onOpenContext: (String) -> Unit,
@@ -667,6 +657,9 @@ private fun ArcQuestList(
     modifier: Modifier = Modifier,
 ) {
     val lazyListState = rememberLazyListState()
+    com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
+        lazyListState, quests.map { it.id }, revealQuestId, onQuestRevealed,
+    )
     var internalQuests by remember(quests) { mutableStateOf(quests) }
     var hasPendingReorder by remember { mutableStateOf(false) }
     val persistPendingReorder = {
@@ -1017,6 +1010,10 @@ private fun ArcQuestCard(
                         onValueChange = { editDescription = it },
                         label = { Text("Опис") },
                         minLines = 3,
+                    )
+                    com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id),
                     )
                 }
             },

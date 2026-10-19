@@ -10,7 +10,7 @@ import org.junit.Test
 class BigPictureReadCompositionTest {
 
     @Test
-    fun `generic mixed root sections supersede historical root membership without rewriting H1`() {
+    fun `mixed root sections are only persisted H1 parents`() {
         val placements = listOf(
             p("orientation", target = HierarchyTargetType.MANAGED_SUBJECT, order = 1),
             p("workspace", target = HierarchyTargetType.WORKSPACE, order = 2),
@@ -18,19 +18,13 @@ class BigPictureReadCompositionTest {
         )
         val read = BigPictureReadComposition(
             nodes = projectBigPicture(placements, emptyList()),
-            historicalScopes = listOf(
-                scope("group:old", "orientation"),
-                scope("NoBeacon", "workspace"),
-            ),
+            historicalScopes = emptyList(),
             persisted = BigPicturePresentationSnapshot(
                 containers = listOf(c("generic", order = 2)),
                 memberships = listOf(m("orientation", "generic"), m("workspace", "generic")),
             ),
         )
-        assertThat(read.historicalScopes.flatMap { it.rootPlacementIds }).isEmpty()
         assertThat(read.rootEntries().map { it.stableId }).containsExactly(
-            "container:group:old",
-            "container:NoBeacon",
             "container:presentation:generic",
             "occurrence:free",
         ).inOrder()
@@ -70,21 +64,19 @@ class BigPictureReadCompositionTest {
     }
 
     @Test
-    fun `tombstoned section retains historical records but member returns to historical display`() {
+    fun `tombstoned section leaves occurrence at real H1 root without synthetic fallback`() {
         val placements = listOf(p("root"))
         val read = BigPictureReadComposition(
             projectBigPicture(placements, emptyList()),
-            listOf(scope("group:old", "root")),
+            emptyList(),
             BigPicturePresentationSnapshot(
                 containers = listOf(c("old").copy(isDeleted = true)),
                 memberships = listOf(m("root", "old")),
             ),
         )
-        assertThat(read.rootScopes.map { it.id }).containsExactly("group:old")
-        assertThat(read.historicalEntries("group:old").map { it.stableId })
-            .containsExactly("occurrence:root")
+        assertThat(read.rootScopes).isEmpty()
         assertThat(read.rootEntries().map { it.stableId })
-            .containsExactly("container:group:old")
+            .containsExactly("occurrence:root")
     }
 
     @Test

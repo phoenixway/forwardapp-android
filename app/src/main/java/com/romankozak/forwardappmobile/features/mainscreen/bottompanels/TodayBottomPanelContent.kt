@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
@@ -14,6 +16,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentati
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelMoreActionButton
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelIconButton
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelSurface
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.MoreSheetAction
 
@@ -43,6 +46,7 @@ internal fun TodayBottomPanelContent(
     onBackdatedClick: (String) -> Unit,
     onDaySummaryClick: (String) -> Unit,
     onSubmitInput: () -> Unit,
+    onAddTaskFromEntity: () -> Unit,
     onSelectTodayTab: (DayManagementTab) -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
@@ -93,6 +97,13 @@ internal fun TodayBottomPanelContent(
                         "Нове завдання..."
                     },
                 trailingContent = {
+                    todayTaskSourceAction(currentTab, onAddTaskFromEntity)?.let { action ->
+                        BottomPanelIconButton(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = action.label,
+                            onClick = action.onClick,
+                        )
+                    }
                     BottomPanelMoreActionButton(
                         actions = globalActions,
                         additionalActions = additionalMoreActions,

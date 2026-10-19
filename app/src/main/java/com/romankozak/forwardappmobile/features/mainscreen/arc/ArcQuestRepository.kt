@@ -19,7 +19,10 @@ class ArcQuestRepository
 
         suspend fun getById(id: String): ArcQuestEntity? = canonicalAdapter.getById(id)
 
-        suspend fun addQuest(quest: ArcQuestEntity) = canonicalAdapter.addQuest(quest)
+        suspend fun addQuest(
+            quest: ArcQuestEntity,
+            source: com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceTarget? = null,
+        ) = canonicalAdapter.addQuest(quest, source)
 
         suspend fun updateQuest(quest: ArcQuestEntity) = canonicalAdapter.updateQuest(quest)
 

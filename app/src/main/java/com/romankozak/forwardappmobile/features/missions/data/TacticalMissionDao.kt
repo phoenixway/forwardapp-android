@@ -127,6 +127,14 @@ interface TacticalMissionDao {
     @Query("SELECT * FROM tactical_missions")
     suspend fun getAllMissionsSync(): List<TacticalMission>
 
+    @Query("""
+        SELECT MIN(COALESCE(c.commitmentOrder, m.order_in_week)) FROM tactical_missions m
+        LEFT JOIN planning_commitments c ON c.role='MISSION' AND c.provenanceSourceType='TACTICAL_MISSION'
+            AND c.provenanceSourceId=CAST(m.id AS TEXT) AND c.isDeleted=0
+        WHERE c.scopeId=:scopeId OR (c.id IS NULL AND m.is_deleted=0 AND m.iteration_id=:scopeId)
+    """)
+    suspend fun minimumCanonicalOrder(scopeId: String): Long?
+
     @Query("SELECT * FROM tactical_mission_attachment_cross_ref")
     suspend fun getAllMissionAttachmentCrossRefs(): List<TacticalMissionAttachmentCrossRef>
 

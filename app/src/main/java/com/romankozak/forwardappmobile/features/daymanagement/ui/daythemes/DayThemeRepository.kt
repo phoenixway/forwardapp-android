@@ -74,6 +74,12 @@ class DayThemeRepository
             themeOrientationBridge.ensureCutOver()
         }
 
+        /** Explicit Day-entry command. Merely observing existing themes never materializes participation. */
+        suspend fun prepareDay(dayPlanId: String, now: Long = System.currentTimeMillis()) {
+            themeOrientationBridge.ensureCutOver()
+            carryForwardDayThemes(database, dao, themeOrientationBridge, planningAdapter, dayPlanId, now)
+        }
+
         suspend fun update(
             dayPlanId: String,
             transform: (DayThemeDocument) -> DayThemeDocument,

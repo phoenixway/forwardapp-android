@@ -10,21 +10,9 @@ internal fun TodayContextPickerHost(
     visible: Boolean,
     contextOptions: List<ProjectOption>,
     onDismiss: () -> Unit,
-    onContextSelected: (String) -> Unit,
+    onEntitySelected: suspend (com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) -> Unit,
 ) {
     if (!visible) return
 
-    LinkedTargetsPickerDialog(
-        contextOptions = contextOptions,
-        attachmentOptions = emptyList(),
-        preselectedContextIds = emptySet(),
-        preselectedAttachmentIds = emptySet(),
-        initialTab = LinkPickerTab.CONTEXTS,
-        allowedTabs = setOf(LinkPickerTab.CONTEXTS),
-        onDismiss = onDismiss,
-        onContextSelected = onContextSelected,
-        onAttachmentSelected = {},
-        onCreateRootContext = null,
-        onCreateDocument = null,
-    )
+    com.romankozak.forwardappmobile.features.planning.PlanningEntityPickerDialog(onDismiss, onEntitySelected)
 }

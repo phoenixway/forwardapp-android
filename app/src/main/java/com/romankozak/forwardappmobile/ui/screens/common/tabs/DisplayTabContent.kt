@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 fun DisplayTabContent(
     showCheckboxes: Boolean,
     onShowCheckboxesChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier =
@@ -32,6 +33,7 @@ fun DisplayTabContent(
             Text("Show checkboxes")
             Switch(
                 checked = showCheckboxes,
+                enabled = enabled,
                 onCheckedChange = onShowCheckboxesChange,
             )
         }

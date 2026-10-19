@@ -250,7 +250,7 @@ private fun sectionOrderedMissions(missions: List<TacticalMission>): List<Tactic
     return active + inactive + completed
 }
 
-private fun orderedMissions(
+internal fun orderedMissions(
     missions: List<TacticalMission>,
     showStatusSections: Boolean,
 ): List<TacticalMission> =

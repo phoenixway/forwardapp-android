@@ -103,11 +103,12 @@ private fun BigPicturePresentationSnapshot.toVersionAck() =
     )
 
 internal fun CanonicalPlanningSyncPayload.hasChanges(): Boolean =
-    scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
+    references.isNotEmpty() || scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
         tacticalScopeExtensions.isNotEmpty() || strategicScopeExtensions.isNotEmpty()
 
 private fun CanonicalPlanningSyncPayload.toAck() =
     CanonicalPlanningSyncAck(
+        references = references.map { com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningReferenceSyncVersion(it.id, it.version) },
         scopes = scopes.map { PlanningScopeSyncVersion(it.id, it.version) },
         commitments = commitments.map { PlanningCommitmentSyncVersion(it.id, it.version) },
         dayScopeExtensions =
@@ -452,6 +453,9 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalWorkspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot> = emptyList(),
     explicitCanonicalWorkspaceTags: List<WorkspaceTagRefEntity> = emptyList(),
 ): SnapshotBundle {
+    if (explicitCanonicalPlanning.references.isNotEmpty()) {
+        return planningReferenceTransportClosure(fullSnapshot, explicitCanonicalPlanning.references)
+    }
     val dayPlanIds = baseDelta.dayPlans.mapTo(hashSetOf()) { it.id }
     val dayFocusItemIds = baseDelta.dayFocusItems.mapTo(hashSetOf()) { it.id }
     val dayTaskIds = baseDelta.dayTasks.mapTo(hashSetOf()) { it.id }
@@ -710,6 +714,7 @@ internal fun buildCanonicalSnapshotDelta(
 
     val result =
         baseDelta.copy(
+            planningReferences = if (includeCanonicalPlanning) explicitCanonicalPlanning.references else null,
             planningFormatVersion =
                 if (includeCanonicalPlanning) CURRENT_PLANNING_FORMAT_VERSION else null,
             planningScopes =

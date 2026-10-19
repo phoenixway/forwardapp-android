@@ -47,6 +47,12 @@ fun DayScopeLinksSheet(
     val sortedItems = sortConnectionsByOrder(items, connectionOrder)
 
     ModalBottomSheet(onDismissRequest = actions.onDismiss) {
+        uiState.dayPlan?.id?.let { id ->
+            com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
+                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.SCOPE, id),
+            )
+        }
         ConnectionsPanel(
             items = sortedItems,
             onConnectionClick = { item ->

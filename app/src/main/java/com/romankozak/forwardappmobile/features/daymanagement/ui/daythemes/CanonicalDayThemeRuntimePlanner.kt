@@ -40,6 +40,7 @@ internal fun projectCanonicalDayThemeDocument(
                     isActive = daily.isActive,
                     createdAt = daily.createdAt,
                     updatedAt = maxOf(daily.updatedAt, definition.updatedAt),
+                    carryForward = definition.carryForward,
                 )
             }.toList()
 
@@ -129,7 +130,7 @@ internal fun planCanonicalDayThemeRuntimeUpdate(
                     colorArgb = uiTheme.colorArgb,
                     iconKey = desiredIconKey,
                     description = desiredDescription,
-                    carryForward = true,
+                    carryForward = uiTheme.carryForward,
                     archived = false,
                     createdAt = now,
                     updatedAt = now,
@@ -140,6 +141,7 @@ internal fun planCanonicalDayThemeRuntimeUpdate(
         } else {
             val definitionChanged =
                 existingDefinition.colorArgb != uiTheme.colorArgb ||
+                    existingDefinition.carryForward != uiTheme.carryForward ||
                     existingDefinition.iconKey != desiredIconKey ||
                     existingDefinition.isDeleted
 
@@ -148,6 +150,7 @@ internal fun planCanonicalDayThemeRuntimeUpdate(
                     existingDefinition.copy(
                         title = desiredTitle,
                         colorArgb = uiTheme.colorArgb,
+                        carryForward = uiTheme.carryForward,
                         iconKey = desiredIconKey,
                         description = desiredDescription,
                         updatedAt = now,

@@ -12,22 +12,10 @@ internal fun StrategicArcContextPickerHost(
     contextOptions: List<ProjectOption>,
     preselectedContextIds: Set<String>,
     onDismiss: () -> Unit,
-    onContextSelected: (String) -> Unit,
+    onEntitySelected: suspend (com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary) -> Unit,
     onCreateRootContext: (suspend (String) -> String?)?,
 ) {
     if (!visible) return
 
-    LinkedTargetsPickerDialog(
-        contextOptions = contextOptions,
-        attachmentOptions = emptyList<AttachmentOption>(),
-        preselectedContextIds = preselectedContextIds,
-        preselectedAttachmentIds = emptySet(),
-        initialTab = LinkPickerTab.CONTEXTS,
-        allowedTabs = setOf(LinkPickerTab.CONTEXTS),
-        onDismiss = onDismiss,
-        onContextSelected = onContextSelected,
-        onAttachmentSelected = {},
-        onCreateRootContext = onCreateRootContext,
-        onCreateDocument = null,
-    )
+    com.romankozak.forwardappmobile.features.planning.PlanningEntityPickerDialog(onDismiss, onEntitySelected)
 }

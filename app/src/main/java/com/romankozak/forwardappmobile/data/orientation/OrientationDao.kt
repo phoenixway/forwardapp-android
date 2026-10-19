@@ -51,6 +51,12 @@ interface OrientationDao {
     @Query("SELECT * FROM orientation_assessments")
     suspend fun getAllAssessments(): List<OrientationAssessmentEntity>
 
+    @Query("SELECT * FROM orientation_assessments WHERE orientationId IN (:ids)")
+    suspend fun getAssessmentsFor(ids: List<String>): List<OrientationAssessmentEntity>
+
+    @Query("SELECT * FROM orientation_assessment_revisions WHERE id IN (:ids)")
+    suspend fun getAssessmentRevisionsByIds(ids: List<String>): List<OrientationAssessmentRevisionEntity>
+
     @Query("SELECT * FROM orientation_assessments ORDER BY orientationId")
     fun observeAssessments(): Flow<List<OrientationAssessmentEntity>>
 
@@ -118,6 +124,14 @@ interface OrientationDao {
 
     @Query("SELECT * FROM workspace_bindings ORDER BY workspaceId, bindingOrder")
     fun observeWorkspaceBindings(): Flow<List<WorkspaceBindingEntity>>
+
+    /** Narrow inverse presentation read; never infers embodiment from Context or H1. */
+    @Query("""
+        SELECT b.* FROM workspace_bindings b
+        INNER JOIN workspaces w ON w.id = b.workspaceId
+        WHERE b.isDeleted = 0 AND w.isDeleted = 0 AND b.bindingType = 'EMBODIES'
+    """)
+    suspend fun getLiveEmbodimentBindings(): List<WorkspaceBindingEntity>
 
     @Query(
         """

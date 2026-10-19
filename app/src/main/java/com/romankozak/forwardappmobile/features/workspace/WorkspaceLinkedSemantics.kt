@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySum
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -82,7 +83,7 @@ internal fun projectWorkspaceSemanticLinks(
         .sortedWith(
             compareBy<WorkspaceLinkedSemanticEntity>(
                 { !it.isNavigable },
-                { it.title.lowercase() },
+                { it.title.lowercase(Locale.ROOT) },
                 { it.ref?.entityClass?.name.orEmpty() },
                 { it.ref?.id.orEmpty() },
                 { it.bindingTypes.joinToString() },

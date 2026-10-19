@@ -19,6 +19,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 internal fun BigPictureMutationControls(
     ready: BigPictureUiState.Ready,
     viewModel: BigPictureMutationViewModel,
+    blocked: Boolean = false,
     onPickEntity: (H1StructuralParent) -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -30,6 +31,7 @@ internal fun BigPictureMutationControls(
     var reorder by remember { mutableStateOf(false) }
     val parent = ready.structuralDestination()
     val index = ready.structure ?: return
+    if (blocked) { CircularProgressIndicator(Modifier.size(20.dp)); return }
 
     if (state.busy) CircularProgressIndicator(Modifier.size(20.dp))
     IconButton(onClick = { reorder = true }, enabled = !state.busy && parent != null) {
@@ -72,13 +74,32 @@ internal fun BigPictureNodeMenu(
     enabled: Boolean,
     onCut: (H1TypedNode) -> Unit,
     onRemove: (H1TypedNode) -> Unit,
+    onOpen: (() -> Unit)? = null,
+    openLabel: String = "Відкрити редактор",
+    sourceDeleteTarget: BigPictureSourceDeleteTarget? = null,
+    onDeleteSource: ((BigPictureSourceDeleteTarget) -> Unit)? = null,
+    onOpenSemantic: (() -> Unit)? = null,
+    semanticOpenLabel: String = "Відкрити семантичну сутність",
 ) {
     var expanded by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf(false) }
-    IconButton(enabled = enabled, onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, "Дії розміщення") }
+    val sourceAction = sourceDeleteMenuTarget(node, sourceDeleteTarget)
+    IconButton(enabled = enabled || onOpen != null, onClick = { expanded = true }) {
+        Icon(Icons.Default.MoreVert, "Дії розміщення")
+    }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        DropdownMenuItem(text = { Text("Вирізати / перемістити") }, onClick = { expanded = false; onCut(node) })
-        DropdownMenuItem(text = { Text("Прибрати з Big Picture") }, onClick = { expanded = false; confirm = true })
+        onOpen?.let { open ->
+            DropdownMenuItem(text = { Text(openLabel) }, onClick = { expanded = false; open() })
+        }
+        onOpenSemantic?.let { open ->
+            DropdownMenuItem(text = { Text(semanticOpenLabel) }, onClick = { expanded = false; open() })
+        }
+        DropdownMenuItem(text = { Text("Вирізати / перемістити") }, enabled = enabled, onClick = { expanded = false; onCut(node) })
+        DropdownMenuItem(text = { Text("Прибрати з Big Picture") }, enabled = enabled, onClick = { expanded = false; confirm = true })
+        if (sourceAction != null && onDeleteSource != null) {
+            DropdownMenuItem(text = { Text(sourceAction.actionLabel, color = MaterialTheme.colorScheme.error) },
+                enabled = enabled, onClick = { expanded = false; onDeleteSource(sourceAction) })
+        }
     }
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false },
@@ -86,7 +107,7 @@ internal fun BigPictureNodeMenu(
         text = { Text(if (node is H1TypedNode.Container)
             "Секцію буде прибрано, її дочірні елементи залишаться рівнем вище. Сутності не видаляються."
             else "Буде прибрано лише це розміщення. Сутність та інші її розміщення залишаться. Спочатку перемістіть дочірні елементи, якщо вони є.") },
-        confirmButton = { TextButton(onClick = { confirm = false; onRemove(node) }) { Text("Прибрати") } },
+        confirmButton = { TextButton(enabled = enabled, onClick = { confirm = false; onRemove(node) }) { Text("Прибрати") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Скасувати") } },
     )
 }

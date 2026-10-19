@@ -170,10 +170,7 @@ fun TacticsBottomPanel(
         visible = showContextPicker,
         projectOptions = projectOptions,
         onDismiss = { showContextPicker = false },
-        onContextSelected = { contextId ->
-            viewModel.addWeeklyMissionFromContext(contextId)
-            showContextPicker = false
-        },
+        onEntitySelected = viewModel::addWeeklyMissionFromEntity,
     )
 }
 
