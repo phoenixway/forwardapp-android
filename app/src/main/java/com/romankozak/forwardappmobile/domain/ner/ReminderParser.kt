@@ -19,7 +19,6 @@ import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 class ReminderParser
     @Inject
@@ -106,10 +105,10 @@ class ReminderParser
         }
 
         suspend fun parseAsync(text: String): ReminderParseResult =
-            suspendCoroutine { cont ->
+            suspendCancellableCoroutine { cont ->
                 Log.d(TAG, "[ReminderParser] Suspend parseAsync started: '$text'")
                 parseAsync(text) { result ->
-                    cont.resume(result)
+                    if (cont.isActive) cont.resume(result)
                 }
             }
 
@@ -118,18 +117,20 @@ class ReminderParser
             timeoutMs: Long = 10000L,
         ): ReminderParseResult =
             try {
-                withTimeout(timeoutMs) {
+                withTimeoutOrNull(timeoutMs) {
                     parseAsync(text)
+                } ?: run {
+                    Log.w(TAG, "Parsing timeout for: '$text', trying fallback")
+                    fallbackParseDuration(text) ?: ReminderParseResult(
+                        originalText = text,
+                        dateTimeEntities = emptyList(),
+                        otherEntities = emptyList(),
+                        success = false,
+                        errorMessage = "Parsing timeout",
+                    )
                 }
-            } catch (e: TimeoutCancellationException) {
-                Log.w(TAG, "Parsing timeout for: '$text', trying fallback")
-                fallbackParseDuration(text) ?: ReminderParseResult(
-                    originalText = text,
-                    dateTimeEntities = emptyList(),
-                    otherEntities = emptyList(),
-                    success = false,
-                    errorMessage = "Parsing timeout",
-                )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Parsing error for: '$text'", e)
                 fallbackParseDuration(text) ?: ReminderParseResult(

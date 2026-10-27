@@ -209,6 +209,8 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspacePresentationPreferencesEntity::class,
 
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceTagRefEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectTagRefEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectConversionEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.SystemWorkspaceTagSeedStateEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemEntity::class,
@@ -235,7 +237,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 201,
+    version = 205,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -332,6 +334,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userStateIntervalDao(): UserStateIntervalDao
 
     abstract fun orientationDao(): OrientationDao
+    abstract fun managedSubjectTagDao(): com.romankozak.forwardappmobile.data.orientation.ManagedSubjectTagDao
+    abstract fun managedSubjectConversionDao(): com.romankozak.forwardappmobile.data.orientation.ManagedSubjectConversionDao
 
     abstract fun canonicalScoringAuthorityStateDao(): com.romankozak.forwardappmobile.data.orientation.CanonicalScoringAuthorityStateDao
 

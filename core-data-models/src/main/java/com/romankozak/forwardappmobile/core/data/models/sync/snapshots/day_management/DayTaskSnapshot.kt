@@ -40,4 +40,6 @@ data class DayTaskSnapshot(
     @SerializedName("completedAt") val completedAt: Long?,
     @SerializedName("nextOccurrenceTime") val nextOccurrenceTime: Long?,
     @SerializedName("points") val points: Int,
+    /** null = pre-realization payload; empty = explicit empty set. */
+    @SerializedName("realizedDayFocusItemIds") val realizedDayFocusItemIds: List<String>? = null,
 )

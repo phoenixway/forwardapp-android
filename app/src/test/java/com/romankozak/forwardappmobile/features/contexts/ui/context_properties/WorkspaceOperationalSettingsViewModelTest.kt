@@ -82,7 +82,7 @@ class WorkspaceOperationalSettingsViewModelTest {
         f.vm.setCapability("inbox", true)
         coVerify(exactly = 1) { f.commands.setEnabled("workspace", CapabilityId("inbox"), true) }
         assertThat(f.vm.state.value.error).isEqualTo("Rejected")
-        assertThat(f.vm.state.value.enabled).isEmpty()
+        assertThat(f.vm.state.value.enabled).containsExactly(CapabilityId("dashboard"), CapabilityId("relations"))
         assertThat(f.vm.state.value.busy).isFalse()
         coVerify(exactly = 0) { f.prefs.setShowCheckboxes(any(), any(), any()) }
     }
@@ -110,14 +110,14 @@ class WorkspaceOperationalSettingsViewModelTest {
         verify { f.commands wasNot Called }
     }
 
-    @Test fun `only live active capabilities project and enable their registered settings tabs`() = runTest(dispatcher) {
+    @Test fun `live active optional capabilities and intrinsic core views enable their registered settings tabs`() = runTest(dispatcher) {
         val f = Fixture()
         fun cap(id: String, type: String, state: String = "ACTIVE", deleted: Boolean = false) =
             WorkspaceCapabilityInstanceEntity(id, "workspace", type, "default", 0, state, 1, "{}", 1, 1, null, deleted, 1)
         f.rows.value = listOf(cap("a", "INBOX"), cap("b", "BACKLOG", "DISABLED"), cap("c", "DIRECTION", deleted = true))
-        assertThat(f.vm.state.value.enabled).containsExactly(CapabilityId("inbox"))
+        assertThat(f.vm.state.value.enabled).containsExactly(CapabilityId("inbox"), CapabilityId("dashboard"), CapabilityId("relations"))
         f.vm.capabilityTabs()
-        verify { f.registry.forCapabilities(setOf(CapabilityId("inbox"))) }
+        verify { f.registry.forCapabilities(setOf(CapabilityId("inbox"), CapabilityId("dashboard"), CapabilityId("relations"))) }
     }
 
     @Test fun `tab state persists and no score or structural preset tab is exposed`() = runTest(dispatcher) {

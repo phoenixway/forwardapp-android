@@ -146,13 +146,16 @@ class ContextPickerActions(
     suspend fun onPickerAttachmentSelected(
         currentContextId: String,
         attachmentId: String,
+        onFailure: (String) -> Unit = {},
     ) {
         if (attachmentId.isBlank()) return
         if (currentContextId.isBlank()) return
         runCatching {
             contextRepository.linkAttachmentToContext(attachmentId, currentContextId)
         }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) throw it
             Log.e(loggerTag, "Failed to link attachment to current context", it)
+            onFailure(it.message ?: "Не вдалося додати зв’язок")
         }
     }
 

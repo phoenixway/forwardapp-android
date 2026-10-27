@@ -1,5 +1,248 @@
 # Entity Library and Big Picture UX Contract
 
+## Workspace source rename from Navigation (2026-10-24)
+
+NAVIGATION_WORKSPACE_RENAME_HOST_20261024
+
+Workspace occurrence menus, including focused headers and LINK appearances,
+offer Rename. The dialog explicitly states all appearances share the change.
+The exact typed Workspace source is dispatched to CanonicalWorkspaceRepository's
+atomic title-only command, not the H1 structural writer or a legacy Context
+rename. Identity, description, role/provenance, bindings, semantic names and H1
+structure/order survive. Blank/deleted/missing targets reject; same name is a
+no-op and changes use existing version/dirty transport metadata. Cancel/replay/
+double submission cannot create extra writes; failure retains input for retry.
+Semantic occurrences with an EMBODIES open destination remain semantic targets
+and do not advertise Workspace rename. Section rename still changes only its
+H1 container title. Room 203 unchanged; HOST XML 19/19 in four focused classes,
+production/test Kotlin compile and diff check PASS; physical smoke pending.
+
+## Navigation section titles and leaf activation (2026-10-24)
+
+NAVIGATION_SECTION_RENAME_LEAF_OPEN_HOST_20261024
+
+Container card menus (including focused headers) offer Rename. This edits only
+the canonical H1 container's presentation title through H1StructuralMutationCoordinator,
+not a historical semantic group name. Trimmed nonblank titles use existing
+version/dirty/ACK persistence; same-title submission is a no-op. Membership,
+ancestry, mixed order and semantic identities remain unchanged.
+
+For entity occurrences, clicking a leaf opens the existing exact primary
+destination; clicking a non-leaf focuses that occurrence. Leaf detection uses
+complete typed H1 direct children, including containers, not only occurrence
+children. Adaptive semantic open destinations remain unchanged and do not alter
+source-delete identity. Sections remain enterable locations even when empty;
+they have no canonical semantic editor. Room 203 unchanged. HOST XML 47/47 in
+six focused classes, production/test Kotlin compile and diff check PASS;
+physical smoke pending, no deployment.
+
+## Product naming: Navigation (2026-10-24)
+
+NAVIGATION_UI_NAME_HOST_20261024
+
+`Navigation` is the user-facing name of the existing Big Picture user-authored
+H1 lens. This is UI naming only, not a new model, canonical graph or navigation
+authority. Internal BigPicture symbols, existing routes/arguments, saved-state
+keys and persisted identities remain unchanged. Entry points, Library placement,
+Workspace appearance selection, confirmations and default history copy use the
+new name. Old default history labels are adapted on display only; user-authored
+entity/custom titles are not renamed. Historical Big Picture terminology in
+this contract continues to denote the same surface. Room 203 unchanged.
+HOST XML 18/18 in four classes, production/test Kotlin compile and diff check
+PASS; physical smoke pending, no deployment.
+
+## Explicit recursive removal of an occurrence branch (2026-10-24)
+
+BIG_PICTURE_RECURSIVE_REMOVE_HOST_20261024
+
+For an occurrence with live children in the admitted mixed typed graph,
+`Прибрати з Big Picture` opens a recursive `Прибрати гілку` confirmation.
+It explicitly includes descendant appearances and nested sections, not canonical
+sources or appearances outside that branch. Empty occurrences retain exact
+single-appearance removal; deleting a container itself still promotes children.
+The confirmation mode is captured at request time: if children arrive after a
+leaf dialog opens, leaf removal fails closed and requires a new explicit request,
+never automatic recursive escalation. Cancel performs no command.
+
+UI delegates the exact PlacementId to the existing H1 coordinator subtree
+retirement transaction. There is no UI-side enumeration/membership repair or
+source lifecycle invocation. Existing typed tombstone/version/dirty and rollback
+contracts remain authoritative; focus/clipboard recovery uses the surviving
+structural graph. Room 203 unchanged. HOST XML 29/29 across six classes
+(including two selected coordinator subtree/rollback methods), production/test
+Kotlin compile and diff check PASS. Physical smoke pending; no deployment.
+
+## Workspace -> exact Big Picture appearance (2026-10-24)
+
+WORKSPACE_APPEARANCE_CHOOSER_HOST_20261024
+
+The canonical Workspace reveal action lists all live direct Workspace-targeted
+GENERAL occurrences, with PRIMARY/LINK context and full root-to-occurrence paths
+from BigPictureStructuralIndex. The same persisted mixed occurrence/container
+graph supplies Big Picture breadcrumbs; there is no parallel hierarchy model.
+The dialog combines bulk coherent structure and live catalog flows on a
+computation dispatcher, subscribed only while open. Rename/move/tombstone updates
+are reactive. No appearance is created for an unplaced Workspace.
+
+NavTarget.ContextHierarchy carries additive optional placementIdToReveal beside
+the compatibility-named projectIdToReveal (Workspace ID). Exact selection and
+history replay address that PlacementId, never an arbitrary appearance of the
+same target. Missing/mismatched exact requests do not fall back to another
+appearance. Existing root and Workspace-only reveal routes remain valid.
+Semantic EMBODIES presentation is not a direct Workspace occurrence and is not
+inferred into this list. No relation, H1, Planning or Context mutation; Room 203.
+HOST XML 28/28 in five classes, production/test Kotlin compilation and diff check
+PASS; physical smoke pending, no deployment.
+
+## Canonical semantic tags, HOST verified 2026-10-19
+
+CANONICAL_SEMANTIC_TAGS_HOST_20261019
+
+Orientation/Aspect tags now come from CanonicalSemanticTagRepository and typed
+ManagedSubjectTagRef; Workspace tags still come from CanonicalWorkspaceTagRepository.
+Library composes five bulk observable metadata/catalog inputs plus narrow H1
+presence. No per-row lookups, binding inheritance, identity merging or writes.
+Orientation + #health + score is now a valid direct-owner query. ALL selected tags
+and saved structured specifications are unchanged; data changes alter results.
+
+Universal Semantic Editor shows normalized tags and explicit immediate Add/Remove
+for both classes, with reactive updates, duplicate prevention, busy/error state.
+Tag mutation does not change semantic identity/relations, Workspace tags/bindings,
+H1, Planning or Context. The existing shared Orientation AST can read these tags
+through SemanticTagFilterEnvironment / observeMatchingOrientations. The pure
+evaluator's empty default remains an explicit no-environment fallback, not DB I/O.
+
+Room **201 -> 202**, exported. Migration adds one empty semantic tag table and
+indexes; old table definitions/data and Workspace tags remain unchanged. Canonical
+snapshot/exact Restore, row-version Merge, dirty/tag-only timestamp delta, exact
+ACK and typed selective closure use the current transport. Equal-version
+divergence rejects; replay is inert; stale ACK cannot clear newer removal.
+Separate dirty/full frames are reconciled only inside the selected typed owner
+closure; a later frame cannot leak an unselected owner's tag, and an older full
+row cannot replace the newer dirty row while its version is acknowledged.
+Generic source delete retires tags atomically; all live reads enforce owner
+lifecycle. Older backups do not fabricate tags; absent peer stream is inert.
+
+Final HOST XML: **125/125 app in 18 classes; 35/35 sync in 5 classes**, zero
+failures/errors/skips:
+
+- App: CanonicalSemanticTagRoomTest 12; CanonicalSemanticTagTransportRoomTest 8;
+  SemanticTagsViewModelTest 4; Migration201To202SemanticTagsRoomTest 1;
+  Migration200To201PlanningReferencesRoomTest 1; CanonicalEntityQueryRepositoryRoomTest 8;
+  CanonicalEntityQueryTest 22; EntityLibraryQueryStateTest 9; CanonicalEntityQueryCodecTest 6;
+  SavedEntityQueryRepositoryTest 10; SavedEntityQuerySettingsRestoreTest 2;
+  CanonicalSemanticEntityLifecycleRoomTest 13; SemanticEntityEditorViewModelTest 18;
+  CanonicalWorkspaceTagRepositoryRoomTest 1; CanonicalWorkspaceTagTransportStoreRoomTest 3;
+  PlanningReferenceExactRestoreRoomTest 2; CanonicalSemanticDeletionReadRoomTest 2;
+  BigPictureSourceDeleteRoomTest 3.
+- Sync: SemanticTagTransportTest 6; CanonicalOrientationWifiPushPlanTest 8;
+  CanonicalBacklogSelectiveImportFilterTest 11; CanonicalBigPictureSelectiveImportClosureTest 8;
+  SnapshotBundleSelectiveImportRetirementClosureTest 2.
+
+Both separate Kotlin compile gates and diff check PASS. Physical smoke pending;
+no deployment. Saved-query codec and MagicBox integration boundary are unchanged.
+
+## Canonical Query + Saved Queries V1, HOST verified 2026-10-19
+
+CANONICAL_ENTITY_QUERY_SAVED_HOST_20261019
+
+`CanonicalEntityQuery` is a non-Compose read specification: fuzzy title text,
+typed Orientation/Aspect/Workspace selection, ALL selected canonical tags,
+typed numeric min/max ranges, sort and Unplaced. Predicates compose with AND;
+types within the selected set are alternatives. Results remain unique by typed
+canonical identity. Default/title/date/score sorting is deterministic, absent
+dates/scores last in both directions; invalid/missing numeric values never
+satisfy ranges. Library exposes Filters, sort, removable chips and Clear filters
+(preserves text/sort); current query survives supported SavedState restoration.
+
+Metadata authority is deliberately narrow:
+
+- Tags: live `workspace_tag_refs` via CanonicalWorkspaceTagRepository for Workspace;
+  live `managed_subject_tag_refs` via CanonicalSemanticTagRepository for typed
+  Orientation/Aspect. No Context tags or inference via WorkspaceBinding/H1.
+- Scoring: current ASSESSED Orientation assessment plus optional canonical
+  scoring override, known orientation-default policy/formula V1. Numeric axes
+  are importance, impact, effort, cost, risk, using policy coordinates, not enum
+  ordinals. Derived display score uses the existing shared formula (0–100).
+  Policy normalization bands are not hard upper bounds on admitted overrides.
+  UNASSESSED/UNSCORABLE, unavailable axes and unknown policy give absent scores,
+  not zero. Aspect/Workspace do not inherit Orientation scoring.
+- Unplaced: the accepted narrow GENERAL H1 presence read remains independent.
+  No new hierarchy authority or semantic relation is inferred from query state.
+
+The initial Workspace-only tag limitation is superseded by semantic tags above;
+Orientation tag + score now has the same direct canonical owner. Bulk metadata flows
+plus narrow placement presence avoid N+1; metadata/presence preparation is not
+repeated for each keystroke. Filtering runs off Main and reuses fuzzy semantics.
+
+`SavedEntityQuery = durable reusable CanonicalEntityQuery specification`.
+It is `SEMANTIC_NOT_HIERARCHY` user presentation/query preference, not a Lens,
+entity, H1 node or membership/result list. Library supports Save current query
+with read-only preview, Apply, Rename and Delete; no autosave or separate mode.
+UUID identity is independent of duplicate display names. Name is trimmed,
+1–120 characters; createdAt/updatedAt are retained. Applying restores ordinary
+search/chips/sort/Unplaced; manual edits and deleting a preset do not change
+the saved specification/current query respectively. Save/rename/delete require
+explicit confirmation; busy state prevents duplicate submission; drafts are not replayed
+after process recreation. Save captures the latest input via the same query
+builder, independent from background result latency. Search resets only on explicit Apply, not delayed
+query results, retaining local selection/IME behavior during typing.
+
+Persistence: one `canonical_saved_entity_queries_v1` structured-JSON collection
+in the existing singleton settings DataStore; collection and query each version
+1. Query stores text, typed classes, tags, ranges, typed sort and Unplaced, never
+DSL or results. CRUD uses atomic DataStore edits. Unknown query predicates remain
+preserved and visible with an issue, Apply disabled; Rename/Delete remain valid.
+Unknown/corrupt collection blocks CRUD to avoid destructive replacement.
+
+Transport: existing `FullAppBackup.settings` preference map includes the key
+unchanged; settings Restore replaces the entire collection, including deletions.
+Older settings without the key restore no presets. This is not SnapshotBundle
+entity state. Existing explicit settings-transfer paths also carry the key as
+whole-snapshot replacement, not independent row-level Merge, dirty delta or ACK.
+No separate saved-query cross-device conflict protocol is implemented. No Room
+migration/tables, semantic/operational writes, H1 or Planning changes; **201 -> 201**.
+
+MagicBox live adapter (MAGICBOX_CANONICAL_QUERY_HOST_20261020): textual adapter
+to CanonicalEntityQuery, never an independent filtering authority. Shared bulk
+catalog/engine + 180 ms input debounce; rows preserve exact typed identities.
+Orientation/Aspect open SemanticEntityEditor; Workspace opens canonical Workspace.
+Reactive title/tag/score/tombstone/saved changes; saved Unplaced reuses H1 presence.
+
+V1 syntax: free text, #tag (multiple = ALL), type:orientation/aspect/workspace,
+score:<dimension>>=N, score:<dimension><=N, sort:title[:desc],
+sort:<dimension>[:desc], is:unplaced. Actual dimensions are importance, impact,
+effort, cost, risk and score, from canonical Orientation scoring only.
+Unknown operators/types/dimensions and malformed numeric bounds fail closed
+with distinguishable errors; absent score never passes numeric predicates.
+
+`saved:<exact name>` is standalone; the whole remainder is the name, including
+spaces. No predicate composition. Duplicate names require explicit stable-ID
+selection; missing/unavailable records never fall back to another query.
+`saved:` offers the current saved collection. Saved specifications are decoded
+unchanged and re-executed, never materialized as result lists.
+
+Plain text defaults to canonical results; Other results explicitly opens the
+existing mixed operational search. Command/Inbox/Activity modes and input
+prefixes remain intact. No persistence/transport changes, Room 202 -> 202.
+HOST XML 108/108 (11 classes), both separate Kotlin compile gates PASS;
+physical smoke pending, no deployment.
+
+Final HOST JUnit XML: **107/107, 17 classes**, zero failures/errors/skips:
+
+- CanonicalEntityQueryTest 22; CanonicalEntityQueryParserTest 8;
+  CanonicalEntityQueryCodecTest 6; CanonicalEntityQueryRepositoryRoomTest 7.
+- SavedEntityQueryRepositoryTest 10; SavedEntityQuerySettingsRestoreTest 2;
+  SavedEntityQueriesViewModelTest 5; EntityLibraryQueryStateTest 9.
+- EntityLibraryViewModelTest 11; EntityLibrarySortTest 4;
+  EntityLibraryUnplacedTest 2; EntityLibraryNavigationContractTest 4;
+  EntityLibraryPlacementRoomTest 6; CanonicalEntityCatalogRepositoryTest 3;
+  CanonicalHierarchyPlacementPresenceRepositoryRoomTest 3;
+  CanonicalSemanticDeletionReadRoomTest 2; BigPictureSourceDeleteRoomTest 3.
+
+Both separate Kotlin compile gates and diff check PASS. No device deployment;
+physical acceptance pending. Safe smoke is recorded in project NEXT.
+
 ## Adaptive operational representation, HOST verified 2026-10-19
 
 BIG_PICTURE_ADAPTIVE_OPERATIONAL_HOST_20261019
@@ -344,7 +587,8 @@ that limitation for named groups; NoGroup/NoBeacon wrappers are removed.
 It never creates semantic relations.
 
 The familiar exact-occurrence Cut → navigate → Paste flow remains active.
-Remove means only remove this placement; container delete delegates direct
+Leaf Remove means only remove this placement; explicit non-leaf branch confirmation
+uses the existing subtree retirement command described above. Container delete delegates direct
 mixed-child promotion to H1. Reorder uses complete typed sibling sets. Generic
 sections are presentation-only and coexist with historical GroupScope/Main
 Beacon rendering. The schema-200 applicability section below is the transport
@@ -446,7 +690,8 @@ typed clipboard Cut/Paste, occurrence Remove and mixed sibling reorder call
 H1StructuralMutationCoordinator only. Container removal delegates direct-child
 promotion to that authority. `addAppearance` selects PRIMARY when none is live,
 otherwise LINK, under the same Room transaction as creation. Removing PRIMARY
-does not promote LINK; Remove still rejects live typed children.
+does not promote LINK; single-occurrence Remove still rejects live typed children.
+The explicit recursive UI confirmation delegates to the separate accepted subtree command.
 
 Historical scopes are not structural mutation destinations. Root reorder uses
 the complete underlying typed sibling set, including occurrences displayed

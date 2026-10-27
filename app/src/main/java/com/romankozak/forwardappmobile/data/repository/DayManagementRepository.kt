@@ -101,6 +101,8 @@ class DayManagementRepository
             val projectId: String? = null,
             val linkedProjectIds: List<String>? = null,
             val updateContextLinks: Boolean = false,
+            val notes: String? = null,
+            val updateNotes: Boolean = false,
         )
 
         @Volatile
@@ -421,6 +423,11 @@ class DayManagementRepository
                 )
             }
 
+        /** Occurrence-local journal text; never edits a recurrence template, alarms or ordering. */
+        suspend fun updateTaskNotes(taskId: String, notes: String) = withContext(ioDispatcher) {
+            require(dayTaskDao.updateNotesIfLive(taskId, notes, System.currentTimeMillis()) == 1) { "Завдання більше недоступне" }
+        }
+
         suspend fun updateTask(params: UpdateTaskParams) = withContext(ioDispatcher) {
             val task = dayTaskDao.getTaskById(params.taskId) ?: return@withContext
             val timing =
@@ -433,6 +440,7 @@ class DayManagementRepository
                 task.copy(
                     title = params.title,
                     description = params.description,
+                    notes = if (params.updateNotes) params.notes else task.notes,
                     priority = params.priority,
                     estimatedDurationMinutes = params.duration,
                     scheduledTime = timing.scheduledTime,
@@ -623,6 +631,8 @@ class DayManagementRepository
                 }
             }
         }
+        fun observeRecurrenceRuleChanges(): Flow<Unit> = canonicalRecurrenceMaterializationAdapter.observeRuleChanges()
+
         suspend fun materializeCanonicalRecurrenceForDate(date: Long) {
             val result = canonicalRecurrenceMaterializationAdapter.materializeForDate(date)
 

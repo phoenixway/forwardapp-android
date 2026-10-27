@@ -132,8 +132,10 @@ fun createDayTaskForJs(
     notes: String?,
     completedAt: Double?,
     points: Int,
+    realizedDayFocusItemIds: Array<String> = emptyArray(),
 ): DayTask =
     DayTask(
+        realizedDayFocusItemIds = realizedDayFocusItemIds.toList(),
         id = id,
         createdAt = requireJsSafeIntegerLong(createdAt, "DayTask.createdAt"),
         updatedAt = requireJsSafeIntegerLong(updatedAt, "DayTask.updatedAt"),

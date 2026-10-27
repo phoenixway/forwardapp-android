@@ -29,6 +29,9 @@ class CanonicalAspectLinksRepository
         fun observeMemberships(): Flow<List<AspectOrientationRefEntity>> =
             orientationDao.observeAspectOrientationRefs()
 
+        fun observeMembershipsForAspect(aspectId: String): Flow<List<AspectOrientationRefEntity>> =
+            orientationDao.observeLiveAspectRefsForAspect(aspectId)
+
         fun observeMemberships(orientationId: String): Flow<List<AspectOrientationRefEntity>> =
             orientationDao.observeLiveAspectRefsForOrientation(orientationId)
 

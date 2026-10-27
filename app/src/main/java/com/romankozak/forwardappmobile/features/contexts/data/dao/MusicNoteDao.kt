@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.data.dao
 
+import com.romankozak.forwardappmobile.data.workspace.CONNECTIONS_OWNER_READ_SQL
+
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -32,7 +34,8 @@ interface MusicNoteDao {
             ON link.attachmentId = a.id AND link.isDeleted = 0
         INNER JOIN workspaces AS w
             ON w.id = link.workspaceId
-        WHERE w.sourceContextId = :contextId
+        WHERE w.id = """ + CONNECTIONS_OWNER_READ_SQL + """
+          AND w.isDeleted = 0
           AND a.isDeleted = 0
         ORDER BY mn.updatedAt DESC
         """,

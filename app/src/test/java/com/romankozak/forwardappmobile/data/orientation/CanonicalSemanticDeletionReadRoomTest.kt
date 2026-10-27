@@ -46,7 +46,7 @@ class CanonicalSemanticDeletionReadRoomTest {
                     val orientation = f.orientation()
                     val aspect = f.aspect()
                     val catalog = CanonicalEntityCatalogRepository(f.db.canonicalEntityCatalogDao())
-                    val library = EntityLibraryViewModel(catalog, CanonicalHierarchyPlacementPresenceRepository(f.db.hierarchyPlacementDao()),
+                    val library = EntityLibraryViewModel(com.romankozak.forwardappmobile.data.entitybrowser.canonicalQueryCatalog(f.db), CanonicalHierarchyPlacementPresenceRepository(f.db.hierarchyPlacementDao()),
                         SavedStateHandle(), Dispatchers.Unconfined).also { store.put("library", it); jobs += it.viewModelScope.coroutineContext[Job]!! }
                     suspend fun ready(predicate: (EntityLibraryUiState.Ready) -> Boolean) = withTimeout(10_000) {
                         library.uiState.first { it is EntityLibraryUiState.Ready && predicate(it) }

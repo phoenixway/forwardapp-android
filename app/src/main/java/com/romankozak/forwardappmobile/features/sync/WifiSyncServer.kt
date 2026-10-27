@@ -90,6 +90,7 @@ class WifiSyncServer(
                 embeddedServer(CIO, port = port, host = "0.0.0.0") {
                     install(ContentNegotiation) {
                         gson {
+                            registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
                             setPrettyPrinting()
                         }
                     }

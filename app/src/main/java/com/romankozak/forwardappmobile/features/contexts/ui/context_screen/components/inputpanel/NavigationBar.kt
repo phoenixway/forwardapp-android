@@ -74,7 +74,7 @@ internal fun NavigationBar(
             Icon(Icons.Outlined.History, null, tint = contentColor.copy(alpha = 0.8f))
         }
         IconButton(onClick = actions.onShowCurrentContextInHierarchyFocus, modifier = Modifier.size(34.dp)) {
-            Icon(Icons.Outlined.MyLocation, null, tint = contentColor.copy(alpha = 0.8f))
+            Icon(Icons.Outlined.MyLocation, "Показати появи у Navigation", tint = contentColor.copy(alpha = 0.8f))
         }
         IconButton(onClick = actions.onAddContextLink, modifier = Modifier.size(34.dp)) {
             Icon(Icons.Outlined.Add, null, tint = contentColor.copy(alpha = 0.8f))

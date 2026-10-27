@@ -26,6 +26,20 @@ import org.robolectric.RobolectricTestRunner
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class SemanticEmbodyingWorkspaceRoomTest {
+    @Test fun `specialized Goal meaning remains unchanged when creating its embodying Workspace`() = runBlocking<Unit> {
+        SemanticDeletionRoomFixture().use { f ->
+            val id = f.orientation(com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.GOAL)
+            val subjects = f.dao.getAllManagedSubjects()
+            val orientations = f.dao.getAllOrientations()
+            val workspace = command(f).create(request(id), now = 30)
+            assertThat(f.dao.getAllManagedSubjects()).isEqualTo(subjects)
+            assertThat(f.dao.getAllOrientations()).isEqualTo(orientations)
+            assertThat(f.db.workspaceDao().getById(workspace)!!.sourceContextId).isNull()
+            assertThat(f.dao.getAllWorkspaceBindings().single().subjectId).isEqualTo(id)
+            assertThat(f.db.hierarchyPlacementDao().getAll()).isEmpty()
+            assertThat(f.db.contextDao().getAllRaw()).isEmpty()
+        }
+    }
     @Before fun setup() { Dispatchers.setMain(Dispatchers.Unconfined) }
     @After fun cleanup() { Dispatchers.resetMain() }
 

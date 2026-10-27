@@ -10,6 +10,8 @@ import kotlinx.serialization.json.*
 data class CanonicalSubjectReference(
     val id: String,
     val subjectType: ManagedSubjectType,
+    val version: Long = 1,
+    val isDeleted: Boolean = false,
 )
 
 @JsExport
@@ -72,6 +74,7 @@ data class CanonicalOrientationValidationGraph(
     val bindings: List<WorkspaceBinding>,
     val capabilities: List<WorkspaceCapabilityInstance>,
     val savedViews: List<CanonicalSavedViewReference>,
+    val subjectConversions: List<SubjectConversionEvidence> = emptyList(),
 )
 
 @JsExport
@@ -88,6 +91,25 @@ fun validateCanonicalOrientationReferences(
     val orientationIds = graph.orientations.mapTo(hashSetOf()) { it.subjectId }
     val aspectIds = graph.aspects.mapTo(hashSetOf()) { it.subjectId }
     val violations = mutableListOf<CanonicalOrientationReferenceViolation>()
+    val historicalKinds = mutableMapOf<String, OrientationKind>()
+    val formerAspects = runCatching {
+        require(graph.subjectConversions.map { it.id }.distinct().size == graph.subjectConversions.size)
+        graph.subjectConversions.groupBy { it.subjectId }.forEach { (id, facts) ->
+            val subject = requireNotNull(subjects[id])
+            require(subject.subjectType == ManagedSubjectType.ORIENTATION)
+            val kind = requireNotNull(graph.orientations.singleOrNull { it.subjectId == id }).kind
+            val kinds = historicalAssessmentKinds(facts, kind, subject.version)
+            kinds.forEach { (revisionId, historicalKind) ->
+                require(graph.revisions.singleOrNull { it.id == revisionId }?.orientationId == id) { "Missing historical revision closure" }
+                require(historicalKinds.put(revisionId, historicalKind) == null)
+            }
+            require(id !in aspectIds && graph.mappings.none { it.subjectId == id })
+        }
+        graph.subjectConversions.filter { it.fromType == "ASPECT" }.mapTo(hashSetOf()) { it.subjectId }
+    }.getOrElse {
+        violations += invalid("SUBJECT_CONVERSION", "Invalid semantic subject conversion evidence")
+        emptySet()
+    }
 
     if (!orientationIds.all { subjects[it]?.subjectType == ManagedSubjectType.ORIENTATION }) {
         violations += invalid("ORIENTATION_SUBJECT", "Every Orientation must reference an ORIENTATION ManagedSubject.")
@@ -95,13 +117,18 @@ fun validateCanonicalOrientationReferences(
     if (!aspectIds.all { subjects[it]?.subjectType == ManagedSubjectType.ASPECT }) {
         violations += invalid("ASPECT_SUBJECT", "Every Aspect must reference an ASPECT ManagedSubject.")
     }
-    if (validateSingleParentHierarchy(graph.aspects.associate { it.subjectId to it.parentAspectId }).isNotEmpty()) {
+    val taxonomy = graph.aspects.associate { it.subjectId to it.parentAspectId } + formerAspects.associateWith { null }
+    if (graph.aspects.any { it.parentAspectId in formerAspects && subjects[it.subjectId]?.isDeleted != true } ||
+        validateSingleParentHierarchy(taxonomy).isNotEmpty()) {
         violations += invalid("ASPECT_HIERARCHY", "Aspect hierarchy violates DOMAIN-CONTRACT v1.")
     }
     if (!graph.assessments.all { it.orientationId in orientationIds }) {
         violations += invalid("ASSESSMENT_ORIENTATION", "Every current assessment must reference an Orientation in the payload.")
     }
     val kindById = graph.orientations.associate { it.subjectId to it.kind }
+    if (graph.assessments.any { current -> historicalKinds[current.revisionId]?.let { it != kindById[current.orientationId] } == true }) {
+        violations += invalid("ASSESSMENT_KIND_HISTORY", "Current assessment cannot use a revision belonging to a former kind.")
+    }
     graph.assessments.filter { it.orientationId in kindById }.forEach { assessment ->
         if (validateOrientationAssessment(kindById.getValue(assessment.orientationId), assessment.assessment).isNotEmpty()) {
             violations += invalid("ASSESSMENT_CONTRACT", "Assessment ${assessment.orientationId} violates DOMAIN-CONTRACT v1.")
@@ -115,7 +142,7 @@ fun validateCanonicalOrientationReferences(
         violations += invalid("ASSESSMENT_REVISION", "Every current assessment must reference its matching immutable revision.")
     }
     graph.revisions.filter { it.orientationId in kindById }.forEach { revision ->
-        if (validateOrientationAssessment(kindById.getValue(revision.orientationId), revision.assessment).isNotEmpty()) {
+        if (validateOrientationAssessment(historicalKinds[revision.id] ?: kindById.getValue(revision.orientationId), revision.assessment).isNotEmpty()) {
             violations += invalid("REVISION_CONTRACT", "Assessment revision ${revision.id} violates DOMAIN-CONTRACT v1.")
         }
     }
@@ -131,7 +158,7 @@ fun validateCanonicalOrientationReferences(
     if (validateOrientationRelations(orientationIds, graph.relations).isNotEmpty()) {
         violations += invalid("ORIENTATION_RELATIONS", "Orientation relations violate DOMAIN-CONTRACT v1.")
     }
-    if (!graph.aspectRefs.all { it.aspectId in aspectIds && it.orientationId in orientationIds }) {
+    if (!graph.aspectRefs.all { (it.aspectId in aspectIds || (it.isDeleted && it.aspectId in formerAspects)) && it.orientationId in orientationIds }) {
         violations += invalid("ASPECT_REF_ENDPOINT", "Every Aspect reference must use known Aspect and Orientation endpoints.")
     }
     if (validateAspectOrientationRefs(graph.aspectRefs).isNotEmpty()) {
@@ -170,7 +197,7 @@ fun validateCanonicalOrientationReferencesWire(rawGraph: String): Array<String> 
     val root = Json.parseToJsonElement(rawGraph).jsonObject
     val graph = CanonicalOrientationValidationGraph(
         subjects = root.rows("managedSubjects").map {
-            CanonicalSubjectReference(it.string("id"), ManagedSubjectType.valueOf(it.string("subjectType")))
+            CanonicalSubjectReference(it.string("id"), ManagedSubjectType.valueOf(it.string("subjectType")), it.nullableLong("version") ?: 1L, it["isDeleted"]?.jsonPrimitive?.booleanOrNull ?: false)
         },
         orientations = root.rows("orientations").map {
             CanonicalOrientationReference(it.string("subjectId"), OrientationKind.valueOf(it.string("kind")))
@@ -197,6 +224,14 @@ fun validateCanonicalOrientationReferencesWire(rawGraph: String): Array<String> 
             WorkspaceCapabilityInstance(it.string("id"), it.long("createdAt"), it.long("updatedAt"), it.nullableLong("syncedAt"), it.boolean("isDeleted"), it.long("version"), it.string("workspaceId"), WorkspaceCapabilityType.valueOf(it.string("capabilityType")), it.string("instanceKey"), it.long("order", "capabilityOrder"), WorkspaceCapabilityState.valueOf(it.string("state")), it.int("configurationVersion"), it.string("configuration"))
         },
         savedViews = root.rows("savedOrientationViews").map { CanonicalSavedViewReference(it.string("id"), it.int("filterAstVersion")) },
+        subjectConversions = root.rows("managedSubjectConversions").map {
+            SubjectConversionEvidence(it.string("id"), it.string("subjectId"), it.int("formatVersion"),
+                it.string("fromType"), it.string("toType"), it.string("targetOrientationKind"),
+                it.long("fromSubjectVersion"), it.long("toSubjectVersion"), it.nullableString("previousAspectParentId"),
+                it.long("previousAspectOrder"), it.boolean("previousAspectArchived"), it.long("createdAt"),
+                it.long("updatedAt"), it.long("version"), it.nullableLong("syncedAt"), it.nullableString("fromOrientationKind"),
+                it.nullableString("previousAssessmentRevisionIdsJson")?.let { raw -> Json.parseToJsonElement(raw).jsonArray.map { id -> id.jsonPrimitive.content } })
+        },
     )
     return validateCanonicalOrientationReferences(graph).map { "${it.code}:${it.message}" }.toTypedArray()
 }

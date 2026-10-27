@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -46,7 +47,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalPlanBacklogItem
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
@@ -61,9 +61,14 @@ import java.util.Locale
 
 @Composable
 fun TacticsBottomPanel(
-    globalActions: BottomPanelGlobalActions,
     viewModel: TacticalMissionViewModel = hiltViewModel(),
+    execution: Boolean = false,
 ) {
+    var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
+    if (execution) {
+        TacticsExecutionComposer(viewModel)
+        return
+    }
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by viewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
@@ -80,7 +85,6 @@ fun TacticsBottomPanel(
     val planningBacklogItems by viewModel.planningBacklogItems.collectAsStateWithLifecycle()
     val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
     val inputSuggestionActions = remember { InputSuggestionActions() }
-    var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
     var showBacklogBrowser by remember { mutableStateOf(false) }
     val autocompleteSuggestions =
@@ -154,7 +158,6 @@ fun TacticsBottomPanel(
         onOpenMissionStreamsSheet = viewModel::openMissionStreamsSheet,
         onBrowseBacklogSource = { showBacklogBrowser = true },
         onPasteMissions = viewModel::pasteClipboardAsMissions,
-        globalActions = globalActions,
     )
 
     if (showBacklogBrowser && selectedPlanningContextId != null) {

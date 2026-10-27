@@ -67,6 +67,13 @@ Authoritative for ChatGPT web workflow and AI CLI Bridge usage.
 
 ## Focused documentation
 
+`ui/MAIN-SCREEN-DOCK-PARITY.md`
+- `CURRENT` implemented main-screen UI structure / control inventory and HOST
+  evidence; full device functional parity acceptance is explicitly pending.
+- Single global dock, contextual composers/menus, exact handler dispositions,
+  draft/inset boundaries and mandatory physical verification matrix. Not a
+  domain, hierarchy, persistence or transport authority.
+
 The following directories contain subsystem documentation:
 
 - `sync/`

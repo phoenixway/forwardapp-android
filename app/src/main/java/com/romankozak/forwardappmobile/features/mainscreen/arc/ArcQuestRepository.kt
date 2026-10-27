@@ -26,6 +26,8 @@ class ArcQuestRepository
 
         suspend fun updateQuest(quest: ArcQuestEntity) = canonicalAdapter.updateQuest(quest)
 
+        suspend fun carryQuest(questId: String, targetArcKey: String) = canonicalAdapter.carryQuest(questId, targetArcKey)
+
         suspend fun deleteQuest(quest: ArcQuestEntity) = canonicalAdapter.deleteQuest(quest)
 
         suspend fun reorder(quests: List<ArcQuestEntity>) = canonicalAdapter.reorder(quests)

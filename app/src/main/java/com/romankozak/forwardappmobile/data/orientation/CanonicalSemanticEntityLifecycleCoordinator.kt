@@ -14,6 +14,7 @@ import kotlinx.coroutines.ensureActive
 /** Deliberately excludes kinds with specialized/compatibility lifecycle owners. */
 val genericDeletableOrientationKinds: Set<OrientationKind> = setOf(
     OrientationKind.INTENT,
+    OrientationKind.PROJECT,
     OrientationKind.MILESTONE,
     OrientationKind.ONGOING_STANDARD,
     OrientationKind.OPPORTUNITY,
@@ -95,6 +96,8 @@ class CanonicalSemanticEntityLifecycleCoordinator @Inject constructor(
         if (subjectType == ManagedSubjectType.ORIENTATION) orientations.requireCompleteActiveOrientationAggregate(subjectId)
 
         hierarchy.retireSemanticTargetAppearances(subjectId, now)
+        CanonicalSemanticTagRepository(database).retireForSubject(
+            com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectRef(subjectType, subjectId), now)
         edges.forEach { graph.removeRelation(it.id, it.version, now) }
         dao.getAllAspectOrientationRefs().filter {
             !it.isDeleted && (it.aspectId == subjectId || it.orientationId == subjectId)

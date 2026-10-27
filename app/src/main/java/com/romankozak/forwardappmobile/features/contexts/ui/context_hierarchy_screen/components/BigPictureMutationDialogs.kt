@@ -30,7 +30,7 @@ internal fun BigPictureDestinationDialog(
             Column {
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 OutlinedTextField(value = search, onValueChange = { search = it }, label = { Text("Знайти місце") })
-                TextButton(enabled = enabled, onClick = { onChoose(H1StructuralParent.Root) }) { Text("Корінь Big Picture") }
+                TextButton(enabled = enabled, onClick = { onChoose(H1StructuralParent.Root) }) { Text("Корінь Navigation") }
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(items.filter { it.title.contains(search, ignoreCase = true) }, key = { it.ref.toString() }) { item ->
                         TextButton(enabled = enabled, onClick = { onChoose(H1StructuralParent.Node(item.ref)) }) {

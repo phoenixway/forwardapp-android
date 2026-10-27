@@ -65,6 +65,35 @@ class TacticalMissionVisibilityTest {
         assertThat(visible).containsExactly(newMission, previouslyHiddenMission)
     }
 
+    @Test
+    fun `carried mission with historical backlog provenance is visible but original backlog row stays separate`() {
+        val cycle = draftIteration()
+        val carried = mission(id = 2, iterationId = cycle.id, streamId = "general").copy(
+            sourceType = com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType.PREVIOUS_WEEK,
+            sourceBacklogItemId = "old-entry", carriedFromMissionId = 1,
+        )
+        val original = carried.copy(id = 3,
+            sourceType = com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType.CONTEXT_BACKLOG_ITEM,
+            carriedFromMissionId = null)
+        val visible = buildVisibleTacticalMissions(listOf(original, carried), TacticsWorkspaceMode.PLAN,
+            "general", listOf(stream("general")), cycle, CURRENT_WEEK)
+        assertThat(visible).containsExactly(carried)
+        assertThat(carried.sourceBacklogItemId).isEqualTo("old-entry")
+    }
+
+    @Test
+    fun `carried backlog-origin mission is visible in its selected execution stream`() {
+        val cycle = draftIteration().copy(status = TacticalIterationStatus.ACTIVE)
+        val carried = mission(id = 2, iterationId = cycle.id, streamId = "work").copy(
+            sourceType = com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType.PREVIOUS_WEEK,
+            sourceBacklogItemId = "old-entry", carriedFromMissionId = 1,
+        )
+        assertThat(buildVisibleTacticalMissions(listOf(carried), TacticsWorkspaceMode.STREAMS,
+            "work", listOf(stream("general"), stream("work")), cycle, CURRENT_WEEK)).containsExactly(carried)
+        assertThat(buildVisibleTacticalMissions(listOf(carried), TacticsWorkspaceMode.STREAMS,
+            "general", listOf(stream("general"), stream("work")), cycle, CURRENT_WEEK)).isEmpty()
+    }
+
     private fun draftIteration(): TacticalIteration =
         TacticalIteration(
             id = "draft-cycle",

@@ -8,6 +8,25 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import org.junit.Test
 
 class ContextSessionStoreTest {
+    @Test
+    fun `canonical relations view restores selection and falls back when disabled`() {
+        val store = createStore()
+        val config = ContextConfiguration(id = "cfg", contextId = "standalone", enableDashboard = true)
+        fun sync(enabled: Boolean) = store.syncFromConfig(
+            contextId = "standalone", config = config,
+            preferredViewName = "RELATIONS", currentView = ContextViewMode.RELATIONS,
+            canonicalCapabilityOverrides = mapOf(CapabilityId("relations") to enabled),
+        )
+        val restored = sync(true)
+        assertThat(restored.availableViews).contains(ContextViewMode.RELATIONS)
+        assertThat(restored.currentView).isEqualTo(ContextViewMode.RELATIONS)
+        assertThat(store.selectView(ContextViewMode.RELATIONS)).isEqualTo(ContextViewMode.RELATIONS)
+        val disabled = sync(false)
+        assertThat(disabled.availableViews).doesNotContain(ContextViewMode.RELATIONS)
+        assertThat(disabled.currentView).isEqualTo(ContextViewMode.DASHBOARD)
+        assertThat(store.selectView(ContextViewMode.RELATIONS)).isEqualTo(ContextViewMode.DASHBOARD)
+    }
+
     private fun createStore(): ContextSessionStore {
         val initial =
             DefaultContextState(

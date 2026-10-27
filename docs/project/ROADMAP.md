@@ -1,5 +1,41 @@
 # ForwardApp Roadmap
 
+## 2026-10-25 - Native OrientationKind refinement
+
+ORIENTATION_KIND_TRANSFORMATION_HOST_20261025
+
+Implemented bounded native kind command/editor confirmation, Room 204 -> 205.
+Identity-preserving changes between five ordinary kinds include immutable
+assessment-kind history and unchanged independent relations/placements/Planning.
+HOST XML 106 app + 22 sync + 34 shared JVM PASS; physical smoke pending. Specialized/native-adoption
+and reverse subject conversions are not included. No global reprioritization;
+Backlog #2 remains Priority UNSET.
+
+## 2026-10-25 - Native semantic subject conversion, bounded accepted slice
+
+SEMANTIC_SUBJECT_CONVERSION_HOST_20261025
+
+IMPLEMENTED / HOST VERIFIED; physical acceptance pending: native Aspect -> explicitly selected ordinary
+OrientationKind with same identity, durable conversion history and atomic
+dependent-state lifecycle. Room 203 -> 204 adds immutable conversion facts.
+Protected transport and historical endpoint validation are active together with
+editor confirmation. HOST XML: 83 app + 20 sync + 23 shared JVM PASS. No
+reverse/specialized conversion or universal relationship/model redesign.
+History-bearing selective import and TASK recurrence Aspect SOURCE fail closed.
+Contract and immediate continuation are in DOMAIN-CONTRACT.md and NEXT.md.
+No project-wide reprioritization; Backlog #2 remains Priority UNSET.
+
+## 2026-10-20 - Day Task Notes / Realizes product seam
+
+DAY_TASK_REALIZES_NOTES_HOST_20261020
+
+- IMPLEMENTED / HOST VERIFIED; physical acceptance pending.
+- Combined Notes sections preserve independent instruction/journal texts.
+- Realizes exposes same-day themes, focuses/responsibilities and existing Other
+  references; task cards expose selected links. No implicit theme assignment.
+- Room 202 -> 203; HOST XML 50 app + 1 sync PASS, Kotlin compilation PASS.
+- No global milestone/priority change; Backlog #2 remains Priority UNSET.
+
 ## 2026-10-19 - Recurrence Planning SOURCE seam closed
 
 RECURRENCE_PLANNING_SOURCE_HOST_20261019

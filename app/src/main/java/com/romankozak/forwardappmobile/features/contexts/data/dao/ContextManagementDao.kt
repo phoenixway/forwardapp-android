@@ -24,6 +24,17 @@ interface ContextManagementDao {
     )
     fun getLogsForContextStream(contextId: String): Flow<List<ContextLog>>
 
+    @Query(
+        """
+        SELECT log.* FROM context_execution_logs AS log
+        INNER JOIN workspaces AS workspace ON workspace.id = log.workspaceId
+        WHERE log.workspaceId = :workspaceId
+          AND log.is_deleted = 0 AND workspace.isDeleted = 0
+        ORDER BY log.timestamp DESC, log.id
+        """,
+    )
+    fun observeWorkspaceLogs(workspaceId: String): Flow<List<ContextLog>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: ContextLog)
 

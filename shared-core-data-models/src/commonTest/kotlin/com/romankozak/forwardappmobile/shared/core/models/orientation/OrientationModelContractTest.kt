@@ -21,11 +21,12 @@ class OrientationModelContractTest {
 
     @Test
     fun contractContainsAcceptedKindAndAxisSets() {
-        assertEquals(12, OrientationKind.entries.size)
+        assertEquals(13, OrientationKind.entries.size)
+        assertEquals("PROJECT", OrientationKind.PROJECT.name)
         assertEquals("INTENT", OrientationKind.INTENT.name)
         assertEquals("QUEST", OrientationKind.QUEST.name)
         assertEquals(11, OrientationAxis.entries.size)
-        assertEquals(11, WorkspaceCapabilityType.entries.size)
+        assertEquals(12, WorkspaceCapabilityType.entries.size)
         assertEquals(1, ORIENTATION_FILTER_AST_VERSION)
     }
 }

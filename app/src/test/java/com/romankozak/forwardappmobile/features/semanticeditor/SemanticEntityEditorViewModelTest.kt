@@ -32,6 +32,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -59,13 +61,100 @@ class SemanticEntityEditorViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         every { catalogRepository.observeCatalog() } returns flowOf(catalog())
+        every { aspectRepository.observeLive() } returns flowOf(emptyList())
         every { aspectLinksRepository.observeMemberships(any()) } returns flowOf(emptyList())
+        every { aspectLinksRepository.observeMembershipsForAspect(any()) } returns flowOf(emptyList())
         every { workspaceBindingRepository.observeBindings(any()) } returns flowOf(emptyList())
         every { graphRepository.observeRelations(any()) } returns flowOf(emptyList())
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
+
+    @Test fun `unified picker admits both semantic types for Orientation but never Workspace or self`() = runTest(dispatcher) {
+        arrangeOrientation()
+        val request = viewModel().semanticPickerRequest()!!
+        assertEquals(setOf(CanonicalEntityClass.ORIENTATION, CanonicalEntityClass.ASPECT), request.allowedClasses)
+        assertEquals(setOf(CanonicalEntityRef.Orientation("orientation-1")), request.excludedRefs)
+        assertEquals(CanonicalEntitySelectionMode.SINGLE, request.selectionMode)
+    }
+
+    @Test fun `Aspect unified picker admits Orientation with inverse association projection`() = runTest(dispatcher) {
+        arrangeAspect()
+        every { aspectLinksRepository.observeMembershipsForAspect("aspect-1") } returns flowOf(listOf(aspectRef()))
+        val vm = viewModel("aspect-1")
+        assertEquals(setOf(CanonicalEntityClass.ORIENTATION), vm.semanticPickerRequest()!!.allowedClasses)
+        val row = loadedModel(vm).orientationAssociations.single()
+        assertEquals("orientation-1", row.orientationId)
+        assertEquals("Purpose", row.title)
+        assertEquals(AspectOrientationRelationType.BELONGS_TO, row.relationType)
+        assertTrue(row.isPrimary)
+        assertTrue(loadedModel(vm).aspectAssociations.isEmpty())
+    }
+
+    @Test fun `Aspect adds Orientation using existing association authority and reloads while preserving draft`() = runTest(dispatcher) {
+        arrangeAspect()
+        val refs = MutableStateFlow(emptyList<AspectOrientationRefEntity>())
+        every { aspectLinksRepository.observeMembershipsForAspect("aspect-1") } returns refs
+        coEvery { aspectLinksRepository.linkOrientation(any(), any(), any(), any(), any()) } coAnswers {
+            refs.value = listOf(aspectRef())
+            "ref-1"
+        }
+        val vm = viewModel("aspect-1")
+        vm.setName("Unsaved Aspect title")
+        vm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(CanonicalEntityRef.Orientation("orientation-1")))
+        assertEquals(PendingSemanticRelation.AspectOrientation("orientation-1"), loadedModel(vm).pendingRelation)
+        vm.addAspectAssociation(AspectOrientationRelationType.BELONGS_TO, true)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { aspectLinksRepository.linkOrientation("aspect-1", "orientation-1", AspectOrientationRelationType.BELONGS_TO, true, any()) }
+        assertEquals("Purpose", loadedModel(vm).orientationAssociations.single().title)
+        assertEquals("Unsaved Aspect title", loadedModel(vm).name)
+        assertNull(loadedModel(vm).pendingRelation)
+        coVerify(exactly = 0) { graphRepository.addRelation(any(), any(), any(), any()); workspaceBindingRepository.bind(any(), any(), any(), any()) }
+    }
+
+    @Test fun `Aspect RELEVANT_TO remains nonprimary and double submission is guarded`() = runTest(dispatcher) {
+        arrangeAspect()
+        val gate = CompletableDeferred<String>()
+        coEvery { aspectLinksRepository.linkOrientation(any(), any(), any(), any(), any()) } coAnswers { gate.await() }
+        val vm = viewModel("aspect-1")
+        vm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(CanonicalEntityRef.Orientation("orientation-1")))
+        vm.addAspectAssociation(AspectOrientationRelationType.RELEVANT_TO, true)
+        coVerify(exactly = 0) { aspectLinksRepository.linkOrientation(any(), any(), any(), any(), any()) }
+        vm.addAspectAssociation(AspectOrientationRelationType.RELEVANT_TO, false)
+        vm.addAspectAssociation(AspectOrientationRelationType.RELEVANT_TO, false)
+        assertNull(vm.semanticPickerRequest())
+        gate.complete("ref")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { aspectLinksRepository.linkOrientation("aspect-1", "orientation-1", AspectOrientationRelationType.RELEVANT_TO, false, any()) }
+    }
+
+    @Test fun `unified picker preserves Orientation relation family and cancellation performs no write`() = runTest(dispatcher) {
+        arrangeOrientation()
+        val vm = viewModel()
+        vm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(CanonicalEntityRef.Aspect("aspect-1")))
+        assertEquals(PendingSemanticRelation.Aspect("aspect-1"), loadedModel(vm).pendingRelation)
+        vm.cancelPendingRelation()
+        vm.addAspectAssociation(AspectOrientationRelationType.BELONGS_TO, false)
+        vm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(CanonicalEntityRef.Orientation("other")))
+        assertEquals(PendingSemanticRelation.Orientation("other"), loadedModel(vm).pendingRelation)
+        vm.cancelPendingRelation()
+        coVerify(exactly = 0) { aspectLinksRepository.linkOrientation(any(), any(), any(), any(), any()) }
+    }
+
+    @Test fun `unsupported Aspect pairs Workspace and self graph links fail closed`() = runTest(dispatcher) {
+        arrangeAspect()
+        val aspectVm = viewModel("aspect-1")
+        for (ref in listOf(CanonicalEntityRef.Aspect("other-aspect"), CanonicalEntityRef.Workspace("workspace-1"))) {
+            aspectVm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(ref))
+            assertNull(loadedModel(aspectVm).pendingRelation)
+            assertTrue(loadedModel(aspectVm).errorMessage!!.isNotBlank())
+        }
+        arrangeOrientation()
+        val orientationVm = viewModel()
+        orientationVm.acceptPickerResult(SemanticRelationPickerKind.SEMANTIC, setOf(CanonicalEntityRef.Orientation("orientation-1")))
+        assertNull(loadedModel(orientationVm).pendingRelation)
+    }
 
     @Test
     fun `loads Orientation from canonical core with immutable kind`() = runTest(dispatcher) {
@@ -381,6 +470,45 @@ class SemanticEntityEditorViewModelTest {
         coEvery { orientationRepository.getOrientationSemantics("missing") } returns null
 
         assertTrue(viewModel("missing").uiState.value is SemanticEntityEditorUiState.Unavailable)
+    }
+
+    @Test fun `Project loads in universal editor and semantic rename preserves canonical kind`() = runTest(dispatcher) {
+        arrangeOrientation()
+        coEvery { orientationRepository.getOrientationSemantics("orientation-1") } returns orientationSemantics().copy(kind = OrientationKind.PROJECT)
+        coEvery { orientationRepository.updateOrientationSemantics("orientation-1", "Project renamed", "Meaning", 7L, any()) } returns Unit
+        val vm = viewModel()
+        assertEquals(OrientationKind.PROJECT, loadedModel(vm).orientationKind)
+        vm.setName("Project renamed")
+        vm.save()
+        coVerify { orientationRepository.updateOrientationSemantics("orientation-1", "Project renamed", "Meaning", 7L, any()) }
+        assertEquals(OrientationKind.PROJECT, loadedModel(vm).orientationKind)
+    }
+
+    @Test fun `external subject conversion refreshes editor class while keeping a common title draft`() = runTest(dispatcher) {
+        arrangeAspect()
+        val vm = viewModel("aspect-1")
+        vm.setName("Common title draft")
+        coEvery { aspectRepository.get("aspect-1") } returns null
+        coEvery { orientationRepository.getOrientationSemantics("aspect-1") } returns orientationSemantics().copy(
+            subject = orientationSemantics().subject.copy(id = "aspect-1"), kind = OrientationKind.PROJECT)
+        vm.refreshRelations()
+        assertEquals(com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass.ORIENTATION, loadedModel(vm).entityClass)
+        assertEquals(OrientationKind.PROJECT, loadedModel(vm).orientationKind)
+        assertEquals("Common title draft", loadedModel(vm).name)
+        assertNull(loadedModel(vm).pendingRelation)
+    }
+
+    @Test fun `external kind transformation refreshes the exact editor identity and version preserving title draft`() = runTest(dispatcher) {
+        arrangeOrientation()
+        val vm = viewModel(); vm.setName("Draft")
+        coEvery { orientationRepository.getOrientationSemantics("orientation-1") } returns orientationSemantics().let {
+            it.copy(subject = it.subject.copy(version = 8), kind = OrientationKind.ONGOING_STANDARD)
+        }
+        vm.refreshRelations()
+        assertEquals("orientation-1", loadedModel(vm).id)
+        assertEquals(OrientationKind.ONGOING_STANDARD, loadedModel(vm).orientationKind)
+        assertEquals(8L, loadedModel(vm).version)
+        assertEquals("Draft", loadedModel(vm).name)
     }
 
     private fun arrangeOrientation() {

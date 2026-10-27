@@ -460,6 +460,8 @@ class FullBackupLocalDataSourceImpl
                     planningScopes = planning.scopes,
                     planningCommitments = planning.commitments,
                     planningReferences = db.planningReferenceDao().getAll(),
+                    managedSubjectTagRefs = db.managedSubjectTagDao().getAll(),
+                    managedSubjectConversions = db.managedSubjectConversionDao().getAll(),
                     dayPlanningScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadAll(),
                     tacticalPlanningScopeExtensions = canonicalTacticalPlanningScopeExtensionSyncStore.loadAll(),
                     strategicPlanningScopeExtensions = canonicalStrategicPlanningScopeExtensionSyncStore.loadAll(),

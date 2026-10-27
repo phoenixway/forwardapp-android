@@ -18,12 +18,13 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.structuralDestination
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureMutationControls
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureSourceDeleteDialog
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureWorkspaceRenameDialog
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.entitypicker.CANONICAL_ENTITY_PICKER_RESULT_KEY
 
 /**
- * The prepared R2F.2B controls write through H1 only. GroupScope applicability
- * coverage now makes their native/historical states transport-admissible.
+ * Structural controls write through H1; canonical source actions use their
+ * domain authorities. GroupScope coverage keeps native/historical transport admissible.
  */
 internal const val BIG_PICTURE_MUTATION_UX_ENABLED = true
 
@@ -34,12 +35,14 @@ fun ProjectHierarchyScreen(
     viewModel: BigPictureViewModel = hiltViewModel(),
     mutations: BigPictureMutationViewModel = hiltViewModel(),
     sourceDeletion: BigPictureSourceDeleteViewModel = hiltViewModel(),
+    workspaceRename: BigPictureWorkspaceRenameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val ready = state as? BigPictureUiState.Ready
     val mutation by mutations.state.collectAsStateWithLifecycle()
     val sourceState by sourceDeletion.state.collectAsStateWithLifecycle()
+    val renameState by workspaceRename.state.collectAsStateWithLifecycle()
     val sourceTargets by sourceDeletion.targets.collectAsStateWithLifecycle()
     val clipboard by mutations.clipboard.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -58,6 +61,7 @@ fun ProjectHierarchyScreen(
         ready?.structure?.items?.mapTo(hashSetOf()) { it.ref }?.let(mutations::discardMissingClipboard)
     }
     BigPictureSourceDeleteDialog(sourceState, sourceDeletion::confirm, sourceDeletion::cancel)
+    BigPictureWorkspaceRenameDialog(renameState, workspaceRename::edit, workspaceRename::confirm, workspaceRename::cancel)
     BackHandler(enabled = ready?.activeNode != null || ready?.activeScope != null) { viewModel.goUp() }
     LaunchedEffect(ready?.activeNode?.placement?.id, ready?.activeScope?.id) {
         listState.scrollToItem(0)
@@ -79,11 +83,11 @@ fun ProjectHierarchyScreen(
                 onToggleSiblingReorderMode = {},
                 onSearchClick = {},
                 readOnly = true,
-                title = "Big Picture",
+                title = "Navigation",
                 pasteDescription = "Вставити / перемістити сюди",
                 actions = {
                     if (BIG_PICTURE_MUTATION_UX_ENABLED) ready?.let {
-                        BigPictureMutationControls(it, mutations, blocked = sourceState.busy) { destination ->
+                        BigPictureMutationControls(it, mutations, blocked = sourceState.busy || renameState.busy) { destination ->
                             mutations.beginAdd(destination)
                             entry.savedStateHandle[CANONICAL_ENTITY_PICKER_RESULT_KEY] = null
                             entry.savedStateHandle["bigPicturePickerPending"] = true
@@ -120,9 +124,15 @@ fun ProjectHierarchyScreen(
                         }
                     },
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    mutationEnabled = BIG_PICTURE_MUTATION_UX_ENABLED && !mutation.busy && !sourceState.busy,
+                    mutationEnabled = BIG_PICTURE_MUTATION_UX_ENABLED && !mutation.busy && !sourceState.busy && !renameState.busy,
                     onCut = mutations::cut,
                     onRemove = mutations::remove,
+                    onRenameSection = mutations::renameSection,
+                    onRenameWorkspace = workspaceRename::request,
+                    onRemoveSubtree = { node ->
+                        viewModel.rememberCurrentLocation()
+                        mutations.removeSubtree(node)
+                    },
                     sourceDeleteTargets = sourceTargets,
                     onDeleteSource = { target ->
                         viewModel.rememberCurrentLocation()

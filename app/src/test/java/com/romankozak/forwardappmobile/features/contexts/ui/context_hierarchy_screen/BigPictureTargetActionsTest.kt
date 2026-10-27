@@ -47,9 +47,9 @@ class BigPictureTargetActionsTest {
             assertThat(target.confirmationTitle).contains("Exact title")
             assertThat(target.confirmationTitle).contains(target.classLabel)
             assertThat(target.confirmationText).contains("Усі")
-            assertThat(target.confirmationText).contains("появи в Big Picture")
+            assertThat(target.confirmationText).contains("появи в Navigation")
             assertThat(target.actionLabel).startsWith("Видалити")
-            assertThat(target.actionLabel).isNotEqualTo("Прибрати з Big Picture")
+            assertThat(target.actionLabel).isNotEqualTo("Прибрати з Navigation")
         }
     }
 

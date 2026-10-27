@@ -14,8 +14,13 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTar
 fun deriveUnplacedCanonicalEntities(
     catalog: List<CanonicalEntitySummary>,
     placedTargets: Set<HierarchyTargetRef>,
-): List<CanonicalEntitySummary> =
-    catalog.filterNot { summary ->
+): List<CanonicalEntitySummary> {
+    val placed = canonicalPlacedRefs(catalog, placedTargets)
+    return catalog.filterNot { it.ref in placed }
+}
+
+fun canonicalPlacedRefs(catalog: List<CanonicalEntitySummary>, placedTargets: Set<HierarchyTargetRef>): Set<CanonicalEntityRef> =
+    catalog.mapNotNull { summary ->
         val target =
             when (val ref = summary.ref) {
                 is CanonicalEntityRef.Orientation ->
@@ -28,5 +33,5 @@ fun deriveUnplacedCanonicalEntities(
                     HierarchyTargetRef(HierarchyTargetType.WORKSPACE, ref.id)
             }
 
-        target in placedTargets
-    }
+        summary.ref.takeIf { target in placedTargets }
+    }.toSet()

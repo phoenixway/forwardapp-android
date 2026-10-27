@@ -25,7 +25,7 @@ import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.BottomSheetDefaults
@@ -241,8 +241,8 @@ private fun buildPrimaryMenuItems(
             },
         ),
         MenuItem(
-            text = "Додати до плану на сьогодні",
-            icon = Icons.Outlined.EventAvailable,
+            text = "Send to…",
+            icon = Icons.AutoMirrored.Filled.Send,
             onClick = {
                 handlers.onAddProjectToDayPlan()
                 handlers.onDismiss()

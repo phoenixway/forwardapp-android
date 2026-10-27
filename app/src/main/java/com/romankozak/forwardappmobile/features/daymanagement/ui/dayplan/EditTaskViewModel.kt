@@ -12,12 +12,19 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalTaskRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
+import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import javax.inject.Inject
 
@@ -25,6 +32,9 @@ data class EditTaskUiState(
     val task: DayTask? = null,
     val title: String = "",
     val description: String = "",
+    val notes: String = "",
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
     val priority: TaskPriority = TaskPriority.NONE,
     val duration: Long? = null,
     val scheduledTime: Long? = null,
@@ -38,10 +48,12 @@ data class EditTaskUiState(
     val recurrenceInterval: Int = 1,
     val recurrenceDaysOfWeek: Set<DayOfWeek> = emptySet(),
     val contextLinks: List<TaskContextLinkUi> = emptyList(),
+    val isLoadingDetails: Boolean = false,
+    val loadError: String? = null,
 )
 
 sealed class EditTaskUiEvent {
-    object NavigateUp : EditTaskUiEvent()
+    data class NavigateUp(val taskId: String) : EditTaskUiEvent()
 }
 
 data class TaskContextLinkUi(
@@ -57,12 +69,18 @@ class EditTaskViewModel
         private val canonicalTaskRecurrenceAuthoringAdapter: CanonicalTaskRecurrenceAuthoringAdapter,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
         private val savedStateHandle: SavedStateHandle,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(EditTaskUiState())
         val uiState = _uiState.asStateFlow()
         private var loadedTaskId: String? = null
+        private var loadedState: EditTaskUiState? = null
+        private var completedSaveTaskId: String? = null
+        private var loadJob: Job? = null
+        val hasUnsavedNotes: Boolean get() = _uiState.value.task != null && completedSaveTaskId != _uiState.value.task?.id &&
+            (_uiState.value.notes != loadedState?.notes || _uiState.value.description != loadedState?.description)
 
-        private val _uiEvent = Channel<EditTaskUiEvent>()
+        private val _uiEvent = Channel<EditTaskUiEvent>(Channel.BUFFERED)
         val uiEvent = _uiEvent.receiveAsFlow()
 
         init {
@@ -71,6 +89,7 @@ class EditTaskViewModel
 
         fun loadTask(taskId: String?) {
             if (taskId.isNullOrBlank()) {
+                loadJob?.cancel()
                 loadedTaskId = null
                 _uiState.value = EditTaskUiState()
                 return
@@ -78,39 +97,73 @@ class EditTaskViewModel
             if (loadedTaskId == taskId && _uiState.value.task?.id == taskId) return
 
             loadedTaskId = taskId
-            viewModelScope.launch {
-                val task = dayManagementRepository.getTaskById(taskId)
-                val canonicalSeries =
-                    task?.let { canonicalTaskRecurrenceAuthoringAdapter.getSeriesForOccurrence(it) }
-                val recurrenceRule = canonicalSeries?.rule?.toAndroidTaskRecurrenceRule()
-                val contextLinks = task?.linkedProjectIds.normalizedContextIds().resolveContextLinks()
-                _uiState.value =
+            completedSaveTaskId = null
+            loadedState = null
+            _uiState.value = EditTaskUiState()
+            startLoad(taskId) {
+                val task = requireNotNull(dayManagementRepository.getTaskById(taskId)?.takeUnless { it.isDeleted }) {
+                    "Завдання більше недоступне"
+                }
+                if (loadedTaskId != taskId) return@startLoad
+                val loaded =
                     EditTaskUiState(
-                        task = task,
-                        title = task?.title ?: "",
-                        description = task?.description ?: "",
-                        priority = task?.priority ?: TaskPriority.NONE,
-                        duration = task?.estimatedDurationMinutes,
-                        scheduledTime = task?.scheduledTime,
-                        dueTime = task?.dueTime,
-                        executionStrictness = task?.executionStrictness ?: TaskExecutionStrictness.NORMAL,
-                        points = task?.points ?: 0,
-                        dayAnchorTime =
-                            task
-                                ?.dayPlanId
-                                ?.let { dayManagementRepository.getPlanById(it)?.date }
-                                ?: System.currentTimeMillis(),
-                        isRecurring = canonicalSeries != null,
-                        recurrenceRule = recurrenceRule,
-                        recurrenceFrequency = recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
-                        recurrenceInterval = recurrenceRule?.interval ?: 1,
-                        recurrenceDaysOfWeek = recurrenceRule?.daysOfWeek?.toSet() ?: emptySet(),
-                        contextLinks = contextLinks,
+                        task = task, title = task.title, description = task.description.orEmpty(), notes = task.notes.orEmpty(),
+                        priority = task.priority, duration = task.estimatedDurationMinutes,
+                        scheduledTime = task.scheduledTime, dueTime = task.dueTime,
+                        executionStrictness = task.executionStrictness, points = task.points,
+                        isRecurring = task.recurrenceSeriesId != null, isLoadingDetails = true,
                     )
+                loadedState = loaded
+                _uiState.value = loaded.copy(notes = savedStateHandle.get<String>(notesDraftKey(taskId)) ?: loaded.notes,
+                    description = savedStateHandle.get<String>(descriptionDraftKey(taskId)) ?: loaded.description)
+                loadDetails(task)
             }
         }
 
+        private fun startLoad(taskId: String, action: suspend () -> Unit) {
+            loadJob?.cancel()
+            loadJob = viewModelScope.launch {
+                try { action() }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (failure: Exception) {
+                    if (loadedTaskId == taskId) _uiState.value = _uiState.value.copy(
+                        loadError = failure.message ?: "Не вдалося завантажити властивості")
+                }
+            }
+        }
+
+        private suspend fun loadDetails(task: DayTask) {
+            val (rule, anchor, links) = withContext(ioDispatcher) {
+                coroutineScope {
+                    val recurrence = async { canonicalTaskRecurrenceAuthoringAdapter.getSeriesForOccurrence(task)?.rule?.toAndroidTaskRecurrenceRule() }
+                    val day = async { dayManagementRepository.getPlanById(task.dayPlanId)?.date ?: System.currentTimeMillis() }
+                    val contexts = async { task.linkedProjectIds.normalizedContextIds().resolveContextLinks() }
+                    Triple(recurrence.await(), day.await(), contexts.await())
+                }
+            }
+            if (loadedTaskId != task.id) return
+            fun EditTaskUiState.withDetails() = copy(dayAnchorTime = anchor, contextLinks = links,
+                isRecurring = rule != null, recurrenceRule = rule,
+                recurrenceFrequency = rule?.frequency ?: RecurrenceFrequency.DAILY,
+                recurrenceInterval = rule?.interval ?: 1, recurrenceDaysOfWeek = rule?.daysOfWeek?.toSet().orEmpty(),
+                isLoadingDetails = false, loadError = null)
+            loadedState = loadedState?.withDetails()
+            _uiState.value = _uiState.value.withDetails() // Preserve title/text edits made during the reads.
+        }
+
+        fun retryTaskLoad() {
+            val task = _uiState.value.task
+            if (task == null) { loadTask(loadedTaskId); return }
+            _uiState.value = _uiState.value.copy(isLoadingDetails = true, loadError = null)
+            startLoad(task.id) { loadDetails(task) }
+        }
+
         fun reset() {
+            loadJob?.cancel()
+            completedSaveTaskId = null
+            loadedTaskId?.let { savedStateHandle.remove<String>(notesDraftKey(it)) }
+            loadedTaskId?.let { savedStateHandle.remove<String>(descriptionDraftKey(it)) }
+            loadedState = null
             loadedTaskId = null
             _uiState.value = EditTaskUiState()
         }
@@ -120,8 +173,21 @@ class EditTaskViewModel
         }
 
         fun onDescriptionChange(description: String) {
+            val id = _uiState.value.task?.id ?: return
+            if (_uiState.value.isSaving) return
+            savedStateHandle[descriptionDraftKey(id)] = description
             _uiState.value = _uiState.value.copy(description = description)
         }
+
+        fun onNotesChange(notes: String) {
+            val id = _uiState.value.task?.id ?: return
+            if (_uiState.value.isSaving) return
+            savedStateHandle[notesDraftKey(id)] = notes
+            _uiState.value = _uiState.value.copy(notes = notes, saveError = null)
+        }
+
+        private fun notesDraftKey(id: String) = "dayTaskNotesDraft:$id"
+        private fun descriptionDraftKey(id: String) = "dayTaskDescriptionDraft:$id"
 
         fun onPriorityChange(priority: TaskPriority) {
             _uiState.value = _uiState.value.copy(priority = priority)
@@ -198,16 +264,38 @@ class EditTaskViewModel
         }
 
         fun saveTask() {
+            val state = _uiState.value
+            val originalTask = state.task ?: return
+            if (state.isSaving || state.isLoadingDetails || state.loadError != null || completedSaveTaskId == originalTask.id) return
+            _uiState.value = state.copy(isSaving = true, saveError = null)
             viewModelScope.launch {
-                val state = _uiState.value
-                val originalTask = state.task ?: return@launch
-
-                if (state.isRecurring) {
-                    saveRecurringTask(state, originalTask)
-                } else {
-                    saveNonRecurringTask(state, originalTask)
+                try {
+                    if (state.notes != loadedState?.notes && state.copy(notes = loadedState?.notes.orEmpty(), saveError = null) == loadedState) {
+                        dayManagementRepository.updateTaskNotes(originalTask.id, state.notes)
+                    } else if (state.isRecurring) {
+                        // Realization links save immediately on another tab; do not pass a stale
+                        // task/version into recurrence conversion or splitting.
+                        val currentTask = requireNotNull(dayManagementRepository.getTaskById(originalTask.id)?.takeUnless { it.isDeleted }) {
+                            "Завдання більше недоступне"
+                        }
+                        saveRecurringTask(state, currentTask)
+                    } else {
+                        val currentTask = requireNotNull(dayManagementRepository.getTaskById(originalTask.id)?.takeUnless { it.isDeleted }) {
+                            "Завдання більше недоступне"
+                        }
+                        saveNonRecurringTask(state, currentTask)
+                    }
+                    savedStateHandle.remove<String>(notesDraftKey(originalTask.id))
+                    savedStateHandle.remove<String>(descriptionDraftKey(originalTask.id))
+                    completedSaveTaskId = originalTask.id
+                    _uiEvent.send(EditTaskUiEvent.NavigateUp(originalTask.id))
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    if (loadedTaskId == originalTask.id) _uiState.value = _uiState.value.copy(saveError = failure.message ?: "Не вдалося зберегти завдання")
+                } finally {
+                    if (loadedTaskId == originalTask.id) _uiState.value = _uiState.value.copy(isSaving = false)
                 }
-                _uiEvent.send(EditTaskUiEvent.NavigateUp)
             }
         }
         private suspend fun saveRecurringTask(
@@ -312,6 +400,8 @@ class EditTaskViewModel
                     projectId = originalTask.logicalProjectId,
                     linkedProjectIds = state.contextLinks.map { it.id },
                     updateContextLinks = true,
+                    notes = state.notes,
+                    updateNotes = state.notes != loadedState?.notes,
                 ),
             )
         }

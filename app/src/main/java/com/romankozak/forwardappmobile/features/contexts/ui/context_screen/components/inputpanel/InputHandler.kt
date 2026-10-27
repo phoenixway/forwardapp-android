@@ -82,6 +82,7 @@ class InputHandler(
     private val onGoalSubmitError: (String) -> Unit,
 ) {
     private val smartDebouncer = SmartDebouncer(DEFAULT_DEBOUNCE_MS)
+    private val reminderSession = ReminderInputParseSession(scope, reminderParser, REMINDER_PARSE_TIMEOUT_MS)
     private var nerJob: Job? = null
     private var pendingGoalSubmit: Job? = null
     private var inputRevision: Long = 0L
@@ -133,6 +134,7 @@ class InputHandler(
         currentInputMode: InputMode,
     ) {
         inputRevision++
+        reminderSession.selectText(newValue.text.trim())
         resultListener.updateInputState(inputValue = newValue)
         if (currentInputMode == InputMode.AddGoal || currentInputMode == InputMode.AddIssue) {
             if (newValue.text.trim().isNotEmpty()) {
@@ -149,9 +151,11 @@ class InputHandler(
     }
 
     private suspend fun parseReminderForSuggestion(text: String) {
+        val revision = inputRevision
         try {
-            val result = reminderParser.parseWithTimeout(text, REMINDER_PARSE_TIMEOUT_MS)
+            val result = reminderSession.preview(text).await()
             withContext(Dispatchers.Main) {
+                if (revision != inputRevision) return@withContext
                 if (result.success) {
                     resultListener.updateInputState(
                         detectedReminderSuggestion = result.suggestionText,
@@ -161,9 +165,12 @@ class InputHandler(
                     resultListener.updateInputState(clearDetectedReminder = true)
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(REMINDER_FLOW_TAG, "Suggestion parse error: ${e.message}", e)
             withContext(Dispatchers.Main) {
+                if (revision != inputRevision) return@withContext
                 resultListener.updateInputState(clearDetectedReminder = true)
             }
         }
@@ -244,11 +251,11 @@ class InputHandler(
         val submittedRevision = inputRevision
         nerJob?.cancel()
         smartDebouncer.cancel()
+        val submittedParse = reminderSession.takeForSubmission(originalText)
 
         pendingGoalSubmit = scope.launch(Dispatchers.IO) {
             try {
-                val definitiveResult =
-                    reminderParser.parseWithTimeout(originalText, REMINDER_PARSE_TIMEOUT_MS)
+                val definitiveResult = submittedParse.await()
                 Log.d(
                     REMINDER_FLOW_TAG,
                     "Submit Parser Result: " +
@@ -355,6 +362,7 @@ class InputHandler(
     }
 
     private fun clearAndCancelParsing() {
+        reminderSession.clear()
         nerJob?.cancel()
         smartDebouncer.cancel()
         resultListener.updateInputState(clearDetectedReminder = true)

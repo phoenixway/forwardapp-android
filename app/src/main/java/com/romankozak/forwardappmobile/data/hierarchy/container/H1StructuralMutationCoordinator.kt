@@ -49,6 +49,11 @@ sealed interface H1StructuralParent {
 class H1StructuralMutationCoordinator @Inject constructor(
     private val db: AppDatabase,
 ) {
+    /** Presentation title only; ancestry, membership and semantic identities are unchanged. */
+    suspend fun renameContainer(id: String, title: String, now: Long = System.currentTimeMillis()) = mutate(now) {
+        renameContainer(id, title)
+    }
+
     suspend fun moveNode(
         node: H1TypedNode,
         destination: H1StructuralParent,

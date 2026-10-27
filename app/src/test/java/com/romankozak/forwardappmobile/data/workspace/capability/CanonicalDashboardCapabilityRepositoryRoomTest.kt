@@ -185,7 +185,7 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
     }
 
     @Test
-    fun `setEnabled is idempotent and isEnabled follows canonical state`() = runBlocking {
+    fun `metadata toggles stay idempotent while Dashboard remains intrinsically available`() = runBlocking {
         val database = database()
         try {
             val workspaceId = "canonical-toggle"
@@ -202,7 +202,7 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
             assertEquals(1L, dashboard(database, workspaceId).version)
 
             repository.setEnabled(workspaceId, enabled = false, now = 30L)
-            assertFalse(repository.isEnabled(workspaceId))
+            assertTrue(repository.isEnabled(workspaceId))
             val disabled = dashboard(database, workspaceId)
             assertEquals(WorkspaceCapabilityState.DISABLED.name, disabled.state)
             assertEquals(2L, disabled.version)

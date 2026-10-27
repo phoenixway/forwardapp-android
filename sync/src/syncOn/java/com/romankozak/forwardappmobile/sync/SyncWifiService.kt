@@ -141,6 +141,7 @@ private fun CanonicalWorkspaceProblemSyncPayload.toAck() =
     )
 
 internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
+    subjectConversions.isNotEmpty() ||
     managedSubjects.isNotEmpty() ||
         orientations.isNotEmpty() ||
         aspects.isNotEmpty() ||
@@ -150,6 +151,7 @@ internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
         legacyMappings.isNotEmpty() ||
         relations.isNotEmpty() ||
         aspectRefs.isNotEmpty() ||
+        semanticTagRefs.isNotEmpty() ||
         workspaces.isNotEmpty() ||
         workspaceBindings.isNotEmpty() ||
         workspaceCapabilities.isNotEmpty() ||
@@ -158,6 +160,7 @@ internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
 
 private fun CanonicalOrientationSyncPayload.toAck() =
     CanonicalOrientationSyncAck(
+        subjectConversions = subjectConversions.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         managedSubjects = managedSubjects.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         assessments = assessments.map { CanonicalOrientationSyncVersion(it.orientationId, it.version) },
         assessmentRevisions = assessmentRevisions.map { CanonicalOrientationSyncVersion(it.id, it.version) },
@@ -165,6 +168,7 @@ private fun CanonicalOrientationSyncPayload.toAck() =
         legacyMappings = legacyMappings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         relations = relations.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         aspectRefs = aspectRefs.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        semanticTagRefs = semanticTagRefs.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         workspaces = workspaces.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         workspaceBindings = workspaceBindings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
         workspaceCapabilities = workspaceCapabilities.map { CanonicalOrientationSyncVersion(it.id, it.version) },
@@ -417,6 +421,8 @@ private fun buildSnapshotSelectionDelta(
         legacySubjectMappings = null,
         orientationRelations = null,
         aspectOrientationRefs = null,
+        managedSubjectTagRefs = null,
+        managedSubjectConversions = null,
         workspaces = null,
         workspaceBindings = null,
         workspaceCapabilityInstances = null,
@@ -545,6 +551,8 @@ internal fun buildCanonicalSnapshotDelta(
             else -> dirty
         }
 
+    val selectedSemanticSubjects = canonicalOrientationDependency(
+        fullSnapshot.managedSubjects, explicitCanonicalOrientations.managedSubjects, "managedSubjects")
     val fullThemeDefinitions =
         if (includeCanonicalDayThemes) {
             requireNotNull(fullSnapshot.themeDefinitions) {
@@ -764,12 +772,7 @@ internal fun buildCanonicalSnapshotDelta(
                     series.id in requiredCanonicalSeriesIds
                 },
             dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
-            managedSubjects =
-                canonicalOrientationDependency(
-                    fullSnapshot.managedSubjects,
-                    explicitCanonicalOrientations.managedSubjects,
-                    "managedSubjects",
-                ),
+            managedSubjects = selectedSemanticSubjects,
             orientations =
                 canonicalOrientationDependency(
                     fullSnapshot.orientations,
@@ -818,6 +821,10 @@ internal fun buildCanonicalSnapshotDelta(
                     explicitCanonicalOrientations.aspectRefs,
                     "aspectOrientationRefs",
                 ),
+            managedSubjectTagRefs = semanticTagsForDelta(fullSnapshot.managedSubjectTagRefs,
+                explicitCanonicalOrientations.semanticTagRefs, selectedSemanticSubjects),
+            managedSubjectConversions = subjectConversionsForDelta(fullSnapshot.managedSubjectConversions,
+                explicitCanonicalOrientations.subjectConversions, selectedSemanticSubjects),
             workspaces =
                 canonicalOrientationDependency(
                     fullSnapshot.workspaces,
@@ -931,6 +938,7 @@ class SyncWifiService @Inject constructor(
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             gson {
+                registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
                 registerTypeAdapter(Long::class.java, LongDeserializer())
             }
         }
@@ -1163,6 +1171,7 @@ class SyncWifiService @Inject constructor(
                 explicitCanonicalSeriesIds =
                     changedCanonicalSeries.mapTo(hashSetOf()) { it.id },
                 explicitCanonicalPlanning = changedCanonicalPlanning,
+                explicitCanonicalOrientations = fullSnapshot.semanticTagChangesSince(deltaSince),
                 explicitCanonicalDayThemes = changedCanonicalDayThemes,
                 explicitCanonicalExecutionLogs = changedCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = changedCanonicalDirectionEntries,
@@ -1187,7 +1196,7 @@ class SyncWifiService @Inject constructor(
             snapshotBundle = snapshotDelta,
         )
         // Використовуємо Gson для ручної серіалізації в рядок
-        return com.google.gson.GsonBuilder().create().toJson(deltaBackup)
+        return com.google.gson.GsonBuilder().registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter()).create().toJson(deltaBackup)
     }
 
 }

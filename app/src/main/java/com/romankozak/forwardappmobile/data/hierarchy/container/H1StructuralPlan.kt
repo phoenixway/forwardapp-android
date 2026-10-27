@@ -31,6 +31,7 @@ internal class H1StructuralPlan(
     private val createdContainers = linkedMapOf<String, BigPictureContainerSnapshot>()
     private val deletedContainers = linkedSetOf<String>()
     private val deletedOccurrences = linkedSetOf<String>()
+    private val renamedContainerTitles = linkedMapOf<String, String>()
 
     fun retiredOccurrenceIds(): List<PlacementId> =
         deletedOccurrences.sorted().map(::PlacementId)
@@ -333,6 +334,13 @@ internal class H1StructuralPlan(
         touchedParents += parent
     }
 
+    fun renameContainer(id: String, title: String) {
+        requireNode(H1TypedNode.Container(id))
+        val normalized = title.trim()
+        require(normalized.isNotBlank()) { "Container title must not be blank" }
+        renamedContainerTitles[id] = normalized
+    }
+
     fun removeOccurrenceSubtree(
         placementId: PlacementId,
     ): List<PlacementId> {
@@ -513,6 +521,7 @@ internal class H1StructuralPlan(
             val node = H1TypedNode.Container(row.id)
             val parent = parents.getValue(node)
             val desired = row.copy(
+                title = renamedContainerTitles[row.id] ?: row.title,
                 anchorPlacementId = nearestOccurrenceAncestor(node),
                 parentContainerId = (parent as? H1TypedNode.Container)?.id,
                 siblingOrder = normalizedOrders[node] ?: row.siblingOrder,

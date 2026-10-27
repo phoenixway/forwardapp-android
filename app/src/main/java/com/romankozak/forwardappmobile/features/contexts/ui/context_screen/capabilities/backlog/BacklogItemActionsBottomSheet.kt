@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Tune
@@ -37,6 +38,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +51,7 @@ private data class BacklogActionItem(
     val subtitle: String? = null,
     val icon: ImageVector,
     val tint: Color,
+    val enabled: Boolean = true,
     val onClick: () -> Unit,
 )
 
@@ -79,6 +82,9 @@ fun BacklogItemActionsBottomSheet(
     onCopyContent: () -> Unit,
     onDelete: () -> Unit,
     onDeleteEverywhere: () -> Unit,
+    onCreateWorkspace: (() -> Unit)? = null,
+    canCreateWorkspace: Boolean = true,
+    onOpenSemanticEditor: (() -> Unit)? = null,
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
     val colorScheme = MaterialTheme.colorScheme
@@ -99,6 +105,17 @@ fun BacklogItemActionsBottomSheet(
 
     val sections =
         buildList {
+            if (onCreateWorkspace != null || onOpenSemanticEditor != null) {
+                add(BacklogActionSection("Сутність", buildList {
+                    onCreateWorkspace?.let { create -> add(BacklogActionItem(
+                        title = "Create workspace", icon = Icons.Default.AddCircle, tint = colorScheme.primary,
+                        enabled = canCreateWorkspace, onClick = create,
+                    )) }
+                    onOpenSemanticEditor?.let { open -> add(BacklogActionItem(
+                        title = "Open in semantic editor", icon = Icons.Default.Edit, tint = colorScheme.primary, onClick = open,
+                    )) }
+                }))
+            }
             if (onOpenGoalProperties != null) {
                 add(
                     BacklogActionSection(
@@ -317,10 +334,11 @@ private fun BacklogActionRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable {
+                .clickable(enabled = item.enabled) {
                     item.onClick()
                     onDismiss()
-                },
+                }
+                .alpha(if (item.enabled) 1f else 0.45f),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 1.dp,

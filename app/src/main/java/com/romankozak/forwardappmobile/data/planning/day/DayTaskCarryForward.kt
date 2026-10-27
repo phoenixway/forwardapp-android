@@ -35,6 +35,7 @@ internal suspend fun carryDayTaskForward(
     }
     val next = source.copy(
         id = newId, dayPlanId = targetPlan.id, order = (tasks.getMaxOrderForDayPlan(targetPlan.id) ?: -1L) + 1,
+        realizedDayFocusItemIds = emptyList(), // A new day requires explicit new day-priority choices.
         status = TaskStatus.NOT_STARTED, completed = false, completedAt = null,
         activityRecordId = null, actualDurationMinutes = null, scheduledTime = null,
         recurrenceSeriesId = null, recurrenceOccurrenceDayKey = null, recurrenceSourceSeriesVersion = null,

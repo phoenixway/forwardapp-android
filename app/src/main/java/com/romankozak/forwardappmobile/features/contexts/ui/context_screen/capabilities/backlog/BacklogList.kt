@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -40,6 +41,13 @@ fun BacklogListScreen(
     actions: BacklogListActions,
     modifier: Modifier = Modifier,
 ) {
+    val goalWorkspaces: BacklogGoalWorkspaceViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val canonicalLinks by goalWorkspaces.links.collectAsStateWithLifecycle()
+    val creation by goalWorkspaces.creation.collectAsStateWithLifecycle()
+    com.romankozak.forwardappmobile.features.semanticeditor.EmbodyingWorkspaceDialogContent(
+        creation, goalWorkspaces::setName, goalWorkspaces::setDescription, goalWorkspaces::confirm,
+        goalWorkspaces::cancel, confirmLabel = "Create workspace",
+    )
     val sortedItems = remember(state.items) { state.items.withCompletedAtEnd() }
     val uiItems = remember { mutableStateListOf<BacklogItemContent>() }
     var isDragInProgress by remember { mutableStateOf(false) }
@@ -90,7 +98,12 @@ fun BacklogListScreen(
             }
         val canTransport =
             selectedItem is BacklogItemContent.GoalItem || selectedItem is BacklogItemContent.ContextLinkItem
+        val selectedGoalId = (selectedItem as? BacklogItemContent.GoalItem)?.goal?.id
+        val semantic = selectedGoalId?.let(canonicalLinks::get)
         BacklogItemActionsBottomSheet(
+            onCreateWorkspace = semantic?.let { { goalWorkspaces.open(requireNotNull(selectedGoalId)) } },
+            canCreateWorkspace = semantic?.canCreate == true && !creation.busy,
+            onOpenSemanticEditor = semantic?.let { { goalWorkspaces.openSemantic(requireNotNull(selectedGoalId)) } },
             onDismiss = { showBottomSheet = false },
             itemTitle = itemTitle,
             isCompleted = isCompleted,
@@ -124,6 +137,8 @@ fun BacklogListScreen(
     }
 
     BacklogListContent(
+        canonicalLinks = canonicalLinks,
+        onOpenGoalWorkspace = goalWorkspaces::openWorkspace,
         state = state,
         actions = actions,
         modifier = modifier,
@@ -181,6 +196,8 @@ private fun BacklogListEmptyState(modifier: Modifier) {
 
 @Composable
 private fun BacklogListContent(
+    canonicalLinks: Map<String, BacklogGoalSemanticLink>,
+    onOpenGoalWorkspace: (String) -> Unit,
     state: BacklogListState,
     actions: BacklogListActions,
     modifier: Modifier,
@@ -202,6 +219,8 @@ private fun BacklogListContent(
                 ReorderableItem(contentState.reorderableState, key = item.backlogItem.id) { isDragging ->
                     val isSelected = item.backlogItem.id in state.selectedItemIds
                     BacklogItem(
+                        workspaceTitle = (item as? BacklogItemContent.GoalItem)?.goal?.id?.let { canonicalLinks[it]?.workspace?.title },
+                        onOpenWorkspace = (item as? BacklogItemContent.GoalItem)?.goal?.id?.let { id -> { onOpenGoalWorkspace(id) } },
                         item = item,
                         reorderableScope = this,
                         modifier = Modifier,

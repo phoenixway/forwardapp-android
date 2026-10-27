@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnec
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalRelationsCapabilityRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
@@ -30,6 +31,7 @@ class CanonicalOrdinaryCapabilitySettings
         private val keyProblemsRepository: CanonicalKeyProblemsRepository,
         private val dashboardRepository: CanonicalDashboardCapabilityRepository,
         private val executionLogRepository: CanonicalExecutionLogRepository,
+        private val relationsRepository: CanonicalRelationsCapabilityRepository,
     ) {
         suspend fun loadEnabledOrNull(workspaceId: String): Set<CapabilityId>? {
             if (!owns(workspaceId)) return null
@@ -39,7 +41,6 @@ class CanonicalOrdinaryCapabilitySettings
             val connections = connectionsRepository.getState(workspaceId)
             val inboxSorting = inboxSortingRepository.getState(workspaceId)
             val keyProblems = keyProblemsRepository.getState(workspaceId)
-            val dashboardEnabled = dashboardRepository.isEnabled(workspaceId)
             val executionLogEnabled = executionLogRepository.isEnabled(workspaceId)
             return buildSet {
                 backlog
@@ -60,7 +61,7 @@ class CanonicalOrdinaryCapabilitySettings
                 keyProblems
                     ?.takeIf { !it.isDeleted && it.lifecycleState == WorkspaceCapabilityState.ACTIVE }
                     ?.let { add(CapabilityId(KEY_PROBLEMS)) }
-                if (dashboardEnabled) add(CapabilityId(DASHBOARD))
+                addAll(com.romankozak.forwardappmobile.core.context.WorkspaceCoreViews.capabilities)
                 if (executionLogEnabled) add(CapabilityId(EXECUTION_LOG))
             }
         }
@@ -82,6 +83,7 @@ class CanonicalOrdinaryCapabilitySettings
         /** One explicit toggle, never a preset or a multi-family Save. Typed owners validate eligibility. */
         suspend fun setEnabled(workspaceId: String, capabilityId: CapabilityId, enabled: Boolean) {
             require(workspaceRepository.hasLiveWorkspace(workspaceId)) { "Workspace недоступний" }
+            if (com.romankozak.forwardappmobile.core.context.WorkspaceCoreViews.isRequired(capabilityId.raw)) return
             when (capabilityId.raw) {
                 BACKLOG -> backlogRepository.setEnabled(workspaceId, enabled)
                 INBOX -> inboxRepository.setEnabled(workspaceId, enabled)
@@ -91,6 +93,7 @@ class CanonicalOrdinaryCapabilitySettings
                 KEY_PROBLEMS -> keyProblemsRepository.setEnabled(workspaceId, enabled)
                 DASHBOARD -> dashboardRepository.setEnabled(workspaceId, enabled)
                 EXECUTION_LOG -> executionLogRepository.setEnabled(workspaceId, enabled)
+                RELATIONS -> relationsRepository.setEnabled(workspaceId, enabled)
                 else -> error("Unsupported Workspace capability: ${capabilityId.raw}")
             }
         }
@@ -107,7 +110,6 @@ class CanonicalOrdinaryCapabilitySettings
             connectionsRepository.setEnabled(workspaceId, CONNECTIONS in enabled)
             inboxSortingRepository.setEnabled(workspaceId, INBOX_SORTING in enabled)
             keyProblemsRepository.setEnabled(workspaceId, KEY_PROBLEMS in enabled)
-            dashboardRepository.setEnabled(workspaceId, DASHBOARD in enabled)
             executionLogRepository.setEnabled(workspaceId, EXECUTION_LOG in enabled)
             return true
         }
@@ -125,5 +127,6 @@ class CanonicalOrdinaryCapabilitySettings
             const val KEY_PROBLEMS = "key_problems"
             const val DASHBOARD = "dashboard"
             const val EXECUTION_LOG = "log"
+            const val RELATIONS = "relations"
         }
     }

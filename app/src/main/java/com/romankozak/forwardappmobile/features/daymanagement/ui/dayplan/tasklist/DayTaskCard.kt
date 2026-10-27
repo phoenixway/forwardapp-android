@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -30,6 +32,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +45,8 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentT
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTheme
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.EntityThemeSelector
 import com.romankozak.forwardappmobile.features.daymanagement.utils.formatDayTime
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary
+import com.romankozak.forwardappmobile.features.planning.PlanningOrientationSourceBadge
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
@@ -70,13 +76,16 @@ fun DayTaskCard(
     themes: List<DayTheme>,
     selectedThemeIds: Set<String>,
     onToggleTheme: (String) -> Unit,
+    orientationSource: CanonicalEntitySummary? = null,
+    relatedOrientations: List<CanonicalEntitySummary> = emptyList(),
+    onOpenOrientation: (String) -> Unit = {},
 ) {
     val task = taskWithReminder.dayTask
     val contentAlpha = if (task.completed) COMPLETED_TASK_CONTENT_ALPHA else 1f
 
     Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
     ) {
         UnifiedItemCheckbox(
             checked = task.completed,
@@ -102,7 +111,17 @@ fun DayTaskCard(
             themes = themes,
             selectedThemeIds = selectedThemeIds,
             onToggleTheme = onToggleTheme,
+            orientationSource = orientationSource,
+            relatedOrientations = relatedOrientations,
+            onOpenOrientation = onOpenOrientation,
         )
+
+        task.priority.dayTaskPriorityDescription()?.let { description ->
+            Box(Modifier.width(24.dp).height(34.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(7.dp).background(task.priority.priorityIndicatorColor().copy(alpha = contentAlpha), CircleShape)
+                    .semantics { contentDescription = description })
+            }
+        }
 
         IconButton(
             onClick = actions.onLongPress,
@@ -112,7 +131,7 @@ fun DayTaskCard(
                 imageVector = Icons.Filled.MoreVert,
                 contentDescription = "Більше опцій",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -129,6 +148,9 @@ private fun RowScope.DayTaskCardContent(
     themes: List<DayTheme>,
     selectedThemeIds: Set<String>,
     onToggleTheme: (String) -> Unit,
+    orientationSource: CanonicalEntitySummary?,
+    relatedOrientations: List<CanonicalEntitySummary>,
+    onOpenOrientation: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
@@ -145,68 +167,32 @@ private fun RowScope.DayTaskCardContent(
             },
             contextMarkerToEmojiMap,
         )
-    val displayTime =
-        task.scheduledTime
-            ?: taskWithReminder.reminder?.reminderTime
-            ?: task.dueTime
-
     Column(
         modifier =
             modifier
                 .weight(1f)
+                .padding(top = 5.dp)
                 .clickable(onClick = onClick),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            task.priority.takeIf { it != TaskPriority.NONE }?.let { priority ->
-                DayTaskPriorityLabel(
-                    priority = priority,
-                    contentAlpha = contentAlpha,
-                )
-            }
-
-            if (task.recurrenceSeriesId != null) {
-                if (task.priority != TaskPriority.NONE) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                UnifiedMetaChip(
-                    text = "",
-                    icon = Icons.Outlined.Repeat,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            displayTime?.let { timestamp ->
-                Text(
-                    text = formatDayTime(timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f * contentAlpha),
-                )
-            }
-        }
-
         DayPlanMarkdownText(
             text = parsedTitle.mainText,
             style =
-                MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight(450),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 ),
             isCompleted = task.completed,
             maxLines = 4,
         )
 
-        EntityThemeSelector(
+        if (hasVisibleTaskThemes(themes, selectedThemeIds)) EntityThemeSelector(
             themes = themes,
             selectedThemeIds = selectedThemeIds,
             entityLabel = task.title,
             onToggle = onToggleTheme,
             modifier = Modifier.padding(top = 5.dp),
         )
+        com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskRealizedPriorityChips(task, onClick)
 
         parsedDescription.mainText.takeIf { it.isNotBlank() }?.let { description ->
             DayPlanMarkdownText(
@@ -226,32 +212,9 @@ private fun RowScope.DayTaskCardContent(
             contextIcons = parsedTaskText.icons,
             modifier = Modifier.padding(top = 8.dp),
             onParentInfoClick = onParentInfoClick,
-        )
-    }
-}
-
-@Composable
-private fun DayTaskPriorityLabel(
-    priority: TaskPriority,
-    contentAlpha: Float,
-) {
-    val color = priority.priorityIndicatorColor()
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(7.dp)
-                    .background(color.copy(alpha = contentAlpha), CircleShape),
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = priority.name.lowercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = contentAlpha),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            orientationSource = orientationSource,
+            relatedOrientations = relatedOrientations,
+            onOpenOrientation = onOpenOrientation,
         )
     }
 }
@@ -263,10 +226,17 @@ private fun DayTaskMetaRow(
     contextIcons: List<String>,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
+    orientationSource: CanonicalEntitySummary?,
+    relatedOrientations: List<CanonicalEntitySummary>,
+    onOpenOrientation: (String) -> Unit,
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
         buildList<UnifiedStatusChipSpec> {
+            if (task.recurrenceSeriesId != null) add(UnifiedStatusChipSpec(icon = Icons.Outlined.Repeat, text = ""))
+            (task.scheduledTime ?: taskWithReminder.reminder?.reminderTime ?: task.dueTime)?.let {
+                add(UnifiedStatusChipSpec(text = formatDayTime(it)))
+            }
             if (task.title.contains("#focus", ignoreCase = true) || task.description?.contains("#focus", ignoreCase = true) == true) {
                 add(
                     UnifiedStatusChipSpec(
@@ -313,8 +283,14 @@ private fun DayTaskMetaRow(
             }
         }
 
-    if (metaItems.isEmpty() && contextIcons.isEmpty()) return
+    if (metaItems.isEmpty() && contextIcons.isEmpty() && orientationSource == null && relatedOrientations.isEmpty()) return
     UnifiedStatusRow(modifier = modifier) {
+        orientationSource?.let { source ->
+            PlanningOrientationSourceBadge(source) { onOpenOrientation(source.ref.id) }
+        }
+        relatedOrientations.forEach { related ->
+            PlanningOrientationSourceBadge(related, related = true) { onOpenOrientation(related.ref.id) }
+        }
         contextIcons.forEach { icon ->
             AnimatedContextEmoji(emoji = icon)
         }

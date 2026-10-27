@@ -8,6 +8,21 @@ itself move data or authorize UI changes.
 
 ## Cross-cutting ownership
 
+### Current intrinsic core-view policy (2026-10-26)
+
+Dashboard and Semantics (stable RELATIONS identity) are always available for a
+live canonical Workspace. Typed availability reads and screen/Properties
+projections use live Workspace ownership, not optional core-instance presence or
+lifecycle flags. Properties cannot disable these views. Existing instance
+metadata/configuration/version/tombstone/transport remains unchanged and may
+still follow the kernel lifecycle described below; it no longer hides either
+intrinsic surface. No read-time row creation/backfill or semantic relation
+inference is introduced. All other capability families retain existing optional
+activation/content ownership. This is SEMANTIC_NOT_HIERARCHY presentation policy;
+Room 205 unchanged. Initial screen rendering waits for coherent persisted
+preferences and session state; new Workspace defaults to Dashboard, valid saved
+views open directly. HOST evidence: WORKSPACE_CORE_VIEWS_HOST_20261026 in STATE.
+
 For a `CONTEXT_BACKED` Workspace, the existing Context stack remains effective
 capability authority only until a capability completes a separately reviewed
 Context-backed canonical cutover:
@@ -129,6 +144,23 @@ runtime placement authority is `WorkspaceConnection`. `AttachmentEntity`
 remains a separate reusable content/reference owner, so canonical unlink and
 capability lifecycle cannot delete shared Attachment content.
 
+WORKSPACE_CONNECTIONS_PICKER_REPAIR_HOST_20261024 closes an Android runtime
+adapter gap in that existing cutover. Attachment APIs now admit live canonical
+Workspace IDs for ordinary CANONICAL_ONLY/STANDALONE and valid CONTEXT_BACKED
+owners, not only reserved System IDs. Canonical capability/placement commands
+remain the write authority; protected System provenance checks are unchanged.
+Legacy Context aliases require the persisted sourceContextId mapping, never a
+new Context shell or raw-ID equivalence. Note/checklist/music content reads use
+the same canonical-first owner selection and actual live Connections; an alias
+cannot override an existing canonical owner or resurrect a deleted one.
+This is SEMANTIC_NOT_HIERARCHY capability/content placement, not H1 or semantic
+relation authoring. No source content is copied or auto-linked by provenance.
+Create and browse are mutually exclusive shared-picker surfaces; direct Create
+does not expose results underneath. Room 203 unchanged; existing Connections
+version/tombstone/dirty/ACK/transport authority remains unchanged. Focused HOST
+XML 52/52 in seven classes and production/test Kotlin compilation PASS;
+physical smoke pending, no deployment.
+
 BACKLOG explicit placement authority is hard-cut over on Android at schema 162.
 `workspace_backlog_entries` are the sole runtime explicit-placement authority
 for authorized Workspaces. Hashtag and structural appearances remain local
@@ -215,6 +247,17 @@ hard-cut over at schema 163. It remains a policy over other capabilities and
 does not own their content or order rows.
 
 ## EXECUTION_LOG current hard cutover
+
+Workspace operational-route repair (2026-10-27, Room 205 unchanged): canonical
+Workspace screen quick COMMENT/MILESTONE authoring calls the existing canonical
+writer with exact workspaceId; its reactive log list also reads by that identity.
+Neither path requires sourceContextId. Only an explicit legacy Context route uses
+the existing provenance adapter. Workspace existence/raw-ID equality cannot admit
+a legacy Context owner. Writer capability/lifecycle guards remain unchanged;
+rejected UI writes are reported without an uncaught coroutine exception. HOST:
+LogActivityHandlerTest 5, ContextLogRepositoryTest 4,
+CanonicalExecutionLogContentRoomTest 5, ContextScreenDataMapperTest 19: 33 PASS
+across accepted focused runs; production/test Kotlin PASS. Physical smoke pending.
 
 `EXECUTION_LOG` is `CURRENT / VERIFIED` end-to-end on Android. Schemas 153 and
 154 introduced the safe same-table ownership bridge; the completed runtime/UI

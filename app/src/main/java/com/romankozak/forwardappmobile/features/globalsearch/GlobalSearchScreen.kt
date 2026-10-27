@@ -111,11 +111,14 @@ fun MagicBoxScreen(
     val modePalette = rememberModePalette(currentMode)
     val currentModePrefs = uiState.modeDisplayPrefs[currentMode]
     val hasQuery = uiState.query.isNotBlank()
+    var showLegacyResults by remember(uiState.query) { mutableStateOf(false) }
+    val showCanonicalResults = currentMode == OmniboxMode.DataSearch && hasQuery &&
+        (!showLegacyResults || hasCanonicalQueryOperators(uiState.query))
 
     val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
     val submitWithKeyboardHide: () -> Unit = {
         submittedQuery = uiState.query.takeIf { it.isNotBlank() }
-        viewModel.onSubmitSearch(submitCommandIndex)
+        if (showCanonicalResults) viewModel.rememberCanonicalQuery() else viewModel.onSubmitSearch(submitCommandIndex)
         keyboardController?.hide()
     }
 
@@ -158,10 +161,7 @@ fun MagicBoxScreen(
         }
     val hasVisibleResults = !uiState.isLoading && resultCount > 0
     val hasSubmittedCurrentQuery = hasQuery && submittedQuery == uiState.query
-    val showSearchHistoryHint =
-        currentMode == OmniboxMode.DataSearch &&
-            !hasSubmittedCurrentQuery &&
-            uiState.searchHistory.isNotEmpty()
+    val showSearchHistoryHint = shouldShowSearchHistoryHint(currentMode, uiState.query, uiState.searchHistory)
     val showCommandHistoryHint =
         currentMode == OmniboxMode.Command &&
             !hasQuery &&
@@ -481,7 +481,7 @@ fun MagicBoxScreen(
                 .padding(paddingValues)
                 .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
         ) {
-            if (hasResultContent) {
+            if (hasResultContent || showCanonicalResults) {
                 // ── Content area ──────────────────────────────────────────────
                 Surface(
                     modifier = Modifier
@@ -498,7 +498,13 @@ fun MagicBoxScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            when (currentMode) {
+                            if (showCanonicalResults) {
+                                MagicBoxCanonicalResults(uiState.query, navController, onLegacyResults = {
+                                    showLegacyResults = true
+                                    submittedQuery = uiState.query
+                                    viewModel.onSubmitSearch()
+                                })
+                            } else when (currentMode) {
                                 OmniboxMode.DataSearch -> {
                                     when {
                                         uiState.isLoading -> {
@@ -630,7 +636,8 @@ fun MagicBoxScreen(
                                 containerColor = modePalette.secondaryActionContainer,
                                 onHistoryClick = { query ->
                                     submittedQuery = query
-                                    viewModel.onSelectHistoryQuery(query)
+                                    viewModel.onQueryChange(query)
+                                    viewModel.rememberCanonicalQuery()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -647,7 +654,7 @@ fun MagicBoxScreen(
                 MagicBoxActionStrip(
                     modifier = Modifier.fillMaxWidth(),
                     palette = modePalette,
-                    hasVisibleResults = hasVisibleResults,
+                    hasVisibleResults = hasVisibleResults && !showCanonicalResults,
                     resultCount = resultCount,
                     quickNavigationAction =
                         when (currentMode) {
@@ -693,7 +700,7 @@ fun MagicBoxScreen(
                     onClearQuery = { viewModel.onQueryChange("") },
                     onSubmit = submitWithKeyboardHide,
                     onKeyDown = { keyEvent ->
-                        handleOmniboxKeyEvent(
+                        if (showCanonicalResults) false else handleOmniboxKeyEvent(
                             keyEvent = keyEvent,
                             currentMode = currentMode,
                             uiState = uiState,

@@ -5,6 +5,18 @@ import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import org.junit.Test
 
 class NavTargetRouterContractTest {
+    @Test fun `Big Picture exact reveal carries encoded placement and Workspace identities`() {
+        val target = NavTarget.ContextHierarchy(projectIdToReveal = "workspace/1", placementIdToReveal = "link/2")
+        assertThat(NavTargetRouter.routeOf(target)).isEqualTo(NavigationRoutes.goalLists("workspace/1", "link/2"))
+        assertThat(NavTargetRouter.routeOf(target)).contains("placementIdToReveal=link%2F2")
+        assertThat(NavTargetRouter.routeOf(target)).contains("projectIdToReveal=workspace%2F1")
+    }
+
+    @Test fun `existing root and Workspace-only Big Picture routes remain valid`() {
+        assertThat(NavTargetRouter.routeOf(NavTarget.ContextHierarchy())).isEqualTo(NavigationRoutes.GOAL_LISTS)
+        assertThat(NavTargetRouter.routeOf(NavTarget.ContextHierarchy("w"))).doesNotContain("placementIdToReveal")
+    }
+
     @Test
     fun `day management target uses shared day_management route contract`() {
         val route = NavTargetRouter.routeOf(NavTarget.DayManagement(date = 123L, startTab = "PLAN"))

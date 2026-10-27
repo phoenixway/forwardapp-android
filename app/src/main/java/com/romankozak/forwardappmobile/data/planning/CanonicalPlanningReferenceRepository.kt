@@ -11,6 +11,8 @@ import javax.inject.Singleton
 @Singleton
 class CanonicalPlanningReferenceRepository @Inject constructor(private val db: AppDatabase) {
     fun observeAll() = db.planningReferenceDao().observeAll()
+    fun observeWorkspaceRelations(workspaceId: String) = db.planningReferenceDao().observeWorkspaceRelations(workspaceId)
+    fun observeAspectRelations(aspectId: String) = db.planningReferenceDao().observeAspectRelations(aspectId)
 
     suspend fun attach(
         owner: PlanningReferenceOwner,

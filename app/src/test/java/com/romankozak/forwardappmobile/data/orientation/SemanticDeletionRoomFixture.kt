@@ -40,6 +40,8 @@ internal class SemanticDeletionRoomFixture(private val queryCallback: androidx.r
         orientationAssessments = dao.getAllAssessments(), orientationAssessmentRevisions = dao.getAllAssessmentRevisions(),
         orientationScoringOverrides = dao.getAllScoringOverrides(), legacySubjectMappings = dao.getAllLegacyMappings(),
         orientationRelations = dao.getAllOrientationRelations(), aspectOrientationRefs = dao.getAllAspectOrientationRefs(),
+        managedSubjectTagRefs = db.managedSubjectTagDao().getAll(),
+        managedSubjectConversions = db.managedSubjectConversionDao().getAll(),
         workspaces = db.workspaceDao().getAll().map { it.toWorkspaceSnapshot() }, workspaceBindings = dao.getAllWorkspaceBindings(),
         workspaceCapabilityInstances = dao.getAllWorkspaceCapabilities(), savedOrientationViews = dao.getAllSavedViews(),
         hierarchyPlacements = CanonicalHierarchyPlacementSyncStore(db).loadAll(),
@@ -50,6 +52,10 @@ internal class SemanticDeletionRoomFixture(private val queryCallback: androidx.r
 
     suspend fun admit(bundle: SnapshotBundle, merge: Boolean) = db.withTransaction {
         dao.storeCanonicalPayload(bundle, merge, db.workspaceDao(), validateEmbeddedWorkspaceTopology = false)
+        if (merge) CanonicalSubjectConversionStore(db).merge(bundle.managedSubjectConversions)
+        else CanonicalSubjectConversionStore(db).restore(bundle.managedSubjectConversions.orEmpty())
+        if (merge) CanonicalSemanticTagSyncStore(db).merge(bundle.managedSubjectTagRefs)
+        else CanonicalSemanticTagSyncStore(db).restore(bundle.managedSubjectTagRefs)
         val placements = requireNotNull(bundle.hierarchyPlacements)
         val scopes = requireNotNull(bundle.hierarchyPlacementGroupScopes)
         val coverage = requireNotNull(bundle.groupScopeCoverage)

@@ -35,6 +35,7 @@ internal val workspaceFeatures = listOf(
     WorkspaceFeature("inbox", "INBOX", "Inbox"), WorkspaceFeature("direction", "DIRECTION", "Direction"),
     WorkspaceFeature("connections", "CONNECTIONS", "Connections"), WorkspaceFeature("log", "EXECUTION_LOG", "Log"),
     WorkspaceFeature("inbox_sorting", "INBOX_SORTING", "Inbox sorting"), WorkspaceFeature("key_problems", "KEY_PROBLEMS", "Issues"),
+    WorkspaceFeature("relations", "RELATIONS", "Semantics"),
 )
 
 data class WorkspaceOperationalSettingsState(
@@ -78,7 +79,9 @@ class WorkspaceOperationalSettingsViewModel @Inject constructor(
                 preferences.observeCanonicalOrNull(workspaceId), reminders.getRemindersForEntityFlow(workspaceId), tags) { workspace, rows, prefs, alarms, tagList ->
                 val enabledTypes = rows.filter { !it.isDeleted && it.state == "ACTIVE" }.mapTo(hashSetOf()) { it.capabilityType }
                 state.value.copy(ready = true, available = workspace?.isDeleted == false,
-                    enabled = workspaceFeatures.filter { it.type in enabledTypes }.mapTo(hashSetOf()) { CapabilityId(it.key) },
+                    enabled = workspaceFeatures.filter { it.type in enabledTypes ||
+                        (workspace?.isDeleted == false && com.romankozak.forwardappmobile.core.context.WorkspaceCoreViews.isRequired(it.key))
+                    }.mapTo(hashSetOf()) { CapabilityId(it.key) },
                     showCheckboxes = prefs?.showCheckboxes ?: false,
                     reminderTime = alarms.firstOrNull { it.entityType == "PROJECT" }?.reminderTime, tags = tagList)
             }.catch { error ->

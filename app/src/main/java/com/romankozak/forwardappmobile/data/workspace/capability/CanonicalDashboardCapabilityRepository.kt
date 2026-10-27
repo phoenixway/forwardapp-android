@@ -29,18 +29,14 @@ class CanonicalDashboardCapabilityRepository
         ) = instanceStore.disable(SPEC, workspaceId, now)
 
         suspend fun isEnabled(workspaceId: String): Boolean {
-            val current = instanceStore.findInstance(SPEC, workspaceId) ?: return false
-            return !current.isDeleted &&
-                current.state == WorkspaceCapabilityState.ACTIVE.name
+            return instanceStore.hasLiveWorkspace(workspaceId)
         }
 
         internal fun isEnabled(
             workspaceId: String,
             snapshot: CanonicalCapabilityReadSnapshot,
         ): Boolean {
-            val current = instanceStore.findInstance(SPEC, workspaceId, snapshot) ?: return false
-            return !current.isDeleted &&
-                current.state == WorkspaceCapabilityState.ACTIVE.name
+            return snapshot.workspacesById[workspaceId]?.isDeleted == false
         }
 
         suspend fun setEnabled(

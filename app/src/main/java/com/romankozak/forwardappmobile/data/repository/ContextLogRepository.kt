@@ -20,6 +20,8 @@ class ContextLogRepository
 
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextManagementDao.getLogsForContextStream(contextId)
 
+        fun getWorkspaceLogsStream(workspaceId: String): Flow<List<ContextLog>> = contextManagementDao.observeWorkspaceLogs(workspaceId)
+
         suspend fun addToggleContextManagementLog(
             contextId: String,
             isEnabled: Boolean,
@@ -55,6 +57,19 @@ class ContextLogRepository
                 contextId = contextId,
                 type = ContextLogEntryTypeValues.COMMENT,
                 description = comment,
+            )
+        }
+
+        /** Explicit canonical route: no Context locator resolution or same-ID inference. */
+        suspend fun addWorkspaceLogEntry(
+            workspaceId: String,
+            type: String,
+            description: String,
+        ) {
+            canonicalExecutionLogRepository.createLog(
+                workspaceId = workspaceId,
+                type = type,
+                description = description,
             )
         }
 

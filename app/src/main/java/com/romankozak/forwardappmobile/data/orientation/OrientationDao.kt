@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OrientationDao {
+    @Query("SELECT * FROM managed_subject_conversions")
+    suspend fun getSubjectConversions(): List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectConversionEntity>
+
+    @Query("DELETE FROM aspects WHERE subjectId=:id")
+    suspend fun retireAspectSubtypeForConversion(id: String)
     @Query("SELECT * FROM managed_subjects ORDER BY updatedAt DESC")
     fun observeManagedSubjects(): Flow<List<ManagedSubjectEntity>>
 
@@ -69,6 +74,9 @@ interface OrientationDao {
     @Query("SELECT * FROM orientation_scoring_overrides")
     suspend fun getAllScoringOverrides(): List<OrientationScoringOverrideEntity>
 
+    @Query("SELECT * FROM orientation_scoring_overrides ORDER BY orientationId")
+    fun observeScoringOverrides(): Flow<List<OrientationScoringOverrideEntity>>
+
     @Query("SELECT * FROM orientation_scoring_overrides WHERE orientationId = :orientationId LIMIT 1")
     suspend fun getScoringOverride(orientationId: String): OrientationScoringOverrideEntity?
 
@@ -109,6 +117,9 @@ interface OrientationDao {
 
     @Query("SELECT * FROM aspect_orientation_refs ORDER BY aspectId, refOrder")
     fun observeAspectOrientationRefs(): Flow<List<AspectOrientationRefEntity>>
+
+    @Query("SELECT * FROM aspect_orientation_refs WHERE aspectId=:aspectId AND isDeleted=0 ORDER BY refOrder, id")
+    fun observeLiveAspectRefsForAspect(aspectId: String): Flow<List<AspectOrientationRefEntity>>
 
     @Query(
         """

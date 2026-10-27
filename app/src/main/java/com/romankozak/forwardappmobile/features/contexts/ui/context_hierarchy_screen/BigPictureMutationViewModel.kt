@@ -93,6 +93,17 @@ class BigPictureMutationViewModel @Inject constructor(
         writer.reorderChildren(parent, children)
     }
 
+    fun renameSection(node: H1TypedNode.Container, title: String) = mutate {
+        writer.renameContainer(node.id, title)
+    }
+
+    fun removeSubtree(node: H1TypedNode.Occurrence) = mutate {
+        val retired = writer.removeOccurrenceSubtree(PlacementId(node.id))
+        val cut = clipboard.value?.let { runCatching { decodeStructuralNode(it) }.getOrNull() }
+        if (cut is H1TypedNode.Occurrence && retired.any { it.value == cut.id }) savedState["bigPictureCut"] = null
+        // The existing live-identity observer also discards any retired container clipboard.
+    }
+
     private fun mutate(block: suspend () -> Unit) {
         if (state.value.busy) return
         mutableState.value = BigPictureMutationState(busy = true)
@@ -105,7 +116,9 @@ class BigPictureMutationViewModel @Inject constructor(
                 throw cancelled
             } catch (error: Exception) {
                 mutableState.value = BigPictureMutationState(
-                    message = "Не вдалося змінити структуру: ${error.message}. Якщо є дочірні елементи, спочатку перемістіть їх.",
+                    message = if (error is com.romankozak.forwardappmobile.data.hierarchy.HierarchyChildPolicyRejectedException)
+                        "Структура змінилася: у появи є дочірні вузли. Повторіть дію, щоб прибрати всю гілку, або спочатку перемістіть дітей."
+                    else "Не вдалося змінити структуру: ${error.message}",
                 )
             }
         }

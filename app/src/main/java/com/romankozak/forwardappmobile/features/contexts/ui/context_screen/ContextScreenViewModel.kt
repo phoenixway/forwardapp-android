@@ -562,6 +562,8 @@ class ContextScreenViewModel
                 activityManager,
                 stateManager,
                 viewModelScope,
+                canonicalWorkspaceRoute = operationalRoute.isCanonicalWorkspace,
+                onError = { showSnackbar(it) },
             )
         }
         internal val navHandler by lazy {
@@ -653,7 +655,8 @@ class ContextScreenViewModel
                     .drop(1)
                     .collect {
                         backlogDndCoordinator.reset()
-                        stateManager.updateState { it.copy(isContextSwitching = true) }
+                        stateManager.updateState { it.copy(isContextSwitching = true, isInitialViewResolved = false,
+                            currentViewMode = ContextViewMode.DASHBOARD) }
                         _listContent.value = emptyList()
                         _attachmentItems.value = emptyList()
                     }
@@ -666,6 +669,7 @@ class ContextScreenViewModel
                     .observe(
                         contextIdFlow = contextIdFlow,
                         refreshTriggerFlow = uiState.map { it.refreshTrigger },
+                        canonicalWorkspaceRoute = operationalRoute.isCanonicalWorkspace,
                     )
                     .debounce(80)
                     .collect { data ->
@@ -1299,6 +1303,7 @@ class ContextScreenViewModel
                 contextPickerActions.onPickerAttachmentSelected(
                     currentContextId = contextIdFlow.value,
                     attachmentId = attachmentId,
+                    onFailure = { showSnackbar(it, null) },
                 )
             }
 

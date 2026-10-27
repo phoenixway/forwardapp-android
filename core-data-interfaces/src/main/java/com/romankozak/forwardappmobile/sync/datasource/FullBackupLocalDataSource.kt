@@ -115,7 +115,9 @@ data class CanonicalOrientationSyncPayload(
     val workspaceBindings: List<WorkspaceBindingEntity> = emptyList(),
     val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity> = emptyList(),
     val workspaceTagRefs: List<WorkspaceTagRefEntity> = emptyList(),
+    val semanticTagRefs: List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectTagRefEntity> = emptyList(),
     val savedViews: List<SavedOrientationViewEntity> = emptyList(),
+    val subjectConversions: List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectConversionEntity> = emptyList(),
 )
 
 data class CanonicalOrientationSyncVersion(val id: String, val version: Long)
@@ -138,7 +140,9 @@ data class CanonicalOrientationSyncAck(
     val workspaceBindings: List<CanonicalOrientationSyncVersion> = emptyList(),
     val workspaceCapabilities: List<CanonicalOrientationSyncVersion> = emptyList(),
     val workspaceTagRefs: List<CanonicalWorkspaceTagRefSyncVersion> = emptyList(),
+    val semanticTagRefs: List<CanonicalOrientationSyncVersion> = emptyList(),
     val savedViews: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val subjectConversions: List<CanonicalOrientationSyncVersion> = emptyList(),
 )
 
 data class CanonicalWorkspaceProblemSyncPayload(

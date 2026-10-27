@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.isCanonicalWorkspaceOwner
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
@@ -112,7 +113,7 @@ class AttachmentsLocalDataSourceImpl
         }
 
         override suspend fun requireAttachmentPlacementAuthoring(contextId: String) {
-            val workspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val workspaceId = canonicalAttachmentWorkspaceId(contextId)
             if (workspaceId != null) {
                 canonicalConnectionsRepository.requireActive(workspaceId)
             }
@@ -139,7 +140,7 @@ class AttachmentsLocalDataSourceImpl
             roleCode: String?,
             isSystem: Boolean,
         ) {
-            val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
             appDatabase.withTransaction {
                 if (systemWorkspaceId != null) {
                     canonicalConnectionsRepository.requireActive(systemWorkspaceId)
@@ -182,7 +183,7 @@ class AttachmentsLocalDataSourceImpl
             attachmentId: String,
             contextId: String,
         ) {
-            val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
             if (systemWorkspaceId != null) {
                 canonicalConnectionsRepository.linkAttachment(
                     workspaceId = systemWorkspaceId,
@@ -197,7 +198,7 @@ class AttachmentsLocalDataSourceImpl
 
         override fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>> =
             flow {
-                val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+                val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
                 emitAll(
                     if (systemWorkspaceId != null) {
                         attachmentDao.getAttachmentsForCanonicalWorkspace(systemWorkspaceId)
@@ -213,7 +214,7 @@ class AttachmentsLocalDataSourceImpl
             attachmentId: String,
             contextId: String,
         ) {
-            val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
             if (systemWorkspaceId != null) {
                 canonicalConnectionsRepository.unlinkAttachment(
                     workspaceId = systemWorkspaceId,
@@ -228,7 +229,7 @@ class AttachmentsLocalDataSourceImpl
             contextId: String,
             orders: Map<String, Long>,
         ) {
-            val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
             if (systemWorkspaceId != null) {
                 canonicalConnectionsRepository.reorder(
                     workspaceId = systemWorkspaceId,
@@ -252,7 +253,7 @@ class AttachmentsLocalDataSourceImpl
             roleCode: String?,
             isSystem: Boolean, // Оновлено
         ): String {
-            val systemWorkspaceId = requireCanonicalOnlySystemWorkspace(contextId)
+            val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
             return appDatabase.withTransaction {
                 if (systemWorkspaceId != null) {
                     canonicalConnectionsRepository.requireActive(systemWorkspaceId)
@@ -302,8 +303,17 @@ class AttachmentsLocalDataSourceImpl
          * System identity, or null for every ordinary compatibility caller.
          * Invalid System ownership never falls back to sourceContextId routing.
          */
-        private suspend fun requireCanonicalOnlySystemWorkspace(ownerId: String): String? {
-            if (!SystemContexts.isSystem(ContextId(ownerId))) return null
+        private suspend fun canonicalAttachmentWorkspaceId(ownerId: String): String? {
+            if (!SystemContexts.isSystem(ContextId(ownerId))) {
+                val workspace = workspaceDao.getById(ownerId) ?: return null
+                // The operational surface passes canonical Workspace identity, not its source Context.
+                // Legacy Context aliases still resolve through their explicit sourceContextId below.
+                if (workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name) {
+                    require(!workspace.sourceContextId.isNullOrBlank()) { "Context-backed attachment owner has no provenance" }
+                } else require(workspace.isCanonicalWorkspaceOwner()) { "Unsupported canonical attachment owner provenance" }
+                require(!workspace.isDeleted) { "Canonical attachment owner $ownerId is deleted" }
+                return workspace.id
+            }
 
             val workspace = requireNotNull(workspaceDao.getById(ownerId)) {
                 "Canonical System attachment owner $ownerId is missing"

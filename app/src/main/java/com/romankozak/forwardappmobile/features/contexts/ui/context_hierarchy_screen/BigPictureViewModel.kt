@@ -44,6 +44,7 @@ class BigPictureViewModel @Inject constructor(
     private val focusedPlacementId = savedStateHandle.getStateFlow<String?>("bigPictureFocus", null)
     private val focusedScopeId = savedStateHandle.getStateFlow<String?>("bigPictureScope", null)
     private val revealWorkspaceId = savedStateHandle.get<String>("projectIdToReveal")
+    private val revealPlacementId = savedStateHandle.get<String>("placementIdToReveal")
     private val revealRequested = savedStateHandle.getStateFlow("bigPictureRevealRequested", true)
 
     // Canonical H1 is structural authority. Presentation contributes only
@@ -69,13 +70,16 @@ class BigPictureViewModel @Inject constructor(
             val (read, structuralIndex) = indexedRead
             val reveal = read.nodes.firstOrNull {
                 shouldReveal &&
+                    (revealPlacementId == null || it.placement.id.value == revealPlacementId) &&
                     it.placement.target.type ==
                         com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType.WORKSPACE &&
-                    it.placement.target.id == revealWorkspaceId
+                    (revealWorkspaceId == null || it.placement.target.id == revealWorkspaceId) &&
+                    (revealPlacementId != null || revealWorkspaceId != null)
             }
             val focus = focusBigPicture(
                 read.nodes,
-                reveal?.placement?.id?.value ?: focusedId,
+                if (shouldReveal && revealPlacementId != null) reveal?.placement?.id?.value
+                else reveal?.placement?.id?.value ?: focusedId,
             )
 
             val scope = if (focus.activeNode != null) {
@@ -138,7 +142,7 @@ class BigPictureViewModel @Inject constructor(
             .catch {
                 emit(
                     BigPictureUiState.Error(
-                        it.message ?: "Не вдалося завантажити Big Picture",
+                        it.message ?: "Не вдалося завантажити Navigation",
                     ),
                 )
             }

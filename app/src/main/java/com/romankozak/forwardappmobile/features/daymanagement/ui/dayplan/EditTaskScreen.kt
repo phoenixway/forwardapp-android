@@ -1,10 +1,6 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,11 +11,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,28 +37,28 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +89,7 @@ import java.util.Locale
 private data class EditTaskActions(
     val onTitleChange: (String) -> Unit,
     val onDescriptionChange: (String) -> Unit,
+    val onNotesChange: (String) -> Unit,
     val onPointsChange: (Int) -> Unit,
     val onPriorityChange: (TaskPriority) -> Unit,
     val onDurationChange: (Long?) -> Unit,
@@ -110,12 +105,6 @@ private data class EditTaskActions(
     val onRemoveContextLink: (String) -> Unit,
 )
 
-private enum class EditTaskTab(val title: String) {
-    Main("Основне"),
-    Details("Деталі"),
-    Repeat("Повтор"),
-}
-
 // ─── Full-screen edit ─────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -126,7 +115,8 @@ fun EditTaskScreen(
     navController: NavController? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableStateOf(EditTaskTab.Main) }
+    val requestClose = rememberTaskNotesCloseRequest(uiState, viewModel, onNavigateUp)
+    var selectedTab by rememberSaveable { mutableStateOf(EditTaskTab.Main) }
     var isContextChooserOpen by remember { mutableStateOf(false) }
     EditTaskContextChooserResultEffect(
         navController = navController,
@@ -141,7 +131,7 @@ fun EditTaskScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is EditTaskUiEvent.NavigateUp -> { viewModel.reset(); onNavigateUp() }
+                is EditTaskUiEvent.NavigateUp -> if (viewModel.uiState.value.task?.id == event.taskId) { viewModel.reset(); onNavigateUp() }
             }
         }
     }
@@ -151,7 +141,7 @@ fun EditTaskScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.title.ifBlank { "Нова задача" },
+                        text = "Завдання дня",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -161,7 +151,7 @@ fun EditTaskScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
+                    IconButton(onClick = requestClose) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад",
@@ -170,30 +160,27 @@ fun EditTaskScreen(
                     }
                 },
                 actions = {
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = viewModel::saveTask,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                        ),
+                        enabled = uiState.task != null && !uiState.isSaving && !uiState.isLoadingDetails && uiState.loadError == null,
                         modifier = Modifier
-                            .padding(end = 12.dp)
-                            .size(36.dp)
-                            .clip(CircleShape),
+                            .padding(end = 8.dp)
+                            .size(48.dp),
                     ) {
-                        Icon(
+                        if (uiState.isSaving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        else Icon(
                             Icons.Default.Save,
                             contentDescription = "Зберегти",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
         val actions =
@@ -212,192 +199,14 @@ fun EditTaskScreen(
                 .padding(paddingValues)
                 .imePadding(),
             actions = actions,
+            onRetryLoad = viewModel::retryTaskLoad,
         )
     }
 }
 
-// ─── Bottom sheet ─────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-fun EditTaskBottomSheet(
-    taskId: String,
-    onDismissRequest: () -> Unit,
-    navController: NavController? = null,
-    viewModel: EditTaskViewModel = hiltViewModel(),
-    onContextChooserOpened: () -> Unit = {},
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
-    var isExpanded by remember(taskId) { mutableStateOf(false) }
-    var isContextChooserOpen by remember(taskId) { mutableStateOf(false) }
-    EditTaskContextChooserRouteEffect(
-        navController = navController,
-        onChooserClosed = { isContextChooserOpen = false },
-    )
-
-    LaunchedEffect(taskId) {
-        selectedTab = EditTaskTab.Main
-        isExpanded = true
-        viewModel.loadTask(taskId)
-        sheetState.show()
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect { event ->
-            when (event) {
-                is EditTaskUiEvent.NavigateUp -> { viewModel.reset(); onDismissRequest() }
-            }
-        }
-    }
-
-    val actions =
-        rememberActions(
-            viewModel = viewModel,
-            navController = navController,
-            uiState = uiState,
-            onContextChooserOpened = {
-                isContextChooserOpen = true
-                onContextChooserOpened()
-            },
-        )
-    val dragHandleColor = MaterialTheme.colorScheme.outlineVariant
-
-    ModalBottomSheet(
-        onDismissRequest = {
-            if (!isContextChooserOpen) {
-                viewModel.reset()
-                onDismissRequest()
-            }
-        },
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-        dragHandle = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                androidx.compose.foundation.Canvas(
-                    modifier = Modifier.size(width = 32.dp, height = 3.dp),
-                ) {
-                    drawRoundRect(
-                        color = dragHandleColor,
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()),
-                    )
-                }
-            }
-        },
-    ) {
-        // Висота визначається вмістом — animateContentSize плавно анімує зміну.
-        // Прибрано requiredHeightIn який конфліктував з ModalBottomSheet.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .animateContentSize(animationSpec = tween(durationMillis = 280)),
-        ) {
-            // ── Header ───────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = uiState.title,
-                    onValueChange = actions.onTitleChange,
-                    placeholder = {
-                        Text(
-                            "Назва задачі…",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                                fontWeight = FontWeight.Normal,
-                            ),
-                        )
-                    },
-                    textStyle = MaterialTheme.typography.titleMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 19.sp,
-                    ),
-                    modifier = Modifier.weight(1f).animateContentSize(),
-                    minLines = 1,
-                    maxLines = 4,
-                    colors = outlinedFieldColors(),
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                IconButton(
-                    onClick = viewModel::saveTask,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Save,
-                        contentDescription = "Зберегти",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            // ── Tabs ─────────────────────────────────────────────────────────
-            SheetTabSelector(
-                selectedTab = selectedTab,
-                onTabSelected = { tab ->
-                    if (tab == selectedTab) {
-                        // Повторний тап на активну вкладку — toggle розгортання
-                        isExpanded = !isExpanded
-                    } else {
-                        // Нова вкладка — завжди розгортаємо
-                        selectedTab = tab
-                        isExpanded = true
-                    }
-                },
-            )
-
-            // ── Collapsed: тільки summary чіпи ───────────────────────────────
-            AnimatedVisibility(
-                visible = !isExpanded,
-                enter = expandVertically(animationSpec = tween(220)),
-                exit = shrinkVertically(animationSpec = tween(220)),
-            ) {
-                SummaryChips(
-                    uiState = uiState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                )
-            }
-
-            // ── Expanded: повний контент поточної вкладки ────────────────────
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = tween(220)),
-                exit = shrinkVertically(animationSpec = tween(220)),
-            ) {
-                SheetExpandedBody(
-                    uiState = uiState,
-                    selectedTab = selectedTab,
-                    actions = actions,
-                )
-            }
-        }
-    }
-}
 
 // ─── Full-screen body ─────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditTaskBody(
     uiState: EditTaskUiState,
@@ -405,138 +214,55 @@ private fun EditTaskBody(
     onTabSelected: (EditTaskTab) -> Unit,
     modifier: Modifier = Modifier,
     actions: EditTaskActions,
+    onRetryLoad: () -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        OutlinedTextField(
-            value = uiState.title,
-            onValueChange = actions.onTitleChange,
-            label = {
-                Text(
-                    "Назва",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                )
-            },
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurface,
-            ),
-            modifier = Modifier.fillMaxWidth().animateContentSize(),
-            minLines = 1,
-            maxLines = 4,
-            colors = outlinedFieldColors(),
-        )
-        OutlinedTextField(
-            value = uiState.description,
-            onValueChange = actions.onDescriptionChange,
-            label = {
-                Text(
-                    "Опис",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                )
-            },
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 4,
-            colors = outlinedFieldColors(),
-        )
-
-        SheetTabSelector(selectedTab = selectedTab, onTabSelected = onTabSelected)
-
-        when (selectedTab) {
-            EditTaskTab.Main -> {
-                SummaryChips(uiState = uiState)
-                uiState.task?.let { task ->
-                    com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
-                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_TASK, task.id),
-                        uiState.contextLinks.map { it.id to it.name }, actions.onRemoveContextLink, actions.onOpenContextLink,
-                    )
-                }
-            }
-            EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
-            EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
+    Column(modifier = modifier.fillMaxWidth()) {
+        TaskPropertiesTabs(selectedTab = selectedTab, onTabSelected = onTabSelected)
+        if ((uiState.task == null || uiState.isLoadingDetails) && uiState.loadError == null) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
         }
-    }
-}
-
-// ─── Sheet expanded body ──────────────────────────────────────────────────────
-
-@Composable
-private fun SheetExpandedBody(
-    uiState: EditTaskUiState,
-    selectedTab: EditTaskTab,
-    actions: EditTaskActions,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        when (selectedTab) {
-            EditTaskTab.Main -> {
-                OutlinedTextField(
-                    value = uiState.description,
-                    onValueChange = actions.onDescriptionChange,
-                    label = { Text("Опис", fontSize = 12.sp) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 5,
-                    colors = outlinedFieldColors(),
-                )
-                SummaryChips(uiState = uiState)
-                uiState.task?.let { task ->
-                    com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
-                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_TASK, task.id),
-                        uiState.contextLinks.map { it.id to it.name }, actions.onRemoveContextLink, actions.onOpenContextLink,
-                    )
-                }
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (selectedTab != EditTaskTab.Notes) uiState.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            uiState.loadError?.let { message ->
+                Text(message, color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = onRetryLoad) { Text("Повторити завантаження") }
             }
-            EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
-            EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
-        }
-    }
-}
-
-// ─── Tab selector ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun SheetTabSelector(
-    selectedTab: EditTaskTab,
-    onTabSelected: (EditTaskTab) -> Unit,
-) {
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-    ) {
-        EditTaskTab.entries.forEachIndexed { index, tab ->
-            SegmentedButton(
-                selected = selectedTab == tab,
-                onClick = { onTabSelected(tab) },
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = EditTaskTab.entries.size,
-                ),
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            ) {
-                Text(tab.title, fontSize = 11.sp, fontWeight = FontWeight.Normal)
+            when (selectedTab) {
+                EditTaskTab.Main -> {
+                    OutlinedTextField(
+                        value = uiState.title,
+                        onValueChange = actions.onTitleChange,
+                        enabled = uiState.task != null,
+                        label = { Text("Назва завдання") },
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 1,
+                        maxLines = 4,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Параметри завдання", style = MaterialTheme.typography.titleSmall)
+                            SummaryChips(uiState = uiState)
+                            TextButton(onClick = { onTabSelected(EditTaskTab.Details) }) {
+                                Text("Налаштувати час і пріоритет")
+                            }
+                        }
+                    }
+                }
+                EditTaskTab.Details -> if (!uiState.isLoadingDetails) DetailsContent(uiState = uiState, actions = actions)
+                EditTaskTab.Repeat -> if (!uiState.isLoadingDetails) RepeatContent(uiState = uiState, actions = actions)
+                EditTaskTab.Notes -> TaskNotesTab(uiState, actions.onNotesChange, actions.onDescriptionChange)
+                EditTaskTab.Realizes -> TaskRealizesTab(uiState.task, uiState.contextLinks.map { it.id to it.name }, actions.onRemoveContextLink, actions.onOpenContextLink)
             }
         }
     }
@@ -572,12 +298,12 @@ private fun SummaryChips(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         CompactChip(
-            label = uiState.priority.name,
+            label = uiState.priority.taskPropertiesLabel(),
             textColor = priorityColor,
             borderColor = priorityColor,
             bg = priorityBg,
         )
-        CompactChip(label = "${uiState.points} балів")
+        CompactChip(label = "Бали: ${uiState.points}")
         uiState.duration?.let {
             CompactChip(
                 label = "$it хв",
@@ -587,7 +313,7 @@ private fun SummaryChips(
             )
         }
         if (uiState.isRecurring) {
-            CompactChip(label = uiState.recurrenceFrequency.name)
+            CompactChip(label = "Повторюється")
         }
     }
 }
@@ -608,12 +334,9 @@ private fun CompactChip(
             .padding(horizontal = 9.dp, vertical = 4.dp),
     ) {
         Text(
-            text = label.uppercase(),
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Medium,
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
             color = textColor,
-            fontFamily = FontFamily.Monospace,
-            letterSpacing = 0.06.sp,
         )
     }
 }
@@ -745,7 +468,7 @@ private fun DetailsContent(
                     selected = uiState.priority == priority,
                     onClick = { actions.onPriorityChange(priority) },
                     label = {
-                        Text(priority.name, fontSize = 11.sp, softWrap = false, maxLines = 1)
+                        Text(priority.taskPropertiesLabel(), softWrap = false, maxLines = 1)
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = cs.primary,
@@ -1000,6 +723,7 @@ private fun rememberActions(
 ) = EditTaskActions(
     onTitleChange = viewModel::onTitleChange,
     onDescriptionChange = viewModel::onDescriptionChange,
+    onNotesChange = viewModel::onNotesChange,
     onPointsChange = viewModel::onPointsChange,
     onPriorityChange = viewModel::onPriorityChange,
     onDurationChange = viewModel::onDurationChange,

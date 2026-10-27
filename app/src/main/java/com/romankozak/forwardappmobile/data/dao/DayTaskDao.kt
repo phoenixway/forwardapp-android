@@ -18,6 +18,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DayTaskDao {
+    @Query("SELECT * FROM day_tasks WHERE id=:id LIMIT 1")
+    fun observeById(id: String): Flow<DayTask?>
+    /** One occurrence only: no recurrence template, ordering or alarm state is touched. */
+    @Query("UPDATE day_tasks SET notes=:notes, updatedAt=:now, syncedAt=NULL, version=version+1 WHERE id=:id AND isDeleted=0")
+    suspend fun updateNotesIfLive(id: String, notes: String, now: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRaw(task: DayTask)
 

@@ -34,6 +34,58 @@ import org.robolectric.RobolectricTestRunner
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class InputHandlerGoalSubmissionTest {
+    @Test
+    fun `completed negative preview is reused instead of parsing again on Add`() = runBlocking {
+        val h = harness()
+        try {
+            coEvery { h.goals.addGoalToContext("Cached goal", "workspace-1", false) } returns "cached"
+            h.handler.onInputTextChanged(TextFieldValue("Cached goal"), InputMode.AddGoal)
+            withTimeout(10_000) { h.listener.preview.await() }
+            h.handler.submitInput(h.listener.text, InputMode.AddGoal)
+            assertThat(withTimeout(10_000) { h.listener.added.await() }).isEqualTo("cached")
+            coVerify(exactly = 1) { h.parser.parseWithTimeout("Cached goal", any()) }
+        } finally { h.scope.cancel() }
+    }
+
+    @Test
+    fun `in flight preview is shared by Add and editing next draft does not cancel submission`() = runBlocking {
+        val h = harness()
+        val entered = CompletableDeferred<Unit>()
+        val result = CompletableDeferred<ReminderParseResult>()
+        try {
+            coEvery { h.parser.parseWithTimeout("In flight", any()) } coAnswers {
+                entered.complete(Unit)
+                result.await()
+            }
+            coEvery { h.goals.addGoalToContext("In flight", "workspace-1", false) } returns "created"
+            h.handler.onInputTextChanged(TextFieldValue("In flight"), InputMode.AddGoal)
+            withTimeout(10_000) { entered.await() }
+            h.handler.submitInput(h.listener.text, InputMode.AddGoal)
+            h.handler.onInputTextChanged(TextFieldValue("Next draft"), InputMode.AddGoal)
+            result.complete(ReminderParseResult("In flight", emptyList(), emptyList(), success = false))
+            assertThat(withTimeout(10_000) { h.listener.added.await() }).isEqualTo("created")
+            assertThat(h.listener.text.text).isEqualTo("Next draft")
+            coVerify(exactly = 1) { h.parser.parseWithTimeout("In flight", any()) }
+        } finally { h.scope.cancel() }
+    }
+
+    @Test
+    fun `completed reminder preview is reused with its exact title and alarm time`() = runBlocking {
+        val h = harness()
+        val at = Calendar.getInstance().apply { timeInMillis = 1_900_000_000_000L }
+        try {
+            coEvery { h.parser.parseWithTimeout("Call tomorrow", any()) } returns
+                ReminderParseResult("Call tomorrow", emptyList(), emptyList(), success = true, calendar = at, suggestionText = "tomorrow")
+            coEvery { h.goals.addGoalWithReminder("Call", "workspace-1", at.timeInMillis) } returns
+                GoalWithReminderOutcome(Goal(id = "alarm", text = "Call", completed = false, createdAt = 1L, updatedAt = 1L), true)
+            h.handler.onInputTextChanged(TextFieldValue("Call tomorrow"), InputMode.AddGoal)
+            withTimeout(10_000) { h.listener.preview.await() }
+            h.handler.submitInput(h.listener.text, InputMode.AddGoal)
+            assertThat(withTimeout(10_000) { h.listener.added.await() }).isEqualTo("alarm")
+            coVerify(exactly = 1) { h.parser.parseWithTimeout("Call tomorrow", any()) }
+            coVerify(exactly = 1) { h.goals.addGoalWithReminder("Call", "workspace-1", at.timeInMillis) }
+        } finally { h.scope.cancel() }
+    }
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -304,6 +356,7 @@ class InputHandlerGoalSubmissionTest {
     private class RecordingListener : InputHandler.ResultListener {
         var text = TextFieldValue("")
         val added = CompletableDeferred<String>()
+        val preview = CompletableDeferred<Unit>()
 
         override fun updateInputState(
             inputValue: TextFieldValue?,
@@ -316,6 +369,7 @@ class InputHandlerGoalSubmissionTest {
         ) {
             if (inputValue != null) text = inputValue
             if (newlyAddedItemId != null) added.complete(newlyAddedItemId)
+            if (detectedReminderSuggestion != null || clearDetectedReminder) preview.complete(Unit)
         }
 
         override fun updateDialogState(

@@ -72,7 +72,7 @@ class ContextScreenDataMapper {
                     canonicalSystemBacklogLifecycleOverrides(
                         contextId,
                         snapshot.systemBacklogLifecycleState,
-                    ),
+                    ) + snapshot.canonicalRelationsViewOverride(contextId),
             suppressPresetCapabilityDerivation =
                 snapshot.hasCanonicalOrdinaryCapabilityAuthority(contextId) ||
                     snapshot.hasPromotedSystemCapabilityAuthority(contextId),

@@ -26,12 +26,12 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentati
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 
 @Composable
 @Suppress("LongParameterList", "LongMethod")
 fun TodayBottomPanel(
-    globalActions: BottomPanelGlobalActions,
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit,
     currentTab: DayManagementTab,
     onSelectTodayTab: (DayManagementTab) -> Unit,
     runtimeUiState: DayManagementRuntimeUiState,
@@ -57,8 +57,9 @@ fun TodayBottomPanel(
     val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    var inputValue by rememberTodayComposerDraft(currentTab)
     var showContextPicker by remember { mutableStateOf(false) }
+    var showCalendar by remember { mutableStateOf(false) }
     var showClearJournalConfirmDialog by remember { mutableStateOf(false) }
     var showPredictedDurationDialog by remember { mutableStateOf(false) }
     var journalQuickDoneDialogState by remember { mutableStateOf<String?>(null) }
@@ -134,8 +135,7 @@ fun TodayBottomPanel(
         activityEntityOptions = activityEntityOptions,
         isActivityOngoing = lastOngoingActivity != null,
         journalHoldMenuController = journalHoldMenuController,
-        globalActions = globalActions,
-        additionalMoreActions = additionalMoreActions,
+        additionalMoreActions = additionalMoreActions + todayDateActions(currentTab, { showCalendar = true }, onWakeUp, onSleep),
         runtimeUiState = runtimeUiState,
         onInputValueChange = { inputValue = it },
         onActivityTextChange = activityTrackerViewModel::onInputTextChanged,
@@ -157,7 +157,6 @@ fun TodayBottomPanel(
                 else -> submitTask()
             }
         },
-        onAddTaskFromEntity = { showContextPicker = true },
         onSelectTodayTab = onSelectTodayTab,
         onStartFinalization = onStartFinalization,
         onSleep = onSleep,
@@ -169,6 +168,7 @@ fun TodayBottomPanel(
         onDismiss = { showContextPicker = false },
         onEntitySelected = dayPlanViewModel::addTaskFromEntity,
     )
+    TodayDatePickerDialogHost(showCalendar, selectedDate, onDateSelected) { showCalendar = false }
 
     TodayJournalDialogsHost(
         showClearJournalConfirmDialog = showClearJournalConfirmDialog,

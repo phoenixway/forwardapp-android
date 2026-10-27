@@ -29,6 +29,7 @@ enum class BottomPanelGlobalRailMode {
 fun CommandDeckGlobalRailPanel(
     actions: BottomPanelGlobalActions,
     recentViewModel: RecentViewModel = hiltViewModel(),
+    journalFirst: Boolean = false,
 ) {
     BottomPanelSurface {
         Row(
@@ -40,6 +41,7 @@ fun CommandDeckGlobalRailPanel(
                 actions = actions,
                 mode = BottomPanelGlobalRailMode.FULL,
                 recentViewModel = recentViewModel,
+                journalFirst = journalFirst,
             )
         }
     }
@@ -51,22 +53,23 @@ fun BottomPanelGlobalRail(
     mode: BottomPanelGlobalRailMode = BottomPanelGlobalRailMode.COMPACT,
     additionalActions: List<MoreSheetAction> = emptyList(),
     recentViewModel: RecentViewModel = hiltViewModel(),
+    journalFirst: Boolean = false,
 ) {
     var showRecentSheet by remember { mutableStateOf(false) }
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
 
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
-            imageVector = Icons.Outlined.AccountTree,
-            contentDescription = "Big Picture",
-            onClick = actions.onNavigateToProjectHierarchy,
+            imageVector = if (journalFirst) Icons.AutoMirrored.Outlined.MenuBook else Icons.Outlined.AccountTree,
+            contentDescription = if (journalFirst) "Показати журнал життя" else "Navigation",
+            onClick = if (journalFirst) actions.onNavigateToTracker else actions.onNavigateToProjectHierarchy,
         )
     }
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
-            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
-            contentDescription = "Показати журнал життя",
-            onClick = actions.onNavigateToTracker,
+            imageVector = if (journalFirst) Icons.Outlined.AccountTree else Icons.AutoMirrored.Outlined.MenuBook,
+            contentDescription = if (journalFirst) "Navigation" else "Показати журнал життя",
+            onClick = if (journalFirst) actions.onNavigateToProjectHierarchy else actions.onNavigateToTracker,
         )
     }
     BottomPanelIconButton(

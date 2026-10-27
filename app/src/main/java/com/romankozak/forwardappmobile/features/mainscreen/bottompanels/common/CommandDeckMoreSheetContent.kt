@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,12 +65,12 @@ internal fun MoreBottomSheetContent(
                 .background(containerColor)
                 .padding(16.dp),
     ) {
-        Column {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
             Text("More Options", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(16.dp))
             MoreSheetMenuItem(
                 icon = if (onShowRecents != null) Icons.Outlined.History else Icons.Outlined.AccountTree,
-                label = if (onShowRecents != null) "Недавні" else "Big Picture",
+                label = if (onShowRecents != null) "Недавні" else "Navigation",
                 onClick = onShowRecents ?: onNavigateToProjectHierarchy,
             )
             MoreSheetMenuItem(

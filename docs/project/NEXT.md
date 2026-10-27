@@ -1,5 +1,499 @@
 # Next
 
+## Backlog Goal Workspace creation / semantic open: physical smoke pending
+
+After user-run `make exp-arm64-cycle`, open a disposable backlog Goal menu:
+Create workspace -> inspect/edit prefilled fields -> confirm. Verify the clickable
+Workspace badge appears without refresh and opens the new standalone Workspace.
+Return and use Open in semantic editor: it must open the Goal's exact semantic
+identity, not redirect to Workspace. Repeat Goal appearances share the badge;
+creation is disabled while EMBODIES exists. Check cancel, rename/unbind/delete
+reactivity, unchanged Goal text/status/order/DnD and no automatic Navigation
+appearance. HOST 29 unique tests PASS, Room 205 and compile/diff checks PASS.
+
+## Workspace Send to: physical smoke pending
+
+After user-run `make exp-arm64-cycle`, open a disposable Workspace -> Send to….
+Check the three labeled icon tiles; create a Day task, Mission and ArcQuest in
+separate dialog openings. Verify today/current-cycle General/current-month
+destinations and exact Workspace SOURCE in Properties, with Workspace unchanged.
+Check Close without selection, double taps, failure feedback and standalone
+Workspace support. HOST 19 unique tests plus overlapping final UI 3/3 PASS;
+Kotlin compilation/diff check PASS, Room 205 unchanged. No automatic deployment.
+
+## Contextual menu consolidation: physical follow-up
+
+After user-run `make exp-arm64-cycle`, verify local MoreVert buttons, no redundant
+captions above input, no Day/Arc FAB, unified Arc commands (including disabled
+previous arc and source/beacon/group/artifact/links), Today calendar cancel/save
+on all subtabs and Day Start wake/sleep. HOST 24/24 and Kotlin compile PASS;
+full dock parity/device acceptance below remains pending.
+
+## Unified main-screen dock: full physical parity acceptance pending
+
+MAIN_SCREEN_GLOBAL_DOCK_HOST_20261026
+
+HOST implementation is verified; do not call the redesign fully accepted yet.
+User-run `make exp-arm64-cycle`, then work through the per-control device matrix
+in docs/ui/MAIN-SCREEN-DOCK-PARITY.md: dock/global More and create on all six tabs;
+Today six modes, task/focus/source/journal/calendar/finalization workflows;
+Tactics modes/streams/Plan/backlog/paste/source/manual/cycle history; Strategic
+quick/source/beacon/group quests, artifact, arc navigation and links. Verify
+independent drafts, real IME/nav insets, Back and modal tap geometry on a narrow
+phone. All advanced controls remain present; no deployment/screenshots claimed.
+HOST: 43 unique tests across focused runs; final stable-name-key SavedState
+method also PASS (overlap), Kotlin compile and diff check PASS, Room 205.
+
+## Workspace core views / initial rendering: physical smoke pending
+
+WORKSPACE_CORE_VIEWS_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, create a Workspace with no optional
+capabilities: Dashboard opens, Dashboard/Semantics remain available and their
+Properties switches cannot be disabled. Backlog must not appear as an active
+view without its capability. Open an existing Workspace saved on Inbox or
+Connections, also after restart: no provisional Dashboard should flash. Switch
+between two Workspaces with different saved views; check disabled-view fallback,
+Semantics with no bindings and unavailable/deleted Workspace behavior.
+HOST evidence: 64-test regression + final 6-test initial-view run (65 unique);
+Room 205 unchanged, no deployment performed.
+
+## Strategic quest carry: physical smoke pending
+
+STRATEGIC_QUEST_CARRY_FORWARD_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, open Strategic Arc -> previous
+month -> quest menu -> "В поточну арку". Verify current month opens/reveals the
+quest, old participation remains, and repeat returns the same existing quest.
+Check equal-title independent quests, old DONE quest -> new ACTIVE participation,
+and absence of this action on current/future arcs. Restart and verify persistence.
+HOST XML 31/31 PASS; Room 205 unchanged.
+
+## Historical Tactical carry-forward: physical recheck pending
+
+TACTICAL_HISTORICAL_CARRY_FORWARD_HOST_20261026
+TACTICAL_CARRY_IDENTITY_VISIBILITY_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, open Tactics -> Cycle history and
+use In current iteration on the previously failing historical mission. Verify
+one current mission appears, the historical mission remains unchanged, repeated
+tap does not duplicate it, and restart preserves the result. Unsupported or
+unavailable source must show a message without a crash or partial participation.
+Also check an unrelated same-title mission does not block the carry, a renamed
+exact existing copy is recognized, and backlog-origin carries appear in their
+selected stream after closing history. A completed existing copy is identified
+as completed rather than silently recreated. Initial HOST XML 42/42 PASS;
+identity/visibility follow-up XML 26/26 PASS. Room 205 unchanged; no device data
+was rewritten.
+
+## Tactical mission compact rows: visual / DnD smoke pending
+
+TACTICAL_MISSION_COMPACT_ROWS_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, check Tactics in draft/normal and
+iteration execution modes. Verify long titles, colored priority dots, nonempty
+metadata/links, status/completion, selection and More actions. Drag via checkbox
+and More, then reopen to verify order persists. Confirm Today task styling is
+unchanged. HOST XML 17/17 PASS; Room 205 unchanged.
+
+## Day task compact rows: visual / DnD smoke pending
+
+DAY_TASK_COMPACT_ROWS_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, open Today -> Day Plan. Check plain
+rows without blank metadata space, colored priority dots, long titles and tasks
+with tags/links/themes/time/reminders. Open properties and More, toggle completion.
+Drag via both existing checkbox and More handles, also with the theme summary
+visible; verify the intended task moves and order persists. Add a first theme
+through Properties -> Realizes. HOST XML 14/14 PASS; Room 205 unchanged.
+
+## Dashboard semantic structure card: visual smoke pending
+
+WORKSPACE_DASHBOARD_SEMANTIC_STRUCTURE_HOST_20261026
+
+After user-controlled `make exp-arm64-cycle`, open Dashboard for an EMBODIES
+Aspect Workspace. Check linked source, Orientations/Sub-aspects counts and
+first-name/+N-more summaries. Source opens exact editor; groups/View all open
+the complete relations view (existing dialog when capability disabled). Check
+long names, light/dark themes and an unbound Workspace. Connections/bottom panel
+must stay unchanged. HOST XML 19/19 PASS; Room 205 unchanged; no deployment claimed.
+
+## Related entities panel: visual smoke pending
+
+WORKSPACE_RELATIONSHIP_PANEL_HOST_20261025
+
+After user-controlled `make exp-arm64-cycle`, open Workspace -> Related entities.
+Verify source bridge, Orientations/Sub-aspects groups, counts and exact editor
+navigation. Check dark/light theme, long titles, larger text, no-source Workspace
+and unavailable Planning rows. Dashboard and bottom panel must remain unchanged.
+33/33 focused HOST XML PASS; Room 205 unchanged. No deployment claimed.
+
+## OrientationKind transformation: physical smoke pending
+
+ORIENTATION_KIND_TRANSFORMATION_HOST_20261025
+
+Room 205; focused HOST XML 106 app + 22 sync + 34 shared JVM PASS. With user-controlled
+`make exp-arm64-cycle`, open a disposable native INTENT carrying tags, scores,
+Aspect membership, a live Workspace binding and Navigation appearances. Choose
+"Змінити тип орієнтира…": Cancel once, then PROJECT, then ONGOING_STANDARD.
+Verify exact identity, bound Workspace, appearances and Planning/recurrence
+sources survive; only span/window applicability defaults change, old scores remain
+historical. Transform back to PROJECT, open the same semantic route and restart.
+Also try an Aspect previously converted to Orientation. No deployment claimed.
+Both separate app Kotlin compile gates, shared Kotlin/JS compile and diff check PASS.
+
+## Native Aspect conversion: physical acceptance pending
+
+SEMANTIC_SUBJECT_CONVERSION_HOST_20261025
+
+Implemented; HOST XML 83 app + 20 sync + 23 shared JVM PASS, Room 204.
+Both separate app Kotlin compile gates, shared Kotlin/JS compile and diff check PASS.
+After user-controlled `make exp-arm64-cycle`, use a disposable native Aspect with
+parent/children, tags, Workspace binding, Navigation appearances and Planning
+references. In its semantic editor choose "Перетворити на орієнтир…": first
+Cancel (no changes), then explicitly choose Project and confirm. Verify same
+identity/title/description, tags/bound Workspace/PRIMARY+LINK appearances remain;
+children move to former parent/root and old memberships disappear. The same
+editor reloads as Project; no Planning participation or appearance is created.
+Restart and verify persistence; test backup/Restore with conversion-aware clients.
+Older clients intentionally reject history-bearing wire generation. Selective
+import is blocked; use full Restore/Merge. Recurrence TASK SOURCE=Aspect must be
+detached/changed first. No reverse/legacy conversion or deployment is claimed.
+
+## Canonical PROJECT: physical smoke pending
+
+CANONICAL_PROJECT_ORIENTATION_HOST_20261025
+
+98/98 app + 21/21 shared HOST XML PASS; both separate Kotlin compile gates PASS;
+Room 203 unchanged. After user-controlled `make exp-arm64-cycle`, create
+Orientation -> Project. Edit title/description, tag and score; assign Aspect;
+link/create EMBODIES or REALIZES Workspace. Add Project to Navigation and verify
+EMBODIES primary open reaches Workspace while secondary semantic action opens the
+same Project editor. Use the same Project as Strategic/Tactical/Day source where
+current UI admits it, then restart and verify identity/persistence. No automatic
+legacy conversion or new Transform UI; no deployment or physical acceptance.
+
+## Workspace semantic context: physical smoke pending
+
+WORKSPACE_SEMANTIC_CONTEXT_HOST_20261025
+
+95/95 focused HOST XML PASS; Kotlin compile; Room 203 unchanged. After
+user-controlled deployment, open an EMBODIES Aspect Workspace and use the named
+taxonomy/relations action to open that exact Aspect editor. Change parent,
+confirm, then Back: context updates but Navigation placement stays unchanged.
+Repeat with EMBODIES Orientation: memberships, incoming/outgoing/mutual relations
+and exact source editor action. Add/remove a membership/edge and return; verify
+reactive preview/full view. Remove embodiment and verify no stale hierarchy or
+editor action. Test standalone/no-source Workspace and the settings gear added
+to Dashboard; no deployment or physical acceptance claimed.
+
+## Workspace Entity hub: physical smoke pending
+
+WORKSPACE_ENTITY_HUB_HOST_20261025
+
+33/33 focused HOST XML PASS; production/test Kotlin compile; Room 203 unchanged.
+After user-controlled deployment, open a Workspace embodying an Aspect. Verify
+title -> view strip -> compact Entity hub -> Connections (no Links-to header pill).
+Check exact source/related-entity navigation and All relations. Add/remove/rename
+a canonical binding or Aspect relation and verify reactive updates. Check parent
+and children are labelled Aspect taxonomy, not Workspace/Navigation structure;
+supporting Workspaces are explicitly related through the Aspect. Preview is
+bounded; full view retains all relations/kinds. Test with capability disabled,
+empty and standalone Workspace; bottom panel/Connections plus remain intact.
+No deployment or physical acceptance claimed.
+
+## Navigation Workspace rename: physical smoke pending
+
+NAVIGATION_WORKSPACE_RENAME_HOST_20261024
+
+19/19 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+With disposable Workspace PRIMARY/LINK appearances, use Rename from a list card
+and focused header. Verify all appearances, breadcrumbs and Library show the new
+name without restart, while description, role, children/order and bound semantic
+titles stay unchanged. Check Cancel, blank title and restart persistence; repeat
+on a Context-backed Workspace. Adaptive semantic cards must not expose Workspace
+rename. Section rename remains its own container-title action. No deployment or
+physical acceptance claimed.
+
+## Aspect direct children: physical smoke pending
+
+SEMANTIC_ASPECT_CHILDREN_HOST_20261024
+
+39/39 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+Open a disposable parent Aspect: direct children must appear in taxonomy order,
+including when that parent itself has a parent. Open a child, rename/reparent it,
+then Back: the list must update without losing an unsaved parent title. Repeat
+with child deletion. Grandchildren appear only after opening their parent;
+Navigation-only nesting must not create semantic children. Empty list is valid.
+No deployment or physical acceptance claimed.
+
+## Aspect parent taxonomy UI: physical smoke pending
+
+SEMANTIC_ASPECT_PARENT_UI_HOST_20261024
+
+39/39 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+With disposable Aspects A/B/C, make C a child of B, then choose A as B's parent
+in Semantic Editor and confirm. Verify exact parent-title navigation and that C
+remains under B. Test Change, Cancel and Make root; self/current parent/descendants
+must not be offered as destinations. An unsaved name must survive the command.
+Verify Navigation occurrences and Orientation memberships are untouched; restart
+and verify taxonomy persists. No deployment or physical acceptance claimed.
+The separate architecture discussion about unifying taxonomy/classification
+authorities is not an accepted cutover and is not implemented by this UI slice.
+
+## Semantic editor relation entry: physical smoke pending
+
+SEMANTIC_EDITOR_SHARED_RELATIONS_HOST_20261024
+
+42/42 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled deployment, open a disposable Aspect, Add semantic entity,
+choose an existing Orientation and confirm BELONGS_TO or RELEVANT_TO. Verify
+the inverse row/title, exact editor navigation and relation-only removal. Repeat
+from Orientation with an Aspect and another Orientation; test directed/mutual
+types, another type for an already linked target, Cancel and double-tap. Change
+the editor title without saving, add a relation and verify the draft survives.
+No generic Aspect-to-Aspect relation is advertised. Workspace bindings remain
+separate. Restart and verify relations persist; no physical acceptance claimed.
+
+## Workspace dashboard reference layout: visual smoke pending
+
+WORKSPACE_DASHBOARD_REFERENCE_LAYOUT_HOST_20261024
+
+21/21 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`, compare Dashboard with the supplied
+reference in dark/light themes: single Workspace title, compact binding pill,
+scrollable tabs/counts, Connections preview and plus. Check long titles and
+multiple/no bindings, exact semantic dialog navigation, all enabled views,
+Connections pick/create/reactivity and header Back. The existing bottom panel
+must remain unchanged. Detailed relations remain in Related entities. Repeat on
+a Context-backed Workspace; no physical/pixel acceptance claimed.
+
+## Navigation rename/leaf activation: physical smoke pending
+
+NAVIGATION_SECTION_RENAME_LEAF_OPEN_HOST_20261024
+
+47/47 focused HOST XML PASS; production/test Kotlin compile; Room 203 unchanged.
+After user-controlled deployment, rename a disposable section from both its list
+card and focused title-card menu. Check breadcrumbs, restart persistence and
+unchanged children/order; Cancel and blank title must not write. Tap leaf
+Orientation/Aspect/Workspace cards: open the existing exact destination without
+an intermediate focus step. A parent containing even only a section must still
+focus; an empty section must remain enterable for Add. Verify adaptive semantic
+open and explicit semantic-editor actions retain their accepted destinations.
+No device deployment or physical acceptance claimed.
+
+## Workspace Connections create/pick: physical smoke pending
+
+WORKSPACE_CONNECTIONS_PICKER_REPAIR_HOST_20261024
+
+52/52 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`, open Connections on a disposable
+standalone Workspace. Create a note: only the name form should appear, not picker
+results behind it; Save must immediately show the row and open its exact note.
+Pick an existing note owned elsewhere: it must appear without refresh or copying
+content ownership. Unlink must remove only this placement. Test checklist/music,
+URL and Obsidian creation, Cancel, and repeat once on Context-backed Workspace.
+Try direct Create with an empty attachment inventory. Earlier created-but-unlinked
+notes may be selected explicitly; no automatic repair/attachment is performed.
+Restart and verify placements persist. No deployment/physical acceptance claimed.
+
+## Navigation UI name: physical smoke pending
+
+NAVIGATION_UI_NAME_HOST_20261024
+
+18/18 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled deployment, verify `Navigation` in the header/main entry,
+Library Add action, Workspace appearance chooser and removal dialogs. Old default
+history rows must display Navigation and still open the same routes. Existing
+Big Picture acceptance scenarios below now refer to this same Navigation surface;
+internal names and structural semantics have not changed. No deployment claimed.
+
+## Big Picture recursive appearance removal: physical smoke pending
+
+BIG_PICTURE_RECURSIVE_REMOVE_HOST_20261024
+
+29/29 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`, use disposable data: a LINK branch
+with child occurrences and nested sections, plus another appearance outside it.
+`Прибрати з Big Picture` must offer `Прибрати гілку`, not a leaf confirmation.
+Cancel must change nothing. Confirm must remove the whole structural branch,
+keep canonical Library entities/outside appearances, and recover valid parent/
+root focus. A child that is only a section must also trigger this confirmation.
+Leaf removal remains exact; deleting a section alone still promotes its children.
+Restart and verify persistence. No deployment/physical acceptance claimed.
+
+## Related entities / embodied Aspect: physical smoke pending
+
+WORKSPACE_RELATED_ENTITIES_ASPECT_HOST_20261024
+
+50/50 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged. After
+user-controlled `make exp-arm64-cycle`, verify capability/settings/view now say
+`Related entities`, while `Connections` is unchanged and activation survives.
+Use a disposable Workspace embodying an Aspect: its direct Workspace list must
+remain separate from `Зв’язки втіленого Aspect`. Check exact Aspect-title editor,
+Orientation/Workspace/Day-task links, actual relation directions, reactive
+add/remove/rename/tombstone, and absence of deeper recursive expansion. Removing
+EMBODIES hides only the derived block; SUPPORTS alone must not enable it.
+An Aspect with no other direct relations has a valid empty block; Big Picture
+children must not appear as inferred semantic relations. No deployment claimed.
+
+## Workspace exact Big Picture appearance: physical smoke pending
+
+WORKSPACE_APPEARANCE_CHOOSER_HOST_20261024
+
+28/28 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`, use a disposable Workspace with
+PRIMARY and LINK in different occurrence/container locations. Bottom-panel
+`Показати появи у Big Picture` must list both full paths, including nested
+sections. Select each and verify exact focused occurrence/breadcrumbs in Big
+Picture; Back returns to Workspace. Rename/move/remove an appearance and reopen
+the list; verify current paths and no phantom row. An unplaced Workspace shows
+the empty state; dismissing the dialog changes nothing. No deployment claimed.
+
+## Workspace Relations view: physical check pending
+
+WORKSPACE_RELATIONS_VIEW_HOST_20261024
+
+55/55 focused HOST XML PASS; production/test Kotlin compile; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`: enable `Зв’язки` in Workspace
+Properties, return and select its new view in the existing selector. Check
+semantic/Planning rows, empty state, exact entity navigation and reactive binding
+changes. Quick entry must open the same view, not a dialog. Restart with this view
+selected; then disable the capability and verify a valid surviving view is used.
+Check standalone and Context-backed Workspaces. No physical acceptance claimed.
+
+## Day Task read-first loading: physical check pending
+
+DAY_TASK_READ_FIRST_HOST_20261021
+
+31/31 focused HOST XML PASS; production/test Kotlin compile; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`, compare initial/repeated Day list
+and task-properties opening. Existing tasks must appear without waiting for
+recurrence preparation; actual rule changes must still update the open day.
+Task title/Notes become usable before auxiliary details finish; Save waits for
+valid metadata, late loading must not overwrite edits, and retry preserves drafts.
+Check readable themed section headers in light/dark mode and with enlarged font.
+Phone timings and visual acceptance are not yet measured; no deployment claimed.
+
+## Day Task visual refinement: physical check pending
+
+DAY_TASK_PROPERTIES_LAYOUT_HOST_20261021
+
+19/19 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged. After the
+user-controlled deployment, check single-line horizontal tabs on a narrow screen
+and with enlarged font, pinned tab navigation while editing long Notes, title
+editing on Main, Details shortcut, and Save/Back draft protection. No new device
+deployment or screenshot verification claimed.
+
+Updated Notes smoke: journal appears first, instruction below; empty instruction
+is compact, long input grows in the screen's scroll, and both fields keep their
+exact text after Save/reopen. Notes `⋮` -> Markdown preview / edit and field help.
+Check large font, caret/keyboard scrolling and Back draft protection. Latest
+Notes/presentation HOST regression: 15/15, Kotlin compiles; visual check pending.
+
+Realizes visual check: three compact sections, full-width long titles, add/remove
+icons with accessible labels, type/role captions and on-demand help. Check
+readable themed headings with enlarged system font, start-aligned long-row actions,
+and unchanged touch targets; help is now the footer action, not a Theme icon.
+Verify add/remove through all three existing pickers/authorities, exact entity opening,
+and SOURCE still has no remove action. Focused HOST XML 12/12 PASS; no domain
+changes or deployment. Legacy working-link edits still use explicit task Save.
+
+## Day Task full-screen properties: physical smoke pending
+
+DAY_TASK_PROPERTIES_SCREEN_HOST_20261020
+
+22/22 focused HOST XML PASS; Kotlin compiles; Room 203 unchanged.
+After user-controlled `make exp-arm64-cycle`: Day -> task list -> tap task and
+task-menu Edit must open the same full screen. Verify all five tabs; save text,
+Back with dirty text (Continue/Discard/Save), picker return, and return to the
+same Day list without reopening properties/options. Existing Notes/Realizes
+physical scenarios below still apply. No deployment/physical acceptance claimed.
+
+## Day Task Notes / Realizes: HOST accepted, physical smoke pending
+
+DAY_TASK_REALIZES_NOTES_HOST_20261020
+
+50/50 app + 1/1 sync focused HOST XML tests; Kotlin sources compile; Room 203.
+After user-controlled `make exp-arm64-cycle`: Main -> Day -> task list -> task
+card -> `Нотатки`. Check separate description/instruction and day-journal sections,
+edit/preview both, Save/reopen, dirty-close Continue/Discard/Save and restart.
+Retry the reported freeze; no fresh Save-specific ANR was found in device history.
+For recurrence, journal-only Save must leave other occurrences unchanged.
+`Реалізує`: add/remove multiple themes and focus/responsibility priorities; verify
+task-card chips, explicit suggested-theme action and existing Other references.
+Use a task on another day: only that day's themes/priorities may be offered.
+Carry to tomorrow: old history survives, new task has no old-day priority refs.
+Check links survive notes/recurrence editing and restart. No deployment or
+physical acceptance claimed; no next global milestone selected.
+
+## Workspace Relations capability: HOST accepted, physical smoke pending
+
+WORKSPACE_RELATIONS_CAPABILITY_HOST_20261020
+
+75/75 app + 5/5 shared HOST XML tests; both separate Kotlin compile gates PASS.
+Room 202 unchanged. After user-controlled `make exp-arm64-cycle`, safe data only:
+
+- Workspace Properties -> Можливості -> enable `Зв’язки`. Verify one unified
+  semantic/Planning card and quick entry; disable restores the semantic-only UX.
+- Add/remove EMBODIES/REALIZES/SUPPORTS/MONITORS bindings in Properties; verify
+  exact titles, grouped kinds and semantic-editor navigation without refresh.
+- Use Planning SOURCE/RELATED -> Workspace; verify inverse direction and updates.
+  Day Task opens its exact editor. Mission/Quest/Scope/Day Focus have visible but
+  disabled rows: exact entity destinations are not currently in NavTarget.
+- Rename/delete a disposable target, restart, verify current relations and
+  capability state. H1 placement/tags alone must create no relation.
+
+No deployment or physical acceptance claimed. Planning deep links are a bounded
+navigation gap, not a new relationship authority or blocker for this read V1.
+
+## MagicBox canonical query adapter: HOST accepted, physical smoke pending
+
+MAGICBOX_CANONICAL_QUERY_HOST_20261020
+
+108/108 HOST XML (11 classes), separate production/unit-test Kotlin compile
+gates PASS; Room 202 unchanged. No deployment. After `make exp-arm64-cycle`:
+try #health, type:orientation #health, a real Orientation score predicate,
+type:workspace #home, free text + tag, sort:title:desc, saved:<exact name>,
+duplicate saved-name selection and an invalid operator. Verify exact semantic
+editor/Workspace navigation, reactive tag/score updates, and existing Command,
+Inbox/Activity modes plus plain-text Other results. Physical acceptance pending.
+
+## Canonical semantic tags: HOST accepted, physical smoke pending
+
+CANONICAL_SEMANTIC_TAGS_HOST_20261019
+
+125/125 app + 35/35 sync XML tests; both separate Kotlin compile gates and diff
+check PASS. Room 202 exported; migration preserves all previous table definitions.
+No deployment. After user-controlled `make exp-arm64-cycle`, use safe data:
+
+- Add #health to an Orientation and a different tag to an Aspect in the semantic
+  editor; verify normalization, duplicate prevention and navigation/restart.
+- Library: Orientation + #health + score; then Aspect + its tag. Verify current
+  results and unchanged saved queries react to semantic Add/Remove.
+- Verify Workspace tags remain independent, including with EMBODIES bindings.
+- Optionally delete a disposable source and verify no live tags remain visible.
+  Restore/Merge acceptance is HOST-only at this checkpoint; no phone Restore required.
+
+## Canonical Query + Saved Queries: HOST accepted, physical smoke pending
+
+CANONICAL_ENTITY_QUERY_SAVED_HOST_20261019
+
+107/107 focused HOST XML tests, both separate Kotlin compile gates and diff
+check PASS; Room 201 unchanged. No deployment. After `make exp-arm64-cycle`:
+
+- Build tag/type/Unplaced queries and an Orientation tag + score query. Semantic
+  tags are now supported by the checkpoint above; no cross-binding inheritance.
+- Save as Test; clear filters/search, Apply Test, check exact search/chips/sort.
+  Modify current filters and reapply: the saved specification has not autosaved.
+- Change an entity's tag/assessment, return and verify current results react.
+- Rename, restart, reapply, delete query; canonical entities/data must survive.
+- Where safe, export/restore a disposable full backup and verify saved queries.
+
+Live MagicBox canonical result/navigation and saved-query access are closed by
+the 2026-10-20 checkpoint above. Per-query conflict merge/delta sync is not implemented;
+existing explicit settings transfer is whole-collection snapshot replacement.
+
 ## Recurrence typed SOURCE: HOST accepted, physical smoke pending
 
 RECURRENCE_PLANNING_SOURCE_HOST_20261019

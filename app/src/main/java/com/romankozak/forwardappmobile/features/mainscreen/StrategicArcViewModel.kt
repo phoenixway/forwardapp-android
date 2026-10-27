@@ -101,6 +101,31 @@ class StrategicArcViewModel
         val pendingCreatedQuestId = _pendingCreatedQuestId.asStateFlow()
         fun consumeCreatedQuest() { _pendingCreatedQuestId.value = null }
         val selectedTab: StateFlow<StrategicArcTab> = _selectedTab.asStateFlow()
+        private val _carryMessage = MutableStateFlow<String?>(null)
+        val carryMessage = _carryMessage.asStateFlow()
+        fun dismissCarryMessage() { _carryMessage.value = null }
+        private var carryInProgress = false
+
+        fun carryQuestToCurrentArc(quest: ArcQuestEntity) {
+            if (carryInProgress) return
+            carryInProgress = true
+            viewModelScope.launch {
+                try {
+                    val result = arcQuestRepository.carryQuest(quest.id, YearMonth.now().toString())
+                    currentArcKey.value = result.quest.arcKey
+                    _selectedTab.value = StrategicArcTab.QUESTS
+                    _pendingCreatedQuestId.value = result.quest.id
+                    if (!result.created) _carryMessage.value = "Квест уже є в поточній арці"
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    android.util.Log.e("StrategicArc", "Quest carry-forward failed", error)
+                    _carryMessage.value = "Не вдалося додати квест у поточну арку. Канонічне джерело може бути недоступне."
+                } finally {
+                    carryInProgress = false
+                }
+            }
+        }
 
         @OptIn(ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<StrategicArcUiState> =

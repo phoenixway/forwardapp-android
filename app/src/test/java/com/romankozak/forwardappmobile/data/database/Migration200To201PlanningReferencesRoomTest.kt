@@ -47,12 +47,12 @@ class Migration200To201PlanningReferencesRoomTest {
                 sql.execSQL("INSERT INTO planning_scopes VALUES ('day','DAY','ACTIVE','Day',NULL,NULL,1,2,NULL,1,0)")
                 sql.execSQL("INSERT INTO planning_commitments VALUES ('c','day','s','DAY.TASK',2,NULL,'PLANNED','MANUAL',NULL,NULL,1,2,NULL,1,0)")
             }
-            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_200_201)
+            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_200_201, MIGRATION_201_202, MIGRATION_202_203)
                 .allowMainThreadQueries().build()
             try {
-                    val sql = room.openHelper.writableDatabase // Room validates the complete exported 201 schema.
+                    val sql = room.openHelper.writableDatabase // Room validates the current schema, through the additive tag migration.
                     fun scalar(query: String) = sql.query(query).use { it.moveToFirst(); it.getString(0) }
-                    assertThat(scalar("PRAGMA user_version")).isEqualTo("201")
+                    assertThat(scalar("PRAGMA user_version")).isEqualTo("203")
                     assertThat(scalar("SELECT COUNT(*) FROM planning_references")).isEqualTo("0")
                     assertThat(scalar("SELECT orientationId FROM planning_commitments WHERE id='c'")).isEqualTo("s")
                     assertThat(scalar("SELECT targetId FROM hierarchy_placements WHERE id='p'")).isEqualTo("s")

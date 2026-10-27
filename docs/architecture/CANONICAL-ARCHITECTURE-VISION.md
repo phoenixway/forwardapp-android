@@ -475,6 +475,29 @@ decisions must determine the safe transition toward canonical `QUEST` and
 
 ### Transforming Orientation kind
 
+Implementation boundary (SEMANTIC_SUBJECT_CONVERSION_HOST_20261025): the
+implemented native Aspect -> Orientation operation is **subject-type conversion**,
+not merely an OrientationKind transform. It retains canonical identity but
+requires immutable conversion history, subtype replacement, dependent relation
+lifecycle and protected transport closure. That bounded slice and schema
+203 -> 204 are implemented and HOST verified; physical acceptance is pending.
+It admits live native unarchived Aspects and explicit PROJECT, INTENT, MILESTONE,
+ONGOING_STANDARD or OPPORTUNITY choice. History-bearing transport rejects older
+decoders; selective import and TASK recurrence Aspect SOURCE fail closed in V1.
+See DOMAIN-CONTRACT.md for the current preservation/retirement and validation
+contract. This does not authorize reverse/specialized conversion or declare
+all transformations in the broader vision below implemented.
+
+ORIENTATION_KIND_TRANSFORMATION_HOST_20261025 implements the first bounded native
+kind-refinement command: INTENT / PROJECT / MILESTONE / ONGOING_STANDARD /
+OPPORTUNITY, same identity and independent relations/placements/Planning.
+Room 205 extends immutable semantic conversion facts with historical kind and
+assessment revision closure. Changed applicability axes use target defaults;
+historical scores remain under their original kind. Specialized/legacy-mapped
+sources and Orientation -> Aspect are not admitted. This narrows implementation
+to verified ordinary contracts; the GOAL/DIRECTION/QUEST/THEME examples below
+remain vision, not newly exposed operations. Physical smoke is pending.
+
 ForwardApp should provide a standard product action:
 
     Transform orientation to...

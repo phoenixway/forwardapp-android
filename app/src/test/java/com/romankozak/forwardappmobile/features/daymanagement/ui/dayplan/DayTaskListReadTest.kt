@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.data.planning.day.DayTaskGoalParent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 class DayTaskListReadTest {
     @Test fun `committed removal appears while all metadata streams are still suspended`() = runBlocking {
@@ -24,19 +25,22 @@ class DayTaskListReadTest {
     }
 
     @Test fun `task changes do not recreate bulk metadata subscriptions and canonical title updates react`() = runBlocking {
-        var subscriptions = 0
+        val subscriptions = AtomicInteger()
+        val bothSubscribed = CompletableDeferred<Unit>()
+        fun subscribed() { if (subscriptions.incrementAndGet() == 2) bothSubscribed.complete(Unit) }
         val parents = MutableStateFlow(mapOf("goal" to DayTaskGoalParent("goal", "Canonical", "workspace")))
         val reminders = MutableStateFlow(emptyList<Reminder>())
         val rows = MutableStateFlow(listOf(DayTask(id = "task", dayPlanId = "day", title = "Task", goalId = "goal")))
-        val read = observeDayTaskList(rows, reminders.onStart { subscriptions++ }, parents.onStart { subscriptions++ }, flowOf(emptyList()))
+        val read = observeDayTaskList(rows, reminders.onStart { subscribed() }, parents.onStart { subscribed() }, flowOf(emptyList()))
         val started = CompletableDeferred<Unit>()
         val renamed = async { withTimeout(5_000) { read.onEach { if (it.firstOrNull()?.parentInfo?.title == "Canonical") started.complete(Unit) }
             .first { it.firstOrNull()?.parentInfo?.title == "Updated" } } }
         started.await()
+        withTimeout(5_000) { bothSubscribed.await() }
         rows.value = rows.value + DayTask(id = "other", dayPlanId = "day", title = "Other")
         parents.value = mapOf("goal" to DayTaskGoalParent("goal", "Updated", "workspace"))
         val result = renamed.await()
         assertThat(result.first().parentInfo?.projectId).isEqualTo("workspace")
-        assertThat(subscriptions).isEqualTo(2)
+        assertThat(subscriptions.get()).isEqualTo(2)
     }
 }

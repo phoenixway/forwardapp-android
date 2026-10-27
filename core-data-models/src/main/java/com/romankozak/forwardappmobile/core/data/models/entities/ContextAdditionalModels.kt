@@ -72,6 +72,7 @@ enum class ContextViewMode {
     KEY_PROBLEMS,
     NOTES,
     VET_CASE,
+    RELATIONS,
 }
 
 enum class LinkType {

@@ -5,6 +5,7 @@ sealed interface NavTarget {
 
     data class ContextHierarchy(
         val projectIdToReveal: String? = null,
+        val placementIdToReveal: String? = null,
     ) : NavTarget
 
     data class ContextDetail(

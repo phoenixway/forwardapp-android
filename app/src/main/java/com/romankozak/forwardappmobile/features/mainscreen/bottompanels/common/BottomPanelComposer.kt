@@ -48,10 +48,12 @@ fun BottomPanelComposer(
     sendContentDescription: String = "Створити",
     secondarySubmitActions: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
+    showSubmitAction: Boolean = true,
+    compact: Boolean = false,
 ) {
     val colors = bottomPanelColors()
     Row(
-        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = BottomPanelTokens.ComposerMinHeight),
+        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = if (compact) 48.dp else BottomPanelTokens.ComposerMinHeight),
         verticalAlignment = Alignment.Bottom,
     ) {
         Surface(
@@ -95,10 +97,10 @@ fun BottomPanelComposer(
             )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        if (showSubmitAction || trailingContent != null) Spacer(modifier = Modifier.width(8.dp))
 
         AnimatedVisibility(
-            visible = inputValue.text.isNotBlank(),
+            visible = showSubmitAction && inputValue.text.isNotBlank(),
             enter = fadeIn() + scaleIn(),
             exit = fadeOut() + scaleOut(),
         ) {

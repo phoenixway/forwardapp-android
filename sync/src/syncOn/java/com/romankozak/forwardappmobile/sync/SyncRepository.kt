@@ -18,6 +18,7 @@ class SyncRepository @Inject constructor(
 ) : SyncApi {
     private val selectiveImportFilter = SnapshotBundleSelectiveImportFilter()
     private val gson = GsonBuilder()
+        .registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
     private var pendingSettingsFromLastSyncReport: Map<String, String>? = null

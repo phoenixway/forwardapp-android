@@ -1,48 +1,18 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListState
@@ -51,10 +21,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxViewState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.LogContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
-import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import java.util.Locale
 
@@ -106,6 +74,13 @@ fun GoalDetailContent(
     val localSearchQuery = uiState.localSearchQuery.trim()
 
     when (currentViewMode) {
+        ContextViewMode.RELATIONS -> {
+            com.romankozak.forwardappmobile.features.workspace.WorkspaceRelationsView(
+                modifier = modifier,
+                workspaceTitle = uiState.presentation?.name ?: "Workspace",
+                onOpen = { viewModel.enhancedNavigationManager.navigate(it) },
+            )
+        }
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
             val filteredBacklogItems =
@@ -244,23 +219,18 @@ fun GoalDetailContent(
             )
         }
         ContextViewMode.DASHBOARD -> {
-            DashboardOverview(
-                semanticContent = dashboardSemanticContent,
+            WorkspaceDashboardOverview(
+                entityNavigation = dashboardSemanticContent,
+                connectionAction = { WorkspaceDashboardAddConnection(viewModel) },
                 modifier = modifier,
-                presentation = projectPresentation,
                 backlogCount = listContent.size,
                 inboxCount = inboxRecords.size,
                 directionCount = uiState.directionItems.size,
                 attachments = attachmentItems,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
-                onShowProperties = onShowProjectProperties,
                 currentViewMode = currentViewMode,
                 onSwitchView = onSwitchView,
                 enabledCapabilities = enabledCapabilities,
-                enableDashboard = uiState.enableDashboard,
-                enableAttachments = CapabilityId("connections") in enabledCapabilities,
-                enableLog = uiState.enableLog,
-                enableKeyProblems = enableKeyProblems,
             )
         }
         ContextViewMode.LOG -> {
@@ -299,269 +269,6 @@ fun GoalDetailContent(
     }
 }
 
-@Composable
-@OptIn(ExperimentalLayoutApi::class)
-private fun DashboardOverview(
-    modifier: Modifier = Modifier,
-    presentation: ContextPresentation?,
-    backlogCount: Int,
-    inboxCount: Int,
-    directionCount: Int,
-    attachments: List<BacklogItemContent>,
-    onAttachmentClick: (BacklogItemContent) -> Unit,
-    onShowProperties: () -> Unit,
-    currentViewMode: ContextViewMode,
-    onSwitchView: (ContextViewMode) -> Unit,
-    enabledCapabilities: Set<CapabilityId>,
-    enableDashboard: Boolean,
-    enableAttachments: Boolean,
-    enableLog: Boolean,
-    enableKeyProblems: Boolean,
-    semanticContent: @Composable (() -> Unit)?,
-) {
-    val countsByMode =
-        remember(backlogCount, inboxCount, directionCount, attachments.size) {
-            mapOf(
-                ContextViewMode.BACKLOG to backlogCount,
-                ContextViewMode.INBOX to inboxCount,
-                ContextViewMode.DIRECTION to directionCount,
-                ContextViewMode.CONNECTIONS to attachments.size,
-            )
-        }
-    val activeViews =
-        remember(enabledCapabilities, countsByMode) {
-            ContextViewPolicy.availableViews(enabledCapabilities)
-                .map { mode ->
-                    DashboardViewItem(
-                        mode = mode,
-                        label = mode.dashboardLabelWithCount(countsByMode[mode]),
-                        icon = mode.dashboardIcon(),
-                    )
-                }
-        }
-    val contextTitle = presentation?.name?.trim().orEmpty().ifBlank { WorkspaceSurfaceCopy.TITLE }
-    val roleBadge = presentation?.roleCode.toRoleBadgeText()
-    val previewAttachments = attachments.take(6)
-
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush =
-                                Brush.linearGradient(
-                                    colors =
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        ),
-                                ),
-                        )
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = WorkspaceSurfaceCopy.DASHBOARD,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = contextTitle,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    IconButton(onClick = onShowProperties) {
-                        Icon(Icons.Default.Settings, contentDescription = WorkspaceSurfaceCopy.PROPERTIES)
-                    }
-                }
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (!roleBadge.isNullOrBlank()) {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(roleBadge) },
-                        )
-                    }
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("Видів: ${activeViews.size}") },
-                    )
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("Вкладень: ${attachments.size}") },
-                    )
-                }
-            }
-        }
-
-        semanticContent?.invoke()
-
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Активні види",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = WorkspaceSurfaceCopy.CHOOSE_VIEW,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    activeViews.forEach { viewItem ->
-                        FilterChip(
-                            selected = currentViewMode == viewItem.mode,
-                            onClick = { onSwitchView(viewItem.mode) },
-                            label = {
-                                Text(
-                                    text = viewItem.label,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = viewItem.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        if (enableAttachments) {
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors =
-                    CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Connections",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (attachments.isEmpty()) {
-                        Text(
-                            text = WorkspaceSurfaceCopy.EMPTY_CONNECTIONS,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        previewAttachments.forEach { item ->
-                            AttachmentRowSummary(
-                                item = item,
-                                onClick = { onAttachmentClick(item) },
-                            )
-                        }
-                        if (attachments.size > previewAttachments.size) {
-                            Text(
-                                text = "Ще ${attachments.size - previewAttachments.size} елемент(ів) у зв'язках",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private data class DashboardViewItem(
-    val mode: ContextViewMode,
-    val label: String,
-    val icon: ImageVector,
-)
-
-private fun ContextViewMode.dashboardLabel(): String =
-    when (this) {
-        ContextViewMode.BACKLOG -> "Беклог"
-        ContextViewMode.INBOX -> "Інбокс"
-        ContextViewMode.DIRECTION -> "Напрямок"
-        ContextViewMode.CONNECTIONS -> "Connections"
-        ContextViewMode.DASHBOARD -> "Дашборд"
-        ContextViewMode.LOG -> "Лог"
-        ContextViewMode.KEY_PROBLEMS -> "Issues"
-        ContextViewMode.ADVANCED,
-        ContextViewMode.NOTES,
-        ContextViewMode.VET_CASE,
-        -> "Недоступно"
-    }
-
-private fun ContextViewMode.dashboardLabelWithCount(count: Int?): String {
-    if (count == null) return dashboardLabel()
-    return "${dashboardLabel()} ($count)"
-}
-
-private fun ContextViewMode.dashboardIcon(): ImageVector =
-    when (this) {
-        ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
-        ContextViewMode.INBOX -> Icons.Outlined.Inbox
-        ContextViewMode.DIRECTION -> Icons.Outlined.AccountTree
-        ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
-        ContextViewMode.DASHBOARD -> Icons.Default.Dashboard
-        ContextViewMode.LOG -> Icons.Outlined.History
-        ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
-        ContextViewMode.ADVANCED,
-        ContextViewMode.NOTES,
-        ContextViewMode.VET_CASE,
-        -> Icons.Outlined.Description
-    }
-
-private fun String?.toRoleBadgeText(): String? {
-    val code = this?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    return "role: $code"
-}
 
 private fun BacklogItemContent.matchesLocalSearch(query: String): Boolean {
     if (query.isBlank()) return true
@@ -582,56 +289,3 @@ private fun BacklogItemContent.searchableTexts(): List<String> =
         is BacklogItemContent.ChecklistItem -> listOfNotNull(checklist.name)
         is BacklogItemContent.MusicNoteItem -> listOfNotNull(musicNote.name, musicNote.content)
     }
-
-@Composable
-private fun AttachmentRowSummary(
-    item: BacklogItemContent,
-    onClick: () -> Unit,
-) {
-    val title =
-        when (item) {
-            is BacklogItemContent.LinkItem ->
-                item.link.linkData.displayName?.takeIf { it.isNotBlank() }
-                    ?: item.link.linkData.target
-            is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
-            is BacklogItemContent.MusicNoteItem -> item.musicNote.name.ifBlank { "Music note" }
-            is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
-            else -> "Attachment"
-        }
-    Row(
-        modifier =
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() }
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        val icon =
-            when (item) {
-                is BacklogItemContent.LinkItem -> Icons.Outlined.Link
-                is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
-                is BacklogItemContent.MusicNoteItem -> Icons.Outlined.MusicNote
-                is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
-                else -> Icons.Default.Attachment
-            }
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            Icons.AutoMirrored.Outlined.ArrowForward,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}

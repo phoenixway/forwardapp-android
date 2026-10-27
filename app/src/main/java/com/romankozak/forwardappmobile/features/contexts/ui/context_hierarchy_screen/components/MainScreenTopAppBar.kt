@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
@@ -60,15 +60,15 @@ fun ProjectHierarchyScreenTopAppBar(
     ) {
         IconButton(onClick = onBackClick) {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = "Back",
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Закрити екран",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }
         if (showHierarchyBack) {
             IconButton(onClick = onHierarchyBackClick) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = "Повернутися в ієрархії",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -59,6 +59,7 @@ android {
         versionName = "1.20.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    testOptions.unitTests.isIncludeAndroidResources = true
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -219,6 +220,7 @@ dependencies {
     // Compose BOM
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
+    testImplementation(composeBom)
     androidTestImplementation(composeBom)
 
     // Firebase
@@ -289,6 +291,8 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.androidx.espresso.core)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation("org.junit.vintage:junit-vintage-engine:5.10.2")
     testImplementation("androidx.test:core:1.5.0")

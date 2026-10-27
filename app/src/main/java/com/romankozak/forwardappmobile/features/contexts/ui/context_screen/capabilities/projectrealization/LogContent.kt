@@ -98,7 +98,7 @@ fun LogContent(
                         it.type.contains(externalSearchQuery, true)
                 matchesInternalSearch && matchesExternalSearch
             }
-            .sortedByDescending { it.timestamp }
+            .sortedWith(compareBy<ContextLog> { it.timestamp }.thenBy { it.id })
 
     Column(
         modifier = modifier.fillMaxSize(),
@@ -116,9 +116,9 @@ fun LogContent(
         }
 
         val listState = rememberLazyListState()
-        LaunchedEffect(filteredLogs.firstOrNull()) {
+        LaunchedEffect(filteredLogs.lastOrNull()) {
             if (filteredLogs.isNotEmpty()) {
-                listState.animateScrollToItem(0)
+                listState.animateScrollToItem(filteredLogs.lastIndex)
             }
         }
 

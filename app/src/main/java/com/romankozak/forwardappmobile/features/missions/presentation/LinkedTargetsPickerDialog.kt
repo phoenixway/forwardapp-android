@@ -233,6 +233,10 @@ private fun LinkedTargetsPickerDialogRoute(
             documentTarget = documentTarget,
             documentVault = documentVault,
         )
+    val directCreateAction = initialCreateAction?.takeIf {
+        if (it == PickerCreateAction.CONTEXT) derivedState.contextsEnabled && onCreateRootContext != null
+        else derivedState.attachmentsEnabled && onCreateDocument != null
+    }
 
     SyncExpandedIdsWithQuery(
         query = query,
@@ -240,9 +244,9 @@ private fun LinkedTargetsPickerDialogRoute(
         onExpandedIdsChange = { expandedIds = it },
     )
     HandleInitialPickerCreateAction(
-        initialCreateAction = initialCreateAction,
+        initialCreateAction = directCreateAction,
         hasContextsTab = derivedState.hasContextsTab,
-        hasAttachmentsTab = derivedState.hasAttachmentsTab,
+        hasAttachmentsTab = derivedState.attachmentsEnabled,
         onCreateRootContext = onCreateRootContext,
         onCreateDocument = onCreateDocument,
         onSelectTab = { selectedTab = it },
@@ -258,37 +262,42 @@ private fun LinkedTargetsPickerDialogRoute(
         },
     )
 
-    LinkedTargetsPickerDialogShell(
-        dialogState = dialogState,
-        derivedState = derivedState,
-        attachmentOptions = attachmentOptions,
-        preselectedContextIds = preselectedContextIds,
-        preselectedAttachmentIds = preselectedAttachmentIds,
-        onDismiss = onDismiss,
-        onQueryChange = { query = it },
-        onTabSelected = { selectedTab = it },
-        onExpandedIdsChange = { expandedIds = it },
-        onToggleDescendants = { showDescendants = !showDescendants },
-        onOpenContextCreation = {
-            newContextName = ""
-            showAddContextDialog = true
-        },
-        onDocumentsMenuExpandedChange = { documentsMenuExpanded = it },
-        onOpenDocumentCreation = { type ->
-            pendingDocumentType = type
-            documentName = ""
-            documentTarget = ""
-            documentVault = ""
-        },
-        onContextSelected = onContextSelected,
-        onAttachmentSelected = onAttachmentSelected,
-    )
+    if (showLinkedTargetsPickerResults(directCreateAction, showAddContextDialog, pendingDocumentType != null)) {
+        LinkedTargetsPickerDialogShell(
+            dialogState = dialogState,
+            derivedState = derivedState,
+            attachmentOptions = attachmentOptions,
+            preselectedContextIds = preselectedContextIds,
+            preselectedAttachmentIds = preselectedAttachmentIds,
+            onDismiss = onDismiss,
+            onQueryChange = { query = it },
+            onTabSelected = { selectedTab = it },
+            onExpandedIdsChange = { expandedIds = it },
+            onToggleDescendants = { showDescendants = !showDescendants },
+            onOpenContextCreation = {
+                newContextName = ""
+                showAddContextDialog = true
+            },
+            onDocumentsMenuExpandedChange = { documentsMenuExpanded = it },
+            onOpenDocumentCreation = { type ->
+                pendingDocumentType = type
+                documentName = ""
+                documentTarget = ""
+                documentVault = ""
+            },
+            onContextSelected = onContextSelected,
+            onAttachmentSelected = onAttachmentSelected,
+        )
+    }
 
     ContextCreationOverlay(
         isVisible = showAddContextDialog,
         newContextName = newContextName,
         onNameChange = { newContextName = it },
-        onDismiss = { showAddContextDialog = false },
+        onDismiss = {
+            showAddContextDialog = false
+            if (directCreateAction != null) onDismiss()
+        },
         onCreateRootContext = onCreateRootContext,
         onContextSelected = onContextSelected,
         onPickerDismiss = onDismiss,
@@ -305,6 +314,7 @@ private fun LinkedTargetsPickerDialogRoute(
         onDismiss = {
             pendingDocumentType = null
             documentVault = ""
+            if (directCreateAction != null) onDismiss()
         },
         onCreateDocument = onCreateDocument,
         onAttachmentSelected = onAttachmentSelected,
@@ -676,348 +686,7 @@ private fun Modifier.pickerDragGesture(
         )
     }
 
-@Composable
-private fun ContextCreationOverlay(
-    isVisible: Boolean,
-    newContextName: String,
-    onNameChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onCreateRootContext: (suspend (String) -> String?)?,
-    onContextSelected: (String) -> Unit,
-    onPickerDismiss: () -> Unit,
-    scope: kotlinx.coroutines.CoroutineScope,
-) {
-    if (!isVisible || onCreateRootContext == null) return
 
-    AlertDialog(
-        modifier = Modifier.imePadding(),
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_action_project)) },
-        text = {
-            OutlinedTextField(
-                value = newContextName,
-                onValueChange = onNameChange,
-                singleLine = true,
-                label = { Text(stringResource(R.string.picker_context_name_label)) },
-                placeholder = { Text(stringResource(R.string.picker_context_name_placeholder)) },
-            )
-        },
-        confirmButton = {
-            Button(
-                enabled = newContextName.isNotBlank(),
-                onClick = {
-                    val name = newContextName.trim()
-                    scope.launch {
-                        val id = onCreateRootContext(name)
-                        if (!id.isNullOrBlank()) {
-                            onContextSelected(id)
-                            onPickerDismiss()
-                        }
-                        onDismiss()
-                    }
-                },
-            ) {
-                Text(stringResource(R.string.create))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
-}
-
-@Composable
-private fun DocumentCreationOverlay(
-    type: DocumentCreationType?,
-    name: String,
-    target: String,
-    vault: String,
-    onNameChange: (String) -> Unit,
-    onTargetChange: (String) -> Unit,
-    onVaultChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
-    onAttachmentSelected: (String) -> Unit,
-    onPickerDismiss: () -> Unit,
-    scope: kotlinx.coroutines.CoroutineScope,
-) {
-    type ?: return
-
-    DocumentCreationDialog(
-        type = type,
-        name = name,
-        target = target,
-        vault = vault,
-        onNameChange = onNameChange,
-        onTargetChange = onTargetChange,
-        onVaultChange = onVaultChange,
-        onDismiss = onDismiss,
-        onConfirm = {
-            val request = buildNewDocumentDraft(type = type, name = name, target = target, vault = vault)
-            scope.launch {
-                val id = onCreateDocument?.invoke(request)
-                if (!id.isNullOrBlank()) {
-                    onAttachmentSelected(id)
-                    onPickerDismiss()
-                }
-                onDismiss()
-            }
-        },
-    )
-}
-
-private fun buildNewDocumentDraft(
-    type: DocumentCreationType,
-    name: String,
-    target: String,
-    vault: String,
-): NewDocumentDraft =
-    when (type) {
-        DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = name.trim().ifBlank { "New note" })
-        DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = name.trim().ifBlank { "New music note" })
-        DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = name.trim().ifBlank { "New checklist" })
-        DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = target.trim(), name = name.trim())
-        DocumentCreationType.OBSIDIAN ->
-            NewDocumentDraft.Obsidian(
-                noteName = target.trim(),
-                displayName = name.trim(),
-                vault = vault.trim().ifBlank { null },
-            )
-    }
-
-@Composable
-private fun ContextPickerList(
-    topLevelContexts: List<LinkedPickerNode>,
-    childMap: Map<String, List<LinkedPickerNode>>,
-    visibleIds: Set<String>,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
-    preselectedIds: Set<String>,
-    onSelect: (String) -> Unit,
-) {
-    val visibleTopLevel =
-        topLevelContexts.filter { it.key in visibleIds }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (visibleTopLevel.isEmpty()) {
-            item {
-                PickerEmptyState(text = stringResource(R.string.picker_no_contexts_found))
-            }
-        } else {
-            items(visibleTopLevel, key = { it.key }) { node ->
-                ContextRow(
-                    node = node,
-                    level = 0,
-                    childMap = childMap,
-                    expandedIds = expandedIds,
-                    onToggleExpanded = onToggleExpanded,
-                    visibleIds = visibleIds,
-                    preselectedIds = preselectedIds,
-                    onSelect = onSelect,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContextRow(
-    node: LinkedPickerNode,
-    level: Int,
-    childMap: Map<String, List<LinkedPickerNode>>,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
-    visibleIds: Set<String>,
-    preselectedIds: Set<String>,
-    onSelect: (String) -> Unit,
-) {
-    val isSelected = node.targetId in preselectedIds
-    val children = childMap[node.key].orEmpty()
-    val isExpanded = node.key in expandedIds
-    val rotation by animateFloatAsState(targetValue = if (isExpanded) 90f else 0f, label = "caret")
-
-    val visibleChildren =
-        children.filter { it.key in visibleIds }
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        ElevatedCard(
-            colors =
-                CardDefaults.elevatedCardColors(
-                    containerColor =
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                ),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelect(node.targetId) }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(modifier = Modifier.width((level * 14).dp))
-
-                if (children.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onToggleExpanded(node.key) },
-                        modifier = Modifier.size(26.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.rotate(rotation),
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(26.dp))
-                }
-
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(imageVector = Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = node.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                AnimatedVisibility(visible = isSelected, enter = fadeIn(), exit = fadeOut()) {
-                    Box(
-                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary).padding(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(12.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        if (isExpanded && visibleChildren.isNotEmpty()) {
-            visibleChildren.forEach { child ->
-                ContextRow(
-                    node = child,
-                    level = level + 1,
-                    childMap = childMap,
-                    expandedIds = expandedIds,
-                    onToggleExpanded = onToggleExpanded,
-                    visibleIds = visibleIds,
-                    preselectedIds = preselectedIds,
-                    onSelect = onSelect,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AttachmentPickerList(
-    options: List<AttachmentOption>,
-    query: String,
-    preselectedIds: Set<String>,
-    onSelect: (String) -> Unit,
-) {
-    val filtered =
-        remember(options, query) {
-            options
-                .filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
-                .sortedBy { it.name.lowercase() }
-        }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (filtered.isEmpty()) {
-            item {
-                PickerEmptyState(text = stringResource(R.string.picker_no_documents_found))
-            }
-        } else {
-            items(filtered, key = { it.id }) { option ->
-                val isSelected = option.id in preselectedIds
-                ElevatedCard(
-                    colors =
-                        CardDefaults.elevatedCardColors(
-                            containerColor =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                        ),
-                    shape = RoundedCornerShape(14.dp),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(option.id) }
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = attachmentIcon(option.linkType),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = option.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        AnimatedVisibility(visible = isSelected, enter = fadeIn(), exit = fadeOut()) {
-                            Box(
-                                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondary).padding(4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondary,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PickerEmptyState(text: String) {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(top = 36.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
 
 @Composable
 private fun CompactTypeTabs(
@@ -1118,109 +787,4 @@ private fun CompactDescendantsToggle(
             )
         }
     }
-}
-
-private fun attachmentIcon(type: LinkType?) =
-    when (type) {
-        LinkType.URL -> Icons.Default.Link
-        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Notes
-        LinkType.CONTEXT -> Icons.Default.Folder
-        LinkType.NOTE_DOCUMENT,
-        LinkType.CHECKLIST,
-        LinkType.MUSIC_NOTE,
-        null -> Icons.AutoMirrored.Filled.InsertDriveFile
-    }
-
-private enum class DocumentCreationType {
-    NOTE,
-    MUSIC_NOTE,
-    CHECKLIST,
-    WEB_LINK,
-    OBSIDIAN,
-}
-
-@Composable
-private fun DocumentCreationDialog(
-    type: DocumentCreationType,
-    name: String,
-    target: String,
-    vault: String,
-    onNameChange: (String) -> Unit,
-    onTargetChange: (String) -> Unit,
-    onVaultChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    val title =
-        when (type) {
-            DocumentCreationType.NOTE -> stringResource(R.string.attachment_type_notes)
-            DocumentCreationType.MUSIC_NOTE -> stringResource(R.string.attachment_type_music_notes)
-            DocumentCreationType.CHECKLIST -> stringResource(R.string.attachment_type_checklist)
-            DocumentCreationType.WEB_LINK -> stringResource(R.string.attachment_type_web_link)
-            DocumentCreationType.OBSIDIAN -> stringResource(R.string.attachment_type_obsidian)
-        }
-    val targetLabel =
-        when (type) {
-            DocumentCreationType.NOTE,
-            DocumentCreationType.MUSIC_NOTE,
-            DocumentCreationType.CHECKLIST,
-            -> null
-            DocumentCreationType.WEB_LINK -> "URL"
-            DocumentCreationType.OBSIDIAN -> stringResource(R.string.note_name)
-        }
-
-    AlertDialog(
-        modifier = Modifier.imePadding(),
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (targetLabel != null) {
-                    OutlinedTextField(
-                        value = target,
-                        onValueChange = onTargetChange,
-                        label = { Text(targetLabel) },
-                        singleLine = true,
-                    )
-                }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChange,
-                    label = { Text(stringResource(R.string.display_name_optional)) },
-                    singleLine = true,
-                )
-                if (type == DocumentCreationType.OBSIDIAN) {
-                    OutlinedTextField(
-                        value = vault,
-                        onValueChange = onVaultChange,
-                        label = { Text("Vault (optional)") },
-                        placeholder = { Text("Falls back to Settings vault") },
-                        singleLine = true,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled =
-                    when (type) {
-                        DocumentCreationType.NOTE,
-                        DocumentCreationType.MUSIC_NOTE,
-                        DocumentCreationType.CHECKLIST,
-                        -> true
-                        DocumentCreationType.WEB_LINK,
-                        DocumentCreationType.OBSIDIAN,
-                        -> target.isNotBlank()
-                    },
-            ) {
-                Text(stringResource(R.string.add))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
 }

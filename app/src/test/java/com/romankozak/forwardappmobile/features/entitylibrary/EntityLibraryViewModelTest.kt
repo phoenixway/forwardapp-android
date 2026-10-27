@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.entitylibrary
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
-import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository
+import com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityQueryRepository
 import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementPresenceRepository
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetRef
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
@@ -89,7 +89,7 @@ class EntityLibraryViewModelTest {
 
     @Test
     fun `catalog failure is an explicit error state`() = runTest(dispatcher) {
-        val repository = mockk<CanonicalEntityCatalogRepository>()
+        val repository = mockk<CanonicalEntityQueryRepository>()
         every { repository.observeCatalog() } returns flow { error("catalog failed") }
         val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
         every { presence.observeVisiblePlacedTargets(any()) } returns flowOf(emptySet())
@@ -285,7 +285,7 @@ class EntityLibraryViewModelTest {
 
     @Test
     fun `search input persists immediately while catalog computation runs on its dispatcher`() = runTest(dispatcher) {
-        val repository = mockk<CanonicalEntityCatalogRepository>()
+        val repository = mockk<CanonicalEntityQueryRepository>()
         every { repository.observeCatalog() } returns flowOf(mixedCatalog())
         val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
         every { presence.observeVisiblePlacedTargets(any()) } returns flowOf(emptySet())
@@ -308,7 +308,7 @@ class EntityLibraryViewModelTest {
         placedTargets: Flow<Set<HierarchyTargetRef>> = flowOf(emptySet()),
         state: SavedStateHandle = SavedStateHandle(),
     ): EntityLibraryViewModel {
-        val repository = mockk<CanonicalEntityCatalogRepository>()
+        val repository = mockk<CanonicalEntityQueryRepository>()
         every { repository.observeCatalog() } returns source
         val presence = mockk<CanonicalHierarchyPlacementPresenceRepository>()
         every { presence.observeVisiblePlacedTargets(any()) } returns placedTargets

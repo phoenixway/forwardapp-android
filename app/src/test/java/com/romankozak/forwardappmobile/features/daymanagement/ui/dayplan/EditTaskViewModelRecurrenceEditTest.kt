@@ -55,11 +55,13 @@ class EditTaskViewModelRecurrenceEditTest {
             val recurringSeries = mockk<RecurringTaskSeries>()
 
             every { task.id } returns "task-1"
+            every { task.isDeleted } returns false
             every { task.recurrenceSeriesId } returns "series-1"
             every { task.linkedProjectIds } returns emptyList()
             every { task.linkedAttachmentIds } returns emptyList()
             every { task.title } returns "Recurring task"
             every { task.description } returns "Before edit"
+            every { task.notes } returns null
             every { task.priority } returns TaskPriority.MEDIUM
             every { task.estimatedDurationMinutes } returns 30L
             every { task.scheduledTime } returns null
@@ -108,6 +110,7 @@ class EditTaskViewModelRecurrenceEditTest {
                     canonicalTaskRecurrenceAuthoringAdapter = canonicalTaskRecurrenceAuthoringAdapter,
                     systemWorkspacePresentationContextProjector = mockk(relaxed = true),
                     savedStateHandle = SavedStateHandle(mapOf("taskId" to "task-1")),
+                    ioDispatcher = dispatcher,
                 )
 
             assertThat(viewModel.uiState.value.isRecurring).isTrue()
@@ -171,11 +174,13 @@ class EditTaskViewModelRecurrenceEditTest {
             val systemId = SystemContexts.TODAY.raw
 
             every { task.id } returns "system-task"
+            every { task.isDeleted } returns false
             every { task.recurrenceSeriesId } returns "series-system"
             every { task.linkedProjectIds } returns emptyList()
             every { task.linkedAttachmentIds } returns emptyList()
             every { task.title } returns "System recurring task"
             every { task.description } returns "Before edit"
+            every { task.notes } returns null
             every { task.priority } returns TaskPriority.MEDIUM
             every { task.estimatedDurationMinutes } returns 30L
             every { task.scheduledTime } returns null
@@ -226,6 +231,7 @@ class EditTaskViewModelRecurrenceEditTest {
                     systemWorkspacePresentationContextProjector = mockk(relaxed = true),
                     savedStateHandle =
                         SavedStateHandle(mapOf("taskId" to "system-task")),
+                    ioDispatcher = dispatcher,
                 )
 
             assertThat(viewModel.uiState.value.isRecurring).isTrue()

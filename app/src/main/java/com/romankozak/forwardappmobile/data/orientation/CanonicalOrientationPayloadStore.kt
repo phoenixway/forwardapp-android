@@ -39,6 +39,29 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
             incomingSubjects
         }
     val acceptedSubjectIds = subjectsToWrite.mapTo(hashSetOf()) { it.id }
+    val localSubjects = getAllManagedSubjects().associateBy { it.id }
+    val existingConversions = getSubjectConversions().groupBy { it.subjectId }.mapValues { (_, rows) -> rows.maxBy { it.toSubjectVersion } }
+    val incomingConversions = bundle.managedSubjectConversions.orEmpty().filter { it.fromType == "ASPECT" }.associateBy { it.subjectId }
+    val localKinds = getAllOrientations().associateBy { it.subjectId }
+    requireNotNull(bundle.orientations).filter { it.subjectId in acceptedSubjectIds }.forEach { target ->
+        val oldKind = localKinds[target.subjectId]?.kind
+        if (oldKind != null && oldKind != target.kind) {
+            val oldVersion = requireNotNull(localSubjects[target.subjectId]).version
+            require(bundle.managedSubjectConversions.orEmpty().any {
+                it.subjectId == target.subjectId && it.formatVersion == 2 && it.fromOrientationKind == oldKind && it.fromSubjectVersion >= oldVersion
+            }) { "Orientation kind change requires matching canonical history" }
+        }
+    }
+    subjectsToWrite.forEach { target ->
+        existingConversions[target.id]?.let { fact ->
+            require(target.subjectType == fact.toType && target.version >= fact.toSubjectVersion) { "Converted subject cannot revert to its former type" }
+        }
+        localSubjects[target.id]?.takeIf { it.subjectType != target.subjectType }?.let { old ->
+            val fact = requireNotNull(incomingConversions[target.id]) { "Subject type change requires conversion evidence" }
+            require(old.subjectType == fact.fromType && target.subjectType == fact.toType && old.version <= fact.fromSubjectVersion) { "Conflicting conversion branch" }
+            retireAspectSubtypeForConversion(target.id)
+        }
+    }
     if (subjectsToWrite.isNotEmpty()) upsertManagedSubjects(subjectsToWrite)
 
     val orientations = requireNotNull(bundle.orientations).filter { !merge || it.subjectId in acceptedSubjectIds }

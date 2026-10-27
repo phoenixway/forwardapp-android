@@ -687,18 +687,6 @@ class ContextSettingsViewModel
             }
         }
 
-        private fun featureLabelToCapabilityId(label: String): CapabilityId =
-            when (label) {
-                "Inbox" -> CapabilityId("inbox")
-                "Log" -> CapabilityId("log")
-                "Dashboard" -> CapabilityId("dashboard")
-                "Backlog" -> CapabilityId("backlog")
-                "Attachments", "Connections" -> CapabilityId("connections")
-                "Issues" -> CapabilityId("key_problems")
-                "Directions" -> CapabilityId("direction")
-                else -> CapabilityId(label.lowercase().replace(" ", "_"))
-            }
-
         private fun featureLabelForCapability(capabilityId: CapabilityId): String {
             return capabilityRegistry.get(capabilityId)?.label ?: capabilityId.raw
                 .replace("_", " ")

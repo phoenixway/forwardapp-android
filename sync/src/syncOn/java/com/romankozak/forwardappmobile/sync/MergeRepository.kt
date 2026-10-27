@@ -16,6 +16,7 @@ class MergeRepository @Inject constructor(
 ) {
     private val TAG = "MergeRepository"
     private val gson = GsonBuilder()
+        .registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
 

@@ -1,5 +1,178 @@
 # ForwardApp Decisions
 
+## 2026-10-26 - One global dock, route-owned contextual creation
+
+MAIN_SCREEN_GLOBAL_DOCK_HOST_20261026
+
+User-authorized Variant 5: the visible Command Deck dock order/semantics apply
+to every main-screen tab. Global create and More remain independent of the
+active tab. Local composers and clearly separate contextual Tune menus reuse
+existing handlers, scope, mode selection and availability; they must not omit
+advanced workflows or reinterpret canonical creation. Content-specific calendar,
+cycle/arc menus and journal controls may stay inline. One inset owner and
+route/subtab saveable drafts are presentation policy only, classified
+SEMANTIC_NOT_HIERARCHY. No Room/domain/hierarchy/sync cutover. The audited parity
+matrix is in docs/ui/MAIN-SCREEN-DOCK-PARITY.md; HOST implemented, full physical
+functional parity still requires user acceptance.
+
+## 2026-10-26 - Dashboard and Semantics are intrinsic Workspace views
+
+WORKSPACE_CORE_VIEWS_HOST_20261026
+
+User-approved presentation policy: every live canonical Workspace always exposes
+Dashboard and Semantics. Optional instance lifecycle metadata no longer decides
+their product availability; existing rows/configuration/history/transport are
+preserved, not automatically activated or rematerialized. Properties cannot
+disable them. Other capabilities retain their typed lifecycle authority.
+Default presentation is Dashboard when no valid remembered view is available
+on opening; an already active valid view is not arbitrarily reset. Initial UI
+waits for actual preference/session resolution instead of showing a provisional
+Dashboard. This is SEMANTIC_NOT_HIERARCHY presentation policy, not a new content,
+semantic relation or H1 authority. Room 205 unchanged.
+
+## 2026-10-25 - OrientationKind changes are canonical lifecycle commands
+
+ORIENTATION_KIND_TRANSFORMATION_HOST_20261025
+
+The user-approved first slice changes native INTENT/PROJECT/MILESTONE/
+ONGOING_STANDARD/OPPORTUNITY without replacing ManagedSubject/Orientation identity.
+CanonicalOrientationKindCoordinator owns the atomic command; the editor only
+selects and confirms. Existing assessment applicability determines exactly which
+axes reset to target defaults; common scores/overrides and independently owned
+facts remain intact. Historical assessments are never rewritten to fit a new kind.
+Room 205 extends the existing immutable semantic conversion ledger (format 2),
+with a version-ordered kind chain and exact old-revision ownership. The previous
+Aspect fact remains immutable; subsequent kind facts may follow it. Generation-2
+wire protects this history from older writers; no parallel transport authority.
+Specialized/legacy-mapped sources and reverse Orientation -> Aspect remain out of
+scope. This does not authorize removing Context or old-backup compatibility.
+
+## 2026-10-25 - Native Aspect -> Orientation conversion preserves identity and history
+
+SEMANTIC_SUBJECT_CONVERSION_HOST_20261025
+
+IMPLEMENTED / HOST VERIFIED; physical acceptance pending. User approved the identity-preserving native
+Aspect -> explicitly selected ordinary OrientationKind flow (including PROJECT)
+and durable immutable conversion evidence, implemented in Room 203 -> 204.
+Aspect-specific memberships/parentage end through lifecycle, not history erasure;
+direct child Aspects are promoted to former parent/root. Compatible bindings,
+typed semantic tags, supported PlanningReference intent and exact H1 appearances
+are preserved under their own authorities; no Planning participation is invented.
+The current subtype is unique; conversion history is separate immutable semantic
+provenance, SEMANTIC_NOT_HIERARCHY, never a legacy mapping or H1 authority.
+Only verified history permits obsolete typed tombstone endpoints. Snapshot,
+Restore/Merge, delta and exact-version ACK carry/protect that history. Wire marker
+semantic-subject-conversion/1 prevents older decoders from silently dropping it;
+history-bearing selective import rejects explicitly in V1. No global validation weakening.
+Historical/specialized sources, reverse conversion and unhandled dependencies
+are excluded. Full contract: DOMAIN-CONTRACT.md, semantic subject conversion.
+Current runtime is Room 204. The editor requires explicit choice among PROJECT,
+INTENT, MILESTONE, ONGOING_STANDARD and OPPORTUNITY. TASK recurrence Aspect SOURCE
+is an explicit blocker, not silently retargeted; no general kind-transform UI.
+
+## 2026-10-25 - PROJECT is native Orientation vocabulary, not an operational owner
+
+CANONICAL_PROJECT_ORIENTATION_HOST_20261025
+
+Implement the already accepted architecture vision: PROJECT is a bounded
+undertaking with a recognizable completed state, represented by ManagedSubject
+ORIENTATION + Orientation(kind=PROJECT). Standard common lifecycle including
+REALIZED, assessment/scoring, tags and relations apply. Optional work surface is
+a separate Workspace via existing EMBODIES/REALIZES WorkspaceBinding. Planning
+participation reuses the same Orientation identity; H1 remains presentation only.
+No Project entity/container/status authority, automatic Context/Workspace
+conversion, migration history or newly authorized kind-transform command.
+
+## 2026-10-25 - Workspace semantic context is derived, editing is delegated
+
+WORKSPACE_SEMANTIC_CONTEXT_HOST_20261025
+
+The user-approved extension admits a single live typed WorkspaceBinding EMBODIES
+source: Aspect exposes its taxonomy/direct relations; Orientation exposes Aspect
+memberships and semantic graph edges. This supersedes the earlier read slice's
+Orientation-direct-only restriction, not any persistence authority. Missing or
+ambiguous source exposes no inferred hierarchy. Source-labelled edit actions open
+the existing exact Universal Semantic Editor; commands and confirmations remain
+owned there. Aspect.parentAspectId, AspectOrientationRef and OrientationRelation
+remain SEMANTIC_NOT_HIERARCHY, independent from canonical H1. Move in Navigation
+!= Change Aspect parent != Change Orientation BELONGS_TO. No Workspace taxonomy,
+Context inference, relation copying, schema change or new relationship writer.
+
+## 2026-10-24 - Related entities separates Workspace and embodied Aspect relation contexts
+
+WORKSPACE_RELATED_ENTITIES_ASPECT_HOST_20261024
+
+The presentation capability keeps its stable RELATIONS / relations identity,
+but its English product name is `Related entities`, not document `Connections`.
+The user-authorized read lens includes one explicit hop through unique live
+WorkspaceBinding EMBODIES to an Aspect, then that Aspect's direct canonical
+relations in a separate labelled section. Those edges do not become Workspace
+relations. No recursive graph expansion, H1/Context inference, relation copying
+or new relationship authority. Orientation embodiment remains direct-only in
+this slice. Room 203 unchanged.
+
+## 2026-10-20 - Concrete Day Task realization is day-owned execution metadata
+
+DAY_TASK_REALIZES_NOTES_HOST_20261020
+
+Themes reuse canonical DayTheme assignment documents. Multiple concrete
+DayFocusItem endpoints (FOCUS/RESPONSIBILITY) are stored as a typed ID set on
+DayTask, validated against the task's DayPlan on authoring. This is
+SEMANTIC_NOT_HIERARCHY execution metadata, not a new semantic relation,
+PlanningCommitment role, generic PlanningReference target or RelatedLink.
+Deleted/missing/wrong-day endpoints are inert in live projection. Explicit
+cross-day carry clears the new set; recurrence templates never inherit it.
+Room 203 adds only this empty-default column; no inferred/backfilled links.
+
+Description/instruction and journal remain independent existing text authorities,
+presented together in Notes at the user's explicit choice. No automatic copy or
+merge. Realization links save immediately; text retains explicit Save/draft/close
+protection. Suggested themes from selected priorities require explicit acceptance.
+No scheduling, completion, semantic, H1 or WorkspaceBinding effects.
+
+## 2026-10-19 - Semantic tags are independently owned ManagedSubject metadata
+
+CANONICAL_SEMANTIC_TAGS_HOST_20261019
+
+Orientation and Aspect share ManagedSubjectTagRef, keyed by explicit subject
+type/ID and normalized tag, with a deterministic namespaced membership ID.
+ManagedSubject IDs remain globally unique; a type mismatch is rejected, never
+resolved by raw-ID table lookup order. Tags are lightweight labels, not Aspects.
+This is `SEMANTIC_NOT_HIERARCHY` metadata, not a hierarchy authority cutover.
+
+Workspace tag persistence stays independent; no automatic inheritance/copy via
+bindings, Context, H1 or bootstrap. Library may combine both direct authorities
+in one read-only tag facet. Generic semantic deletion atomically retires owned
+memberships; live reads additionally join owner type, subtype and lifecycle.
+Retained historical rows under tombstoned subjects never become live results.
+Room 202 adds one empty table; current canonical transport carries a nullable
+additive collection with strict version conflict admission and exact ACK.
+
+## 2026-10-19 - Saved canonical queries are presentation preferences, not Lens identities
+
+CANONICAL_ENTITY_QUERY_SAVED_HOST_20261019
+
+Reuse CanonicalEntityQuery for Library and its textual parser. SavedEntityQuery
+owns the full versioned structured specification, never DSL authority or result
+IDs. It is `SEMANTIC_NOT_HIERARCHY` presentation/query preference; it changes no
+semantic, operational, Planning, binding or H1 authority. UUID is identity; names
+may repeat. Apply copies into current Library state; no implicit autosave.
+
+Reuse the existing settings DataStore and its full backup/Restore map. Collection
+and specification each have format version 1. Unknown specifications remain
+renameable/deletable but Apply fails closed; unknown collection format blocks
+writes instead of erasing it. Existing explicit settings transfer replaces the
+whole snapshot; no per-query conflict resolution, delta or ACK is claimed.
+No new Room persistence or Lens/preset hierarchy; Room remains 201.
+
+At the initial query checkpoint tag persistence was Workspace-only; semantic
+tags are now added by the checkpoint above. Orientation assessment/policy
+coordinates still have no cross-binding inheritance. Missing numeric
+values fail numeric predicates. MagicBox now adapts the same engine/catalog and
+structured query; no parallel filtering implementation. `saved:<name>` is
+standalone V1 syntax (exact name, spaces allowed); duplicates require stable-ID
+selection and unsupported specifications fail closed. No saved composition.
+
 ## 2026-10-19 - Recurring Task creation provenance remains typed Planning SOURCE
 
 RECURRENCE_PLANNING_SOURCE_HOST_20261019

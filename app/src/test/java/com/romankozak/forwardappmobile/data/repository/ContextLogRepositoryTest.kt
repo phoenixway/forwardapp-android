@@ -11,6 +11,16 @@ import org.junit.Test
 
 class ContextLogRepositoryTest {
     @Test
+    fun `explicit Workspace log authoring never invokes Context provenance resolution`() = runTest {
+        val dao = mockk<ContextManagementDao>(relaxed = true)
+        val bridge = mockk<ExecutionLogWorkspaceOwnershipBridge>()
+        val canonical = mockk<CanonicalExecutionLogRepository>(relaxed = true)
+        ContextLogRepository(dao, bridge, canonical).addWorkspaceLogEntry("standalone", "COMMENT", "entry")
+        coVerify(exactly = 1) { canonical.createLog("standalone", "COMMENT", "entry", null, any(), any()) }
+        coVerify(exactly = 0) { bridge.resolveContextBackedWorkspaceId(any()) }
+        coVerify(exactly = 0) { dao.insertLog(any()) }
+    }
+    @Test
     fun `user authored Context log routes to canonical authoring boundary`() = runTest {
         val dao = mockk<ContextManagementDao>(relaxed = true)
         val ownershipBridge = mockk<ExecutionLogWorkspaceOwnershipBridge>()

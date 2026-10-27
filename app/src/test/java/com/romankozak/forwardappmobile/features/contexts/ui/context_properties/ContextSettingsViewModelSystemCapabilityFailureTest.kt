@@ -437,6 +437,7 @@ class ContextSettingsViewModelSystemCapabilityFailureTest {
                 keyProblemsRepository = canonicalKeyProblems,
                 dashboardRepository = dashboard,
                 executionLogRepository = executionLog,
+                relationsRepository = mockk(relaxed = true),
             )
         val backlogAccess = mockk<SystemContextCanonicalBacklogLifecycleAccess>(relaxed = true)
         every { backlogAccess.handles(id) } returns

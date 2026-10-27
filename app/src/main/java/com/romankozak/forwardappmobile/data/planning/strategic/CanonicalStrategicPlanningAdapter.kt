@@ -171,6 +171,11 @@ class CanonicalStrategicPlanningAdapter
             }
         }
 
+        suspend fun carryQuest(questId: String, targetArcKey: String): StrategicQuestCarryForwardResult {
+            authorityActivator.requireActivated()
+            return StrategicQuestCarryForward(database, this, orientationRepository).carry(questId, targetArcKey)
+        }
+
         suspend fun updateQuest(quest: ArcQuestEntity) {
             authorityActivator.requireActivated()
             val now = System.currentTimeMillis()

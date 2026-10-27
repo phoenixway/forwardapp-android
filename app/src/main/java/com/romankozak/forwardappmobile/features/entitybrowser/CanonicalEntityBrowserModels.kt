@@ -33,6 +33,8 @@ data class CanonicalEntitySummary(
     val isArchivedAspect: Boolean = false,
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
+    val tags: Set<String> = emptySet(),
+    val scores: Map<CanonicalScoreDimension, Double> = emptyMap(),
 )
 
 data class CanonicalEntityBrowserQuery(

@@ -15,6 +15,57 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BigPictureMutationViewModelTest {
+    @Test fun `rename dispatches exact container once while busy`() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { writer.renameContainer("section", "New title", any()) } coAnswers { gate.await() }
+        val model = vm()
+        model.renameSection(H1TypedNode.Container("section"), "New title")
+        model.renameSection(H1TypedNode.Container("section"), "New title")
+        advanceUntilIdle()
+        assertThat(model.state.value.busy).isTrue()
+        gate.complete(Unit)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { writer.renameContainer("section", "New title", any()) }
+        assertThat(model.state.value.busy).isFalse()
+    }
+
+    @Test fun `recursive removal dispatches exact occurrence subtree once and clears retired clipboard`() = runTest(dispatcher) {
+        val gate = kotlinx.coroutines.CompletableDeferred<List<PlacementId>>()
+        coEvery { writer.removeOccurrenceSubtree(PlacementId("link"), any()) } coAnswers { gate.await() }
+        val saved = SavedStateHandle(mapOf("bigPictureCut" to "occurrence:child"))
+        val model = vm(saved)
+        model.removeSubtree(H1TypedNode.Occurrence("link"))
+        model.removeSubtree(H1TypedNode.Occurrence("link"))
+        advanceUntilIdle()
+        assertThat(model.state.value.busy).isTrue()
+        gate.complete(listOf(PlacementId("link"), PlacementId("child")))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { writer.removeOccurrenceSubtree(PlacementId("link"), any()) }
+        coVerify(exactly = 0) { writer.removeOccurrence(any(), any()); writer.deleteContainer(any(), any()) }
+        assertThat(model.clipboard.value).isNull()
+    }
+
+    @Test fun `failed recursive removal keeps clipboard and releases submit guard`() = runTest(dispatcher) {
+        coEvery { writer.removeOccurrenceSubtree(any(), any()) } throws IllegalStateException("rejected")
+        val saved = SavedStateHandle(mapOf("bigPictureCut" to "occurrence:link"))
+        val model = vm(saved)
+        model.removeSubtree(H1TypedNode.Occurrence("link"))
+        advanceUntilIdle()
+        assertThat(model.clipboard.value).isEqualTo("occurrence:link")
+        assertThat(model.state.value.busy).isFalse()
+        assertThat(model.state.value.message).contains("rejected")
+    }
+
+    @Test fun `leaf rejection does not automatically escalate to recursive removal`() = runTest(dispatcher) {
+        coEvery { writer.removeOccurrence(any(), any()) } throws
+            com.romankozak.forwardappmobile.data.hierarchy.HierarchyChildPolicyRejectedException(PlacementId("p"))
+        val model = vm()
+        model.remove(H1TypedNode.Occurrence("p"))
+        advanceUntilIdle()
+        coVerify(exactly = 0) { writer.removeOccurrenceSubtree(any(), any()) }
+        assertThat(model.state.value.message).contains("Повторіть дію")
+    }
+
     private val dispatcher = StandardTestDispatcher()
     private val writer = mockk<H1StructuralMutationCoordinator>()
     @Before fun setup() { Dispatchers.setMain(dispatcher) }

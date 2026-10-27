@@ -35,6 +35,7 @@ class ContextScreenDataObserver(
     fun observe(
         contextIdFlow: Flow<String>,
         refreshTriggerFlow: Flow<Int>,
+        canonicalWorkspaceRoute: Boolean = false,
     ): Flow<ContextData> {
         return combine(contextIdFlow, refreshTriggerFlow.distinctUntilChanged()) { contextId, _ ->
             contextId
@@ -57,7 +58,8 @@ class ContextScreenDataObserver(
                     currentContextReadModel,
                     dependencies.listItemRepository.getItemsForContextStream(contextId),
                     dependencies.contextStructureRepository.observeStructureOnly(contextId),
-                    dependencies.contextLogRepository.getContextLogsStream(contextId),
+                    if (canonicalWorkspaceRoute) dependencies.contextLogRepository.getWorkspaceLogsStream(contextId)
+                    else dependencies.contextLogRepository.getContextLogsStream(contextId),
                     dependencies.checklistRepository.getChecklistsForContext(contextId),
                     dependencies.noteDocumentRepository.getDocumentsForContext(contextId),
                     dependencies.musicNoteRepository.getMusicNotesForContext(contextId),

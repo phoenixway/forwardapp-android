@@ -16,6 +16,25 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class PlanningSourceCreationRoomTest {
+    @Test fun `same Project identity participates in Tactical Strategic and Day without semantic duplication`() = runBlocking<Unit> {
+        PlanningSourceRoomFixture().use { f ->
+            f.seed()
+            val id = f.base.orientation(com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.PROJECT)
+            val source = PlanningReferenceTarget(PlanningReferenceTargetKind.ORIENTATION, id)
+            val before = f.base.dao.getAllManagedSubjects()
+            f.tactical.insertMission(mission(), source)
+            f.strategic.addQuest(ArcQuestEntity(id = "project-quest", arcKey = "2026-10", title = "Planning"), source)
+            f.day.persist(source) {
+                DayTask(id = "project-day", dayPlanId = "day", title = "Day work").also { f.db.dayTaskDao().insert(it) }
+            }
+            assertThat(f.base.dao.getAllManagedSubjects()).isEqualTo(before)
+            assertThat(f.db.planningDao().getAllCommitments()).hasSize(3)
+            assertThat(f.db.planningDao().getAllCommitments().map { it.orientationId }.toSet()).containsExactly(id)
+            assertThat(f.base.dao.getAllOrientations().single().kind).isEqualTo("PROJECT")
+            assertIsolation(f)
+        }
+    }
+
     private fun mission() = TacticalMission(title = "Planning item", description = null, projectId = null, deadline = 100,
         iterationId = "cycle", weekKey = "2026-W43", createdAt = 10, updatedAt = 10, version = 1)
 

@@ -1,21 +1,23 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcTab
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelActionRow
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelComposer
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalRail
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelIconButton
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelSurface
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelToggleButton
-
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.ContextualAction
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.ContextualActionsButton
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.ContextualComposerSurface
 @Composable
 internal fun StrategicArcBottomPanelContent(
     selectedTab: StrategicArcTab,
@@ -25,52 +27,55 @@ internal fun StrategicArcBottomPanelContent(
     onSelectTab: (StrategicArcTab) -> Unit,
     onShowContextPicker: () -> Unit,
     onClearInput: () -> Unit,
-    globalActions: BottomPanelGlobalActions,
+    additionalActions: List<ContextualAction> = emptyList(),
 ) {
-    BottomPanelSurface {
-        BottomPanelActionRow(
-            leadingContent = {
-                BottomPanelToggleButton(
-                    imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
-                    contentDescription = "ArcQuest",
-                    selected = selectedTab == StrategicArcTab.QUESTS,
-                    onClick = { onSelectTab(StrategicArcTab.QUESTS) },
-                )
-                BottomPanelToggleButton(
-                    imageVector = Icons.AutoMirrored.Outlined.Article,
-                    contentDescription = "Артефакт",
-                    selected = selectedTab == StrategicArcTab.ARTIFACT,
-                    onClick = { onSelectTab(StrategicArcTab.ARTIFACT) },
-                )
-            },
-            trailingContent = {
-                BottomPanelIconButton(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Створити Quest на основі сутності",
-                    onClick = onShowContextPicker,
-                )
-                BottomPanelGlobalRail(
-                    actions = globalActions,
-                )
-            },
-        )
-
+    val actions = strategicComposerActions(selectedTab, inputValue.text.isNotBlank(), onSelectTab, onShowContextPicker, onClearInput) + additionalActions
+    ContextualComposerSurface {
         if (selectedTab == StrategicArcTab.QUESTS) {
             BottomPanelComposer(
-                inputValue = inputValue,
-                onValueChange = onInputChange,
-                onSubmit = onSubmitQuest,
-                placeholderText = "Новий ArcQuest...",
-                maxHeightScreenFraction = 4,
-                sendContentDescription = "Створити ArcQuest",
-                secondarySubmitActions = {
-                    BottomPanelIconButton(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "Очистити ArcQuest",
-                        onClick = onClearInput,
+                inputValue = inputValue, onValueChange = onInputChange, onSubmit = onSubmitQuest,
+                placeholderText = "Новий ArcQuest...", maxHeightScreenFraction = 4,
+                sendContentDescription = "Створити ArcQuest", compact = true,
+                trailingContent = {
+                    ContextualActionsButton(
+                        "Стратегічна арка · Квести", actions,
                     )
                 },
             )
+        } else {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Артефакт арки", Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelMedium)
+                ContextualActionsButton(
+                    "Стратегічна арка · Артефакт", actions,
+                )
+            }
         }
     }
 }
+
+internal fun strategicComposerActions(
+    selectedTab: StrategicArcTab,
+    hasDraft: Boolean,
+    onSelectTab: (StrategicArcTab) -> Unit,
+    onShowContextPicker: () -> Unit,
+    onClearInput: () -> Unit,
+) = listOf(
+    ContextualAction(
+        "quest-source", "Створити Quest на основі сутності", Icons.Default.Add, onClick = onShowContextPicker,
+    ),
+    ContextualAction(
+        "quest-clear", "Очистити ArcQuest", Icons.Outlined.Close, enabled = hasDraft, onClick = onClearInput,
+    ),
+    ContextualAction(
+        "quests", "Квести арки", Icons.AutoMirrored.Outlined.FormatListBulleted,
+        selected = selectedTab == StrategicArcTab.QUESTS, onClick = { onSelectTab(StrategicArcTab.QUESTS) },
+    ),
+    ContextualAction(
+        "artifact", "Артефакт", Icons.AutoMirrored.Outlined.Article,
+        selected = selectedTab == StrategicArcTab.ARTIFACT, onClick = { onSelectTab(StrategicArcTab.ARTIFACT) },
+    ),
+)

@@ -11,6 +11,9 @@ class SnapshotBundleSelectiveImportFilter {
         source: SnapshotBundle,
         selection: WorkspaceSelectiveImportSelection,
     ): SnapshotBundle {
+        require(source.managedSubjectConversions.isNullOrEmpty()) {
+            "Selective import of semantic conversion history is not yet supported; use full Restore or Merge."
+        }
         source.requireSupportedHierarchyFormat()
 
         // selectedContextIds is retained as a compatibility/UI contract name,
@@ -255,6 +258,6 @@ class SnapshotBundleSelectiveImportFilter {
                 source.hierarchyFormatVersion?.takeIf {
                     presentationClosed.hasCompleteCanonicalHierarchyTransport()
                 },
-        )
+        ).withSemanticTagsFrom(source)
     }
 }

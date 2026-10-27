@@ -170,6 +170,7 @@ class SnapshotRestoreLocalDataSourceImpl
                     planningScopes = null,
                     planningCommitments = null,
                     planningReferences = null,
+                    managedSubjectTagRefs = null,
                     dayPlanningScopeExtensions = null,
                     tacticalPlanningScopeExtensions = null,
                     strategicPlanningScopeExtensions = null,
@@ -183,6 +184,10 @@ class SnapshotRestoreLocalDataSourceImpl
             database.withTransaction {
                 TransactionAwareRoomClearer(database).clearAllApplicationTables()
                 writer.apply(roomBundle)
+                com.romankozak.forwardappmobile.data.orientation.CanonicalSubjectConversionStore(database)
+                    .restore(bundle.managedSubjectConversions.orEmpty())
+                com.romankozak.forwardappmobile.data.orientation.CanonicalSemanticTagSyncStore(database)
+                    .restore(bundle.managedSubjectTagRefs.orEmpty())
                 planningStore.restoreExactDecoded(decodedPlanning)
                 dayExtensionStore.restoreExactDecoded(decodedDayExtensions)
                 tacticalExtensionStore.restoreExactDecoded(decodedTacticalExtensions)
@@ -216,6 +221,7 @@ class SnapshotRestoreLocalDataSourceImpl
 
                 com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceSyncStore(database)
                     .restore(referenceSnapshots)
+                com.romankozak.forwardappmobile.data.orientation.CanonicalSubjectConversionStore(database).validateCurrentClosure()
 
                 assertRestoreInvariants(bundle)
                 // Final persisted graph must agree with preclear admission.

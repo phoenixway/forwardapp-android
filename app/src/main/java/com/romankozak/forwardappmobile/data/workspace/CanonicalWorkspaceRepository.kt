@@ -100,6 +100,16 @@ class CanonicalWorkspaceRepository
             )
         }
 
+        /** Title-only command: never overwrite a concurrent description/role or legacy Context. */
+        suspend fun rename(id: String, name: String, now: Long = System.currentTimeMillis()) = database.withTransaction {
+            val title = name.trim()
+            require(title.isNotEmpty()) { "Workspace name must not be blank" }
+            val current = requireLiveWorkspace(id)
+            if (current.nameOverride != title) {
+                workspaceDao.upsert(listOf(current.bump(now).copy(nameOverride = title)))
+            }
+        }
+
         internal suspend fun getCanonicalPresentations(): Map<String, CanonicalWorkspacePresentation> =
             workspaceDao.getAll()
                 .mapNotNull { it.toCanonicalPresentationOrNull() }

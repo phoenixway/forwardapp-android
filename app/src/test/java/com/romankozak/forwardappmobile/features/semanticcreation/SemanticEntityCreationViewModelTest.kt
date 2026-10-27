@@ -40,10 +40,23 @@ class SemanticEntityCreationViewModelTest {
     @Test
     fun `creatable kinds come from canonical vocabulary without compatibility kinds`() {
         assertTrue(OrientationKind.INTENT in creatableOrientationKinds)
+        assertTrue(OrientationKind.PROJECT in creatableOrientationKinds)
         assertTrue(OrientationKind.THEME in creatableOrientationKinds)
         assertTrue(OrientationKind.QUEST in creatableOrientationKinds)
         assertFalse(OrientationKind.DAY_THEME in creatableOrientationKinds)
         assertFalse(OrientationKind.ARC_QUEST in creatableOrientationKinds)
+    }
+
+    @Test
+    fun `Project creation delegates to the normal Orientation command`() = runTest(dispatcher) {
+        coEvery { orientationRepository.createOrientation(OrientationKind.PROJECT, "Equip clinic", null, any()) } returns "project-id"
+        val vm = viewModel()
+        vm.setName("Equip clinic")
+        vm.setOrientationKind(OrientationKind.PROJECT)
+        vm.create()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { orientationRepository.createOrientation(OrientationKind.PROJECT, "Equip clinic", null, any()) }
+        coVerify(exactly = 0) { aspectRepository.create(any(), any(), any(), any()) }
     }
 
     @Test

@@ -4,6 +4,9 @@ fun SnapshotBundle.hasCanonicalOrientationPayload(): Boolean =
     legacyCanonicalOrientationFields().all { it != null }
 
 fun requireValidCanonicalOrientationPayload(bundle: SnapshotBundle) {
+    require(bundle.managedSubjectConversions == null || bundle.hasCanonicalOrientationPayload()) {
+        "Semantic conversion history requires a complete canonical subject envelope"
+    }
     val legacyFields = bundle.legacyCanonicalOrientationFields()
     val empty = legacyFields.all { it == null } && bundle.workspaces == null
     val legacyOrCurrentComplete = legacyFields.all { it != null }

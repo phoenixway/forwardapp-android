@@ -16,7 +16,7 @@ internal fun EntityLibraryItemMenu(ref: CanonicalEntityRef, onAdd: (CanonicalEnt
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, "Дії сутності") }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        DropdownMenuItem(text = { Text("Додати до Big Picture") },
+        DropdownMenuItem(text = { Text("Додати до Navigation") },
             onClick = { expanded = false; onAdd(ref) })
     }
 }
@@ -38,7 +38,7 @@ internal fun EntityLibraryPlacementDialog(
         )
         else -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Додати до Big Picture") },
+            title = { Text("Додати до Navigation") },
             text = {
                 if (current is BigPictureUiState.Error) Text(current.message)
                 else CircularProgressIndicator()

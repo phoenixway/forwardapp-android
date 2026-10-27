@@ -174,48 +174,50 @@ fun ModernInputPanel(
             // Верхня панель (NavigationBar автоматично відфільтрує доступні вкладки через activeCapabilities)
             NavigationBar(state, actions, panelColors.contentColor, holdMenuController)
 
-            AutocompleteSuggestions(
-                suggestions = autocompleteSuggestions,
-                onSuggestionClick = onSuggestionClick,
-            )
-
-            Row(
-                modifier =
-                    Modifier
-                        .defaultMinSize(minHeight = 64.dp)
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                InputTextField(
-                    modifier = Modifier.weight(1f),
-                    inputValue = inputValue,
-                    inputMode = inputMode,
-                    panelColors = panelColors,
-                    focusRequester = focusRequester,
-                    onValueChange = onValueChange,
-                    onSubmit = onSubmit,
-                    onClearSearch = {
-                        onValueChange(TextFieldValue(""))
-                        onCloseSearch()
-                    },
-                    onHorizontalSwipe = { direction ->
-                        if (swipeInputModes.size > 1) {
-                            val currentIndex = swipeInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
-                            val step = if (direction < 0) 1 else -1
-                            val nextIndex = (currentIndex + step + swipeInputModes.size) % swipeInputModes.size
-                            onInputModeSelected(swipeInputModes[nextIndex])
-                        }
-                    },
-                    isNerActive = isNerActive,
+            if (currentView != ContextViewMode.RELATIONS) {
+                AutocompleteSuggestions(
+                    suggestions = autocompleteSuggestions,
+                    onSuggestionClick = onSuggestionClick,
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Row(
+                    modifier =
+                        Modifier
+                            .defaultMinSize(minHeight = 64.dp)
+                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    InputTextField(
+                        modifier = Modifier.weight(1f),
+                        inputValue = inputValue,
+                        inputMode = inputMode,
+                        panelColors = panelColors,
+                        focusRequester = focusRequester,
+                        onValueChange = onValueChange,
+                        onSubmit = onSubmit,
+                        onClearSearch = {
+                            onValueChange(TextFieldValue(""))
+                            onCloseSearch()
+                        },
+                        onHorizontalSwipe = { direction ->
+                            if (swipeInputModes.size > 1) {
+                                val currentIndex = swipeInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
+                                val step = if (direction < 0) 1 else -1
+                                val nextIndex = (currentIndex + step + swipeInputModes.size) % swipeInputModes.size
+                                onInputModeSelected(swipeInputModes[nextIndex])
+                            }
+                        },
+                        isNerActive = isNerActive,
+                    )
 
-                AnimatedSendButton(
-                    isVisible = inputValue.text.isNotBlank(),
-                    panelColors = panelColors,
-                    onClick = onSubmit,
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    AnimatedSendButton(
+                        isVisible = inputValue.text.isNotBlank(),
+                        panelColors = panelColors,
+                        onClick = onSubmit,
+                    )
+                }
             }
         }
     }

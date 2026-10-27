@@ -89,6 +89,10 @@ fun dayTaskTagsForJs(
     task.tags.toTypedArray()
 
 @JsExport
+@JsName("dayTaskRealizedDayFocusItemIds")
+fun dayTaskRealizedDayFocusItemIdsForJs(task: DayTask): Array<String> = task.realizedDayFocusItemIds.toTypedArray()
+
+@JsExport
 @JsName("dayFocusItemRelatedLinks")
 fun dayFocusItemRelatedLinksForJs(
     item: DayFocusItem,

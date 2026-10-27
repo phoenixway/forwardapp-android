@@ -26,7 +26,7 @@ class DayTaskCarryForwardRoomTest {
         return f.day.persist(PlanningReferenceTarget(PlanningReferenceTargetKind.ORIENTATION, id)) {
             DayTask(id = "source", dayPlanId = "day", title = "Task", completed = true,
                 status = TaskStatus.COMPLETED, completedAt = 10, actualDurationMinutes = 5,
-                scheduledTime = 20, version = 1).also { f.db.dayTaskDao().insert(it) }
+                scheduledTime = 20, version = 1, realizedDayFocusItemIds = listOf("today-focus")).also { f.db.dayTaskDao().insert(it) }
         }
     }
 
@@ -45,6 +45,7 @@ class DayTaskCarryForwardRoomTest {
             assertThat(carried.actualDurationMinutes).isNull()
             assertThat(carried.version).isEqualTo(1)
             assertThat(carried.syncedAt).isNull()
+            assertThat(carried.realizedDayFocusItemIds).isEmpty()
             assertThat(f.db.dayTaskDao().getTaskById(old.id)).isEqualTo(old)
             assertThat(f.db.planningDao().getCommitment(before.id)).isEqualTo(before)
             assertThat(after.orientationId).isEqualTo(before.orientationId)

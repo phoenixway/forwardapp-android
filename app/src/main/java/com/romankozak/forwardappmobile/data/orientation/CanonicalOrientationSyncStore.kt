@@ -35,6 +35,7 @@ class CanonicalOrientationSyncStore
         suspend fun markSynced(ack: CanonicalOrientationSyncAck) {
             val syncedAt = System.currentTimeMillis()
             database.withTransaction {
+                ack.subjectConversions.forEach { database.managedSubjectConversionDao().acknowledge(it.id, it.version, syncedAt) }
                 ack.managedSubjects.forEach { dao.markSubjectSynced(it.id, it.version, syncedAt) }
                 ack.assessments.forEach { dao.markAssessmentSynced(it.id, it.version, syncedAt) }
                 ack.assessmentRevisions.forEach { dao.markAssessmentRevisionSynced(it.id, it.version, syncedAt) }
@@ -42,6 +43,7 @@ class CanonicalOrientationSyncStore
                 ack.legacyMappings.forEach { dao.markLegacyMappingSynced(it.id, it.version, syncedAt) }
                 ack.relations.forEach { dao.markRelationSynced(it.id, it.version, syncedAt) }
                 ack.aspectRefs.forEach { dao.markAspectRefSynced(it.id, it.version, syncedAt) }
+                ack.semanticTagRefs.forEach { database.managedSubjectTagDao().markSynced(it.id, it.version, syncedAt) }
                 ack.workspaces.forEach { workspaceDao.markSynced(it.id, it.version, syncedAt) }
                 ack.workspaceBindings.forEach { dao.markWorkspaceBindingSynced(it.id, it.version, syncedAt) }
                 ack.workspaceCapabilities.forEach { dao.markWorkspaceCapabilitySynced(it.id, it.version, syncedAt) }
@@ -59,6 +61,7 @@ class CanonicalOrientationSyncStore
 
         private suspend fun loadFullPayload() =
             CanonicalOrientationSyncPayload(
+                subjectConversions = database.managedSubjectConversionDao().getAll(),
                 managedSubjects = dao.getAllManagedSubjects(),
                 orientations = dao.getAllOrientations(),
                 aspects = dao.getAllAspects(),
@@ -68,6 +71,7 @@ class CanonicalOrientationSyncStore
                 legacyMappings = dao.getAllLegacyMappings(),
                 relations = dao.getAllOrientationRelations(),
                 aspectRefs = dao.getAllAspectOrientationRefs(),
+                semanticTagRefs = database.managedSubjectTagDao().getAll(),
                 workspaces =
                     workspaceDao.getAll().map {
                         it.toWorkspaceSnapshot().withoutEmbeddedWorkspaceTopology()
@@ -80,6 +84,7 @@ class CanonicalOrientationSyncStore
     }
 
 private fun CanonicalOrientationSyncPayload.hasDirtyRows(): Boolean =
+    subjectConversions.any { it.syncedAt == null } ||
     managedSubjects.any { it.syncedAt == null } ||
         assessments.any { it.syncedAt == null } ||
         assessmentRevisions.any { it.syncedAt == null } ||
@@ -87,6 +92,7 @@ private fun CanonicalOrientationSyncPayload.hasDirtyRows(): Boolean =
         legacyMappings.any { it.syncedAt == null } ||
         relations.any { it.syncedAt == null } ||
     aspectRefs.any { it.syncedAt == null } ||
+        semanticTagRefs.any { it.syncedAt == null } ||
         workspaces.any { it.syncedAt == null } ||
         workspaceBindings.any { it.syncedAt == null } ||
         workspaceCapabilities.any { it.syncedAt == null } ||

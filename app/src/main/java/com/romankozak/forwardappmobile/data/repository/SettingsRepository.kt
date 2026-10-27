@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
 import android.util.Log
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -10,7 +9,6 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
@@ -38,8 +36,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceListener
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 sealed class ServerDiscoveryState {
     object Loading : ServerDiscoveryState()

@@ -17,7 +17,7 @@ internal fun SemanticEntityDeleteDialog(
         onDismissRequest = { if (!state.busy) onCancel() },
         title = { Text("Видалити ${target.classLabel} «${target.title}»?") },
         text = {
-            Text(state.error ?: "Буде видалено саму семантичну сутність та всі її появи в Big Picture. Пов’язані робочі простори залишаться. Незбережені зміни буде відкинуто.")
+            Text(state.error ?: "Буде видалено саму семантичну сутність та всі її появи в Navigation. Пов’язані робочі простори залишаться. Незбережені зміни буде відкинуто.")
         },
         confirmButton = { TextButton(enabled = !state.busy, onClick = onConfirm) {
             if (state.busy) CircularProgressIndicator() else Text("Видалити", color = MaterialTheme.colorScheme.error)

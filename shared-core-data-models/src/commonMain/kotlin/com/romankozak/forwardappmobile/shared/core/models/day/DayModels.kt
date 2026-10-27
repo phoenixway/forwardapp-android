@@ -123,6 +123,7 @@ data class DayTask(
     val notes: String?,
     val completedAt: Long?,
     val points: Int,
+    val realizedDayFocusItemIds: List<String> = emptyList(),
 ) : SyncEntityMeta
 
 /** Canonical concrete focus/responsibility item belonging to one DayPlan. */

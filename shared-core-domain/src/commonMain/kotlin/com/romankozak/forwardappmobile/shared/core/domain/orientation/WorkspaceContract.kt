@@ -24,6 +24,7 @@ val orientationCapabilityRegistry: List<WorkspaceCapabilityDefinition> =
                 WorkspaceCapabilityType.DOCUMENTS,
                 WorkspaceCapabilityType.NOTES,
                 WorkspaceCapabilityType.ATTACHMENTS,
+                WorkspaceCapabilityType.RELATIONS,
                 -> emptyList()
             }
         WorkspaceCapabilityDefinition(
@@ -39,7 +40,8 @@ val orientationCapabilityRegistry: List<WorkspaceCapabilityDefinition> =
 
 private fun capabilityArchetype(type: WorkspaceCapabilityType): WorkspaceCapabilityArchetype =
     when (type) {
-        WorkspaceCapabilityType.DASHBOARD -> WorkspaceCapabilityArchetype.PRESENTATION
+        WorkspaceCapabilityType.DASHBOARD,
+        WorkspaceCapabilityType.RELATIONS -> WorkspaceCapabilityArchetype.PRESENTATION
         WorkspaceCapabilityType.INBOX,
         WorkspaceCapabilityType.KEY_PROBLEMS,
         WorkspaceCapabilityType.EXECUTION_LOG,

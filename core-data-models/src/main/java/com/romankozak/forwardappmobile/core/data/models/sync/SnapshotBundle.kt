@@ -250,6 +250,12 @@ data class SnapshotBundle(
     // [] = current canonical transport contains no membership rows.
     @SerializedName("workspaceTagRefs")
     val workspaceTagRefs: List<WorkspaceTagRefEntity>? = null,
+    // Semantic tag membership is independent of Workspace tags. null = older/absent stream.
+    @SerializedName("managedSubjectTagRefs")
+    val managedSubjectTagRefs: List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectTagRefEntity>? = null,
+    /** Null is pre-conversion transport. Empty is authoritative empty history; never inferred. */
+    @SerializedName("managedSubjectConversions")
+    val managedSubjectConversions: List<com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectConversionEntity>? = null,
     @SerializedName("savedOrientationViews")
     val savedOrientationViews: List<SavedOrientationViewEntity>? = null,
 

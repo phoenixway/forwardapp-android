@@ -177,6 +177,9 @@ data class DayTask @Ignore constructor(
     @ColumnInfo(name = "project_workspace_id")
     @SerializedName("projectWorkspaceId")
     val projectWorkspaceId: String? = null,
+    /** Typed DayFocusItem endpoints for this concrete day, never semantic identity or recurrence template. */
+    @ColumnInfo(defaultValue = "'[]'")
+    @SerializedName("realizedDayFocusItemIds") val realizedDayFocusItemIds: List<String> = emptyList(),
 ) {
     /**
      * Room-only constructor for physical persistence.
@@ -221,6 +224,7 @@ data class DayTask @Ignore constructor(
         completedAt: Long?,
         points: Int,
         projectWorkspaceId: String?,
+        realizedDayFocusItemIds: List<String>,
     ) : this(
         id = id,
         dayPlanId = dayPlanId,
@@ -260,6 +264,7 @@ data class DayTask @Ignore constructor(
         completedAt = completedAt,
         points = points,
         projectWorkspaceId = projectWorkspaceId,
+        realizedDayFocusItemIds = realizedDayFocusItemIds,
         projectId = null,
     )
 }

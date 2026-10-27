@@ -194,6 +194,7 @@ data class ContextUiState(
     val recentItems: List<RecentItem> = emptyList(),
     val notes: List<LegacyNoteEntity> = emptyList(),
     val isContextSwitching: Boolean = false,
+    val isInitialViewResolved: Boolean = false,
     // UI State - View Mode & Navigation
     val currentViewMode: ContextViewMode = ContextViewMode.DASHBOARD,
     val currentTab: ContextManagementTab = ContextManagementTab.Dashboard,

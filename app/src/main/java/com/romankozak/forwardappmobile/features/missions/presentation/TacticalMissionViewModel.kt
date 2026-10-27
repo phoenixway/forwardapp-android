@@ -328,6 +328,7 @@ class TacticalMissionViewModel
         val canPasteAsMissions: StateFlow<Boolean> = _canPasteAsMissions.asStateFlow()
         private val _uiMessages = MutableSharedFlow<String>(extraBufferCapacity = 4)
         val uiMessages = _uiMessages.asSharedFlow()
+        private val missionCarryForward = TacticalMissionCarryForward(missionRepository)
 
         private val _boardLinkedProjectIds = MutableStateFlow<List<String>>(emptyList())
         val boardLinkedProjectIds: StateFlow<List<String>> = _boardLinkedProjectIds.asStateFlow()
@@ -533,35 +534,33 @@ class TacticalMissionViewModel
             val activeIterationId = activeIterationId()
             if (mission.isInCurrentIteration(activeIterationId, currentWeekKey)) return
             viewModelScope.launch {
-                val streamId = mission.normalizedMissionStreamId()
-                val duplicateExists =
-                    _missions.value.any { candidate ->
-                        candidate.isInCurrentIteration(activeIterationId, currentWeekKey) &&
-                            candidate.title.equals(mission.title, ignoreCase = true) &&
-                            candidate.normalizedMissionStreamId() == streamId &&
-                            candidate.sourceBacklogItemId == mission.sourceBacklogItemId
+                when (val result = missionCarryForward.carry(
+                    mission,
+                    TacticalCarryForwardDestination(activeIterationId, currentWeekKey,
+                        currentIterationDeadline(), nextSlotOrder(mission.activitySlotContextId)),
+                    _missions.value,
+                )) {
+                    is TacticalCarryForwardResult.Created -> {
+                        selectMissionStream(mission.normalizedMissionStreamId())
+                        _pendingScrollToMissionId.value = result.missionId
+                        _uiMessages.tryEmit("Місію перенесено в поточну ітерацію")
                     }
-                if (duplicateExists) {
-                    _uiMessages.tryEmit("Місія вже є в поточній ітерації")
-                    return@launch
-                }
-
-                val carriedMission =
-                    mission.copy(
-                        id = 0,
-                        weekKey = currentWeekKey,
-                        iterationId = activeIterationId,
-                        carriedFromMissionId = mission.id,
-                        status = MissionStatus.ACTIVE,
-                        startTime = System.currentTimeMillis(),
-                        deadline = currentIterationDeadline(),
-                        orderInSlot = nextSlotOrder(mission.activitySlotContextId),
-                        sourceType = MissionSourceType.PREVIOUS_WEEK,
+                    is TacticalCarryForwardResult.AlreadyPresent -> {
+                        selectMissionStream(result.mission.normalizedMissionStreamId())
+                        _pendingScrollToMissionId.value = result.mission.id
+                        _uiMessages.tryEmit(
+                            if (result.mission.status == MissionStatus.COMPLETED) {
+                                "Місія вже є в поточній ітерації серед завершених"
+                            } else {
+                                "Місія вже є в поточній ітерації"
+                            },
+                        )
+                    }
+                    TacticalCarryForwardResult.Busy -> _uiMessages.tryEmit("Перенесення місії вже виконується")
+                    TacticalCarryForwardResult.Unavailable -> _uiMessages.tryEmit(
+                        "Не вдалося перенести місію. Її історичне джерело може бути недоступне або некоректне.",
                     )
-                val id = missionRepository.insertMissionWithAutoOrder(carriedMission)
-                missionRepository.setAttachments(id, carriedMission.linkedAttachmentIds ?: emptyList())
-                _pendingScrollToMissionId.value = id
-                _uiMessages.tryEmit("Місію перенесено в поточну ітерацію")
+                }
             }
         }
 

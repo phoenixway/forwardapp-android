@@ -55,7 +55,7 @@ class UnifiedWorkspaceSettingsRoomTest {
         val workspace = mockk<CanonicalWorkspaceRepository> {
             coEvery { hasLiveWorkspace(any()) } coAnswers { db.workspaceDao().getById(firstArg())?.isDeleted == false }
         }
-        val commands = CanonicalOrdinaryCapabilitySettings(workspace, mockk(), inbox, mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val commands = CanonicalOrdinaryCapabilitySettings(workspace, mockk(), inbox, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
         val preferences = WorkspacePresentationPreferencesRepository(db, db.workspaceDao(), db.workspacePresentationPreferencesDao())
         val tags = CanonicalWorkspaceTagRepository(db)
         val systemTags = SystemWorkspaceTagAuthority(db.workspaceDao(), db.workspaceTagRefDao(), db.systemWorkspaceTagSeedStateDao(), tags)

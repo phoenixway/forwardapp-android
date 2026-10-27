@@ -1,19 +1,13 @@
 package com.romankozak.forwardappmobile.features.entitylibrary
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -24,12 +18,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -47,10 +39,13 @@ fun EntityLibraryScreen(
     onOpenWorkspace: (String) -> Unit,
     viewModel: EntityLibraryViewModel = hiltViewModel(),
     placements: EntityLibraryPlacementViewModel = hiltViewModel(),
+    savedQueries: SavedEntityQueriesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val placement by placements.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var searchResetKey by rememberSaveable { mutableStateOf(0) }
+    var resetSearchText by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(placement.message) {
         placement.message?.let { snackbar.showSnackbar(it); placements.clearMessage() }
     }
@@ -85,8 +80,17 @@ fun EntityLibraryScreen(
                 EntityLibraryReadyContent(
                     state = current,
                     onSearchChange = viewModel::setSearchText,
-                    onFilterChange = viewModel::setFilter,
-                    onSortChange = viewModel::setSort,
+                    queryActions = EntityLibraryQueryActions(viewModel::applyFilters, viewModel::setUnplaced,
+                        viewModel::setSort, viewModel::setScoreSort, viewModel::clearFilters),
+                    savedQueries = savedQueries,
+                    currentQuery = viewModel::currentQuery,
+                    onApplyQuery = { query ->
+                        resetSearchText = query.text
+                        searchResetKey++
+                        viewModel.applyQuery(query)
+                    },
+                    searchResetKey = searchResetKey,
+                    resetSearchText = resetSearchText,
                     onAddToBigPicture = placements::begin,
                     onSelect = { ref ->
                         when (val destination = entityLibraryDestination(ref)) {
@@ -101,13 +105,16 @@ fun EntityLibraryScreen(
         }
     }
 }
-
 @Composable
 private fun EntityLibraryReadyContent(
     state: EntityLibraryUiState.Ready,
     onSearchChange: (String) -> Unit,
-    onFilterChange: (EntityLibraryFilter) -> Unit,
-    onSortChange: (EntityLibrarySort) -> Unit,
+    queryActions: EntityLibraryQueryActions,
+    savedQueries: SavedEntityQueriesViewModel,
+    currentQuery: () -> com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityQuery,
+    onApplyQuery: (com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityQuery) -> Unit,
+    searchResetKey: Int,
+    resetSearchText: String?,
     onSelect: (CanonicalEntityRef) -> Unit,
     onAddToBigPicture: (CanonicalEntityRef) -> Unit,
     modifier: Modifier = Modifier,
@@ -116,35 +123,11 @@ private fun EntityLibraryReadyContent(
         CanonicalEntityBrowserSearch(
             initialSearchText = state.searchText,
             onSearchChange = onSearchChange,
+            searchResetKey = searchResetKey,
+            resetSearchText = resetSearchText ?: state.searchText,
         )
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            EntityLibraryFilter.entries.forEach { filter ->
-                FilterChip(
-                    selected = filter == state.filter,
-                    onClick = { onFilterChange(filter) },
-                    label = { Text(filter.displayLabel()) },
-                )
-            }
-        }
-        Box(Modifier.padding(horizontal = 12.dp)) {
-            var sortMenuExpanded by remember { mutableStateOf(false) }
-            TextButton(onClick = { sortMenuExpanded = true }) { Text(state.sort.label) }
-            DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                EntityLibrarySort.entries.forEach { sort ->
-                    DropdownMenuItem(
-                        text = { Text(sort.label) },
-                        onClick = { onSortChange(sort); sortMenuExpanded = false },
-                    )
-                }
-            }
-        }
+        EntityLibraryQueryControls(state, queryActions)
+        SavedEntityQueriesControl(currentQuery, savedQueries, onApplyQuery)
         CanonicalEntityBrowserList(
             items = state.items,
             emptyMessage = if (state.isCatalogEmpty) "Бібліотека порожня" else "Нічого не знайдено",
@@ -154,12 +137,3 @@ private fun EntityLibraryReadyContent(
         )
     }
 }
-
-private fun EntityLibraryFilter.displayLabel(): String =
-    when (this) {
-        EntityLibraryFilter.ALL -> "Усі"
-        EntityLibraryFilter.ORIENTATIONS -> "Орієнтири"
-        EntityLibraryFilter.ASPECTS -> "Аспекти"
-        EntityLibraryFilter.WORKSPACES -> "Робочі простори"
-        EntityLibraryFilter.UNPLACED -> "Не розміщені"
-    }

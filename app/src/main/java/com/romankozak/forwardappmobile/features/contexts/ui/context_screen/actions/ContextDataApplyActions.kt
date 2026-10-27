@@ -67,6 +67,12 @@ class ContextDataApplyActions(
         setListContent: BacklogItemSetter,
         setAttachmentItems: BacklogItemSetter,
     ) {
+        val incomingId = data.presentation?.id ?: data.context?.id
+        val existing = stateManager.uiState.value
+        val existingId = existing.presentation?.id ?: existing.context?.id
+        if (existingId != null && incomingId != existingId) {
+            stateManager.updateState { it.copy(isInitialViewResolved = false, currentViewMode = ContextViewMode.DASHBOARD) }
+        }
         setListContent(data.items)
         setAttachmentItems(data.attachmentItems)
         stateManager.updateContext(data)
@@ -87,7 +93,8 @@ class ContextDataApplyActions(
         clearListContent()
         clearAttachmentItems()
         stateManager.clear()
-        stateManager.updateState { it.copy(isContextSwitching = false) }
+        stateManager.updateState { it.copy(isContextSwitching = false, isInitialViewResolved = true,
+            currentViewMode = contextSessionStore.state.value.currentView) }
     }
 
     private fun buildStableConfigFingerprint(
@@ -224,6 +231,7 @@ class ContextDataApplyActions(
                 currentViewMode = currentViewMode,
                 inputMode = inputMode,
                 isContextSwitching = false,
+                isInitialViewResolved = true,
             )
         }
 
@@ -242,5 +250,5 @@ class ContextDataApplyActions(
             this.experimentalCapabilityIds == experimentalCapabilityIds &&
             this.currentViewMode == currentViewMode &&
             this.inputMode == inputMode &&
-            !isContextSwitching
+            !isContextSwitching && isInitialViewResolved
 }

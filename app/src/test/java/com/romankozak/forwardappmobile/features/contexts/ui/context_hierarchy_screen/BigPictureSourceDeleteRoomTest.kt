@@ -84,7 +84,7 @@ class BigPictureSourceDeleteRoomTest {
                     val saved = SavedStateHandle()
                     val reader = BigPictureViewModel(BigPictureStructureRepository(f.db), catalog, saved, Dispatchers.Unconfined)
                         .also { store.put("read", it); jobs += it.viewModelScope.coroutineContext[Job]!! }
-                    val library = EntityLibraryViewModel(catalog, CanonicalHierarchyPlacementPresenceRepository(f.db.hierarchyPlacementDao()),
+                    val library = EntityLibraryViewModel(com.romankozak.forwardappmobile.data.entitybrowser.canonicalQueryCatalog(f.db), CanonicalHierarchyPlacementPresenceRepository(f.db.hierarchyPlacementDao()),
                         SavedStateHandle(), Dispatchers.Unconfined).also { store.put("library", it); jobs += it.viewModelScope.coroutineContext[Job]!! }
                     suspend fun ready(predicate: (BigPictureUiState.Ready) -> Boolean): BigPictureUiState.Ready = withTimeout(10_000) {
                         reader.uiState.first { it is BigPictureUiState.Ready && predicate(it) } as BigPictureUiState.Ready

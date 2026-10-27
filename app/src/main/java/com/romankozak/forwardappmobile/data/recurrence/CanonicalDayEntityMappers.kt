@@ -42,6 +42,7 @@ fun AndroidDayPlan.toCanonicalDayPlan(dayKey: String): CanonicalDayPlan =
 
 fun AndroidDayTask.toCanonicalDayTask(): CanonicalDayTask =
     CanonicalDayTask(
+        realizedDayFocusItemIds = realizedDayFocusItemIds,
         id = id,
         createdAt = createdAt,
         updatedAt = updatedAt ?: createdAt,
@@ -100,6 +101,7 @@ fun AndroidDayFocusItem.toCanonicalDayFocusItem(): CanonicalDayFocusItem =
 
 fun CanonicalDayTask.toAndroidDayTask(): AndroidDayTask =
     AndroidDayTask(
+        realizedDayFocusItemIds = realizedDayFocusItemIds,
         id = id,
         dayPlanId = dayPlanId,
         title = title,

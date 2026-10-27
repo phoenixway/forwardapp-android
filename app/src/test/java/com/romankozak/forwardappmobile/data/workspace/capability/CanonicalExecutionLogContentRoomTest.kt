@@ -8,6 +8,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
+import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -18,6 +23,33 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalExecutionLogContentRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `Workspace UI writes and observes standalone logs without inferring legacy Context ownership`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(canonicalWorkspace("standalone"), contextBackedWorkspace("backed")))
+            val writer = repository(database)
+            writer.enable("standalone", now = 10L)
+            writer.enable("backed", now = 10L)
+            val facade = ContextLogRepository(database.contextManagementDao(), ExecutionLogWorkspaceOwnershipBridge(database.workspaceDao()), writer)
+            val observed = async(start = CoroutineStart.UNDISPATCHED) {
+                facade.getWorkspaceLogsStream("standalone").first { it.isNotEmpty() }
+            }
+            facade.addWorkspaceLogEntry("standalone", "COMMENT", "Canonical entry")
+            facade.addContextComment("backed", "Legacy entry")
+            assertTrue(runCatching { facade.addContextComment("standalone", "Must not infer") }.exceptionOrNull() is IllegalArgumentException)
+            val rows = withTimeout(10_000) { observed.await() }
+            assertEquals(listOf("Canonical entry"), rows.map { it.description })
+            assertNull(rows.single().contextId)
+            assertEquals("standalone", rows.single().workspaceId)
+            assertNull(database.workspaceDao().getById("standalone")!!.sourceContextId)
+            assertTrue(facade.getContextLogsStream("standalone").first().isEmpty())
+            assertEquals(listOf("Legacy entry"), facade.getContextLogsStream("backed").first().map { it.description })
+            writer.deleteLog("standalone", rows.single().id)
+            assertTrue(facade.getWorkspaceLogsStream("standalone").first().isEmpty())
+        } finally { database.close() }
+    }
 
     @Test
     fun `create update delete use canonical row shape and sync version contract`() = runBlocking {

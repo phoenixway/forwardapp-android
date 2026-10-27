@@ -31,8 +31,9 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceB
 @Composable
 internal fun AspectAssociationsSection(
     model: SemanticEntityEditorModel,
-    onAdd: () -> Unit,
+    onAdd: (() -> Unit)?,
     onRemove: (String) -> Unit,
+    onOpen: (String) -> Unit = {},
 ) {
     RelationSectionHeader("Аспекти", model.isRelationMutationInFlight, onAdd)
     if (model.aspectAssociations.isEmpty()) {
@@ -46,6 +47,7 @@ internal fun AspectAssociationsSection(
                         if (association.isPrimary) " · основний" else "",
                 enabled = !model.isRelationMutationInFlight,
                 onRemove = { onRemove(association.refId) },
+                onOpen = { onOpen(association.aspectId) },
             )
         }
     }
@@ -77,8 +79,9 @@ internal fun WorkspaceBindingsSection(
 @Composable
 internal fun OrientationGraphRelationsSection(
     model: SemanticEntityEditorModel,
-    onAdd: () -> Unit,
+    onAdd: (() -> Unit)?,
     onRemove: (String, Long) -> Unit,
+    onOpen: (String) -> Unit = {},
 ) {
     RelationSectionHeader("Зв’язки між орієнтирами", model.isRelationMutationInFlight, onAdd)
     if (model.orientationRelations.isEmpty()) {
@@ -102,20 +105,21 @@ internal fun OrientationGraphRelationsSection(
                 enabled = !model.isRelationMutationInFlight,
                 canRemove = relation.isEditable,
                 onRemove = { onRemove(relation.relationId, relation.version) },
+                onOpen = { onOpen(relation.otherOrientationId) },
             )
         }
     }
 }
 
 @Composable
-private fun RelationSectionHeader(title: String, inFlight: Boolean, onAdd: () -> Unit) {
+internal fun RelationSectionHeader(title: String, inFlight: Boolean, onAdd: (() -> Unit)?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = onAdd, enabled = !inFlight) {
+        if (onAdd != null) TextButton(onClick = onAdd, enabled = !inFlight) {
             Icon(Icons.Default.Add, contentDescription = null)
             Text("Додати")
         }
@@ -123,7 +127,7 @@ private fun RelationSectionHeader(title: String, inFlight: Boolean, onAdd: () ->
 }
 
 @Composable
-private fun RelationRow(
+internal fun RelationRow(
     title: String,
     subtitle: String,
     enabled: Boolean,
@@ -159,11 +163,13 @@ internal fun SemanticRelationTypeDialog(
     when (pending) {
         is PendingSemanticRelation.Aspect ->
             AspectTypeDialog(pending.aspectId, mutationInFlight, onDismiss, onAddAspect)
+        is PendingSemanticRelation.AspectOrientation ->
+            AspectTypeDialog("orientation:${pending.orientationId}", mutationInFlight, onDismiss, onAddAspect)
         is PendingSemanticRelation.Workspace ->
             WorkspaceTypeDialog(pending.workspaceId, mutationInFlight, onDismiss, onAddWorkspace)
         is PendingSemanticRelation.Orientation ->
             OrientationTypeDialog(pending.orientationId, mutationInFlight, onDismiss, onAddOrientation)
-        null -> Unit
+        is PendingSemanticRelation.AspectParent, null -> Unit
     }
 }
 
@@ -178,7 +184,7 @@ private fun AspectTypeDialog(
     var primary by remember(key) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = { if (!inFlight) onDismiss() },
-        title = { Text("Тип зв’язку з Aspect") },
+        title = { Text("Зв’язок Orientation → Aspect") },
         text = {
             Column {
                 AspectOrientationRelationType.entries.forEach { type ->
@@ -326,7 +332,7 @@ private fun OrientationRelationType.displayLabel() =
         OrientationRelationType.DERIVED_FROM -> "Походить від"
     }
 
-private fun AspectOrientationRelationType.displayLabel() =
+internal fun AspectOrientationRelationType.displayLabel() =
     when (this) {
         AspectOrientationRelationType.BELONGS_TO -> "Належить до"
         AspectOrientationRelationType.RELEVANT_TO -> "Стосується"

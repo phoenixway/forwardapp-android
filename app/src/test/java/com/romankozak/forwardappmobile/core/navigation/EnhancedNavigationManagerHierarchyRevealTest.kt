@@ -13,6 +13,26 @@ import org.junit.Test
 
 class EnhancedNavigationManagerHierarchyRevealTest {
     @Test
+    fun historyKeepsExactAppearanceRatherThanCollapsingWorkspaceIdentity() = runTest {
+        val manager = EnhancedNavigationManager(SavedStateHandle(), this)
+        val commands = mutableListOf<NavigationCommand>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            manager.navigationCommandFlow.collect { commands += it }
+        }
+        val target = NavTarget.ContextHierarchy(projectIdToReveal = "w", placementIdToReveal = "link")
+        manager.navigate(target, recordInHistory = true)
+        manager.navigate(NavTarget.ContextHierarchy(projectIdToReveal = "w", placementIdToReveal = "primary"), recordInHistory = true)
+        advanceUntilIdle()
+        val index = manager.history.value.indexOfFirst { it.id == "link" }
+        assertTrue(index >= 0)
+        assertTrue(manager.history.value.any { it.id == "primary" })
+        manager.navigateToHistoryEntry(index)
+        advanceUntilIdle()
+        assertEquals(NavTargetRouter.routeOf(target), (commands.last() as NavigationCommand.Navigate).route)
+        collector.cancel()
+    }
+
+    @Test
     fun historyReplaysHierarchyRevealWithStableProjectIdRoute() =
         runTest {
             val manager = EnhancedNavigationManager(SavedStateHandle(), this)

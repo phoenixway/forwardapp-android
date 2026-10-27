@@ -10,9 +10,11 @@ import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 fun DashboardBottomPanel(
     globalActions: BottomPanelGlobalActions,
     recentViewModel: RecentViewModel = hiltViewModel(),
+    journalFirst: Boolean = false,
 ) {
     CommandDeckGlobalRailPanel(
         actions = globalActions,
         recentViewModel = recentViewModel,
+        journalFirst = journalFirst,
     )
 }

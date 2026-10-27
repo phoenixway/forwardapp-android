@@ -33,6 +33,47 @@ import org.junit.Test
 
 class ContextScreenDataMapperTest {
     @Test
+    fun `native relations view uses canonical capability for standalone and System Workspaces`() {
+        for (id in listOf("standalone", SystemContexts.INBOX.raw)) {
+            val snapshot = relationsSnapshot(id)
+            val active = snapshot.workspaceCapabilities.single()
+            val capability = CapabilityId("relations")
+            assertEquals(true, ContextScreenDataMapper().map(id, snapshot).canonicalCapabilityOverrides[capability])
+            for (rows in listOf(emptyList(), listOf(active.copy(isDeleted = true)),
+                listOf(active.copy(state = WorkspaceCapabilityState.DISABLED.name)))) {
+                val loaded = ContextScreenDataMapper().map(id, snapshot.copy(workspaceCapabilities = rows))
+                assertEquals(true, loaded.canonicalCapabilityOverrides[capability])
+                assertEquals(true, loaded.canonicalCapabilityOverrides[CapabilityId("dashboard")])
+            }
+        }
+    }
+
+    @Test
+    fun `relations view never admits Context-only or mismatched Workspace identities`() {
+        val snapshot = relationsSnapshot("w")
+        assertTrue(snapshot.copy(hasCanonicalWorkspaceOwner = false).canonicalRelationsViewOverride("w").isEmpty())
+        assertTrue(snapshot.canonicalRelationsViewOverride("other").isEmpty())
+        val foreign = snapshot.workspaceCapabilities.single().copy(workspaceId = "other")
+        assertEquals(com.romankozak.forwardappmobile.core.context.WorkspaceCoreViews.overrides(),
+            snapshot.copy(workspaceCapabilities = listOf(foreign)).canonicalRelationsViewOverride("w"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `duplicate canonical relations instances fail closed`() {
+        val snapshot = relationsSnapshot("w")
+        val instance = snapshot.workspaceCapabilities.single()
+        snapshot.copy(workspaceCapabilities = listOf(instance, instance.copy(id = "duplicate")))
+            .canonicalRelationsViewOverride("w")
+    }
+
+    private fun relationsSnapshot(id: String) = emptySnapshot(
+        presentation = ContextPresentation(id = id, name = "Workspace", description = "",
+            parentId = null, roleCode = null, order = 0L, tags = null),
+        hasCanonicalWorkspaceOwner = true,
+        workspaceCapabilities = listOf(activeBacklog(id).copy(capabilityType = WorkspaceCapabilityType.RELATIONS.name)),
+    )
+
+    @Test
     fun `Context shaped screen carrier uses canonical Workspace common fields`() {
         val legacy =
             Context(
@@ -300,7 +341,7 @@ class ContextScreenDataMapperTest {
 
         assertEquals(true, loaded.canonicalCapabilityOverrides[CapabilityId("backlog")])
         assertEquals(false, loaded.canonicalCapabilityOverrides[CapabilityId("inbox")])
-        assertEquals(false, loaded.canonicalCapabilityOverrides[CapabilityId("dashboard")])
+        assertEquals(true, loaded.canonicalCapabilityOverrides[CapabilityId("dashboard")])
         assertEquals(false, loaded.canonicalCapabilityOverrides[CapabilityId("connections")])
         assertEquals(false, loaded.canonicalCapabilityOverrides[CapabilityId("direction")])
         assertEquals(false, loaded.canonicalCapabilityOverrides[CapabilityId("log")])

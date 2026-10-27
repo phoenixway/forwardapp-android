@@ -65,6 +65,7 @@ enum class WorkspaceCapabilityType {
     DOCUMENTS,
     NOTES,
     ATTACHMENTS,
+    RELATIONS,
 }
 
 @JsExport

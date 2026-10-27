@@ -537,11 +537,30 @@ class CanonicalTacticalMissionAdapter
                 requireNotNull(mission.carriedFromMissionId) {
                     "PREVIOUS_WEEK TacticalMission ${mission.id} has no previous mission"
                 }
-            val previousLive = missionCommitments(previousId).filterNot(PlanningCommitment::isDeleted)
-            require(previousLive.size == 1) {
-                "Previous TacticalMission $previousId must have exactly one live canonical MISSION commitment"
+            val previous = requireNotNull(database.tacticalMissionDao().getMissionById(previousId)) {
+                "Previous TacticalMission $previousId does not exist"
             }
-            return previousLive.single().orientationId
+            require(!previous.isDeleted) { "Previous TacticalMission $previousId is deleted" }
+            val previousRecords = missionCommitments(previousId)
+            val previousLive = previousRecords.filterNot(PlanningCommitment::isDeleted)
+            require(previousLive.size <= 1) {
+                "Previous TacticalMission $previousId has multiple live canonical MISSION commitments"
+            }
+            previousLive.singleOrNull()?.let { commitment ->
+                projectCanonical(previous, commitment)
+                orientationRepository.requireCompleteActiveOrientationAggregate(commitment.orientationId)
+                return commitment.orientationId
+            }
+
+            // Historical week aliases/unscoped missions may already have a verified
+            // canonical subject but no actual cycle participation. Reuse precisely
+            // that admitted identity, without rewriting history or adopting by title.
+            require(previousRecords.isEmpty()) {
+                "Previous TacticalMission $previousId has only retired canonical MISSION participation"
+            }
+            return requireNotNull(requireDeferredSpecializedOnly(previous)) {
+                "Previous TacticalMission $previousId has no supported canonical Orientation for carry-forward"
+            }.id
         }
     }
 

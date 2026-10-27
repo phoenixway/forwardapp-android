@@ -96,10 +96,14 @@ fun BacklogItem(
     onInlineEditSave: (String) -> Unit,
     onInlineEditCancel: () -> Unit,
     onDragStopped: () -> Unit,
+    workspaceTitle: String? = null,
+    onOpenWorkspace: (() -> Unit)? = null,
 ) {
     when (item) {
         is BacklogItemContent.GoalItem -> {
             InternalGoalItem(
+                workspaceTitle = workspaceTitle,
+                onOpenWorkspace = onOpenWorkspace,
                 goal = item.goal,
                 currentContextId = item.backlogItem.contextId,
                 reminders = item.reminders,
@@ -149,6 +153,8 @@ fun BacklogItem(
 
 @Composable
 private fun InternalGoalItem(
+    workspaceTitle: String?,
+    onOpenWorkspace: (() -> Unit)?,
     goal: Goal,
     currentContextId: String,
     reminders: List<Reminder>,
@@ -415,6 +421,10 @@ private fun InternalGoalItem(
                         }
                     }
 
+                    if (!isInlineEditing && workspaceTitle != null && onOpenWorkspace != null) {
+                        Spacer(Modifier.height(6.dp))
+                        BacklogGoalWorkspaceBadge(workspaceTitle, onOpenWorkspace)
+                    }
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||

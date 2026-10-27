@@ -6,6 +6,14 @@ Census state: COMPLETE
 
 Completion date: 2026-10-02
 
+Implementation checkpoint 2026-10-25: CANONICAL_PROJECT_ORIENTATION_HOST_20261025
+implements explicit native PROJECT Orientation authoring and standard canonical
+integrations (Room 203 unchanged, 98 app + 21 shared HOST tests PASS). Older
+PROJECT NOT_IMPLEMENTED statements below describe the census-date baseline.
+Legacy Project/Context adoption and kind-transform UI are not implemented by
+this checkpoint; no existing operational identity is automatically converted.
+Current details are in DOMAIN-CONTRACT.md and project STATE.md.
+
 This document defines the evidence-based global census of ForwardApp's
 canonical model after Canonical V1 and Canonical Hierarchy V2 became usable
 production foundations.

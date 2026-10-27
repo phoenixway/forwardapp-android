@@ -20,6 +20,35 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BigPictureViewModelTest {
+    @Test fun `exact Workspace LINK reveal wins over first appearance and normal focus still works`() = runTest(dispatcher) {
+        every { repository.observe() } returns flowOf(BigPictureStructure(listOf(
+            p("primary", "w"), p("link", "w").copy(placementKind = PlacementKind.LINK),
+        )))
+        every { catalog.observeCatalog() } returns flowOf(listOf(CanonicalEntitySummary(CanonicalEntityRef.Workspace("w"), "Workspace")))
+        val vm = BigPictureViewModel(repository, catalog,
+            SavedStateHandle(mapOf("projectIdToReveal" to "w", "placementIdToReveal" to "link")), dispatcher)
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertThat((vm.uiState.value as BigPictureUiState.Ready).activeNode?.placement?.id?.value).isEqualTo("link")
+        vm.focusPlacement(null)
+        advanceUntilIdle()
+        vm.focusPlacement("primary")
+        advanceUntilIdle()
+        assertThat((vm.uiState.value as BigPictureUiState.Ready).activeNode?.placement?.id?.value).isEqualTo("primary")
+    }
+
+    @Test fun `missing or mismatched exact appearance does not reveal a different Workspace appearance`() = runTest(dispatcher) {
+        every { repository.observe() } returns flowOf(BigPictureStructure(listOf(p("primary", "w"))))
+        every { catalog.observeCatalog() } returns flowOf(listOf(CanonicalEntitySummary(CanonicalEntityRef.Workspace("w"), "Workspace")))
+        for ((workspace, placement) in listOf("w" to "deleted", "other" to "primary")) {
+            val vm = BigPictureViewModel(repository, catalog, SavedStateHandle(mapOf(
+                "projectIdToReveal" to workspace, "placementIdToReveal" to placement, "bigPictureFocus" to "primary")), dispatcher)
+            backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+            advanceUntilIdle()
+            assertThat((vm.uiState.value as BigPictureUiState.Ready).activeNode).isNull()
+        }
+    }
+
     private val dispatcher = UnconfinedTestDispatcher()
     private val repository = mockk<BigPictureStructureRepository>()
     private val catalog = mockk<CanonicalEntityCatalogRepository>()

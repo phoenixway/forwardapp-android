@@ -373,6 +373,8 @@ class GlobalSearchViewModel
             }
         }
 
+        fun rememberCanonicalQuery() = addSearchQueryToHistory(_uiState.value.query)
+
         fun onSubmitSearch() {
             val query = _uiState.value.query
             when (_uiState.value.mode) {

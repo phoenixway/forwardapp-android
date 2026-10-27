@@ -35,7 +35,7 @@ class EntityLibraryPlacementViewModelTest {
             advanceUntilIdle()
             coVerify(exactly = 1) { writer.addAppearance(ref.toBigPictureTarget(), parent, any(), any()) }
             assertThat(vm.state.value.pendingRef).isNull()
-            assertThat(vm.state.value.message).isEqualTo("Додано до Big Picture")
+            assertThat(vm.state.value.message).isEqualTo("Додано до Navigation")
         }
     }
 

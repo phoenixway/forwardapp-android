@@ -27,7 +27,7 @@ internal class LibraryPlacementRoomFixture : AutoCloseable {
     val store = ViewModelStore()
     val writer = H1StructuralMutationCoordinator(db)
     val command = EntityLibraryPlacementViewModel(writer, SavedStateHandle()).also { store.put("placement", it) }
-    val library = EntityLibraryViewModel(CanonicalEntityCatalogRepository(db.canonicalEntityCatalogDao()),
+    val library = EntityLibraryViewModel(com.romankozak.forwardappmobile.data.entitybrowser.canonicalQueryCatalog(db),
         CanonicalHierarchyPlacementPresenceRepository(db.hierarchyPlacementDao()), SavedStateHandle(), Dispatchers.Unconfined)
         .also { store.put("library", it) }
 

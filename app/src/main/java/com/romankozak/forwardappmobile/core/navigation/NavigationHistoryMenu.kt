@@ -74,7 +74,7 @@ private fun NavigationHistoryItem(
     onClick: () -> Unit,
 ) {
     ListItem(
-        headlineContent = { Text(entry.title) },
+        headlineContent = { Text(entry.navigationSurfaceTitle()) },
         supportingContent = { Text(entry.type.toDisplayName()) },
         leadingContent = {
             Icon(
@@ -100,7 +100,7 @@ private fun NavigationHistoryItem(
 
 private fun NavigationType.toDisplayName(): String =
     when (this) {
-        NavigationType.PROJECT_HIERARCHY_SCREEN -> "Головний екран"
+        NavigationType.PROJECT_HIERARCHY_SCREEN -> "Navigation"
         NavigationType.PROJECT_SCREEN -> "Проект"
         NavigationType.GLOBAL_SEARCH -> "Пошук"
         else -> name

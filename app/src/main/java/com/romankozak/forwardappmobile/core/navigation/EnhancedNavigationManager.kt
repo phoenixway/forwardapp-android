@@ -230,8 +230,8 @@ class EnhancedNavigationManager(
             is NavTarget.ContextHierarchy ->
                 NavigationEntry(
                     type = NavigationType.PROJECT_HIERARCHY_SCREEN,
-                    id = target.projectIdToReveal ?: "main",
-                    title = titleOverride ?: "Big Picture",
+                    id = target.placementIdToReveal ?: target.projectIdToReveal ?: "main",
+                    title = titleOverride ?: "Navigation",
                     route = route,
                 )
 

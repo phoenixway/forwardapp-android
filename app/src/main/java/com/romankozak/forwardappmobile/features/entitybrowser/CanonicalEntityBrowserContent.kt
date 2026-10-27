@@ -74,11 +74,13 @@ fun CanonicalEntityBrowserSearch(
     initialSearchText: String,
     onSearchChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    searchResetKey: Int = 0,
+    resetSearchText: String = initialSearchText,
 ) {
     // Result flows can lag behind typing. Keep text, selection and IME composition
     // local so a completed older query cannot overwrite a newer edit.
-    var input by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(TextFieldValue(initialSearchText))
+    var input by rememberSaveable(searchResetKey, stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(resetSearchText))
     }
     OutlinedTextField(
         value = input,

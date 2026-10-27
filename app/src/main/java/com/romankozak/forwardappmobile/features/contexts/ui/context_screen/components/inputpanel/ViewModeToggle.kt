@@ -94,6 +94,7 @@ fun ViewModeToggle(
 // --- HELPERS (Мапінг станів на системні ID та ресурси) ---
 
 private fun ContextViewMode.displayName(): String {
+    if (this == ContextViewMode.RELATIONS) return "Semantics"
     if (this == ContextViewMode.KEY_PROBLEMS) return "Issues"
     return this.name.lowercase(Locale.ROOT)
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
@@ -105,6 +106,7 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
         ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
         ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
+        ContextViewMode.RELATIONS -> Icons.Outlined.Description
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
         ContextViewMode.DIRECTION -> Icons.Outlined.Explore
         ContextViewMode.LOG -> Icons.Outlined.History

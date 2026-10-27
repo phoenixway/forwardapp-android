@@ -1,0 +1,195 @@
+package com.romankozak.forwardappmobile.features.mainscreen
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
+import com.romankozak.forwardappmobile.features.planning.PlanningReferencePresentation
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
+
+@Composable
+internal fun ArcQuestCard(
+    quest: ArcQuestEntity,
+    contextName: String?,
+    onQuestClick: () -> Unit,
+    onOpenContext: (String) -> Unit,
+    onCreateMission: () -> Unit,
+    onEditQuest: (String, String?) -> Unit,
+    onDeleteQuest: () -> Unit,
+    onCarryToCurrentArc: (() -> Unit)?,
+    dragHandleModifier: Modifier,
+    references: List<PlanningReferencePresentation> = emptyList(),
+    onOpenReference: (CanonicalEntityRef) -> Unit = {},
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    var editVisible by remember { mutableStateOf(false) }
+    var editTitle by remember(quest.id, quest.title) { mutableStateOf(quest.title) }
+    var editDescription by remember(quest.id, quest.description) { mutableStateOf(quest.description.orEmpty()) }
+    val linkedContextId = quest.linkedContextId
+
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onQuestClick),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.RocketLaunch,
+                contentDescription = "ArcQuest",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = dragHandleModifier.size(28.dp),
+            )
+            Spacer(modifier = Modifier.size(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = quest.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!quest.description.isNullOrBlank()) {
+                    Text(
+                        text = quest.description.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (references.isNotEmpty() || !contextName.isNullOrBlank()) {
+                    UnifiedStatusRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        references.forEach { reference ->
+                            UnifiedMetaChip(
+                                text = reference.questBadgeLabel(),
+                                icon = Icons.Outlined.Link,
+                                onClick = { onOpenReference(reference.entity.ref) },
+                            )
+                        }
+                        if (!contextName.isNullOrBlank()) {
+                            UnifiedMetaChip(
+                                text = contextName,
+                                icon = Icons.Outlined.Link,
+                                onClick = linkedContextId?.let { id -> { onOpenContext(id) } },
+                            )
+                        }
+                    }
+                }
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "ArcQuest actions")
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
+                ) {
+                    if (onCarryToCurrentArc != null) {
+                        DropdownMenuItem(
+                            text = { Text("В поточну арку") },
+                            leadingIcon = { Icon(Icons.Outlined.ArrowForward, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onCarryToCurrentArc()
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Редагувати") },
+                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            editVisible = true
+                        },
+                    )
+                    if (linkedContextId != null) {
+                        DropdownMenuItem(
+                            text = { Text("Відкрити контекст") },
+                            leadingIcon = { Icon(Icons.Outlined.OpenInNew, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenContext(linkedContextId)
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Створити місію") },
+                        leadingIcon = { Icon(Icons.Outlined.RocketLaunch, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onCreateMission()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Видалити") },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onDeleteQuest()
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    if (editVisible) {
+        AlertDialog(
+            onDismissRequest = { editVisible = false },
+            title = { Text("Редагувати ArcQuest") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        label = { Text("Назва") },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = editDescription,
+                        onValueChange = { editDescription = it },
+                        label = { Text("Опис") },
+                        minLines = 3,
+                    )
+                    com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEditQuest(editTitle, editDescription)
+                        editVisible = false
+                    },
+                ) {
+                    Text("Зберегти")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editVisible = false }) {
+                    Text("Скасувати")
+                }
+            },
+        )
+    }
+}

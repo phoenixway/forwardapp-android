@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvide
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
+import com.romankozak.forwardappmobile.core.data.models.sync.decodeCanonicalSnapshotRoot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportDescriptor
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
@@ -40,6 +41,7 @@ class SyncFileService @Inject constructor(
     private val desktopWorkspaceSnapshotSyncAdapter = DesktopWorkspaceSnapshotSyncAdapter()
 
     private val gson = GsonBuilder()
+        .registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
 
@@ -309,6 +311,12 @@ class SyncFileService @Inject constructor(
 
     private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
         val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
+        gson.decodeCanonicalSnapshotRoot(jsonObject)?.let { decoded ->
+            return ResolvedImportBundle(
+                CanonicalDayThemeImportGate.requireImportable(jsonObject, decoded),
+                WorkspaceImportDescriptor(WorkspaceSnapshotFormat.AndroidSnapshotBundleV2, WorkspaceImportSourceMode.SnapshotBundle),
+            )
+        }
         val backup = gson.fromJson(normalizedJson, FullAppBackup::class.java)
         val snapshot = backup.snapshotBundle
         val desktop = workspaceSnapshotResolver.resolve(normalizedJson)

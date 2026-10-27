@@ -211,13 +211,14 @@ private fun RightButtons(
                                     ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
                                     ContextViewMode.INBOX -> Icons.Outlined.Inbox
                                     ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
+                                    ContextViewMode.RELATIONS -> Icons.Outlined.Checklist
                                     ContextViewMode.DASHBOARD -> Icons.Default.Home
                                     ContextViewMode.DIRECTION -> Icons.Outlined.Explore
                                     ContextViewMode.LOG -> Icons.Outlined.History
                                     ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
                                     else -> Icons.Outlined.Description
                                 },
-                            contentDescription = viewMode.name,
+                            contentDescription = if (viewMode == ContextViewMode.RELATIONS) "Semantics" else viewMode.name,
                             modifier = Modifier.size(18.dp),
                             tint =
                                 if (isSelected) {

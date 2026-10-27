@@ -341,6 +341,11 @@ private fun NavGraphBuilder.mainGraph(
                     nullable = true
                     defaultValue = null
                 },
+                navArgument(NavigationRoutes.ARG_PLACEMENT_ID_TO_REVEAL) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
             ),
     ) {
         ProjectHierarchyScreen(navController = navController)

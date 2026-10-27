@@ -42,6 +42,14 @@ data class AspectAssociationItem(
     val isPrimary: Boolean,
 )
 
+data class OrientationAssociationItem(
+    val refId: String,
+    val orientationId: String,
+    val title: String,
+    val relationType: AspectOrientationRelationType,
+    val isPrimary: Boolean,
+)
+
 enum class OrientationRelationEditDirection {
     OUTGOING,
     INCOMING,
@@ -74,9 +82,13 @@ sealed interface PendingSemanticRelation {
     data class Workspace(val workspaceId: String) : PendingSemanticRelation
 
     data class Orientation(val orientationId: String) : PendingSemanticRelation
+
+    data class AspectOrientation(val orientationId: String) : PendingSemanticRelation
+
+    data class AspectParent(val aspectId: String?) : PendingSemanticRelation
 }
 
-enum class SemanticRelationPickerKind { ASPECT, WORKSPACE, ORIENTATION }
+enum class SemanticRelationPickerKind { ASPECT, WORKSPACE, ORIENTATION, SEMANTIC, ASPECT_PARENT }
 
 data class SemanticEntityEditorModel(
     val id: String,
@@ -89,6 +101,11 @@ data class SemanticEntityEditorModel(
     val aspectAssociations: List<AspectAssociationItem> = emptyList(),
     val workspaceBindings: List<WorkspaceBindingItem> = emptyList(),
     val orientationRelations: List<OrientationGraphRelationItem> = emptyList(),
+    val orientationAssociations: List<OrientationAssociationItem> = emptyList(),
+    val aspectParentId: String? = null,
+    val aspectChildren: List<AspectChildItem> = emptyList(),
+    val aspectTitles: Map<String, String> = emptyMap(),
+    val aspectParentExcludedIds: Set<String> = emptySet(),
     val pendingRelation: PendingSemanticRelation? = null,
     val isSaving: Boolean = false,
     val isRelationMutationInFlight: Boolean = false,
@@ -133,14 +150,29 @@ class SemanticEntityEditorViewModel
 
         fun setName(name: String) = updateModel { copy(name = name, errorMessage = null) }
 
-        /** Refresh this command's relation result without saving/replacing an unsaved identity draft. */
-        fun refreshWorkspaceBindings() {
+        /** Compatibility entry for the embodying-Workspace creation consumer. */
+        fun refreshWorkspaceBindings() = refreshRelations()
+
+        /** Refresh relationship/taxonomy reads, retaining the identity draft and pending confirmation. */
+        fun refreshRelations() {
             if (loadedModel() == null) return
             viewModelScope.launch {
                 runCatching { loadModel() }.onSuccess { refreshed ->
                     if (refreshed == null) publishLoaded(null)
-                    else updateModel { copy(workspaceBindings = refreshed.workspaceBindings) }
-                }.onFailure { failure -> relationError(failure.message ?: "Не вдалося оновити робочі простори") }
+                    else if (loadedModel()?.entityClass != refreshed.entityClass || loadedModel()?.orientationKind != refreshed.orientationKind) {
+                        val draft = loadedModel()?.takeIf { it.isDirty }?.name
+                        publishLoaded(if (draft != null) refreshed.copy(name = draft) else refreshed)
+                    } else updateModel { copy(
+                        workspaceBindings = refreshed.workspaceBindings,
+                        aspectParentId = refreshed.aspectParentId,
+                        aspectChildren = refreshed.aspectChildren,
+                        aspectTitles = refreshed.aspectTitles,
+                        aspectParentExcludedIds = refreshed.aspectParentExcludedIds,
+                        aspectAssociations = refreshed.aspectAssociations,
+                        orientationAssociations = refreshed.orientationAssociations,
+                        orientationRelations = refreshed.orientationRelations,
+                    ) }
+                }.onFailure { failure -> relationError(failure.message ?: "Не вдалося оновити зв’язки") }
             }
         }
 
@@ -189,6 +221,35 @@ class SemanticEntityEditorViewModel
             )
         }
 
+        fun semanticPickerRequest(): CanonicalEntityPickerRequest? {
+            val model = loadedModel() ?: return null
+            if (model.isSaving || model.isRelationMutationInFlight) return null
+            return CanonicalEntityPickerRequest(
+                allowedClasses = if (model.canEditAspects) setOf(CanonicalEntityClass.ORIENTATION, CanonicalEntityClass.ASPECT)
+                    else setOf(CanonicalEntityClass.ORIENTATION),
+                excludedRefs = if (model.canEditAspects) setOf(CanonicalEntityRef.Orientation(model.id)) else emptySet(),
+                selectionMode = CanonicalEntitySelectionMode.SINGLE,
+            )
+        }
+
+        fun aspectParentPickerRequest(): CanonicalEntityPickerRequest? = loadedModel()?.aspectParentRequest()
+
+        fun requestAspectRoot() {
+            val model = loadedModel() ?: return
+            if (model.entityClass != SemanticEntityClass.ASPECT || model.aspectParentId == null || model.isSaving || model.isRelationMutationInFlight) return
+            updateModel { copy(pendingRelation = PendingSemanticRelation.AspectParent(null), errorMessage = null) }
+        }
+
+        fun confirmAspectParent() {
+            val model = loadedModel() ?: return
+            val pending = model.pendingRelation as? PendingSemanticRelation.AspectParent ?: return
+            if (model.entityClass != SemanticEntityClass.ASPECT) return
+            if (pending.aspectId != null && (pending.aspectId in model.aspectParentExcludedIds || pending.aspectId !in model.aspectTitles)) {
+                return relationError("Неприпустимий батьківський Aspect")
+            }
+            mutateRelation("Батьківський Aspect змінено") { aspectRepository.move(model.id, pending.aspectId) }
+        }
+
         fun orientationPickerRequest(): CanonicalEntityPickerRequest? {
             val model =
                 loadedModel()?.takeIf(SemanticEntityEditorModel::canEditOrientationRelations)
@@ -212,7 +273,28 @@ class SemanticEntityEditorViewModel
 
         fun acceptPickerResult(kind: SemanticRelationPickerKind, refs: Set<CanonicalEntityRef>) {
             val ref = refs.singleOrNull() ?: return relationError("Пікер має повернути одну сутність")
+            val model = loadedModel() ?: return
+            if (model.isSaving || model.isRelationMutationInFlight) return
             when (kind) {
+                SemanticRelationPickerKind.ASPECT_PARENT -> {
+                    if (model.entityClass != SemanticEntityClass.ASPECT || ref !is CanonicalEntityRef.Aspect ||
+                        ref.id in model.aspectParentExcludedIds || ref.id !in model.aspectTitles) {
+                        return relationError("Неприпустимий батьківський Aspect")
+                    }
+                    updateModel { copy(pendingRelation = PendingSemanticRelation.AspectParent(ref.id), errorMessage = null) }
+                }
+                SemanticRelationPickerKind.SEMANTIC -> {
+                    val pending = when {
+                        model.entityClass == SemanticEntityClass.ASPECT && ref is CanonicalEntityRef.Orientation ->
+                            PendingSemanticRelation.AspectOrientation(ref.id)
+                        model.entityClass == SemanticEntityClass.ORIENTATION && ref is CanonicalEntityRef.Aspect ->
+                            PendingSemanticRelation.Aspect(ref.id)
+                        model.entityClass == SemanticEntityClass.ORIENTATION && ref is CanonicalEntityRef.Orientation && ref.id != model.id ->
+                            PendingSemanticRelation.Orientation(ref.id)
+                        else -> return relationError("Цей тип семантичного зв’язку не підтримується")
+                    }
+                    updateModel { copy(pendingRelation = pending, errorMessage = null) }
+                }
                 SemanticRelationPickerKind.ASPECT -> {
                     if (ref !is CanonicalEntityRef.Aspect || loadedModel()?.canEditAspects != true) {
                         return relationError("Неприпустимий Aspect для цієї сутності")
@@ -245,12 +327,16 @@ class SemanticEntityEditorViewModel
 
         fun addAspectAssociation(type: AspectOrientationRelationType, makePrimary: Boolean) {
             val model = loadedModel() ?: return
-            val pending = model.pendingRelation as? PendingSemanticRelation.Aspect ?: return
+            val (aspectId, orientationId) = when (val pending = model.pendingRelation) {
+                is PendingSemanticRelation.Aspect -> if (model.canEditAspects) pending.aspectId to model.id else return
+                is PendingSemanticRelation.AspectOrientation -> if (model.entityClass == SemanticEntityClass.ASPECT) model.id to pending.orientationId else return
+                else -> return
+            }
             if (makePrimary && type != AspectOrientationRelationType.BELONGS_TO) {
                 return relationError("Лише BELONGS_TO може бути основним Aspect")
             }
             mutateRelation("Зв’язок з Aspect додано") {
-                aspectLinksRepository.linkOrientation(pending.aspectId, model.id, type, makePrimary)
+                aspectLinksRepository.linkOrientation(aspectId, orientationId, type, makePrimary)
             }
         }
 
@@ -322,7 +408,8 @@ class SemanticEntityEditorViewModel
                     mutation()
                     loadModel()
                 }.onSuccess { reloaded ->
-                    publishLoaded(reloaded)
+                    val current = loadedModel() ?: request
+                    publishLoaded(reloaded?.let { if (current.isDirty) it.copy(name = current.name) else it })
                     _events.emit(SemanticEntityEditorEvent.RelationUpdated(message))
                 }.onFailure { failure -> publishMutationFailure(request, failure) }
             }
@@ -333,9 +420,13 @@ class SemanticEntityEditorViewModel
             val base = if (aspect != null) {
                 require(aspect.subject.subjectType == ManagedSubjectType.ASPECT.name) { "Aspect subject type is invalid" }
                 if (aspect.subject.isDeleted) return null
+                val taxonomy = aspectRepository.observeLive().first()
                 SemanticEntityEditorModel(
                     aspect.subject.id, SemanticEntityClass.ASPECT, aspect.subject.title,
                     aspect.subject.title, aspect.subject.description, aspect.subject.version,
+                    aspectParentId = aspect.node.parentAspectId,
+                    aspectParentExcludedIds = aspectParentExclusions(aspect, taxonomy),
+                    aspectChildren = aspectDirectChildren(aspect.subject.id, taxonomy),
                 )
             } else {
                 val semantics = orientationRepository.getOrientationSemantics(subjectId) ?: return null
@@ -346,8 +437,8 @@ class SemanticEntityEditorViewModel
                     orientationKind = semantics.kind,
                 )
             }
-            val aspectFlow =
-                if (base.canEditAspects) aspectLinksRepository.observeMemberships(base.id) else flowOf(emptyList())
+            val aspectFlow = if (base.canEditAspects) aspectLinksRepository.observeMemberships(base.id)
+                else aspectLinksRepository.observeMembershipsForAspect(base.id)
             val orientationFlow =
                 if (base.canEditOrientationRelations) graphRepository.observeRelations(base.id)
                 else flowOf(emptyList())
@@ -392,55 +483,3 @@ class SemanticEntityEditorViewModel
 
         companion object { const val SUBJECT_ID_ARGUMENT = "subjectId" }
     }
-
-private fun SemanticEntityEditorModel.withRelations(
-    catalog: List<CanonicalEntitySummary>,
-    refs: List<AspectOrientationRefEntity>,
-    bindings: List<WorkspaceBindingEntity>,
-    graphRelations: List<OrientationRelationEntity>,
-): SemanticEntityEditorModel {
-    val byRef = catalog.associateBy(CanonicalEntitySummary::ref)
-    return copy(
-        orientationRelations = graphRelations.map { relation ->
-            val otherId =
-                when (id) {
-                    relation.fromOrientationId -> relation.toOrientationId
-                    relation.toOrientationId -> relation.fromOrientationId
-                    else -> error("Orientation relation does not include editor subject")
-                }
-            val title = requireNotNull(byRef[CanonicalEntityRef.Orientation(otherId)]) {
-                "Orientation relation points to an unavailable Orientation"
-            }.title
-            OrientationGraphRelationItem(
-                relationId = relation.id,
-                otherOrientationId = otherId,
-                title = title,
-                relationType = OrientationRelationType.valueOf(relation.relationType),
-                direction = if (relation.fromOrientationId == id) {
-                    OrientationRelationEditDirection.OUTGOING
-                } else {
-                    OrientationRelationEditDirection.INCOMING
-                },
-                version = relation.version,
-            )
-        },
-        aspectAssociations = refs.map { ref ->
-            val title = requireNotNull(byRef[CanonicalEntityRef.Aspect(ref.aspectId)]) {
-                "Aspect association points to an unavailable Aspect"
-            }.title
-            AspectAssociationItem(
-                ref.id, ref.aspectId, title,
-                AspectOrientationRelationType.valueOf(ref.relationType), ref.isPrimary,
-            )
-        },
-        workspaceBindings = bindings.map { binding ->
-            val title = requireNotNull(byRef[CanonicalEntityRef.Workspace(binding.workspaceId)]) {
-                "Workspace binding points to an unavailable Workspace"
-            }.title
-            WorkspaceBindingItem(
-                binding.id, binding.workspaceId, title,
-                WorkspaceBindingType.valueOf(binding.bindingType), binding.isPrimary,
-            )
-        },
-    )
-}

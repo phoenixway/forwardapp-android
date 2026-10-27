@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -325,15 +326,13 @@ class DayPlanViewModel
                         "DayPlanViewModel",
                         "flatMapLatest: Processing planId: $planId",
                     )
-                    val dayPlanFlow =
-                        dayManagementRepository.getPlanByIdStream(planId)
-                            .onEach { dayPlan ->
-                                Log.d(
-                                    "DayPlanViewModel",
-                                    "dayPlanFlow: Received dayPlan: ${dayPlan?.id} for planId: $planId",
-                                )
-                                dayPlan?.let { dayManagementRepository.materializeCanonicalRecurrenceForDate(it.date) }
-                            }
+                    val initialReadReady = CompletableDeferred<Unit>()
+                    val dayPlanFlow = observeDayPlanReadFirst(
+                        plans = dayManagementRepository.getPlanByIdStream(planId),
+                        initialReadReady = initialReadReady,
+                        recurrenceChanges = dayManagementRepository.observeRecurrenceRuleChanges(),
+                        prepare = dayManagementRepository::materializeCanonicalRecurrenceForDate,
+                    )
 
                     val tasksFlow = observeDayTaskList(
                         tasks = dayManagementRepository.getTasksForDay(planId),
@@ -422,7 +421,7 @@ class DayPlanViewModel
                             bestCompletedPoints = highestCompletedPoints,
                             lastUpdated = System.currentTimeMillis(),
                         )
-                    }
+                    }.onEach { initialReadReady.complete(Unit) }
                 }
                 .flowOn(Dispatchers.Default)
                 .catch { e ->

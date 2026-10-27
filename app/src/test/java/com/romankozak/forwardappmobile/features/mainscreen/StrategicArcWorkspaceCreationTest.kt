@@ -64,6 +64,7 @@ class StrategicArcWorkspaceCreationTest {
 
             every { contextRepository.getAllContextsFlow() } returns flowOf(emptyList())
             every { projector.observePresentationUniverse(any()) } returns flowOf(emptyList())
+            every { projector.observePresentationUniverse() } returns flowOf(emptyList())
             every { arcQuestRepository.observeNonEmptyArcKeys() } returns flowOf(emptyList())
             every { arcQuestRepository.observeArcQuests(any()) } returns flowOf(emptyList())
             every { mainBeaconRepository.observeMainBeaconDetails() } returns flowOf(emptyList())

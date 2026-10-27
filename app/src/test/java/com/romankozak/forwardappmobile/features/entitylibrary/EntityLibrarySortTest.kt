@@ -33,7 +33,7 @@ class EntityLibrarySortTest {
             CanonicalEntitySummary(CanonicalEntityRef.Aspect("a"), "Same", createdAt = 1, updatedAt = 1),
             CanonicalEntitySummary(CanonicalEntityRef.Aspect("missing"), "A missing date"),
         )
-        EntityLibrarySort.entries.filterNot { it.name.startsWith("NAME") }.forEach { sort ->
+        EntityLibrarySort.entries.filter { it.name.startsWith("CREATED") || it.name.startsWith("UPDATED") }.forEach { sort ->
             assertThat(sortLibraryEntities(tied, sort).map { it.ref.id })
                 .containsExactly("a", "o1", "o2", "w", "missing").inOrder()
         }

@@ -36,6 +36,7 @@ object ContextViewPolicy {
         return when {
             preferred != null && preferred in available -> preferred
             current in available -> current
+            ContextViewMode.DASHBOARD in available -> ContextViewMode.DASHBOARD
             available.isNotEmpty() -> available.first()
             else -> ContextViewMode.BACKLOG
         }
@@ -49,6 +50,7 @@ object ContextViewPolicy {
             ContextViewMode.BACKLOG -> BACKLOG_PRIORITY
             ContextViewMode.INBOX -> INBOX_PRIORITY
             ContextViewMode.CONNECTIONS -> CONNECTIONS_PRIORITY
+            ContextViewMode.RELATIONS -> CONNECTIONS_PRIORITY
             ContextViewMode.DIRECTION -> DIRECTION_PRIORITY
             ContextViewMode.LOG -> LOG_PRIORITY
             ContextViewMode.KEY_PROBLEMS -> KEY_PROBLEMS_PRIORITY

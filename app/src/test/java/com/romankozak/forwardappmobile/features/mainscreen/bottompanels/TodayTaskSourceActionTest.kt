@@ -5,6 +5,11 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTa
 import org.junit.Test
 
 class TodayTaskSourceActionTest {
+    @Test fun `only Day Plan places actions above the full width input`() {
+        DayManagementTab.entries.forEach { tab ->
+            assertThat(todayTaskActionsAboveInput(tab)).isEqualTo(tab == DayManagementTab.DAY_PLAN)
+        }
+    }
     @Test fun `Day Start and Day Plan expose explicit entity-based task action`() {
         for (tab in listOf(DayManagementTab.DAY_START, DayManagementTab.DAY_PLAN)) {
             var pickerOpen = false

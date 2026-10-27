@@ -6,6 +6,123 @@ Acceptance date: 2026-10-02
 Scope: shared planning identity, participation, lifecycle, transport, and
 domain-extension boundaries for Day, Tactical Cycle, and Strategic Arc.
 
+## Strategic quest carry-forward (2026-10-26)
+
+Previous-arc quest -> "В поточну арку" creates new current-month carrier/FOCUS
+through CanonicalStrategicPlanningAdapter, reusing the source participation's
+exact live Orientation. It does not mutate arcKey of the historical quest,
+clone semantic identity, create a Mission, or author H1/Workspace relations.
+The normal Orientation SOURCE representation is used; no Planning-to-Planning
+reference or new provenance format is invented. Current scope/subject/FOCUS
+uniqueness is checked transactionally and returns the exact existing quest.
+New carrier/scope/participation/reference creation is atomic, including late
+reference failure rollback. Deleted/unresolved sources fail closed; UI errors
+are recoverable and cancellation is preserved. UI navigates to current month
+and reveals the exact result. No schema or transport change, Room 205.
+
+## Current correction — historical Tactical carry-forward (2026-10-26)
+
+Cycle history -> In current iteration is carry-forward, not a scope mutation.
+An admitted historical MANUAL/week-alias or backlog-Orientation alias can have
+a verified canonical semantic identity without old cycle participation. The
+canonical writer reuses precisely the subject validated by the existing
+historical read-admission path; no old scope/commitment, mapping or Orientation
+is manufactured. New current MISSION participation and its carrier share the
+existing Room transaction; the predecessor stays unchanged. Existing
+carriedFromMissionId remains provenance. An actual canonical predecessor uses
+its live MISSION subject as before. Missing modern participation, retired-only
+participation, deleted/missing targets and unsupported non-Orientation deferrals
+remain fail-closed, never semantic creation fallback. UI reports command failure
+without terminating the process and preserves coroutine cancellation. This is
+current Planning runtime hardening, not a hierarchy/authority cutover. No H1,
+Workspace, transport-format or schema change; Room 205. HOST evidence and device
+recheck status: TACTICAL_HISTORICAL_CARRY_FORWARD_HOST_20261026 in STATE/NEXT.
+
+Carry UI preflight uses exact source/carriedFromMissionId and destination cycle,
+not title/stream/backlog equality. Deleted copies do not block. Canonical
+participation uniqueness still belongs to the domain writer. Existing-copy
+results select the exact row's stream/reveal identity; completed copies are
+identified explicitly. PREVIOUS_WEEK carriers with historical backlog provenance
+are current mission-list participants, while original backlog rows remain in
+their existing surface. Source metadata is retained, not cleared to fix display.
+
+## Current Day Task Notes and Realizes (2026-10-20)
+
+DAY_TASK_REALIZES_NOTES_HOST_20261020
+
+DAY_TASK_PROPERTIES_SCREEN_HOST_20261020: Properties now use only the existing
+NavTarget.EditTask full-screen destination, keyed by exact taskId. Day-list task
+click and task-menu Edit converge there; former sheet selection is consumed on
+navigation so Back does not reopen it. The duplicate bottom-sheet editor is
+retired; all five tabs, SavedState drafts, Save and dirty-close guards remain.
+Room 203 unchanged. HOST XML 22/22 across DayTaskPropertiesNavigationTest (2),
+NavTargetRouterContractTest (3), EditTaskNotesViewModelTest (13),
+EditTaskViewModelRecurrenceEditTest (2), TaskRealizesViewModelTest (2); production
+and test Kotlin compile PASS. Physical screen acceptance remains pending.
+
+DayTask.notes is occurrence-local Markdown journal text, exposed in the existing
+task properties `Нотатки` tab (edit/preview). It is not a standalone Note identity,
+PlanningReference, PlanningCommitment field or recurrence-template field.
+Description/instruction is a separate section in that same tab, removed from
+Main. No data is copied/merged; its existing recurring-template semantics remain.
+Explicit carry-forward content-copy semantics are unchanged for both texts.
+
+Notes-only Save uses an atomic live-row update through DayManagementRepository:
+only notes/updatedAt/version/syncedAt change. It does not run template mutation,
+alarms, ordering, metrics or Planning writes. Other property edits retain their
+existing creation/recurrence contract and update notes only when explicitly dirty.
+Task-keyed SavedState drafts cover both texts, never an automatically replayed
+write. Dirty dismissal requires Save/Continue/explicit Discard; failure keeps text.
+Save completion is buffered and names the initiating task; a missing collector
+cannot hold saving=true and stale navigation cannot close another task. There is
+no new Save-specific device ANR proving the reported freeze's complete cause.
+
+`Реалізує` groups the task day's themes, priorities and canonical Other references.
+Theme membership stays in DayTheme assignment documents. Priority realization is
+`DayTask.realizedDayFocusItemIds`, a typed set of concrete DayFocusItem IDs, not
+raw polymorphic IDs. Authoring validates live same-DayPlan endpoints, updates the
+task transactionally, increments version and clears syncedAt. Removal never deletes
+the endpoint; deleted/missing/wrong-day refs are inert in live projection. Task
+cards show reactive theme/priority chips; one bulk priority snapshot avoids
+per-card DAO reads. Priority-theme suggestions require an explicit action.
+
+Room 202 -> 203 adds only a NOT NULL TEXT column default '[]'; no inferred links.
+Applicability is concrete Day execution metadata (SEMANTIC_NOT_HIERARCHY).
+Snapshot/Restore/delta/changedSince/ACK reuse the existing DayTask collection.
+Nullable wire field distinguishes old payloads: exact old Restore yields no new
+links; old Merge preserves local refs, stale versions cannot overwrite local rows,
+equal-version divergent ref sets fail closed, and higher versions may explicitly
+clear. Existing selective import retains DayPlan tasks and priority closure.
+Tombstoned tasks retain transport history but are not editable/live.
+New-day carry clears priority refs; recurrence templates/materialization do not
+inherit them. Same-day recurrence edits reread current task/version to preserve
+links saved immediately in Realizes. Other references keep PlanningReference
+SOURCE/RELATED authority. No H1, semantic, WorkspaceBinding, scheduling or
+completion semantics are added.
+
+HOST XML 50/50 app + 1/1 sync, all skips/errors/failures zero:
+
+| Class | Tests |
+| --- | ---: |
+| EditTaskNotesViewModelTest | 13 |
+| EditTaskViewModelRecurrenceEditTest | 2 |
+| TaskRealizesProjectionTest | 5 |
+| TaskRealizesViewModelTest | 2 |
+| DayTaskNotesRoomTest | 2 |
+| DayTaskRealizationRoomTest | 6 |
+| DayTaskCarryForwardRoomTest | 7 |
+| CanonicalDayThemeRuntimePlannerTest | 5 |
+| PlanningReferencesViewModelTest | 5 |
+| Migration200To201PlanningReferencesRoomTest | 1 |
+| Migration201To202SemanticTagsRoomTest | 1 |
+| Migration202To203DayTaskRealizationRoomTest | 1 |
+| DayTaskRealizationSelectiveImportTest (sync) | 1 |
+
+Production/test Kotlin compilation passed in the focused task. Shared JS
+distribution, two direct Node assertions and targeted strict Desktop-adapter tsc
+PASS. Desktop Vitest not run (dependencies absent). Physical acceptance pending;
+no deployment. Supersedes the initial DAY_TASK_NOTES_HOST_20261020 surface.
+
 ## Current implemented extension — recurrence Task SOURCE (2026-10-19)
 
 RECURRENCE_PLANNING_SOURCE_HOST_20261019
@@ -410,6 +527,21 @@ No phone deployment/data mutation performed. Physical acceptance must measure
 warm confirmation -> visible result against **<=2 seconds** and verify no ANR.
 That target is not yet measured or claimed achieved. Existing general ProductRead
 performance debt remains independent of this bounded repair.
+
+### Day list / properties read-first loading (2026-10-21)
+
+Committed Day content must not wait for recurrence preparation before its first
+composed UI state. The existing materialization transaction runs afterward,
+again on date or canonical recurrence-rule changes, not plan metrics updates.
+The read collector owns cancellation; failures retain the existing error path.
+Task properties publishes its exact live task first; auxiliary recurrence,
+day-anchor and compatibility-link reads run concurrently off Main. Late details
+merge without replacing edited text. Save requires completed valid metadata;
+retry preserves drafts and changing/resetting task cancels stale loading.
+These are read-path changes, not new persistence or mutation authorities.
+Room remains 203. Focused HOST XML: 31/31 across seven classes, zero
+failures/errors/skips; production/test Kotlin compiled in the focused tasks.
+Physical latency improvement remains unmeasured.
 
 ### HOST acceptance evidence
 

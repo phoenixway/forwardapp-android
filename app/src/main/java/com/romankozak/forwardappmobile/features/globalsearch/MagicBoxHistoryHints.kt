@@ -50,6 +50,10 @@ internal fun SearchHistoryHintStrip(
     )
 }
 
+/** Live search owns the content as soon as typing starts, even before explicit submit. */
+internal fun shouldShowSearchHistoryHint(mode: OmniboxMode, query: String, history: List<String>): Boolean =
+    mode == OmniboxMode.DataSearch && query.isBlank() && history.isNotEmpty()
+
 @Composable
 internal fun CommandHistoryHintStrip(
     commands: List<OmniboxCommandId>,

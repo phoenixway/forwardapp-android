@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
@@ -16,7 +17,9 @@ internal fun buildVisibleTacticalMissions(
     val iterationMissions =
         allMissions
             .filter { it.isInCurrentIteration(activeIteration?.id, currentWeekKey) }
-            .filter { it.sourceBacklogItemId == null }
+            // A carry is current participation, even when historical backlog
+            // provenance remains on its carrier. Original backlog rows stay separate.
+            .filter { it.sourceBacklogItemId == null || it.sourceType == MissionSourceType.PREVIOUS_WEEK }
     val effectiveMode = requestedMode.forIteration(activeIteration)
 
     return when (effectiveMode) {

@@ -60,14 +60,14 @@ class EntityLibraryPlacementViewModel @Inject constructor(
                 // Same atomic PRIMARY/LINK decision as Big Picture Add.
                 writer.addAppearance(ref.toBigPictureTarget(), destination)
                 savedState[PENDING_KEY] = null
-                mutableState.value = EntityLibraryPlacementState(message = "Додано до Big Picture")
+                mutableState.value = EntityLibraryPlacementState(message = "Додано до Navigation")
             } catch (cancelled: CancellationException) {
                 mutableState.value = state.value.copy(busy = false)
                 throw cancelled
             } catch (error: Exception) {
                 // Keep the selected identity so the user can choose another destination or cancel.
                 mutableState.value = state.value.copy(busy = false,
-                    error = error.message ?: "Не вдалося додати до Big Picture")
+                    error = error.message ?: "Не вдалося додати до Navigation")
             }
         }
     }

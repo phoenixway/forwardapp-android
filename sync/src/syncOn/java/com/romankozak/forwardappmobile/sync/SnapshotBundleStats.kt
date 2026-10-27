@@ -10,6 +10,8 @@ internal fun SnapshotBundle.importItemCount(): Int =
         backlogOrders.size +
         workspaceDirectionEntries.orEmpty().size +
         workspaceBacklogEntries.orEmpty().size +
+        managedSubjectTagRefs.orEmpty().size +
+        managedSubjectConversions.orEmpty().size +
         notes.size +
         documents.size +
         musicNotes.size +

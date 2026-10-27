@@ -54,10 +54,18 @@ fun SemanticEntityEditorScreen(
     viewModel: SemanticEntityEditorViewModel = hiltViewModel(),
     workspaceCreation: EmbodyingWorkspaceViewModel = hiltViewModel(),
     deletion: SemanticEntityDeleteViewModel = hiltViewModel(),
+    conversion: SemanticConversionViewModel = hiltViewModel(),
+    kindChange: OrientationKindViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val workspaceState by workspaceCreation.state.collectAsStateWithLifecycle()
     val deleteState by deletion.state.collectAsStateWithLifecycle()
+    val conversionState by conversion.state.collectAsStateWithLifecycle()
+    val kindState by kindChange.state.collectAsStateWithLifecycle()
+    OrientationKindDialog(kindState, kindChange)
+    LaunchedEffect(kindState.completed) { if (kindChange.consumeCompleted()) viewModel.load() }
+    SemanticConversionDialog(conversionState, conversion)
+    LaunchedEffect(conversionState.completed) { if (conversion.consumeCompleted()) viewModel.load() }
     LaunchedEffect(deleteState.deleted) {
         if (deletion.consumeDeleted()) navController.popBackStack()
     }
@@ -72,11 +80,12 @@ fun SemanticEntityEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDiscard by remember { mutableStateOf(false) }
     val loaded = state as? SemanticEntityEditorUiState.Loaded
+    LaunchedEffect(loaded?.model?.version) { kindChange.refreshEligibility() }
     LaunchedEffect(loaded?.model?.id, loaded?.model?.version) { deletion.prepare(loaded?.model?.id) }
     val editorEntry = remember(navController) { requireNotNull(navController.currentBackStackEntry) }
     DisposableEffect(editorEntry, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshWorkspaceBindings()
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshRelations()
         }
         editorEntry.lifecycle.addObserver(observer)
         onDispose { editorEntry.lifecycle.removeObserver(observer) }
@@ -91,7 +100,7 @@ fun SemanticEntityEditorScreen(
             .collectAsStateWithLifecycle()
 
     fun requestBack() {
-        if (deleteState.busy) return
+        if (deleteState.busy || conversionState.busy || kindState.busy) return
         if (loaded?.model?.isDirty == true) confirmDiscard = true else navController.popBackStack()
     }
 
@@ -111,6 +120,8 @@ fun SemanticEntityEditorScreen(
     fun openPicker(kind: SemanticRelationPickerKind) {
         val request =
             when (kind) {
+                SemanticRelationPickerKind.ASPECT_PARENT -> viewModel.aspectParentPickerRequest()
+                SemanticRelationPickerKind.SEMANTIC -> viewModel.semanticPickerRequest()
                 SemanticRelationPickerKind.ASPECT -> viewModel.aspectPickerRequest()
                 SemanticRelationPickerKind.WORKSPACE -> viewModel.workspacePickerRequest()
                 SemanticRelationPickerKind.ORIENTATION -> viewModel.orientationPickerRequest()
@@ -134,9 +145,11 @@ fun SemanticEntityEditorScreen(
                             onOpen = { workspaceCreation.open(model) },
                             onDelete = (deletion::request).takeIf { deleteState.target?.subjectId == model.id },
                             deleteLabel = "Видалити ${deleteState.target?.classLabel ?: "сутність"}…",
-                            blocked = deleteState.busy,
+                            blocked = deleteState.busy || conversionState.busy || kindState.busy,
+                            onConvert = (conversion::open).takeIf { conversionState.eligible },
+                            onChangeKind = (kindChange::open).takeIf { kindState.eligible },
                         )
-                        IconButton(onClick = viewModel::save, enabled = model.canSave && !workspaceState.busy && !deleteState.busy) {
+                        IconButton(onClick = viewModel::save, enabled = model.canSave && !workspaceState.busy && !deleteState.busy && !conversionState.busy && !kindState.busy) {
                             if (model.isSaving) {
                                 CircularProgressIndicator()
                             } else {
@@ -154,15 +167,17 @@ fun SemanticEntityEditorScreen(
             is SemanticEntityEditorUiState.Unavailable -> UnavailableContent(current.message, padding)
             is SemanticEntityEditorUiState.Loaded ->
                 EditorContent(
-                    model = if (deleteState.busy) current.model.copy(isSaving = true, isRelationMutationInFlight = true) else current.model,
+                    model = if (deleteState.busy || conversionState.busy || kindState.busy) current.model.copy(isSaving = true, isRelationMutationInFlight = true) else current.model,
                     padding = padding,
                     onNameChange = viewModel::setName,
-                    onAddAspect = { openPicker(SemanticRelationPickerKind.ASPECT) },
+                    onAddSemantic = { openPicker(SemanticRelationPickerKind.SEMANTIC) },
+                    onChooseAspectParent = { openPicker(SemanticRelationPickerKind.ASPECT_PARENT) },
+                    onMakeAspectRoot = viewModel::requestAspectRoot,
+                    onOpenSemantic = { id -> navController.navigate(NavTargetRouter.routeOf(NavTarget.SemanticEntityEditor(id))) },
                     onRemoveAspect = viewModel::removeAspectAssociation,
                     onAddWorkspace = { openPicker(SemanticRelationPickerKind.WORKSPACE) },
                     onRemoveWorkspace = viewModel::removeWorkspaceBinding,
                     onOpenWorkspace = { binding -> navController.navigate(NavTargetRouter.routeOf(binding.destination())) },
-                    onAddOrientation = { openPicker(SemanticRelationPickerKind.ORIENTATION) },
                     onRemoveOrientation = viewModel::removeOrientationRelation,
                 )
         }
@@ -182,6 +197,11 @@ fun SemanticEntityEditorScreen(
         )
     }
 
+    loaded?.model?.let { model ->
+        (model.pendingRelation as? PendingSemanticRelation.AspectParent)?.let { pending ->
+            AspectParentConfirmation(model, pending, viewModel::cancelPendingRelation, viewModel::confirmAspectParent)
+        }
+    }
     SemanticRelationTypeDialog(
         pending = loaded?.model?.pendingRelation,
         mutationInFlight = loaded?.model?.isRelationMutationInFlight == true,
@@ -219,12 +239,14 @@ private fun EditorContent(
     model: SemanticEntityEditorModel,
     padding: PaddingValues,
     onNameChange: (String) -> Unit,
-    onAddAspect: () -> Unit,
+    onAddSemantic: () -> Unit,
+    onChooseAspectParent: () -> Unit,
+    onMakeAspectRoot: () -> Unit,
+    onOpenSemantic: (String) -> Unit,
     onRemoveAspect: (String) -> Unit,
     onAddWorkspace: () -> Unit,
     onRemoveWorkspace: (String) -> Unit,
     onOpenWorkspace: (WorkspaceBindingItem) -> Unit,
-    onAddOrientation: () -> Unit,
     onRemoveOrientation: (String, Long) -> Unit,
 ) {
     Column(
@@ -236,17 +258,17 @@ private fun EditorContent(
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         SemanticIdentitySection(model, onNameChange)
+        SemanticTagsSection(model)
         if (model.entityClass == SemanticEntityClass.ORIENTATION) {
             OrientationTypeSection(model)
         }
         HorizontalDivider()
-        if (model.canEditAspects) {
-            AspectAssociationsSection(model, onAddAspect, onRemoveAspect)
+        if (model.entityClass == SemanticEntityClass.ASPECT) {
+            AspectParentSection(model, onChooseAspectParent, onMakeAspectRoot, onOpenSemantic)
+            AspectChildrenSection(model, onOpenSemantic)
         }
+        SemanticAssociationsSection(model, onAddSemantic, onRemoveAspect, onRemoveOrientation, onOpenSemantic)
         WorkspaceBindingsSection(model, onAddWorkspace, onRemoveWorkspace, onOpenWorkspace)
-        if (model.canEditOrientationRelations) {
-            OrientationGraphRelationsSection(model, onAddOrientation, onRemoveOrientation)
-        }
         model.errorMessage?.let { error ->
             Text(error, color = MaterialTheme.colorScheme.error)
         }

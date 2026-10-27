@@ -6,17 +6,20 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntry
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ActivityManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
+import androidx.compose.ui.text.input.TextFieldValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 class LogActivityHandler
-    @Inject
     constructor(
         private val contextLogRepository: ContextLogRepository,
         private val activityManager: ActivityManager,
         private val stateManager: ContextStateManager,
         private val scope: CoroutineScope,
+        private val canonicalWorkspaceRoute: Boolean,
+        private val onError: (String) -> Unit,
     ) {
         fun onEditLogEntry(log: ContextLog) = stateManager.updateState { it.copy(logEntryToEdit = log) }
 
@@ -47,23 +50,37 @@ class LogActivityHandler
             text: String,
             contextId: String,
         ) {
-            if (text.isBlank()) return
-            scope.launch {
-                contextLogRepository.addContextComment(contextId, text)
-            }
+            submitLog(text, contextId, ContextLogEntryTypeValues.COMMENT, InputMode.AddProjectLog)
         }
 
         fun addMilestone(
             text: String,
             contextId: String,
         ) {
+            submitLog(text, contextId, ContextLogEntryTypeValues.MILESTONE, InputMode.AddMilestone)
+        }
+
+        private fun submitLog(text: String, ownerId: String, type: String, inputMode: InputMode) {
             if (text.isBlank()) return
             scope.launch {
-                contextLogRepository.addContextLogEntry(
-                    contextId = contextId,
-                    type = ContextLogEntryTypeValues.MILESTONE,
-                    description = text,
-                )
+                try {
+                    if (canonicalWorkspaceRoute) {
+                        contextLogRepository.addWorkspaceLogEntry(ownerId, type, text)
+                    } else {
+                        contextLogRepository.addContextLogEntry(ownerId, type, text)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    android.util.Log.e("WorkspaceLog", "Failed to append $type", error)
+                    stateManager.updateState { current ->
+                        val sameOwner = if (canonicalWorkspaceRoute) current.presentation?.id == ownerId else current.context?.id == ownerId
+                        if (sameOwner && current.inputMode == inputMode && current.inputValue.text.isBlank()) {
+                            current.copy(inputValue = TextFieldValue(text))
+                        } else current
+                    }
+                    onError("Не вдалося додати запис до логу.")
+                }
             }
         }
     }

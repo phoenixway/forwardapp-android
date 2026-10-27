@@ -16,15 +16,17 @@ MAIN_ACTIVITY=com.romankozak.forwardappmobile.MainActivity
 
 
 # --- Конфігурація ADB ---
-# ID вашого пристрою за замовчуванням для всіх команд.
-DEVICE_ID=e57073c4
-# Прапорець для передачі в ADB.
-DEVICE_FLAG=-s $(DEVICE_ID)
+# Без serial ADB вибирає єдиний доступний пристрій (USB/Wi-Fi/emulator).
+# Для кількох пристроїв: make <target> DEVICE_ID=<serial> або ANDROID_SERIAL.
+ADB ?= adb
+DEVICE_ID ?= $(ANDROID_SERIAL)
+DEVICE_FLAG = $(if $(strip $(DEVICE_ID)),-s "$(strip $(DEVICE_ID))")
 
 
 # --- Цілі (Targets) ---
 
 .PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp exp-arm64-cycle build-exp-arm64 install-exp-arm64 check-release-signing check-exp-signature-match backup quality-report quality-strict quality-unit
+.PHONY: check-device install-prod
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -34,11 +36,26 @@ work-end:
 	@echo "⏹ Ending agent workflow…"
 	@forwardapp-devtools/work.sh end
 
+# Перевірка до встановлення/читання підпису: не маскувати помилку вибору
+# пристрою під «пакет не встановлено». Жодного автоматичного uninstall.
+check-device:
+	@state=$$($(ADB) $(DEVICE_FLAG) get-state); \
+	if [ "$$state" != "device" ]; then \
+		echo "❌ Не вдалося вибрати доступний ADB-пристрій." >&2; \
+		echo "Підключіть/авторизуйте пристрій; якщо їх кілька: make <target> DEVICE_ID=<serial>. Перелік: adb devices." >&2; \
+		exit 1; \
+	fi
+
+start stop logcat start-debug stop-debug logcat-debug start-exp stop-exp logcat-exp get-android-dumps clear-dumps: check-device
+
 
 # ============== ОСНОВНІ КОМАНДИ ==============
 
 ## Зібрати, встановити та запустити продовий RELEASE (prodRelease)
 all: install-prod start
+
+## Встановити production release без автоматичного запуску
+install: install-prod
 
 ## Зібрати, встановити та запустити DEBUG версію
 debug-cycle: install-debug start-debug
@@ -56,31 +73,31 @@ build-release:
 	@./gradlew :app:assembleProdRelease
 
 # Встановити prod release APK
-install-prod: build-release
+install-prod: check-device build-release
 	@echo "📦  Встановлюю release APK (пріоритет ARM64)..."
 	@if [ -f app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk; \
+		$(ADB) $(DEVICE_FLAG) install -r app/build/outputs/apk/prod/release/app-prod-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/prod/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/prod/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} $(ADB) $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Release APK встановлено."
 
 # Запустити prod release додаток
 start:
 	@echo "▶️  Запускаю prod release додаток ($(PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
+	@$(ADB) $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
 
 # Зупинити prod release додаток
 stop:
 	@echo "🛑  Зупиняю release додаток ($(PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
+	@$(ADB) $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
 
 # Показати логи для prod release додатка
 logcat:
 	@echo "📋  Показую логи для release: $(PACKAGE_NAME)..."
-	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
+	@$(ADB) $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
 
 
 # ============== DEBUG ЦИКЛ ==============
@@ -94,31 +111,31 @@ check-compile:
 	@echo "🚀  Перевіряю через compileDebugKotlin..."
 	        @./gradlew :app:compileExpDebugKotlin
 # Встановити debug APK (exp flavor)
-install-debug: debug
+install-debug: check-device debug
 	@echo "🐞  Встановлюю exp debug APK (пріоритет ARM64)..."
 	@if [ -f app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk; \
+		$(ADB) $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/debug/app-exp-arm64-v8a-debug.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/exp/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/exp/debug -type f -name "*-debug.apk" -print0 | xargs -0 -I {} $(ADB) $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Debug APK встановлено."
 
 # Запустити debug додаток (exp flavor - має .debug суфікс від buildType)
 start-debug:
 	@echo "▶️  Запускаю exp debug додаток ($(PACKAGE_NAME).debug)..."
-	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).debug/$(MAIN_ACTIVITY)
+	@$(ADB) $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME).debug/$(MAIN_ACTIVITY)
 
 # Зупинити debug додаток (exp flavor)
 stop-debug:
 	@echo "🛑  Зупиняю exp debug додаток ($(PACKAGE_NAME).debug)..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).debug
+	@$(ADB) $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME).debug
 
 # Показати логи для debug додатка (exp flavor)
 logcat-debug:
 	@echo "📋  Показую логи для exp debug: $(PACKAGE_NAME).debug..."
-	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME).debug:V *:S
+	@$(ADB) $(DEVICE_FLAG) logcat $(PACKAGE_NAME).debug:V *:S
 
 
 # ============== EXPERIMENTAL RELEASE ЦИКЛ ==============
@@ -131,22 +148,22 @@ build-exp-arm64:
 	@echo "🚀  Збираю exp local APK тільки для ARM64..."
 	@./gradlew :app:assembleExpLocal -PabiFilter=arm64-v8a
 
-install-exp: build-exp
+install-exp: check-device build-exp
 	@echo "📦  Встановлюю exp release APK (пріоритет ARM64)..."
 	@if [ -f app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk ]; then \
 		echo "Знайдено ARM64 APK. Встановлюю..."; \
-		adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk; \
+		$(ADB) $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk; \
 	else \
 		echo "ARM64 APK не знайдено. Шукаю інший варіант..."; \
-		find app/build/outputs/apk/exp/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
+		find app/build/outputs/apk/exp/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} $(ADB) $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Exp release APK встановлено."
 
-install-exp-arm64:
+install-exp-arm64: check-device
 	@echo "📦  Встановлюю exp ARM64 local APK..."
 	@./gradlew :app:assembleExpLocal -PabiFilter=arm64-v8a
 	@TMP_ERR=$$(mktemp); \
-	if adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk 2>"$$TMP_ERR"; then \
+	if $(ADB) $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk 2>"$$TMP_ERR"; then \
 		rm -f "$$TMP_ERR"; \
 	else \
 		if grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE" "$$TMP_ERR"; then \
@@ -190,9 +207,9 @@ check-release-signing:
 	fi; \
 	echo "✅ Release signing знайдено: $$STORE_FILE"
 
-check-exp-signature-match: check-release-signing
+check-exp-signature-match: check-device check-release-signing
 	@echo "🔍  Перевіряю збіг підпису встановленого $(PACKAGE_NAME) з локальним keystore..."
-	@INSTALLED_APK_PATH=$$(adb $(DEVICE_FLAG) shell pm path $(PACKAGE_NAME) 2>/dev/null | sed -n 's/^package://p' | tr -d '\r' | head -n 1); \
+	@INSTALLED_APK_PATH=$$($(ADB) $(DEVICE_FLAG) shell pm path $(PACKAGE_NAME) 2>/dev/null | sed -n 's/^package://p' | tr -d '\r' | head -n 1); \
 	if [ -z "$$INSTALLED_APK_PATH" ]; then \
 		echo "ℹ️  Пакет $(PACKAGE_NAME) не встановлений на пристрої. Перевірку підпису пропускаю."; \
 		exit 0; \
@@ -215,7 +232,7 @@ check-exp-signature-match: check-release-signing
 	KEY_ALIAS=$$(sed -n 's/^[[:space:]]*keyAlias[[:space:]]*=[[:space:]]*//p' signing.properties | head -n 1); \
 	TMP_APK=/tmp/forwardapp-installed-base.apk; \
 	rm -f "$$TMP_APK"; \
-	adb $(DEVICE_FLAG) pull "$$INSTALLED_APK_PATH" "$$TMP_APK" >/dev/null; \
+	$(ADB) $(DEVICE_FLAG) pull "$$INSTALLED_APK_PATH" "$$TMP_APK" >/dev/null; \
 	LOCAL_FP=$$(keytool -list -v -keystore "$$STORE_FILE" -storepass "$$STORE_PASSWORD" -alias "$$KEY_ALIAS" 2>/dev/null | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d '[:space:]:' | tr '[:upper:]' '[:lower:]'); \
 	INSTALLED_FP=$$("$$APKSIGNER_BIN" verify --print-certs "$$TMP_APK" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]:' | tr '[:upper:]' '[:lower:]'); \
 	rm -f "$$TMP_APK"; \
@@ -235,15 +252,15 @@ check-exp-signature-match: check-release-signing
 
 start-exp:
 	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
+	@$(ADB) $(DEVICE_FLAG) shell am start -n $(PACKAGE_NAME)/$(MAIN_ACTIVITY)
 
 stop-exp:
 	@echo "🛑  Зупиняю exp додаток ($(PACKAGE_NAME))..."
-	@adb $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
+	@$(ADB) $(DEVICE_FLAG) shell am force-stop $(PACKAGE_NAME)
 
 logcat-exp:
 	@echo "📋  Показую логи для exp: $(PACKAGE_NAME)..."
-	@adb $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
+	@$(ADB) $(DEVICE_FLAG) logcat $(PACKAGE_NAME):V *:S
 
 
 # ============== СЕРВІСНІ КОМАНДИ ==============
@@ -300,7 +317,7 @@ get-android-dumps:
 	rm -f /tmp/android-sync-dumps.tar; \
 	rm -rf /tmp/android-sync-dumps; \
 	echo "Pulling dumps via adb exec-out..."; \
-	adb exec-out 'run-as com.romankozak.forwardappmobile.debug tar -cf - -C /data/user/0/com.romankozak.forwardappmobile.debug/files sync-dumps' > /tmp/android-sync-dumps.tar; \
+	$(ADB) $(DEVICE_FLAG) exec-out 'run-as com.romankozak.forwardappmobile.debug tar -cf - -C /data/user/0/com.romankozak.forwardappmobile.debug/files sync-dumps' > /tmp/android-sync-dumps.tar; \
 	mkdir -p /tmp/android-sync-dumps; \
 	if tar -tf /tmp/android-sync-dumps.tar >/dev/null 2>&1; then \
 		tar -xf /tmp/android-sync-dumps.tar -C /tmp/android-sync-dumps; \
@@ -315,7 +332,7 @@ get-release-apk:
 
 clear-dumps:
 	@echo "🗑️  Clearing sync dumps on device and local /tmp..."; \
-	adb $(DEVICE_FLAG) exec-out run-as $(DEBUG_PACKAGE_NAME) sh -c 'rm -f /data/user/0/$(DEBUG_PACKAGE_NAME)/files/sync-dumps/*' || true; \
+	$(ADB) $(DEVICE_FLAG) exec-out run-as $(DEBUG_PACKAGE_NAME) sh -c 'rm -f /data/user/0/$(DEBUG_PACKAGE_NAME)/files/sync-dumps/*' || true; \
 	rm -f /tmp/android-sync-dumps.tar; \
 	rm -rf /tmp/android-sync-dumps; \
 	rm -f /tmp/forwardapp-backup-dumps/wifi-import---auto.json; \
@@ -379,6 +396,8 @@ help:
 	@echo "  make exp-arm64-cycle - Швидкий exp цикл: expLocal, тільки ARM64, пакет без .debug."
 	@echo "  make check-exp-signature-match - Порівняти підпис локального keystore з APK на пристрої."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
+	@echo "  make install        - Зібрати та встановити production release без запуску."
+	@echo "  Device: автоматичний вибір єдиного ADB-пристрою; для кількох додайте DEVICE_ID=<serial> або ANDROID_SERIAL."
 	@echo "  make test           - Виконати unit й instrumentation тести."
 	@echo ""
 	@echo "  make clean          - Очистити проєкт."
@@ -405,15 +424,10 @@ test:
 		echo "❌  Unit-тести впали. Перевір лог вище."; \
 		exit 1; \
 	fi
-	@echo "📱  Перевіряю наявність пристрою $(DEVICE_ID)..."
-	@if adb devices | grep -w "$(DEVICE_ID)" >/dev/null 2>&1 ; then \
-		echo "✅  Пристрій знайдено."; \
-	else \
-		echo "❌  Пристрій $(DEVICE_ID) не під’єднаний. Підключіть його або змініть DEVICE_ID."; \
-		exit 1; \
-	fi
-	@echo "🤖  Запускаю instrumentation-тести на $(DEVICE_ID)..."
-	@if ANDROID_SERIAL=$(DEVICE_ID) ./gradlew :app:connectedExpDebugAndroidTest ; then \
+	@$(MAKE) --no-print-directory check-device
+	@echo "🤖  Запускаю instrumentation-тести на вибраному пристрої..."
+	@serial=$$($(ADB) $(DEVICE_FLAG) get-serialno) || exit 1; \
+	if ANDROID_SERIAL="$$serial" ./gradlew :app:connectedExpDebugAndroidTest ; then \
 		echo "✅  Instrumentation-тести пройдено успішно."; \
 	else \
 		echo "❌  Instrumentation-тести впали. Перевір лог вище."; \

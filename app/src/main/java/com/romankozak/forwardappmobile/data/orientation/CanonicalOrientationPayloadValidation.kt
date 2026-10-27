@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile.data.orientation
 
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.toConversionEvidence
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.decodeOrientationAssessmentJson
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.*
@@ -57,7 +58,7 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(
     val gson = Gson()
     return CanonicalOrientationValidationGraph(
         subjects = requireNotNull(managedSubjects).map {
-            CanonicalSubjectReference(it.id, ManagedSubjectType.valueOf(it.subjectType))
+            CanonicalSubjectReference(it.id, ManagedSubjectType.valueOf(it.subjectType), it.version, it.isDeleted)
         },
         orientations = requireNotNull(orientations).map {
             CanonicalOrientationReference(it.subjectId, OrientationKind.valueOf(it.kind))
@@ -93,6 +94,7 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(
         savedViews = requireNotNull(savedOrientationViews).map {
             CanonicalSavedViewReference(it.id, it.filterAstVersion)
         },
+        subjectConversions = managedSubjectConversions.orEmpty().map { it.toConversionEvidence() },
     )
 }
 

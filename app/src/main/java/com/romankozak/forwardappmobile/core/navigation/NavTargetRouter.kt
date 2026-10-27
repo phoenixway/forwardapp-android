@@ -6,7 +6,7 @@ object NavTargetRouter {
     fun routeOf(target: NavTarget): String =
         when (target) {
             is NavTarget.ContextHierarchy ->
-                NavigationRoutes.goalLists(target.projectIdToReveal)
+                NavigationRoutes.goalLists(target.projectIdToReveal, target.placementIdToReveal)
 
             is NavTarget.ContextDetail ->
                 NavigationRoutes.contextDetail(

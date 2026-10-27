@@ -115,6 +115,7 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.BACKLOG -> "Backlog"
         ContextViewMode.INBOX -> "Inbox"
         ContextViewMode.CONNECTIONS -> "Connections"
+        ContextViewMode.RELATIONS -> "Semantics"
         ContextViewMode.DASHBOARD -> "Dashboard"
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
@@ -179,6 +180,8 @@ private fun ViewModeIndicator(
                     ViewModeInboxBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
                     ViewModeInboxFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
+            ContextViewMode.RELATIONS ->
+                Pair(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
             ContextViewMode.CONNECTIONS ->
                 Pair(
                     ViewModeConnectionsBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),

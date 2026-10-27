@@ -641,6 +641,10 @@ class MergeLocalDataSourceImpl
                     workspaceDao = db.workspaceDao(),
                     validateEmbeddedWorkspaceTopology = false,
                 )
+                com.romankozak.forwardappmobile.data.orientation.CanonicalSubjectConversionStore(db)
+                    .merge(bundle.managedSubjectConversions)
+                com.romankozak.forwardappmobile.data.orientation.CanonicalSemanticTagSyncStore(db)
+                    .merge(bundle.managedSubjectTagRefs)
 
                 canonicalPlanningSyncStore.mergeIncoming(
                     scopes = bundle.planningScopes,
@@ -675,8 +679,9 @@ class MergeLocalDataSourceImpl
 
                 dayTaskDao.insertTasks(
                     dayTasksToInsert.map { snapshot ->
-                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
-                            .dayTaskEntity(snapshot, snapshot.toEntity())
+                        mergeDayTaskRealizations(dayTaskDao.getTaskById(snapshot.id), snapshot,
+                            com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                                .dayTaskEntity(snapshot, snapshot.toEntity()))
                     },
                 )
 
@@ -872,6 +877,7 @@ class MergeLocalDataSourceImpl
 
             com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceSyncStore(db)
                 .merge(bundle.planningReferences)
+            com.romankozak.forwardappmobile.data.orientation.CanonicalSubjectConversionStore(db).validateCurrentClosure()
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

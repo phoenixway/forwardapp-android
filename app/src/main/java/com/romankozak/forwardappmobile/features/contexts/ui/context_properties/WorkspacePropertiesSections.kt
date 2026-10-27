@@ -74,7 +74,9 @@ internal fun WorkspaceFeaturesContent(state: WorkspaceOperationalSettingsState, 
         workspaceFeatures.forEach { feature ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(feature.title)
-                Switch(CapabilityId(feature.key) in state.enabled, onCheckedChange = { onToggle(feature.key, it) }, enabled = !state.busy)
+                val required = com.romankozak.forwardappmobile.core.context.WorkspaceCoreViews.isRequired(feature.key)
+                Switch(required || CapabilityId(feature.key) in state.enabled,
+                    onCheckedChange = { onToggle(feature.key, it) }, enabled = !state.busy && !required)
             }
         }
     }

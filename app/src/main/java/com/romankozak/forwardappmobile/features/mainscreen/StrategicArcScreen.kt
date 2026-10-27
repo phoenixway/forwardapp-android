@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,34 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,23 +33,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
-import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -107,6 +80,15 @@ fun StrategicArcScreen(
     val uiState by viewModel.uiState.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     val pendingCreatedQuestId by viewModel.pendingCreatedQuestId.collectAsState()
+    val carryMessage by viewModel.carryMessage.collectAsState()
+    carryMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissCarryMessage,
+            title = { Text("Стратегічна арка") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = viewModel::dismissCarryMessage) { Text("Гаразд") } },
+        )
+    }
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
@@ -118,10 +100,6 @@ fun StrategicArcScreen(
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
-    var isFabMenuExpanded by remember { mutableStateOf(false) }
-    var showQuestContextPicker by remember { mutableStateOf(false) }
-    var showQuestBeaconPicker by remember { mutableStateOf(false) }
-    var showQuestBeaconGroupPicker by remember { mutableStateOf(false) }
     val openTarget: (NavTarget, Boolean) -> Unit = { target, recordInHistory ->
         navigationManager.navigateOrFallback(
             navController = navController,
@@ -294,6 +272,7 @@ fun StrategicArcScreen(
                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                             },
                             onCreateMission = viewModel::createMissionFromArcQuest,
+                            onCarryToCurrentArc = viewModel::carryQuestToCurrentArc,
                             onEditQuest = viewModel::updateArcQuest,
                             onDeleteQuest = viewModel::deleteArcQuest,
                             onReorder = viewModel::reorderArcQuests,
@@ -321,91 +300,7 @@ fun StrategicArcScreen(
             }
         }
 
-        if (!uiState.isLoading && uiState.error == null) {
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
-            ) {
-                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
-                    Icon(Icons.Default.Menu, contentDescription = "Меню дій стратегічної арки")
-                }
-                DropdownMenu(
-                    expanded = isFabMenuExpanded,
-                    onDismissRequest = { isFabMenuExpanded = false },
-                    modifier =
-                        Modifier.background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(16.dp),
-                        ),
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Попередня арка") },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                        },
-                        enabled = uiState.previousArcKey != null,
-                        onClick = {
-                            isFabMenuExpanded = false
-                            viewModel.navigateToPreviousArcMonth()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Наступна арка") },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
-                        },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            viewModel.navigateToNextArcMonth()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Quest на основі сутності") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            showQuestContextPicker = true
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Орієнтир як ArcQuest") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            showQuestBeaconPicker = true
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Група орієнтирів як ArcQuest") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            showQuestBeaconGroupPicker = true
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Відкрити артефакт") },
-                        leadingIcon = { Icon(Icons.Outlined.OpenInNew, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            viewModel.openOrCreateArcArtifact { documentId ->
-                                openTarget(NavTarget.NoteDocument(id = documentId, startEdit = true), false)
-                            }
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Показати зв'язки") },
-                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            viewModel.toggleScopeLinksSheet()
-                        },
-                    )
-                }
-            }
-        }
+
     }
 
     if (isScopeLinksSheetVisible) {
@@ -475,45 +370,6 @@ fun StrategicArcScreen(
             onConfirm = { selected ->
                 selected.forEach(viewModel::addAttachmentLink)
                 showAttachmentChooser = false
-            },
-        )
-    }
-
-    if (showQuestContextPicker) {
-        com.romankozak.forwardappmobile.features.planning.PlanningEntityPickerDialog(
-            onDismiss = { showQuestContextPicker = false },
-            onSelected = viewModel::addArcQuestFromEntity,
-        )
-    }
-
-    if (showQuestBeaconPicker) {
-        ArcQuestBeaconPickerDialog(
-            beacons = uiState.beacons,
-            usedSourceIds =
-                uiState.arcQuests
-                    .filter { it.sourceType == ArcQuestSourceType.BEACON.name }
-                    .mapNotNull { it.sourceId }
-                    .toSet(),
-            onDismiss = { showQuestBeaconPicker = false },
-            onSelected = { beaconId ->
-                viewModel.addArcQuestFromBeacon(beaconId)
-                showQuestBeaconPicker = false
-            },
-        )
-    }
-
-    if (showQuestBeaconGroupPicker) {
-        ArcQuestBeaconGroupPickerDialog(
-            groups = uiState.beaconGroups,
-            usedSourceIds =
-                uiState.arcQuests
-                    .filter { it.sourceType == ArcQuestSourceType.BEACON_GROUP.name }
-                    .mapNotNull { it.sourceId }
-                    .toSet(),
-            onDismiss = { showQuestBeaconGroupPicker = false },
-            onSelected = { groupId ->
-                viewModel.addArcQuestFromBeaconGroup(groupId)
-                showQuestBeaconGroupPicker = false
             },
         )
     }
@@ -651,11 +507,14 @@ private fun ArcQuestList(
     onQuestClick: (ArcQuestEntity) -> Unit,
     onOpenContext: (String) -> Unit,
     onCreateMission: (ArcQuestEntity) -> Unit,
+    onCarryToCurrentArc: (ArcQuestEntity) -> Unit,
     onEditQuest: (ArcQuestEntity, String, String?) -> Unit,
     onDeleteQuest: (ArcQuestEntity) -> Unit,
     onReorder: (List<ArcQuestEntity>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val referencesModel: StrategicQuestReferencesViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val questReferences by referencesModel.links.collectAsState()
     val lazyListState = rememberLazyListState()
     com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
         lazyListState, quests.map { it.id }, revealQuestId, onQuestRevealed,
@@ -701,12 +560,17 @@ private fun ArcQuestList(
             ReorderableItem(reorderableState, key = quest.id) {
                 ArcQuestCard(
                     quest = quest,
+                    references = questReferences[quest.id].orEmpty(),
+                    onOpenReference = referencesModel::open,
                     contextName = quest.linkedContextId?.let(contextNames::get),
                     onQuestClick = { onQuestClick(quest) },
                     onOpenContext = onOpenContext,
                     onCreateMission = { onCreateMission(quest) },
                     onEditQuest = { title, description -> onEditQuest(quest, title, description) },
                     onDeleteQuest = { onDeleteQuest(quest) },
+                    onCarryToCurrentArc = if (!quest.isDeleted &&
+                        com.romankozak.forwardappmobile.data.planning.strategic.isHistoricalStrategicArc(quest.arcKey, YearMonth.now().toString())
+                    ) { { onCarryToCurrentArc(quest) } } else null,
                     dragHandleModifier =
                         with(this@ReorderableItem) {
                             Modifier.longPressDraggableHandle(
@@ -716,323 +580,6 @@ private fun ArcQuestList(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ArcQuestBeaconPickerDialog(
-    beacons: List<MainBeaconWithRelations>,
-    usedSourceIds: Set<String>,
-    onDismiss: () -> Unit,
-    onSelected: (String) -> Unit,
-) {
-    var query by remember { mutableStateOf("") }
-    val filteredBeacons =
-        remember(beacons, query) {
-            val normalizedQuery = query.trim()
-            if (normalizedQuery.isBlank()) {
-                beacons
-            } else {
-                beacons.filter { item ->
-                    item.beacon.title.contains(normalizedQuery, ignoreCase = true) ||
-                        item.beacon.description.orEmpty().contains(normalizedQuery, ignoreCase = true)
-                }
-            }
-        }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Додати орієнтир як ArcQuest") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Пошук орієнтирів") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (beacons.isEmpty()) {
-                    Text(
-                        text = "Орієнтирів немає",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else if (filteredBeacons.isEmpty()) {
-                    Text(
-                        text = "Нічого не знайдено",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    LazyColumn(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 420.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        itemsIndexed(filteredBeacons, key = { _, item -> item.beacon.id }) { _, item ->
-                            val beacon = item.beacon
-                            val alreadyAdded = beacon.id in usedSourceIds
-                            PickerOptionRow(
-                                title = beacon.title,
-                                subtitle = if (alreadyAdded) "Уже є в квестах арки" else beacon.description,
-                                enabled = !alreadyAdded,
-                                onClick = { onSelected(beacon.id) },
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Закрити")
-            }
-        },
-    )
-}
-
-@Composable
-private fun ArcQuestBeaconGroupPickerDialog(
-    groups: List<MainBeaconGroup>,
-    usedSourceIds: Set<String>,
-    onDismiss: () -> Unit,
-    onSelected: (String) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Додати групу орієнтирів як ArcQuest") },
-        text = {
-            if (groups.isEmpty()) {
-                Text(
-                    text = "Груп орієнтирів немає",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                LazyColumn(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 420.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    itemsIndexed(groups, key = { _, group -> group.id }) { _, group ->
-                        val alreadyAdded = group.id in usedSourceIds
-                        PickerOptionRow(
-                            title = group.title,
-                            subtitle = if (alreadyAdded) "Уже є в квестах арки" else group.description,
-                            enabled = !alreadyAdded,
-                            onClick = { onSelected(group.id) },
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Закрити")
-            }
-        },
-    )
-}
-
-@Composable
-private fun PickerOptionRow(
-    title: String,
-    subtitle: String?,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    val contentColor =
-        if (enabled) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
-        }
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onClick),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = contentColor,
-            ),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = contentColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ArcQuestCard(
-    quest: ArcQuestEntity,
-    contextName: String?,
-    onQuestClick: () -> Unit,
-    onOpenContext: (String) -> Unit,
-    onCreateMission: () -> Unit,
-    onEditQuest: (String, String?) -> Unit,
-    onDeleteQuest: () -> Unit,
-    dragHandleModifier: Modifier,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    var editVisible by remember { mutableStateOf(false) }
-    var editTitle by remember(quest.id, quest.title) { mutableStateOf(quest.title) }
-    var editDescription by remember(quest.id, quest.description) { mutableStateOf(quest.description.orEmpty()) }
-    val linkedContextId = quest.linkedContextId
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onQuestClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.RocketLaunch,
-                contentDescription = "ArcQuest",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = dragHandleModifier.size(28.dp),
-            )
-            Spacer(modifier = Modifier.size(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = quest.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!quest.description.isNullOrBlank()) {
-                    Text(
-                        text = quest.description.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (!contextName.isNullOrBlank()) {
-                    Text(
-                        text = contextName,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "ArcQuest actions")
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Редагувати") },
-                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            editVisible = true
-                        },
-                    )
-                    if (linkedContextId != null) {
-                        DropdownMenuItem(
-                            text = { Text("Відкрити контекст") },
-                            leadingIcon = { Icon(Icons.Outlined.OpenInNew, contentDescription = null) },
-                            onClick = {
-                                menuExpanded = false
-                                onOpenContext(linkedContextId)
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Створити місію") },
-                        leadingIcon = { Icon(Icons.Outlined.RocketLaunch, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onCreateMission()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Видалити") },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onDeleteQuest()
-                        },
-                    )
-                }
-            }
-        }
-    }
-
-    if (editVisible) {
-        AlertDialog(
-            onDismissRequest = { editVisible = false },
-            title = { Text("Редагувати ArcQuest") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = editTitle,
-                        onValueChange = { editTitle = it },
-                        label = { Text("Назва") },
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = editDescription,
-                        onValueChange = { editDescription = it },
-                        label = { Text("Опис") },
-                        minLines = 3,
-                    )
-                    com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
-                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onEditQuest(editTitle, editDescription)
-                        editVisible = false
-                    },
-                ) {
-                    Text("Зберегти")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editVisible = false }) {
-                    Text("Скасувати")
-                }
-            },
-        )
     }
 }
 

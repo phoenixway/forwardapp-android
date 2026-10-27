@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ProjectsScreen
@@ -72,13 +73,11 @@ fun WorkspaceDestinationScreen(
                 workspacePresentationOverride = current.toContextPresentation(),
                 canonicalWorkspaceId = current.workspaceId,
                 onSemanticBootstrap = { bootstrap.open(current.title, current.description) },
-                linkedSemanticContent = {
-                    WorkspaceLinkedSemanticsSection(
-                        onOpen = { navigationManager.navigate(it) },
-                    )
-                },
                 dashboardSemanticContent = {
-                    WorkspaceDashboardSemanticsCard(onOpen = { navigationManager.navigate(it) })
+                    WorkspaceEntityNavigationHub(
+                        onOpen = { navigationManager.navigate(it) },
+                        onShowRelations = { operationalViewModel.onProjectViewChange(ContextViewMode.RELATIONS) },
+                    )
                 },
             )
         }

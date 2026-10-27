@@ -22,6 +22,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 data class CanonicalCapabilityInstanceSpec(
     val type: WorkspaceCapabilityType,
@@ -55,6 +56,11 @@ class CanonicalCapabilityInstanceStore
         private val workspaceDao: WorkspaceDao,
         private val orientationDao: OrientationDao,
     ) {
+        internal suspend fun hasLiveWorkspace(workspaceId: String): Boolean = workspaceDao.getById(workspaceId)?.isDeleted == false
+
+        internal fun observeLiveWorkspace(workspaceId: String): Flow<Boolean> =
+            workspaceDao.observeById(workspaceId).map { it?.isDeleted == false }
+
         internal suspend fun loadReadSnapshot(): CanonicalCapabilityReadSnapshot =
             CanonicalCapabilityReadSnapshot(
                 workspacesById = workspaceDao.getAll().associateBy { it.id },

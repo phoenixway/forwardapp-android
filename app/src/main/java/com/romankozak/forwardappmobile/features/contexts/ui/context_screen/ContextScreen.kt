@@ -47,6 +47,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBarActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBarState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.WorkspaceScreenHeader
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
@@ -285,27 +286,30 @@ private fun ProjectScaffold(
         }
     }
 
+    if (!isWorkspaceViewReady(uiState, sessionState.currentView)) {
+        WorkspaceViewLoading()
+        return
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = animatedBackgroundColor,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 with(sharedTransitionScope) {
-                    Card(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    scaleX = glow
-                                    scaleY = glow
-                                },
-                        shape = RoundedCornerShape(0.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
+                    WorkspaceScreenHeader(
+                        dashboard = canonicalWorkspaceId != null && uiState.currentViewMode == ContextViewMode.DASHBOARD && !uiState.isSelectionModeActive,
+                        title = displayedProjectPresentation?.name.orEmpty().ifBlank { WorkspaceSurfaceCopy.TITLE },
+                        glow = glow,
+                        onBack = { if (!viewModel.onBackPressed()) navController.popBackStack() },
+                        onOpenProperties = {
+                            navigationManager.navigate(
+                                workspacePropertiesDestination(canonicalWorkspaceId, projectPresentation?.id ?: project?.id),
+                            )
+                        },
+                        normalLinks = linkedSemanticContent.takeIf { sessionState.currentView != ContextViewMode.RELATIONS },
                     ) {
-                        Column {
                             AdaptiveTopBar(
                                 state =
                                     AdaptiveTopBarState(
@@ -362,11 +366,6 @@ private fun ProjectScaffold(
                                 windowInsets = WindowInsets.statusBars,
                             )
 
-                            // Canonical Workspace read-only semantic navigation.
-                            linkedSemanticContent?.invoke()
-
-                            // Action panel removed to avoid duplicating ModernInputPanel controls.
-                        }
                     }
                 }
             },
@@ -551,6 +550,22 @@ private fun ProjectBottomBar(
     var showContextPicker by remember { mutableStateOf(false) }
     var showDocumentsDialog by remember { mutableStateOf(false) }
     var showTargetDeleteConfirmation by remember { mutableStateOf(false) }
+    var showWorkspaceOccurrences by remember(canonicalWorkspaceId) { mutableStateOf(false) }
+    var showSendTo by remember(canonicalWorkspaceId) { mutableStateOf(false) }
+    if (showSendTo) {
+        com.romankozak.forwardappmobile.features.workspace.WorkspaceSendToDialog(
+            workspaceId = canonicalWorkspaceId.orEmpty(), onDismiss = { showSendTo = false },
+        )
+    }
+    if (showWorkspaceOccurrences && canonicalWorkspaceId != null) {
+        com.romankozak.forwardappmobile.features.workspace.WorkspaceOccurrencesDialog(
+            onDismiss = { showWorkspaceOccurrences = false },
+            onOpen = { target ->
+                showWorkspaceOccurrences = false
+                navigationManager.navigate(target)
+            },
+        )
+    }
     val capabilityViewActions =
         remember(sessionState.currentView, sessionState.enabledCapabilities) {
             viewModel.getAvailableCapabilityViewActions(
@@ -600,14 +615,15 @@ private fun ProjectBottomBar(
                 },
                 onAddNestedProjectClick = { showContextPicker = true },
                 onShowCurrentContextInHierarchyFocus = {
-                    val contextIdToReveal = projectId ?: return@ModernInputPanel
-                    navigationManager.navigate(
-                        target = NavTarget.ContextHierarchy(projectIdToReveal = contextIdToReveal),
-                        builder = {
-                            launchSingleTop = true
-                            restoreState = true
-                        },
-                    )
+                    if (canonicalWorkspaceId != null) {
+                        showWorkspaceOccurrences = true
+                    } else {
+                        val contextIdToReveal = projectId ?: return@ModernInputPanel
+                        navigationManager.navigate(
+                            target = NavTarget.ContextHierarchy(projectIdToReveal = contextIdToReveal),
+                            builder = { launchSingleTop = true; restoreState = true },
+                        )
+                    }
                 },
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,
@@ -656,7 +672,7 @@ private fun ProjectBottomBar(
                         .imePadding(),
                 onToggleProjectManagement = viewModel::onToggleProjectManagement,
                 onExportProjectState = viewModel::onExportProjectStateRequest,
-                onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
+                onAddProjectToDayPlan = { showSendTo = true },
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,

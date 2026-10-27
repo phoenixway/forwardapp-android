@@ -27,6 +27,8 @@ enum class OrientationKind {
     DAY_THEME,
     /** Compatibility vocabulary for pre-QUEST-authority rows and payloads. */
     ARC_QUEST,
+    /** A bounded undertaking intended to reach a recognizable completed state. */
+    PROJECT,
 }
 
 @JsExport

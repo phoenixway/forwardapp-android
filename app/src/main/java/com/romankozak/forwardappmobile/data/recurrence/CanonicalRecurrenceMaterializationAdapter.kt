@@ -9,6 +9,8 @@ import com.romankozak.forwardappmobile.shared.core.domain.recurrence.planRecurri
 import com.romankozak.forwardappmobile.shared.core.models.day.CanonicalDayDatabase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,6 +30,10 @@ class CanonicalRecurrenceMaterializationAdapter
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val planningSources: RecurrencePlanningSourceBridge,
     ) {
+        /** Rule edits/imports can prepare an open Day without treating task/metric writes as rule edits. */
+        fun observeRuleChanges(): Flow<Unit> = appDatabase.invalidationTracker
+            .createFlow("canonical_recurring_series", emitInitialState = false).map { Unit }
+
         suspend fun materializeForDate(
             date: Long,
             now: Long = System.currentTimeMillis(),

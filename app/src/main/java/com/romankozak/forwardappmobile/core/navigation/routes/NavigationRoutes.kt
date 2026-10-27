@@ -59,10 +59,12 @@ object NavigationRoutes {
     const val ARG_START_TAB = "startTab"
     const val ARG_FILE_URI = "fileUri"
     const val ARG_PROJECT_ID_TO_REVEAL = "projectIdToReveal"
+    const val ARG_PLACEMENT_ID_TO_REVEAL = "placementIdToReveal"
 
     const val SELECTIVE_IMPORT_PATTERN = "$SELECTIVE_IMPORT?$ARG_FILE_URI={$ARG_FILE_URI}"
     const val PLACEHOLDER_PATTERN = "$PLACEHOLDER/{viewId}/{screenId}"
-    const val GOAL_LISTS_PATTERN = "$GOAL_LISTS?$ARG_PROJECT_ID_TO_REVEAL={$ARG_PROJECT_ID_TO_REVEAL}"
+    const val GOAL_LISTS_PATTERN = "$GOAL_LISTS?$ARG_PROJECT_ID_TO_REVEAL={$ARG_PROJECT_ID_TO_REVEAL}" +
+        "&$ARG_PLACEMENT_ID_TO_REVEAL={$ARG_PLACEMENT_ID_TO_REVEAL}"
     const val CONTEXT_DETAIL_PATTERN =
         "$CONTEXT_DETAIL/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}" +
             "&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}" +
@@ -103,10 +105,13 @@ object NavigationRoutes {
                 ),
             )
 
-    fun goalLists(projectIdToReveal: String? = null): String =
+    fun goalLists(projectIdToReveal: String? = null, placementIdToReveal: String? = null): String =
         GOAL_LISTS +
             queryOf(
-                listOf(ARG_PROJECT_ID_TO_REVEAL to projectIdToReveal),
+                listOf(
+                    ARG_PROJECT_ID_TO_REVEAL to projectIdToReveal?.let { URLEncoder.encode(it, "UTF-8") },
+                    ARG_PLACEMENT_ID_TO_REVEAL to placementIdToReveal?.let { URLEncoder.encode(it, "UTF-8") },
+                ),
             )
 
     fun legacyNote(

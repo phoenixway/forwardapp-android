@@ -28,8 +28,8 @@ data class BigPictureSourceDeleteTarget(val ref: CanonicalEntityRef, val title: 
     val actionLabel: String get() = "Видалити $classLabel…"
     val confirmationTitle: String get() = "Видалити $classLabel «$title»?"
     val confirmationText: String get() = if (ref is CanonicalEntityRef.Workspace)
-        "Буде видалено сам робочий простір та належні йому операційні дані. Усі його появи в Big Picture також зникнуть. Пов’язані семантичні сутності не видаляються."
-    else "Буде видалено саму семантичну сутність ($classLabel). Усі її появи в Big Picture також зникнуть. Пов’язані робочі простори та інші сутності не видаляються."
+        "Буде видалено сам робочий простір та належні йому операційні дані. Усі його появи в Navigation також зникнуть. Пов’язані семантичні сутності не видаляються."
+    else "Буде видалено саму семантичну сутність ($classLabel). Усі її появи в Navigation також зникнуть. Пов’язані робочі простори та інші сутності не видаляються."
 }
 
 /** Read-only capability resolution. Lifecycle commands revalidate the captured version. */

@@ -74,6 +74,9 @@ internal fun BigPictureNodeMenu(
     enabled: Boolean,
     onCut: (H1TypedNode) -> Unit,
     onRemove: (H1TypedNode) -> Unit,
+    onRemoveSubtree: (H1TypedNode.Occurrence) -> Unit = {},
+    hasChildren: Boolean = false,
+    onRename: (() -> Unit)? = null,
     onOpen: (() -> Unit)? = null,
     openLabel: String = "Відкрити редактор",
     sourceDeleteTarget: BigPictureSourceDeleteTarget? = null,
@@ -82,12 +85,16 @@ internal fun BigPictureNodeMenu(
     semanticOpenLabel: String = "Відкрити семантичну сутність",
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var confirm by remember { mutableStateOf(false) }
+    var removal by remember(node) { mutableStateOf<BigPictureRemovalConfirmation?>(null) }
     val sourceAction = sourceDeleteMenuTarget(node, sourceDeleteTarget)
     IconButton(enabled = enabled || onOpen != null, onClick = { expanded = true }) {
         Icon(Icons.Default.MoreVert, "Дії розміщення")
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        if (onRename != null) {
+            DropdownMenuItem(text = { Text("Перейменувати") }, enabled = enabled,
+                onClick = { expanded = false; onRename() })
+        }
         onOpen?.let { open ->
             DropdownMenuItem(text = { Text(openLabel) }, onClick = { expanded = false; open() })
         }
@@ -95,19 +102,26 @@ internal fun BigPictureNodeMenu(
             DropdownMenuItem(text = { Text(semanticOpenLabel) }, onClick = { expanded = false; open() })
         }
         DropdownMenuItem(text = { Text("Вирізати / перемістити") }, enabled = enabled, onClick = { expanded = false; onCut(node) })
-        DropdownMenuItem(text = { Text("Прибрати з Big Picture") }, enabled = enabled, onClick = { expanded = false; confirm = true })
+        DropdownMenuItem(text = { Text("Прибрати з Navigation") }, enabled = enabled, onClick = {
+            expanded = false
+            removal = bigPictureRemovalConfirmation(node, hasChildren)
+        })
         if (sourceAction != null && onDeleteSource != null) {
             DropdownMenuItem(text = { Text(sourceAction.actionLabel, color = MaterialTheme.colorScheme.error) },
                 enabled = enabled, onClick = { expanded = false; onDeleteSource(sourceAction) })
         }
     }
-    if (confirm) AlertDialog(
-        onDismissRequest = { confirm = false },
-        title = { Text("Прибрати з Big Picture?") },
-        text = { Text(if (node is H1TypedNode.Container)
-            "Секцію буде прибрано, її дочірні елементи залишаться рівнем вище. Сутності не видаляються."
-            else "Буде прибрано лише це розміщення. Сутність та інші її розміщення залишаться. Спочатку перемістіть дочірні елементи, якщо вони є.") },
-        confirmButton = { TextButton(enabled = enabled, onClick = { confirm = false; onRemove(node) }) { Text("Прибрати") } },
-        dismissButton = { TextButton(onClick = { confirm = false }) { Text("Скасувати") } },
-    )
+    removal?.let { confirmation ->
+        AlertDialog(
+            onDismissRequest = { removal = null },
+            title = { Text(confirmation.title) },
+            text = { Text(confirmation.message) },
+            confirmButton = { TextButton(enabled = enabled, onClick = {
+                removal = null
+                if (confirmation.recursive) onRemoveSubtree(node as H1TypedNode.Occurrence)
+                else onRemove(node)
+            }) { Text(confirmation.confirmLabel) } },
+            dismissButton = { TextButton(onClick = { removal = null }) { Text("Скасувати") } },
+        )
+    }
 }
