@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
@@ -39,6 +40,8 @@ class NavigationActions(
         data class OpenUri(val uri: String) : OpenObsidianNoteResult()
 
         data object VaultNotConfigured : OpenObsidianNoteResult()
+
+        data object InvalidAddress : OpenObsidianNoteResult()
     }
 
     sealed class LinkItemClickResult {
@@ -87,6 +90,7 @@ class NavigationActions(
                     is HandleLinkClickResult.ExistingLink -> RouteOutcome.HandleExistingLink(linkResult.link)
                     is HandleLinkClickResult.OpenObsidianNote -> {
                         when (val noteResult = resolveObsidianNoteOpen(linkResult.noteTarget)) {
+                            OpenObsidianNoteResult.InvalidAddress -> RouteOutcome.ShowMessage("Некоректне посилання на Obsidian нотатку")
                             is OpenObsidianNoteResult.OpenUri -> RouteOutcome.OpenUri(noteResult.uri)
                             is OpenObsidianNoteResult.VaultNotConfigured ->
                                 RouteOutcome.ShowMessage(
@@ -141,12 +145,12 @@ class NavigationActions(
         return GoalDetailNavigation(contextId = contextId, contextName = contextName)
     }
 
-    suspend fun resolveObsidianNoteOpen(noteTarget: String): OpenObsidianNoteResult {
-        val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-        if (vaultName.isBlank()) return OpenObsidianNoteResult.VaultNotConfigured
-        val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
-        val encodedNoteName = URLEncoder.encode(noteTarget, "UTF-8")
-        return OpenObsidianNoteResult.OpenUri("obsidian://open?vault=$encodedVault&file=$encodedNoteName")
+    suspend fun resolveObsidianNoteOpen(noteTarget: String, vault: String? = null): OpenObsidianNoteResult {
+        val address = runCatching { ObsidianNoteAddress.parse(noteTarget, vault) }.getOrNull()
+            ?: return OpenObsidianNoteResult.InvalidAddress
+        val uri = address.openUri(null) ?: address.openUri(settingsRepository.obsidianVaultNameFlow.first())
+            ?: return OpenObsidianNoteResult.VaultNotConfigured
+        return OpenObsidianNoteResult.OpenUri(uri)
     }
 
     suspend fun resolveLinkItemClick(link: RelatedLink): LinkItemClickResult {
@@ -160,7 +164,8 @@ class NavigationActions(
 
             com.romankozak.forwardappmobile.core.data.models.entities.LinkType.OBSIDIAN -> {
                 recentItemsRepository.logObsidianLinkAccess(link)
-                when (val noteResult = resolveObsidianNoteOpen(link.target)) {
+                when (val noteResult = resolveObsidianNoteOpen(link.target, link.vault)) {
+                    OpenObsidianNoteResult.InvalidAddress -> LinkItemClickResult.DelegateToUi(link)
                     is OpenObsidianNoteResult.OpenUri -> LinkItemClickResult.OpenUri(noteResult.uri)
                     is OpenObsidianNoteResult.VaultNotConfigured -> LinkItemClickResult.VaultNotConfigured
                 }

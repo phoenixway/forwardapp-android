@@ -249,13 +249,13 @@ private fun DateSelectionDialog(
     onDismiss: () -> Unit,
     onDateSelected: (Long) -> Unit,
 ) {
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = localDateToPickerMillis(selectedDate))
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                datePickerState.selectedDateMillis?.let(onDateSelected)
+                datePickerState.selectedDateMillis?.let { onDateSelected(pickerMillisToLocalDate(it)) }
                 onDismiss()
             }) {
                 Text("OK")

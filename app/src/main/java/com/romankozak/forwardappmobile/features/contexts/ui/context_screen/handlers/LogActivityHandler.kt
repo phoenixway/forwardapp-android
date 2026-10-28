@@ -31,9 +31,17 @@ class LogActivityHandler
             log: ContextLog,
             description: String,
             details: String?,
+            timestamp: Long = log.timestamp,
         ) = scope.launch {
-            contextLogRepository.updateContextExecutionLog(log.copy(description = description, details = details))
-            onDismissEditLogEntryDialog()
+            try {
+                contextLogRepository.updateContextExecutionLog(log.copy(description = description, details = details, timestamp = timestamp))
+                onDismissEditLogEntryDialog()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.e("WorkspaceLog", "Failed to update entry", error)
+                onError("Не вдалося зберегти запис логу.")
+            }
         }
 
         fun onStartTrackingCurrentProject(id: String) = scope.launch { activityManager.startActivity(id) }

@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
-import java.net.URLEncoder
+import com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress
 
 fun handleRelatedLinkClick(
     link: RelatedLink,
@@ -38,11 +38,8 @@ fun handleRelatedLinkClick(
                 navController.navigate("music_note_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {
-                val vaultName = link.vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
-                if (vaultName != null) {
-                    val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
-                    val encodedFile = URLEncoder.encode(link.target, "UTF-8")
-                    val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
+                val obsidianUri = ObsidianNoteAddress.parse(link.target, link.vault).openUri(globalObsidianVaultName)
+                if (obsidianUri != null) {
                     val intent = Intent(Intent.ACTION_VIEW, obsidianUri.toUri())
                     context.startActivity(intent)
                 } else {

@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
@@ -32,6 +34,7 @@ internal fun ArcQuestCard(
     dragHandleModifier: Modifier,
     references: List<PlanningReferencePresentation> = emptyList(),
     onOpenReference: (CanonicalEntityRef) -> Unit = {},
+    isDragging: Boolean = false,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var editVisible by remember { mutableStateOf(false) }
@@ -39,116 +42,123 @@ internal fun ArcQuestCard(
     var editDescription by remember(quest.id, quest.description) { mutableStateOf(quest.description.orEmpty()) }
     val linkedContextId = quest.linkedContextId
 
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onQuestClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Column {
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onQuestClick),
+            color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shadowElevation = if (isDragging) 8.dp else 0.dp,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.RocketLaunch,
-                contentDescription = "ArcQuest",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = dragHandleModifier.size(28.dp),
-            )
-            Spacer(modifier = Modifier.size(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = quest.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!quest.description.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(modifier = dragHandleModifier.size(34.dp), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.RocketLaunch,
+                        contentDescription = "ArcQuest",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Column(modifier = Modifier.weight(1f).padding(top = 5.dp)) {
                     Text(
-                        text = quest.description.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        text = quest.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(450)),
+                        maxLines = 4,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-                if (references.isNotEmpty() || !contextName.isNullOrBlank()) {
-                    UnifiedStatusRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                        references.forEach { reference ->
-                            UnifiedMetaChip(
-                                text = reference.questBadgeLabel(),
-                                icon = Icons.Outlined.Link,
-                                onClick = { onOpenReference(reference.entity.ref) },
-                            )
-                        }
-                        if (!contextName.isNullOrBlank()) {
-                            UnifiedMetaChip(
-                                text = contextName,
-                                icon = Icons.Outlined.Link,
-                                onClick = linkedContextId?.let { id -> { onOpenContext(id) } },
-                            )
+                    if (!quest.description.isNullOrBlank()) {
+                        Text(
+                            text = quest.description.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (references.isNotEmpty() || !contextName.isNullOrBlank()) {
+                        UnifiedStatusRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                            references.forEach { reference ->
+                                UnifiedMetaChip(
+                                    text = reference.questBadgeLabel(),
+                                    icon = Icons.Outlined.Link,
+                                    onClick = { onOpenReference(reference.entity.ref) },
+                                )
+                            }
+                            if (!contextName.isNullOrBlank()) {
+                                UnifiedMetaChip(
+                                    text = contextName,
+                                    icon = Icons.Outlined.Link,
+                                    onClick = linkedContextId?.let { id -> { onOpenContext(id) } },
+                                )
+                            }
                         }
                     }
                 }
-            }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "ArcQuest actions")
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
-                ) {
-                    if (onCarryToCurrentArc != null) {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(34.dp)) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "ArcQuest actions",
+                            modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
+                    ) {
+                        if (onCarryToCurrentArc != null) {
+                            DropdownMenuItem(
+                                text = { Text("В поточну арку") },
+                                leadingIcon = { Icon(Icons.Outlined.ArrowForward, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onCarryToCurrentArc()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
-                            text = { Text("В поточну арку") },
-                            leadingIcon = { Icon(Icons.Outlined.ArrowForward, contentDescription = null) },
+                            text = { Text("Редагувати") },
+                            leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
-                                onCarryToCurrentArc()
+                                editVisible = true
+                            },
+                        )
+                        if (linkedContextId != null) {
+                            DropdownMenuItem(
+                                text = { Text("Відкрити контекст") },
+                                leadingIcon = { Icon(Icons.Outlined.OpenInNew, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onOpenContext(linkedContextId)
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Створити місію") },
+                            leadingIcon = { Icon(Icons.Outlined.RocketLaunch, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onCreateMission()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Видалити") },
+                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onDeleteQuest()
                             },
                         )
                     }
-                    DropdownMenuItem(
-                        text = { Text("Редагувати") },
-                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            editVisible = true
-                        },
-                    )
-                    if (linkedContextId != null) {
-                        DropdownMenuItem(
-                            text = { Text("Відкрити контекст") },
-                            leadingIcon = { Icon(Icons.Outlined.OpenInNew, contentDescription = null) },
-                            onClick = {
-                                menuExpanded = false
-                                onOpenContext(linkedContextId)
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Створити місію") },
-                        leadingIcon = { Icon(Icons.Outlined.RocketLaunch, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onCreateMission()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Видалити") },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onDeleteQuest()
-                        },
-                    )
                 }
             }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     }
 
     if (editVisible) {

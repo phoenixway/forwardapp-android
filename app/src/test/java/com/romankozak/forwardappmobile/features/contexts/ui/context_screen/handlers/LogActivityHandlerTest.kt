@@ -18,6 +18,30 @@ import org.robolectric.RobolectricTestRunner
 class LogActivityHandlerTest {
     private val repository = mockk<ContextLogRepository>(relaxed = true)
 
+    @Test fun `editing timestamp delegates exact log identity and dismisses only after successful write`() = runTest {
+        val state = state(backgroundScope)
+        val log = com.romankozak.forwardappmobile.core.data.models.entities.ContextLog("entry", 100, "COMMENT", "Old", workspaceId = "workspace")
+        state.updateState { it.copy(logEntryToEdit = log) }
+        val handler = LogActivityHandler(repository, mockk(relaxed = true), state, backgroundScope, true) { fail(it) }
+        handler.onUpdateLogEntry(log, "New", "Notes", 50)
+        runCurrent()
+        coVerify(exactly = 1) { repository.updateContextExecutionLog(log.copy(timestamp = 50, description = "New", details = "Notes")) }
+        assertNull(state.uiState.value.logEntryToEdit)
+    }
+
+    @Test fun `rejected timestamp edit retains properties and reports error without crashing`() = runTest {
+        val state = state(backgroundScope)
+        val log = com.romankozak.forwardappmobile.core.data.models.entities.ContextLog("entry", 100, "COMMENT", "Old", workspaceId = "workspace")
+        state.updateState { it.copy(logEntryToEdit = log) }
+        coEvery { repository.updateContextExecutionLog(any()) } throws IllegalArgumentException("Disabled")
+        var errors = 0
+        val handler = LogActivityHandler(repository, mockk(relaxed = true), state, backgroundScope, true) { errors++ }
+        handler.onUpdateLogEntry(log, "New", null, 50)
+        runCurrent()
+        assertEquals(log, state.uiState.value.logEntryToEdit)
+        assertEquals(1, errors)
+    }
+
     @Test fun `standalone Workspace comment and milestone use exact canonical owner without Context adapter`() = runTest {
         val handler = LogActivityHandler(repository, mockk(relaxed = true), ContextStateManager(backgroundScope), backgroundScope, true) { fail(it) }
         handler.addProjectComment("entry", "workspace")

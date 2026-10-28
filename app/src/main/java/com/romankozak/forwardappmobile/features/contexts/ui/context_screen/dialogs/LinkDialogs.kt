@@ -18,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress
+import com.romankozak.forwardappmobile.features.attachments.ui.ObsidianAddressFields
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun AddWebLinkDialog(
@@ -69,40 +72,29 @@ fun AddObsidianLinkDialog(
     onConfirm: (noteName: String, vault: String?) -> Unit,
     onCreateNew: (noteName: String, vault: String?) -> Unit,
 ) {
-    var noteName by remember { mutableStateOf("") }
-    var vault by remember { mutableStateOf("") }
+    var noteName by rememberSaveable { mutableStateOf("") }
+    var vault by rememberSaveable { mutableStateOf("") }
+    val address = runCatching { ObsidianNoteAddress.parse(noteName, vault) }.getOrNull()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.menu_add_obsidian_link)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = noteName,
-                    onValueChange = { noteName = it },
-                    label = { Text(stringResource(R.string.note_name)) },
-                )
-                OutlinedTextField(
-                    value = vault,
-                    onValueChange = { vault = it },
-                    label = { Text("Vault (optional)") },
-                    placeholder = { Text("Falls back to Settings vault") },
-                )
-            }
+            ObsidianAddressFields(noteName, vault, { noteName = it }, { vault = it })
         },
         confirmButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(
-                    onClick = { onCreateNew(noteName, vault.takeIf { it.isNotBlank() }) },
-                    enabled = noteName.isNotBlank(),
+                    onClick = { address?.let { onCreateNew(it.target, it.vault) } },
+                    enabled = address != null && address.openUrl == null,
                 ) {
                     Text("Створити та додати")
                 }
                 TextButton(
-                    onClick = { onConfirm(noteName, vault.takeIf { it.isNotBlank() }) },
-                    enabled = noteName.isNotBlank(),
+                    onClick = { address?.let { onConfirm(it.target, it.vault) } },
+                    enabled = address != null,
                 ) {
                     Text(stringResource(R.string.add))
                 }

@@ -3,10 +3,10 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
 
 class RecentItemActions(
     private val settingsRepository: SettingsRepository,
@@ -45,12 +45,13 @@ class RecentItemActions(
             RecentItemType.CHECKLIST -> Result.Navigate(NavTarget.Checklist(id = item.target))
             RecentItemType.MUSIC_NOTE -> Result.Navigate(NavTarget.MusicNote(id = item.target))
             RecentItemType.OBSIDIAN_LINK -> {
-                val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-                if (vaultName.isBlank()) {
+                val address = runCatching { ObsidianNoteAddress.parse(item.target) }.getOrNull()
+                    ?: return Result.ShowMessage("Некоректна адреса Obsidian нотатки")
+                val uri = address.openUri(null) ?: address.openUri(settingsRepository.obsidianVaultNameFlow.first())
+                if (uri == null) {
                     Result.ShowMessage("Obsidian vault name is not configured.")
                 } else {
-                    val encodedNoteName = URLEncoder.encode(item.target, "UTF-8")
-                    Result.OpenUri("obsidian://open?vault=$vaultName&file=$encodedNoteName")
+                    Result.OpenUri(uri)
                 }
             }
         }

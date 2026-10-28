@@ -554,12 +554,12 @@ private fun ArcQuestList(
     LazyColumn(
         state = lazyListState,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         itemsIndexed(internalQuests, key = { _, quest -> quest.id }) { _, quest ->
-            ReorderableItem(reorderableState, key = quest.id) {
+            ReorderableItem(reorderableState, key = quest.id) { isDragging ->
                 ArcQuestCard(
                     quest = quest,
+                    isDragging = isDragging,
                     references = questReferences[quest.id].orEmpty(),
                     onOpenReference = referencesModel::open,
                     contextName = quest.linkedContextId?.let(contextNames::get),

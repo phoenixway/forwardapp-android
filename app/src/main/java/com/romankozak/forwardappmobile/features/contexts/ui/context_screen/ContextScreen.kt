@@ -272,8 +272,8 @@ private fun ProjectScaffold(
         EditLogEntryDialog(
             logEntry = logEntry,
             onDismiss = viewModel::onDismissEditLogEntryDialog,
-            onConfirm = { description, details ->
-                viewModel.onUpdateLogEntry(description, details)
+            onConfirm = { description, details, timestamp ->
+                viewModel.onUpdateLogEntry(description, details, timestamp)
             },
         )
     }

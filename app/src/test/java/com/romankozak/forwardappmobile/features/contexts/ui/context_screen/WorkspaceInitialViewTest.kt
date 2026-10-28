@@ -6,21 +6,87 @@ import com.romankozak.forwardappmobile.core.capability.CapabilitySet
 import com.romankozak.forwardappmobile.core.context.*
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.workspace.ContextPresentation
 import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextDataApplyActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.*
 import io.mockk.mockk
+import io.mockk.coEvery
+import io.mockk.coVerify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkspaceInitialViewTest {
+    @Test fun `Recents invalidation cannot feed back into repeated Workspace access writes`() = runTest {
+        val state = ContextStateManager(this)
+        val recents = mockk<RecentItemsRepository>()
+        lateinit var actions: ContextDataApplyActions
+        var writes = 0
+        var applied = 0
+        coEvery { recents.logProjectAccess("w", "Workspace") } coAnswers {
+            writes++
+            // Bound a broken implementation too, so regression failure cannot hang the suite.
+            if (writes < 12) actions.applyLoaded(data("w").copy(recentItems = listOf(
+                RecentItem(id = "w", type = RecentItemType.PROJECT, lastAccessed = writes.toLong(), displayName = "Workspace", target = "w")
+            )), { applied++ }, {})
+        }
+        actions = ContextDataApplyActions(state, store(), recents, this)
+        actions.applyLoaded(data("w"), { applied++ }, {})
+        runCurrent()
+        assertThat(writes).isEqualTo(1)
+        assertThat(applied).isEqualTo(2)
+        coVerify(exactly = 1) { recents.logProjectAccess("w", "Workspace") }
+    }
+
+    @Test fun `pending Recents write does not queue more writes or block applying fresh content`() = runTest {
+        val recents = mockk<RecentItemsRepository>()
+        val release = CompletableDeferred<Unit>()
+        coEvery { recents.logProjectAccess(any(), any()) } coAnswers { release.await() }
+        val actions = ContextDataApplyActions(ContextStateManager(this), store(), recents, this)
+        var applied = 0
+        actions.applyLoaded(data("w"), { applied++ }, {})
+        runCurrent()
+        repeat(100) { actions.applyLoaded(data("w"), { applied++ }, {}) }
+        runCurrent()
+        assertThat(applied).isEqualTo(101)
+        coVerify(exactly = 1) { recents.logProjectAccess("w", "Workspace") }
+        release.complete(Unit)
+    }
+
+    @Test fun `Workspace rename updates recent title once without repeating on subsequent emissions`() = runTest {
+        val recents = mockk<RecentItemsRepository>(relaxed = true)
+        val actions = ContextDataApplyActions(ContextStateManager(this), store(), recents, this)
+        val initial = data("w")
+        val renamed = initial.copy(presentation = initial.presentation!!.copy(name = "Renamed"))
+        actions.applyLoaded(initial, {}, {})
+        repeat(4) { actions.applyLoaded(renamed, {}, {}) }
+        runCurrent()
+        coVerify(exactly = 1) { recents.logProjectAccess("w", "Workspace") }
+        coVerify(exactly = 1) { recents.logProjectAccess("w", "Renamed") }
+    }
+
+    @Test fun `switching and reopening Workspace still records a real visit`() = runTest {
+        val recents = mockk<RecentItemsRepository>(relaxed = true)
+        val actions = ContextDataApplyActions(ContextStateManager(this), store(), recents, this)
+        actions.applyLoaded(data("a"), {}, {})
+        actions.applyLoaded(data("b"), {}, {})
+        actions.applyLoaded(data("a"), {}, {})
+        actions.applyEmpty({}, {})
+        actions.applyLoaded(data("a"), {}, {})
+        runCurrent()
+        coVerify(exactly = 3) { recents.logProjectAccess("a", "Workspace") }
+        coVerify(exactly = 1) { recents.logProjectAccess("b", "Workspace") }
+    }
     private fun store() = ContextSessionStore(DefaultContextController(DefaultContextState(
         id = ContextId("initial"), features = CapabilitySet(emptySet()), views = ViewSet(emptySet(), ViewId("dashboard")),
         config = ContextConfiguration(id = "initial", contextId = "initial"))), ContextCapabilitiesResolver())

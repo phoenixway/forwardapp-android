@@ -24,6 +24,27 @@ import org.robolectric.RobolectricTestRunner
 class CanonicalExecutionLogContentRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    @Test fun `Workspace log timestamp edit persists as a versioned update and changes chronological position`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(canonicalWorkspace("workspace")))
+            val writer = repository(database)
+            writer.enable("workspace", now = 1L)
+            val first = writer.createLog("workspace", "COMMENT", "First", timestamp = 100L)
+            val second = writer.createLog("workspace", "COMMENT", "Second", timestamp = 200L)
+            val facade = ContextLogRepository(database.contextManagementDao(), ExecutionLogWorkspaceOwnershipBridge(database.workspaceDao()), writer)
+            val original = database.contextManagementDao().getLogById(first)!!
+            facade.updateContextExecutionLog(original.copy(timestamp = 300L))
+            val updated = database.contextManagementDao().getLogById(first)!!
+            assertEquals(first, updated.id)
+            assertEquals("workspace", updated.workspaceId)
+            assertEquals(300L, updated.timestamp)
+            assertEquals(original.version + 1, updated.version)
+            assertNull(updated.syncedAt)
+            assertEquals(listOf(second, first), facade.getWorkspaceLogsStream("workspace").first().sortedBy { it.timestamp }.map { it.id })
+        } finally { database.close() }
+    }
+
     @Test
     fun `Workspace UI writes and observes standalone logs without inferring legacy Context ownership`() = runBlocking {
         val database = database()

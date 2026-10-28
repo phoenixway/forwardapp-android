@@ -1,5 +1,70 @@
 # ForwardApp Project State
 
+## 2026-10-28 - Obsidian note addresses in Connections
+
+The existing attachment picker and Workspace Obsidian dialog accept a copied
+`obsidian://open` note URL, a vault-unique short note name, or a vault-relative
+path (optional `.md`). One shared address adapter validates input and builds
+open URIs; copied URLs retain their encoded file/path, vault and navigation
+parameters. Explicit note vault takes precedence over Settings; URLs need no
+global vault. Short-name uniqueness cannot be checked without vault access:
+users must use a path/URL for ambiguous names. Creating a new note by relative
+path uses Obsidian's `file` parameter, not `name`. Existing RelatedLink and
+attachment transport remain unchanged; no new persistence or vault indexing.
+HOST XML: ObsidianNoteAddressTest 7, ObsidianVaultNavigationTest 8,
+ObsidianAddressDialogUiTest 3, ObsidianDocumentDraftTest 3,
+ContextPickerAttachmentActionsTest 3: 24 PASS, zero failures/errors/skips.
+Production/test Kotlin and diff check PASS; Room 205 unchanged.
+Physical Obsidian handoff smoke pending.
+
+## 2026-10-28 - Strategic Quest row styling aligned with Tactics
+
+Quest cards use the lighter Mission-list visual language: transparent resting
+surface, soft dividers, bodyLarge/450 title, compact overflow and vertical spacing;
+dragging receives themed elevation. Quest-specific rocket drag handle, description,
+wrapping typed reference/legacy-link badges, open/edit/delete/create-Mission and
+historical carry-forward actions remain. No Mission checkbox/priority semantics
+were added; ordering/navigation/domain persistence are unchanged. HOST XML:
+StrategicArcQuestCardUiTest 4 (including constrained-width badge wrapping and
+callbacks), StrategicQuestReferencesTest 5, StrategicQuestReferenceNavigationTest 3:
+12 unique PASS across accepted runs, zero failures/errors/skips. Production/test
+Kotlin and diff check PASS. Room 205 unchanged. Physical visual/DnD smoke pending.
+
+## 2026-10-27 - Execution Log properties date/time editing
+
+Log properties expose an editable local date/time using the existing shared
+picker with past values admitted. Selection is draft-only until Save; Cancel
+writes nothing, editing text alone preserves the exact original timestamp, and
+the confirmed draft survives supported dialog restoration. Updates reuse the
+canonical execution-log writer, preserving identity/owner and bumping normal
+version/updatedAt; chronological presentation reflects the new timestamp.
+Rejected writes keep properties open and report an error. Shared DatePicker now
+converts civil dates correctly between local time and Material's UTC encoding,
+including negative offsets and DST boundaries; no stored timestamps are migrated.
+HOST XML: EditLogEntryDialogUiTest 3, DatePickerLocalDateTest 3,
+LogActivityHandlerTest 7, CanonicalExecutionLogContentRoomTest 6: 19 PASS, zero
+failures/errors/skips. Production/test Kotlin and diff check PASS. Room 205
+unchanged. Physical date/time edit, cancel and chronological-position smoke pending.
+
+## 2026-10-27 - Workspace observer / Recents feedback-loop repair
+
+Read-only phone logs confirmed repeated access writes for one idle Workspace at
+roughly 100–150 ms intervals. ContextScreenDataObserver includes recent-items
+state; every ContextDataApplyActions.applyLoaded previously wrote lastAccessed
+again, feeding another observed update and needless UI/DB work. This is a
+confirmed remaining performance defect beyond reminder parsing, affecting even
+plain Backlog quick Add. Access bookkeeping now deduplicates by active Workspace
+ID/title before launching the asynchronous write. Rename updates once; owner
+switch/reentry and cleared-screen reentry still record access. Fresh content
+continues to apply even while the one access write is pending. No canonical Goal,
+Backlog placement, reminder, capability, hierarchy, or schema changes.
+HOST XML: WorkspaceInitialViewTest 10 (including bounded feedback reproduction,
+100 updates during a pending access write, rename and reentry),
+RecentItemsRepositoryTest 2, InputHandlerGoalSubmissionTest 9: 21 PASS, zero
+failures/errors/skips. Production/test Kotlin compilation and diff check PASS.
+Room 205 unchanged. Post-fix physical latency/idle-log check pending; device was
+only read, not installed, copied or mutated.
+
 ## 2026-10-27 - Workspace quick input: Goal parsing and Execution Log route repair
 
 Backlog quick Add reuses the exact-text reminder preview (positive, negative or

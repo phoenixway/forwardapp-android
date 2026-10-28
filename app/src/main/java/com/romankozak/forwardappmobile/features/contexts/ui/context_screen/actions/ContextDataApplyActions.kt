@@ -52,6 +52,7 @@ class ContextDataApplyActions(
     private val scope: CoroutineScope,
 ) {
     private var lastSyncKey: Triple<String, String?, String>? = null
+    private var lastLoggedAccess: Pair<String, String>? = null
 
     private data class CapabilityState(
         val enableInbox: Boolean,
@@ -90,6 +91,7 @@ class ContextDataApplyActions(
         clearListContent: () -> Unit,
         clearAttachmentItems: () -> Unit,
     ) {
+        lastLoggedAccess = null
         clearListContent()
         clearAttachmentItems()
         stateManager.clear()
@@ -123,6 +125,11 @@ class ContextDataApplyActions(
 
     private fun logProjectAccess(data: ContextData.Loaded) {
         data.presentation?.let { presentation ->
+            val access = presentation.id to presentation.name
+            // Recents is itself observed by this screen. Mark before launching so
+            // its write cannot feed back into another identical access write.
+            if (lastLoggedAccess == access) return
+            lastLoggedAccess = access
             scope.launch {
                 recentItemsRepository.logProjectAccess(
                     projectId = presentation.id,

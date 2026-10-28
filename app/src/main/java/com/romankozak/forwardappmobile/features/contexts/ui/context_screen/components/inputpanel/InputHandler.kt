@@ -407,13 +407,16 @@ class InputHandler(
             onDismissLinkDialogs()
             return
         }
+        val address = runCatching {
+            com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress.parse(noteName, vault)
+        }.getOrElse { onGoalSubmitError(it.message ?: "Некоректна адреса нотатки"); return }
         scope.launch(Dispatchers.IO) {
             val link =
                 RelatedLink(
                     type = LinkType.OBSIDIAN,
-                    target = noteName,
-                    displayName = noteName,
-                    vault = vault?.trim()?.ifBlank { null },
+                    target = address.target,
+                    displayName = address.displayName,
+                    vault = address.vault,
                 )
             val newItemId =
                 contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)

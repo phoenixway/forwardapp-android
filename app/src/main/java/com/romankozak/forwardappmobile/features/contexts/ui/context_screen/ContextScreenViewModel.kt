@@ -1138,10 +1138,12 @@ class ContextScreenViewModel
         fun onUpdateLogEntry(
             description: String,
             details: String?,
+            timestamp: Long,
         ) = logHandler.onUpdateLogEntry(
             uiState.value.logEntryToEdit!!,
             description,
             details,
+            timestamp,
         )
 
         fun onEditLogEntry(log: ContextLog) = logHandler.onEditLogEntry(log)

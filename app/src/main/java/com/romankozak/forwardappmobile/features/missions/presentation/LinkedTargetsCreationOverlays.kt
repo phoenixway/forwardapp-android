@@ -7,6 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.features.attachments.ObsidianNoteAddress
+import com.romankozak.forwardappmobile.features.attachments.ui.ObsidianAddressFields
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
@@ -96,9 +98,9 @@ internal fun DocumentCreationOverlay(
             if (!busy) {
                 busy = true
                 error = null
-                val request = buildNewDocumentDraft(type = type, name = name, target = target, vault = vault)
                 scope.launch {
                     try {
+                        val request = buildNewDocumentDraft(type = type, name = name, target = target, vault = vault)
                         val id = onCreateDocument?.invoke(request)
                         check(!id.isNullOrBlank()) { "Не вдалося створити елемент" }
                         onAttachmentSelected(id)
@@ -115,7 +117,7 @@ internal fun DocumentCreationOverlay(
     )
 }
 
-private fun buildNewDocumentDraft(
+internal fun buildNewDocumentDraft(
     type: DocumentCreationType,
     name: String,
     target: String,
@@ -126,12 +128,13 @@ private fun buildNewDocumentDraft(
         DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = name.trim().ifBlank { "New music note" })
         DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = name.trim().ifBlank { "New checklist" })
         DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = target.trim(), name = name.trim())
-        DocumentCreationType.OBSIDIAN ->
+        DocumentCreationType.OBSIDIAN -> ObsidianNoteAddress.parse(target, vault).let { address ->
             NewDocumentDraft.Obsidian(
-                noteName = target.trim(),
-                displayName = name.trim(),
-                vault = vault.trim().ifBlank { null },
+                noteName = address.target,
+                displayName = name.trim().ifBlank { address.displayName },
+                vault = address.vault,
             )
+        }
     }
 
 internal enum class DocumentCreationType {
@@ -180,7 +183,9 @@ private fun DocumentCreationDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (targetLabel != null) {
+                if (type == DocumentCreationType.OBSIDIAN) {
+                    ObsidianAddressFields(target, vault, onTargetChange, onVaultChange)
+                } else if (targetLabel != null) {
                     OutlinedTextField(
                         value = target,
                         onValueChange = onTargetChange,
@@ -194,15 +199,6 @@ private fun DocumentCreationDialog(
                     label = { Text(stringResource(R.string.display_name_optional)) },
                     singleLine = true,
                 )
-                if (type == DocumentCreationType.OBSIDIAN) {
-                    OutlinedTextField(
-                        value = vault,
-                        onValueChange = onVaultChange,
-                        label = { Text("Vault (optional)") },
-                        placeholder = { Text("Falls back to Settings vault") },
-                        singleLine = true,
-                    )
-                }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
@@ -215,9 +211,8 @@ private fun DocumentCreationDialog(
                         DocumentCreationType.MUSIC_NOTE,
                         DocumentCreationType.CHECKLIST,
                         -> true
-                        DocumentCreationType.WEB_LINK,
-                        DocumentCreationType.OBSIDIAN,
-                        -> target.isNotBlank()
+                        DocumentCreationType.WEB_LINK -> target.isNotBlank()
+                        DocumentCreationType.OBSIDIAN -> runCatching { ObsidianNoteAddress.parse(target, vault) }.isSuccess
                     },
             ) {
                 if (busy) CircularProgressIndicator(Modifier.size(18.dp)) else Text(stringResource(R.string.add))
