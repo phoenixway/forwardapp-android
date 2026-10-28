@@ -85,6 +85,7 @@ fun BacklogItemActionsBottomSheet(
     onCreateWorkspace: (() -> Unit)? = null,
     canCreateWorkspace: Boolean = true,
     onOpenSemanticEditor: (() -> Unit)? = null,
+    onOpenPlanning: (() -> Unit)? = null,
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
     val colorScheme = MaterialTheme.colorScheme
@@ -137,7 +138,9 @@ fun BacklogItemActionsBottomSheet(
                 BacklogActionSection(
                     title = "Планування",
                     items =
-                        listOf(
+                        listOfNotNull(
+                            onOpenPlanning?.let { BacklogActionItem(title = "Planning…", icon = Icons.Default.Tune,
+                                tint = colorScheme.secondary, onClick = it) },
                             BacklogActionItem(
                                 title = "Нагадування",
                                 icon = Icons.Default.Notifications,

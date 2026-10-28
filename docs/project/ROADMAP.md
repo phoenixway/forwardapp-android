@@ -1,5 +1,27 @@
 # ForwardApp Roadmap
 
+## 2026-10-28 - Planning Context UX V2
+
+Bounded Orientation Planning surface, exact Workspace/backlog delegation,
+count-only main lists, dedicated Planning tabs and canonical promotion cutover
+implemented/HOST verified (185 tests). Room 206 unchanged; physical pending.
+No next global milestone or backlog reprioritization is selected.
+
+## 2026-10-28 - Planning participation composition V1
+
+Composition UX V1 now adds compact Day/Tactical/Strategic context, shared exact
+Planning details, relation menus and branching traces; HOST 111 tests PASS,
+Room 206 unchanged, physical acceptance pending. See STATE/NEXT for evidence.
+
+User-authorized bounded slice implemented/HOST verified; physical acceptance
+pending. PlanningCommitmentRelation(COMPONENT_OF) owns same/cross-scope DAG
+composition with relation-local order, lifecycle and carry remapping, separate
+from semantic/H1/Workspace authority. Strategic/Mission/canonical Day Properties
+consume it. Room 205 -> 206; protected Planning v5 transport, exact Restore and
+ACK, strict Merge; selective composition import explicitly awaits a real Planning
+endpoint-selection closure. Focused evidence/physical smoke in STATE/NEXT.
+No new global milestone or reprioritization; Backlog #2 Priority UNSET.
+
 ## 2026-10-25 - Native OrientationKind refinement
 
 ORIENTATION_KIND_TRANSFORMATION_HOST_20261025

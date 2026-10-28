@@ -22,7 +22,7 @@ internal class StrategicQuestCarryForward(
     private val adapter: CanonicalStrategicPlanningAdapter,
     private val orientations: CanonicalOrientationRepository,
 ) {
-    suspend fun carry(questId: String, targetArcKey: String): StrategicQuestCarryForwardResult = database.withTransaction {
+    suspend fun carry(questId: String, targetArcKey: String, preserveOutgoing: Boolean = true): StrategicQuestCarryForwardResult = database.withTransaction {
         require(targetArcKey.isNotBlank()) { "Target Strategic arc is missing" }
         val previous = requireNotNull(adapter.getById(questId)) { "Source quest is unavailable" }
         require(!previous.isDeleted) { "Source quest is deleted" }
@@ -46,6 +46,8 @@ internal class StrategicQuestCarryForward(
                 "Existing Strategic quest is unavailable"
             }
             require(!target.isDeleted && target.arcKey == targetArcKey)
+            if (preserveOutgoing) com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(database)
+                .carryRelations(mapOf(source.id to existing.id))
             return@withTransaction StrategicQuestCarryForwardResult(target, created = false)
         }
 
@@ -56,6 +58,12 @@ internal class StrategicQuestCarryForward(
             linkedContextId = previous.linkedContextId,
         )
         adapter.addQuest(created, PlanningReferenceTarget(PlanningReferenceTargetKind.ORIENTATION, source.orientationId))
+        if (preserveOutgoing) {
+            val target = database.planningDao().getLiveCommitmentsForRole(canonicalStrategicArcScopeId(targetArcKey).value, PlanningRoleCode.FOCUS.value)
+                .single { it.orientationId == source.orientationId }
+            com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(database)
+                .carryRelations(mapOf(source.id to com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(target.id)))
+        }
         StrategicQuestCarryForwardResult(requireNotNull(adapter.getById(created.id)), created = true)
     }
 }

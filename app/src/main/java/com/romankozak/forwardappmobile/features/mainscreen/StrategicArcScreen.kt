@@ -81,6 +81,11 @@ fun StrategicArcScreen(
     val selectedTab by viewModel.selectedTab.collectAsState()
     val pendingCreatedQuestId by viewModel.pendingCreatedQuestId.collectAsState()
     val carryMessage by viewModel.carryMessage.collectAsState()
+    var carryQuest by remember { mutableStateOf<ArcQuestEntity?>(null) }
+    carryQuest?.let { quest ->
+        com.romankozak.forwardappmobile.features.planning.StrategicCompositionCarryDialog(
+            quest.id, quest.title, onDismiss = { carryQuest = null }, onCarried = viewModel::revealCarriedQuest)
+    }
     carryMessage?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::dismissCarryMessage,
@@ -272,7 +277,7 @@ fun StrategicArcScreen(
                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                             },
                             onCreateMission = viewModel::createMissionFromArcQuest,
-                            onCarryToCurrentArc = viewModel::carryQuestToCurrentArc,
+                            onCarryToCurrentArc = { carryQuest = it },
                             onEditQuest = viewModel::updateArcQuest,
                             onDeleteQuest = viewModel::deleteArcQuest,
                             onReorder = viewModel::reorderArcQuests,
@@ -515,6 +520,7 @@ private fun ArcQuestList(
 ) {
     val referencesModel: StrategicQuestReferencesViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val questReferences by referencesModel.links.collectAsState()
+    val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     val lazyListState = rememberLazyListState()
     com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
         lazyListState, quests.map { it.id }, revealQuestId, onQuestRevealed,
@@ -559,6 +565,16 @@ private fun ArcQuestList(
             ReorderableItem(reorderableState, key = quest.id) { isDragging ->
                 ArcQuestCard(
                     quest = quest,
+                    planningContext = {
+                        com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
+                                quest.id), composition)
+                    },
+                    onPlanningContext = composition.frame.forOwner(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
+                            quest.id))?.let { participant -> { composition.context(participant) } },
                     isDragging = isDragging,
                     references = questReferences[quest.id].orEmpty(),
                     onOpenReference = referencesModel::open,

@@ -28,6 +28,11 @@ object NavTargetRouter {
             is NavTarget.SemanticEntityEditor ->
                 NavigationRoutes.semanticEntityEditor(target.subjectId)
 
+            is NavTarget.PlanningParticipation ->
+                NavigationRoutes.planningParticipation(target.commitmentId)
+
+            is NavTarget.OrientationPlanning -> NavigationRoutes.orientationPlanning(target.orientationId)
+
             is NavTarget.Workspace ->
                 NavigationRoutes.workspace(target.workspaceId)
 

@@ -37,7 +37,7 @@ class DayThemeCarryForwardRoomTest {
             val authority = CanonicalDayPlanningAuthorityActivator(db, db.dayPlanDao(), dao, db.orientationDao(), db.planningDao(),
                 db.dayPlanningScopeExtensionDao(), db.dayPlanningAuthorityStateDao(), bridge)
             authority.ensureActivated(10)
-            block(f, bridge, CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority), authority)
+            block(f, bridge, CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority, db), authority)
         }
     }
 

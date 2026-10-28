@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresen
 import com.romankozak.forwardappmobile.data.hierarchy.container.validateBigPicturePresentation
 import com.romankozak.forwardappmobile.data.hierarchy.container.projectH1UnifiedStructuralGraph
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.data.planning.toEntity
+import com.romankozak.forwardappmobile.data.planning.toDomain
 import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningAuthorityActivator
 import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
@@ -137,6 +139,11 @@ class SnapshotRestoreLocalDataSourceImpl
                     liveOrientationIds = liveOrientationIds,
                 )
             val dayExtensionStore = CanonicalDayPlanningScopeExtensionSyncStore(database)
+            val composition = bundle.planningCommitmentRelations.orEmpty()
+            val compositionErrors = com.romankozak.forwardappmobile.shared.core.domain.planning.validatePlanningCommitmentRelations(
+                composition.map { it.toEntity().toDomain() },
+                decodedPlanning.commitments.filterNot { it.isDeleted }.mapTo(hashSetOf()) { it.id })
+            require(compositionErrors.isEmpty()) { compositionErrors.joinToString() }
             val dayExtensionSnapshots =
                 bundle.dayPlanningScopeExtensions ?: dayExtensionStore.loadAll()
             val decodedDayExtensions =
@@ -170,6 +177,7 @@ class SnapshotRestoreLocalDataSourceImpl
                     planningScopes = null,
                     planningCommitments = null,
                     planningReferences = null,
+                    planningCommitmentRelations = null,
                     managedSubjectTagRefs = null,
                     dayPlanningScopeExtensions = null,
                     tacticalPlanningScopeExtensions = null,
@@ -188,7 +196,7 @@ class SnapshotRestoreLocalDataSourceImpl
                     .restore(bundle.managedSubjectConversions.orEmpty())
                 com.romankozak.forwardappmobile.data.orientation.CanonicalSemanticTagSyncStore(database)
                     .restore(bundle.managedSubjectTagRefs.orEmpty())
-                planningStore.restoreExactDecoded(decodedPlanning)
+                planningStore.restoreExactDecoded(decodedPlanning, composition)
                 dayExtensionStore.restoreExactDecoded(decodedDayExtensions)
                 tacticalExtensionStore.restoreExactDecoded(decodedTacticalExtensions)
                 strategicExtensionStore.restoreExactDecoded(decodedStrategicExtensions)
@@ -212,7 +220,8 @@ class SnapshotRestoreLocalDataSourceImpl
                     tacticalPlanningAuthorityActivator.admitCanonicalIngress()
                 }
                 tacticalPlanningAuthorityActivator.projectCompatibilityRows()
-                if (bundle.planningFormatVersion == CURRENT_PLANNING_FORMAT_VERSION) {
+                if (bundle.planningFormatVersion in setOf(CURRENT_PLANNING_FORMAT_VERSION,
+                        com.romankozak.forwardappmobile.core.data.models.sync.COMPOSITION_PLANNING_FORMAT_VERSION)) {
                     strategicPlanningAuthorityActivator.admitCanonicalIngress()
                 } else {
                     strategicPlanningAuthorityActivator.ensureActivated()

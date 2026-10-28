@@ -4,6 +4,7 @@ const val LEGACY_COMMON_PLANNING_FORMAT_VERSION: Int = 1
 const val DAY_EXTENSION_PLANNING_FORMAT_VERSION: Int = 2
 const val TACTICAL_EXTENSION_PLANNING_FORMAT_VERSION: Int = 3
 const val CURRENT_PLANNING_FORMAT_VERSION: Int = 4
+const val COMPOSITION_PLANNING_FORMAT_VERSION: Int = 5
 
 /**
  * True only when the sender explicitly carries the canonical Planning V3
@@ -16,6 +17,7 @@ fun SnapshotBundle.hasCanonicalPlanningPayload(): Boolean =
             DAY_EXTENSION_PLANNING_FORMAT_VERSION,
             TACTICAL_EXTENSION_PLANNING_FORMAT_VERSION,
             CURRENT_PLANNING_FORMAT_VERSION,
+            COMPOSITION_PLANNING_FORMAT_VERSION,
         ) &&
         planningScopes != null &&
         planningCommitments != null &&
@@ -28,7 +30,8 @@ fun SnapshotBundle.hasCanonicalPlanningPayload(): Boolean =
                 setOf(LEGACY_COMMON_PLANNING_FORMAT_VERSION, DAY_EXTENSION_PLANNING_FORMAT_VERSION) ||
                 tacticalPlanningScopeExtensions != null
         ) &&
-        (planningFormatVersion != CURRENT_PLANNING_FORMAT_VERSION || strategicPlanningScopeExtensions != null)
+        (planningFormatVersion !in setOf(CURRENT_PLANNING_FORMAT_VERSION, COMPOSITION_PLANNING_FORMAT_VERSION) || strategicPlanningScopeExtensions != null) &&
+        (planningFormatVersion != COMPOSITION_PLANNING_FORMAT_VERSION || planningCommitmentRelations != null)
 
 /**
  * Planning V3 transport is atomic at the common-contract boundary:
@@ -43,6 +46,8 @@ fun SnapshotBundle.hasCanonicalPlanningPayload(): Boolean =
  */
 fun requireValidCanonicalPlanningPayload(bundle: SnapshotBundle) {
     val formatVersion = bundle.planningFormatVersion
+    require(if (formatVersion == COMPOSITION_PLANNING_FORMAT_VERSION) bundle.planningCommitmentRelations != null
+        else bundle.planningCommitmentRelations == null) { "Planning composition requires format v5 and an explicit relation collection" }
     val scopesPresent = bundle.planningScopes != null
     val commitmentsPresent = bundle.planningCommitments != null
     val dayExtensionsPresent = bundle.dayPlanningScopeExtensions != null
@@ -63,7 +68,7 @@ fun requireValidCanonicalPlanningPayload(bundle: SnapshotBundle) {
             formatVersion == LEGACY_COMMON_PLANNING_FORMAT_VERSION ||
             formatVersion == DAY_EXTENSION_PLANNING_FORMAT_VERSION ||
             formatVersion == TACTICAL_EXTENSION_PLANNING_FORMAT_VERSION ||
-            formatVersion == CURRENT_PLANNING_FORMAT_VERSION,
+            formatVersion == CURRENT_PLANNING_FORMAT_VERSION || formatVersion == COMPOSITION_PLANNING_FORMAT_VERSION,
     ) {
         "Unsupported canonical Planning format version: $formatVersion"
     }

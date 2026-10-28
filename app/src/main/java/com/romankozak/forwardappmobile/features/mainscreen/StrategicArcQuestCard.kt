@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,11 +37,14 @@ internal fun ArcQuestCard(
     references: List<PlanningReferencePresentation> = emptyList(),
     onOpenReference: (CanonicalEntityRef) -> Unit = {},
     isDragging: Boolean = false,
+    planningContext: @Composable () -> Unit = {},
+    onPlanningContext: (() -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var editVisible by remember { mutableStateOf(false) }
     var editTitle by remember(quest.id, quest.title) { mutableStateOf(quest.title) }
     var editDescription by remember(quest.id, quest.description) { mutableStateOf(quest.description.orEmpty()) }
+    var editTab by remember { mutableStateOf(0) }
     val linkedContextId = quest.linkedContextId
 
     Column {
@@ -99,6 +104,7 @@ internal fun ArcQuestCard(
                             }
                         }
                     }
+                    planningContext()
                 }
                 Box {
                     IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(34.dp)) {
@@ -110,6 +116,12 @@ internal fun ArcQuestCard(
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
                     ) {
+                        if (onPlanningContext != null) {
+                            DropdownMenuItem(text = { Text("Planning context · Add to…") }, onClick = {
+                                menuExpanded = false
+                                onPlanningContext()
+                            })
+                        }
                         if (onCarryToCurrentArc != null) {
                             DropdownMenuItem(
                                 text = { Text("В поточну арку") },
@@ -139,7 +151,7 @@ internal fun ArcQuestCard(
                             )
                         }
                         DropdownMenuItem(
-                            text = { Text("Створити місію") },
+                            text = { Text("Add to Tactical") },
                             leadingIcon = { Icon(Icons.Outlined.RocketLaunch, contentDescription = null) },
                             onClick = {
                                 menuExpanded = false
@@ -166,23 +178,33 @@ internal fun ArcQuestCard(
             onDismissRequest = { editVisible = false },
             title = { Text("Редагувати ArcQuest") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = editTitle,
-                        onValueChange = { editTitle = it },
-                        label = { Text("Назва") },
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = editDescription,
-                        onValueChange = { editDescription = it },
-                        label = { Text("Опис") },
-                        minLines = 3,
-                    )
-                    com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TabRow(selectedTabIndex = editTab) {
+                        listOf("Overview", "Planning").forEachIndexed { index, label ->
+                            Tab(selected = editTab == index, onClick = { editTab = index }, text = { Text(label) })
+                        }
+                    }
+                    if (editTab == 0) {
+                        OutlinedTextField(
+                            value = editTitle,
+                            onValueChange = { editTitle = it },
+                            label = { Text("Назва") },
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = editDescription,
+                            onValueChange = { editDescription = it },
+                            label = { Text("Опис") },
+                            minLines = 3,
+                        )
+                        com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id),
+                            includeComposition = false,
+                        )
+                    } else com.romankozak.forwardappmobile.features.planning.PlanningCompositionPanel(
                         com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id),
-                    )
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id))
                 }
             },
             confirmButton = {

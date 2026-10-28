@@ -242,6 +242,7 @@ class SystemShellFreeMainScreenViewModelsTest {
                     arcQuestRepository = arcQuestRepository,
                     mainBeaconRepository = mainBeaconRepository,
                     missionRepository = mockk<MissionRepository>(relaxed = true),
+                    planningPromotion = mockk(relaxed = true),
                 )
 
             viewModel.addArcLink(id)

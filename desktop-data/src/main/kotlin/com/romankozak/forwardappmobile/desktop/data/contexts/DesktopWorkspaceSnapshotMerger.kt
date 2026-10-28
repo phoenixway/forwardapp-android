@@ -34,6 +34,8 @@ class DesktopWorkspaceSnapshotMerger {
             if (incoming.hasCanonicalStrategicPlanningExtensionTransport()) incoming else local
         val planningFormatVersion =
             when {
+                local.planningCommitmentRelations != null || incoming.planningCommitmentRelations != null ->
+                    com.romankozak.forwardappmobile.shared.contracts.contexts.COMPOSITION_SHARED_PLANNING_FORMAT_VERSION
                 planningSource.hasCanonicalPlanningTransport() &&
                     extensionSource.hasCanonicalDayPlanningExtensionTransport() &&
                     tacticalExtensionSource.hasCanonicalTacticalPlanningExtensionTransport() &&
@@ -62,6 +64,8 @@ class DesktopWorkspaceSnapshotMerger {
             planningFormatVersion = planningFormatVersion,
             planningScopes = planningSource.planningScopes,
             planningCommitments = planningSource.planningCommitments,
+            planningCommitmentRelations = if (planningFormatVersion == 5) mergeComposition(
+                local.planningCommitmentRelations.orEmpty(), incoming.planningCommitmentRelations.orEmpty()) else null,
             dayPlanningScopeExtensions =
                 if (planningFormatVersion != LEGACY_SHARED_PLANNING_FORMAT_VERSION) {
                     extensionSource.dayPlanningScopeExtensions
@@ -71,19 +75,38 @@ class DesktopWorkspaceSnapshotMerger {
             tacticalPlanningScopeExtensions =
                 if (
                     planningFormatVersion in
-                    setOf(TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION, CURRENT_SHARED_PLANNING_FORMAT_VERSION)
+                    setOf(TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION, CURRENT_SHARED_PLANNING_FORMAT_VERSION, 5)
                 ) {
                     tacticalExtensionSource.tacticalPlanningScopeExtensions
                 } else {
                     null
                 },
             strategicPlanningScopeExtensions =
-                if (planningFormatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION) {
+                if (planningFormatVersion in setOf(CURRENT_SHARED_PLANNING_FORMAT_VERSION, 5)) {
                     strategicExtensionSource.strategicPlanningScopeExtensions
                 } else {
                     null
                 },
         ).also(DesktopWorkspaceSnapshot::requireValidCanonicalPlanningTransport)
+    }
+
+    private fun mergeComposition(
+        local: List<com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentRelationSnapshot>,
+        incoming: List<com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentRelationSnapshot>,
+    ): List<com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentRelationSnapshot> {
+        val rows = local.associateBy { it.id }.toMutableMap()
+        incoming.forEach { next ->
+            val old = rows[next.id]
+            if (old != null) require(listOf(old.sourceCommitmentId, old.targetCommitmentId, old.relationType, old.createdAt) ==
+                listOf(next.sourceCommitmentId, next.targetCommitmentId, next.relationType, next.createdAt)) { "Composition identity changed" }
+            when {
+                old == null || next.version > old.version -> rows[next.id] = next.copy(syncedAt = null)
+                next.version < old.version -> Unit
+                next.copy(syncedAt = null) == old.copy(syncedAt = null) -> Unit
+                else -> error("Equal-version composition divergence")
+            }
+        }
+        return rows.values.sortedBy { it.id }
     }
 
     private fun <T> mergeById(

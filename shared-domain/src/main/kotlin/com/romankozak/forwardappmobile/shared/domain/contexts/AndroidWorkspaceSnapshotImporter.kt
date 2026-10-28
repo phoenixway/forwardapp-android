@@ -22,6 +22,8 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningC
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningScopeSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedTacticalPlanningScopeExtensionSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedStrategicPlanningScopeExtensionSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedPlanningCommitmentRelationSnapshot
+import com.romankozak.forwardappmobile.shared.contracts.contexts.COMPOSITION_SHARED_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import com.romankozak.forwardappmobile.shared.contracts.contexts.requireValidCanonicalPlanningTransport
@@ -105,7 +107,7 @@ class AndroidWorkspaceSnapshotImporter(
                 requireWorkspaceEvidence = hasWorkspaceEvidence,
             )
         val recurringTasks = parseRecurringTasks(source)
-        val planning = parseCanonicalPlanningTransport(source)
+        val planning = parseCanonicalPlanningTransport(source, json)
 
         return ResolvedWorkspaceSnapshot(
             snapshot =
@@ -119,6 +121,7 @@ class AndroidWorkspaceSnapshotImporter(
                     planningFormatVersion = planning.formatVersion,
                     planningScopes = planning.scopes,
                     planningCommitments = planning.commitments,
+                    planningCommitmentRelations = planning.relations,
                     dayPlanningScopeExtensions = planning.dayScopeExtensions,
                     tacticalPlanningScopeExtensions = planning.tacticalScopeExtensions,
                     strategicPlanningScopeExtensions = planning.strategicScopeExtensions,
@@ -166,135 +169,6 @@ class AndroidWorkspaceSnapshotImporter(
         )
     }
 
-    private fun parseCanonicalPlanningTransport(source: JsonObject): ParsedPlanningTransport {
-        val formatVersion = source.long("planningFormatVersion")?.toInt()
-        val scopesElement = source["planningScopes"]
-        val commitmentsElement = source["planningCommitments"]
-        val dayExtensionsElement = source["dayPlanningScopeExtensions"]
-        val tacticalExtensionsElement = source["tacticalPlanningScopeExtensions"]
-        val strategicExtensionsElement = source["strategicPlanningScopeExtensions"]
-
-        val scopesPresent = scopesElement is JsonArray
-        val commitmentsPresent = commitmentsElement is JsonArray
-        val dayExtensionsPresent = dayExtensionsElement is JsonArray
-        val tacticalExtensionsPresent = tacticalExtensionsElement is JsonArray
-        val strategicExtensionsPresent = strategicExtensionsElement is JsonArray
-
-        if (
-            formatVersion == null &&
-            !scopesPresent &&
-            !commitmentsPresent &&
-            !dayExtensionsPresent &&
-            !tacticalExtensionsPresent &&
-            !strategicExtensionsPresent
-        ) {
-            return ParsedPlanningTransport()
-        }
-
-        require(
-            formatVersion == LEGACY_SHARED_PLANNING_FORMAT_VERSION ||
-                formatVersion == DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
-                formatVersion == TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
-                formatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION,
-        ) {
-            "Unsupported canonical Planning format version: $formatVersion"
-        }
-
-        require(scopesPresent && commitmentsPresent) {
-            "Canonical Planning format requires both planningScopes and planningCommitments."
-        }
-
-        when (formatVersion) {
-            LEGACY_SHARED_PLANNING_FORMAT_VERSION -> {
-                require(!dayExtensionsPresent) {
-                    "Planning format v1 must not carry Day scope extensions."
-                }
-                require(!tacticalExtensionsPresent) {
-                    "Planning format v1 must not carry Tactical scope extensions."
-                }
-                require(!strategicExtensionsPresent) {
-                    "Planning format v1 must not carry Strategic scope extensions."
-                }
-            }
-
-            DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION -> {
-                require(dayExtensionsPresent) {
-                    "Planning format v2 requires dayPlanningScopeExtensions."
-                }
-                require(!tacticalExtensionsPresent) {
-                    "Planning format v2 must not carry Tactical scope extensions."
-                }
-                require(!strategicExtensionsPresent) {
-                    "Planning format v2 must not carry Strategic scope extensions."
-                }
-            }
-
-            TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION -> {
-                require(dayExtensionsPresent) {
-                    "Planning format v3 requires dayPlanningScopeExtensions."
-                }
-                require(tacticalExtensionsPresent) {
-                    "Planning format v3 requires tacticalPlanningScopeExtensions."
-                }
-                require(!strategicExtensionsPresent) {
-                    "Planning format v3 must not carry Strategic scope extensions."
-                }
-            }
-
-            CURRENT_SHARED_PLANNING_FORMAT_VERSION -> {
-                require(dayExtensionsPresent) {
-                    "Planning format v4 requires dayPlanningScopeExtensions."
-                }
-                require(tacticalExtensionsPresent) {
-                    "Planning format v4 requires tacticalPlanningScopeExtensions."
-                }
-                require(strategicExtensionsPresent) {
-                    "Planning format v4 requires strategicPlanningScopeExtensions."
-                }
-            }
-
-            else -> error("Unsupported canonical Planning format version: $formatVersion")
-        }
-
-        return ParsedPlanningTransport(
-            formatVersion = formatVersion,
-            scopes =
-                (scopesElement as JsonArray).map { element ->
-                    json.decodeFromJsonElement(
-                        SharedPlanningScopeSnapshot.serializer(),
-                        element,
-                    )
-                },
-            commitments =
-                (commitmentsElement as JsonArray).map { element ->
-                    json.decodeFromJsonElement(
-                        SharedPlanningCommitmentSnapshot.serializer(),
-                        element,
-                    )
-                },
-            dayScopeExtensions =
-                (dayExtensionsElement as? JsonArray)?.map { element ->
-                    json.decodeFromJsonElement(
-                        SharedDayPlanningScopeExtensionSnapshot.serializer(),
-                        element,
-                    )
-                },
-            tacticalScopeExtensions =
-                (tacticalExtensionsElement as? JsonArray)?.map { element ->
-                    json.decodeFromJsonElement(
-                        SharedTacticalPlanningScopeExtensionSnapshot.serializer(),
-                        element,
-                    )
-                },
-            strategicScopeExtensions =
-                (strategicExtensionsElement as? JsonArray)?.map { element ->
-                    json.decodeFromJsonElement(
-                        SharedStrategicPlanningScopeExtensionSnapshot.serializer(),
-                        element,
-                    )
-                },
-        )
-    }
 
     private fun parseSnapshotContexts(source: JsonObject): List<SharedContextSummary> {
         val capabilityConfigs = parseContextCapabilityConfigs(source)
@@ -747,14 +621,6 @@ class AndroidWorkspaceSnapshotImporter(
     }
 }
 
-private data class ParsedPlanningTransport(
-    val formatVersion: Int? = null,
-    val scopes: List<SharedPlanningScopeSnapshot>? = null,
-    val commitments: List<SharedPlanningCommitmentSnapshot>? = null,
-    val dayScopeExtensions: List<SharedDayPlanningScopeExtensionSnapshot>? = null,
-    val tacticalScopeExtensions: List<SharedTacticalPlanningScopeExtensionSnapshot>? = null,
-    val strategicScopeExtensions: List<SharedStrategicPlanningScopeExtensionSnapshot>? = null,
-)
 
 private data class ParsedContext(
     val id: String,

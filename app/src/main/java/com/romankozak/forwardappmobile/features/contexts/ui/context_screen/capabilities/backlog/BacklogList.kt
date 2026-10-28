@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.romankozak.forwardappmobile.features.planning.planningBadgesByOrientation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +44,10 @@ fun BacklogListScreen(
 ) {
     val goalWorkspaces: BacklogGoalWorkspaceViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val canonicalLinks by goalWorkspaces.links.collectAsStateWithLifecycle()
+    val planning = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
+    val planningBadges = remember(planning.frame) {
+        planning.frame.planningBadgesByOrientation()
+    }
     val creation by goalWorkspaces.creation.collectAsStateWithLifecycle()
     com.romankozak.forwardappmobile.features.semanticeditor.EmbodyingWorkspaceDialogContent(
         creation, goalWorkspaces::setName, goalWorkspaces::setDescription, goalWorkspaces::confirm,
@@ -104,6 +109,7 @@ fun BacklogListScreen(
             onCreateWorkspace = semantic?.let { { goalWorkspaces.open(requireNotNull(selectedGoalId)) } },
             canCreateWorkspace = semantic?.canCreate == true && !creation.busy,
             onOpenSemanticEditor = semantic?.let { { goalWorkspaces.openSemantic(requireNotNull(selectedGoalId)) } },
+            onOpenPlanning = semantic?.let { { goalWorkspaces.openPlanning(requireNotNull(selectedGoalId)) } },
             onDismiss = { showBottomSheet = false },
             itemTitle = itemTitle,
             isCompleted = isCompleted,
@@ -137,6 +143,8 @@ fun BacklogListScreen(
     }
 
     BacklogListContent(
+        planning = planning,
+        planningBadges = planningBadges,
         canonicalLinks = canonicalLinks,
         onOpenGoalWorkspace = goalWorkspaces::openWorkspace,
         state = state,
@@ -196,6 +204,8 @@ private fun BacklogListEmptyState(modifier: Modifier) {
 
 @Composable
 private fun BacklogListContent(
+    planning: com.romankozak.forwardappmobile.features.planning.PlanningCompositionListUi,
+    planningBadges: Map<String, List<com.romankozak.forwardappmobile.features.planning.PlanningContextBadge>>,
     canonicalLinks: Map<String, BacklogGoalSemanticLink>,
     onOpenGoalWorkspace: (String) -> Unit,
     state: BacklogListState,
@@ -219,6 +229,10 @@ private fun BacklogListContent(
                 ReorderableItem(contentState.reorderableState, key = item.backlogItem.id) { isDragging ->
                     val isSelected = item.backlogItem.id in state.selectedItemIds
                     BacklogItem(
+                        planningBadges = {
+                            val id = (item as? BacklogItemContent.GoalItem)?.goal?.id?.let { canonicalLinks[it]?.subjectId }
+                            com.romankozak.forwardappmobile.features.planning.BacklogPlanningBadges(id?.let(planningBadges::get).orEmpty(), planning.open)
+                        },
                         workspaceTitle = (item as? BacklogItemContent.GoalItem)?.goal?.id?.let { canonicalLinks[it]?.workspace?.title },
                         onOpenWorkspace = (item as? BacklogItemContent.GoalItem)?.goal?.id?.let { id -> { onOpenGoalWorkspace(id) } },
                         item = item,

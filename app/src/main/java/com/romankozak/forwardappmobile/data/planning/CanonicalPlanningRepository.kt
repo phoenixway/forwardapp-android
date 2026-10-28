@@ -109,6 +109,8 @@ class CanonicalPlanningRepository
                     }
                 val tombstonedScope = current.tombstoned(now)
 
+                CanonicalPlanningCommitmentRelationRepository(database).retireEndpoints(
+                    tombstonedCommitments.mapTo(hashSetOf()) { PlanningCommitmentId(it.id) }, now)
                 dao.upsertCommitments(tombstonedCommitments)
                 dao.upsertScope(tombstonedScope.toPlanningScopeEntity())
                 tombstonedScope
@@ -206,6 +208,7 @@ class CanonicalPlanningRepository
                 if (current.isDeleted) return@withTransaction current
 
                 val tombstoned = current.tombstoned(now)
+                CanonicalPlanningCommitmentRelationRepository(database).retireEndpoints(setOf(id), now)
                 dao.upsertCommitment(tombstoned.toPlanningCommitmentEntity())
                 tombstoned
             }

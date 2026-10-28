@@ -34,6 +34,7 @@ import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrap
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
+import com.romankozak.forwardappmobile.data.planning.toRecord
 import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
@@ -156,6 +157,7 @@ class FullBackupLocalDataSourceImpl
         override suspend fun loadUnsyncedCanonicalPlanning(): CanonicalPlanningSyncPayload =
             CanonicalPlanningSyncPayload(
                 references = db.planningReferenceDao().getUnsynced(),
+                relations = db.planningCommitmentRelationDao().getUnsynced().map { it.toRecord() },
                 scopes = canonicalPlanningSyncStore.loadUnsyncedScopes(),
                 commitments = canonicalPlanningSyncStore.loadUnsyncedCommitments(),
                 dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadUnsynced(),
@@ -168,6 +170,7 @@ class FullBackupLocalDataSourceImpl
         ): CanonicalPlanningSyncPayload =
             CanonicalPlanningSyncPayload(
                 references = db.planningReferenceDao().getChangedSince(timestamp),
+                relations = db.planningCommitmentRelationDao().changedSince(timestamp).map { it.toRecord() },
                 scopes = canonicalPlanningSyncStore.loadScopesChangedSince(timestamp),
                 commitments = canonicalPlanningSyncStore.loadCommitmentsChangedSince(timestamp),
                 dayScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadChangedSince(timestamp),
@@ -188,6 +191,7 @@ class FullBackupLocalDataSourceImpl
             db.withTransaction {
                 val now = System.currentTimeMillis()
                 ack.references.forEach { db.planningReferenceDao().acknowledge(it.id, it.version, now) }
+                ack.relations.forEach { db.planningCommitmentRelationDao().acknowledge(it.id, it.version, now) }
             }
         }
 
@@ -456,10 +460,11 @@ class FullBackupLocalDataSourceImpl
                 val planning = loadCanonicalPlanningForFullSnapshot()
 
                 base.copy(
-                    planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
+                    planningFormatVersion = com.romankozak.forwardappmobile.core.data.models.sync.COMPOSITION_PLANNING_FORMAT_VERSION,
                     planningScopes = planning.scopes,
                     planningCommitments = planning.commitments,
                     planningReferences = db.planningReferenceDao().getAll(),
+                    planningCommitmentRelations = db.planningCommitmentRelationDao().getAll().map { it.toRecord() },
                     managedSubjectTagRefs = db.managedSubjectTagDao().getAll(),
                     managedSubjectConversions = db.managedSubjectConversionDao().getAll(),
                     dayPlanningScopeExtensions = canonicalDayPlanningScopeExtensionSyncStore.loadAll(),

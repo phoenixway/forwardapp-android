@@ -6,6 +6,162 @@ Acceptance date: 2026-10-02
 Scope: shared planning identity, participation, lifecycle, transport, and
 domain-extension boundaries for Day, Tactical Cycle, and Strategic Arc.
 
+## Planning Context UX V2 (2026-10-28)
+
+Planning Context is a reusable product surface over exact canonical Orientation
+participation and PlanningCommitmentRelation, not another Planning authority.
+The Orientation-keyed Planning route includes unplanned Orientations and all
+live participations grouped by Strategic/Tactical/Day horizon, actual scope and
+role/status. Exact participation details retain Part of / Components, traces,
+relation-only removal and relation-local order. Main lists now show component
+counts, not inline component rows (supersedes V1's component previews).
+
+Semantic Editor exposes Planning only for Orientation. Workspace is not a
+PlanningCommitment target: its Dashboard delegates to exact live Orientation
+WorkspaceBindings; one choice opens directly, multiple choices retain relation
+kinds in a chooser with EMBODIES first. Aspect-only/unavailable bindings create
+no Planning identity. Backlog Planning badges use only the existing CUT_OVER
+Goal -> Orientation mapping and canonical Planning state: unfinished
+participations in open scopes plus their eligible direct outgoing parents.
+All matching badges use exact participation navigation, never title/Context/H1
+inference. The shared bulk frame indexes participants, endpoints and owners;
+there are no per-row repository reads or persisted badge lists.
+
+`PlanningContextCoordinator` composes existing domain creation adapters and
+COMPONENT_OF in one Room transaction. Add to planning explicitly offers current
+Arc FOCUS, current Tactical MISSION, Today DAY.TASK. Existing live compatible
+participation is reused; repeated promotion ensures one relation. Missing or
+ambiguous Tactical scope fails closed. Quest -> Tactical and Mission -> Today
+reuse the exact source Orientation and make the new/reused lower-horizon
+participation COMPONENT_OF the source. Mission -> current Arc likewise reuses
+identity and links Mission COMPONENT_OF the Strategic Focus. No semantic record
+copy, carrier-copy provenance, WorkspaceBinding, Context or H1 mutation.
+
+Properties have a dedicated Planning tab; existing references remain separate.
+Removal delegates to owning carrier lifecycle (or the canonical repository for
+unowned manual participation), including incident relation retirement. Strategic
+and Tactical ACTIVE/PAUSED/COMPLETED use canonical participation commands; Day
+execution editing remains in existing Day Properties. Carrier roles are fixed,
+not editable generic enums; other domain-owned Day participants retain their
+own editors. Cancellation/restoration does not replay commands. No transport or
+schema change: Room 206 -> 206. HOST evidence and pending physical smoke: STATE/NEXT.
+
+## Current extension — PlanningCommitmentRelation V1 (2026-10-28)
+
+`PlanningCommitmentRelation` is the canonical relation **between planning
+participations**, not a semantic relation between Orientations. V1 vocabulary is
+only `COMPONENT_OF`: source participation is a component of target participation.
+This extends current Canonical Planning; its persisted meaning is classified
+`SEMANTIC_NOT_HIERARCHY`. It is not a Legacy/Workspace/H1 hierarchy cutover.
+Section 18's deferral of **scope-to-scope** relationships remains unchanged.
+
+Endpoints are always `PlanningCommitmentId`. Same-scope and cross-scope
+many-to-many composition are admitted. Planning horizons are not required to form
+a rigid DAY -> TACTICAL -> STRATEGIC tree. OrientationKind does not constrain
+COMPONENT_OF membership, nor must a target be QUEST. Role and composition are
+independent axes; no QUEST_COMPONENT role is introduced. Existing live
+`(scope, orientation, role)` uniqueness still governs participation reuse.
+
+Shared KMP domain owns typed identity/type, DAG validation and carry remapping;
+shared data models own the stable record. Room 205 -> 206 adds only
+`planning_commitment_relations`, foreign keys and source/target/order/sync indexes.
+Existing databases start empty: no title, H1, Context, Workspace or UI nesting
+inference. Android uses `relationOrder`; wire/domain use `order`. Each relation
+owns version, timestamps, tombstone and independent delivery metadata, not status.
+Reads sort by `(order, id)` under each target; reordering one target cannot reorder
+another target or the participant itself.
+
+`CanonicalPlanningCommitmentRelationRepository` owns transactional add, explicit
+remove, exact-set reorder and endpoint retirement. A live tuple is unique by
+source/target/type; repeated add is idempotent. New IDs are namespaced UUIDs from
+the UTF-8 length-prefixed tuple (`planning-composition:v1:`), while explicit
+re-add reuses prior tombstoned identity. Validation rejects missing/non-live
+endpoints, self-links, duplicate live tuples and direct/transitive cycles across
+the entire live COMPONENT_OF graph. The graph check is iterative/linear.
+
+Removing a relation tombstones only that row. Local commitment/scope retirement
+atomically retires incident live relations; restoring an endpoint never silently
+recreates them. Day Theme's direct adapter participates in that same transaction.
+Orientation deletion retains its existing precondition: resolve live Planning
+participation first. No semantic lifecycle, WorkspaceBinding, H1 or execution
+status is inferred from composition or Planning completion.
+
+One bulk reactive composition projection joins commitments/scopes, lightweight
+typed catalog titles/kinds and relations; a bulk Strategic extension snapshot
+supplies Arc labels. No per-row lookup or ProductRead aggregate is required.
+Mission/Day Properties and Quest Edit consume the same Part of / Components
+surface. Free-form/unresolved Day records expose no composition authoring and
+receive no hidden Orientation. The participation picker selects exact commitment
+identity and displays semantic kind, scope/horizon and human-readable role.
+Primary composition navigation follows **planning participation context**, not
+semantic identity or an adaptive Workspace redirect: exact Day task Properties
+when authoritatively mapped, otherwise the exact commitment-keyed Planning
+context destination (including Mission/Strategic historical scopes). Semantic
+editing remains secondary; a unique live EMBODIES Workspace has an explicit
+secondary open action. Carried Day task routing uses the existing deterministic
+adoption identity and a bulk live-task snapshot, never historical provenance
+as the current task locator.
+Strategic Add component reuses/adopts the normal FOCUS participation through the
+existing Strategic creation adapter; it never clones the selected Orientation.
+
+### Planning composition UX V1 (2026-10-28)
+
+`Part of` = outgoing COMPONENT_OF; `Components` = incoming COMPONENT_OF.
+The UI is a DAG lens, not a single-parent tree requirement. Strategic and both
+Tactical list presentations show compact parent/component previews; Day rows
+show only `Part of · title +N` when applicable. Empty/noncanonical Day rows gain
+no decorative blocks or implicit adoption. Properties and the reusable Planning
+context surface expose Add to / Add component, relation-only removal and
+relation-local up/down ordering through the same canonical repository. Candidate
+filtering excludes self/existing edges/cycles as convenience; backend validation
+remains final authority after concurrent changes.
+
+Upward/downward trace reads the same indexed bulk frame, preserves branching
+paths, initially shows three levels and expands further (12-level / 200-row
+safety bounds, with a continuation hint). No recursive/per-row DAO reads.
+Rename/status/relation/lifecycle changes recompose through observable snapshots.
+Carry retains the accepted backend policy: Day preserves live external context;
+Strategic selection carries eligible same-Arc components, unfinished selected
+and completed off by default; Cancel writes nothing and previous history stays.
+No semantic/Workspace/H1/Planning persistence authority or schema change here:
+Room 206 -> 206. HOST evidence and physical acceptance are recorded in STATE/NEXT.
+
+Carry-forward is command-scoped remapping, never scopeId mutation. Selected old
+IDs map to resolved new IDs; outgoing edges of selected sources are recreated
+after the complete map is known. A live unmoved target stays exact, a selected
+target uses its replacement, and target-only selection invents no source
+participation. Missing/ambiguous mappings fail atomically. Day Task/Theme and
+canonical Tactical carry preserve eligible outgoing edges. A historical Tactical
+source without old canonical participation has no composition to copy and does
+not acquire invented history. Strategic carry selects same-Arc components,
+defaults completed components to unchecked (explicit override allowed), admits
+all selected participations, then recreates edges once. Replays reuse records;
+old participation/edges remain unchanged. Recurrence replacement/split is not
+implicitly treated as carry-forward; retired participation's edges retire.
+
+Planning transport **v5** adds explicit `planningCommitmentRelations`; v1-v4 do not
+claim this authority. Current full exports use v5, protecting composition from
+older clients that reject unknown Planning generations. Full Restore prevalidates
+dependencies/DAG before clearing and restores exact versions/tombstones/syncedAt
+with commitments. Merge chooses version winners and validates the prospective
+graph before commit; equal-version divergence/identity mutation fails closed.
+V5 endpoint retirement without coherent relation state is rejected atomically;
+v1-v4 commitment retirement applies the explicit local dependent-link lifecycle.
+Semantic-only ingress cannot commit a deletion that leaves live composition.
+Delta/changedSince include relation tombstones; closure carries exact endpoints,
+scopes and Orientation dependencies. ACK is relation id/version only, never
+inferred from commitment ACK. Shared/Desktop DTO, parser, validation, merge and
+Android adapter retain v5 under existing Desktop admission restrictions.
+
+Selective Planning selection has no endpoint/scope picker yet. Nonempty
+composition-bearing selective import fails explicitly at filter **and** writer
+boundaries; Full Restore/Merge are supported instead. It never silently drops
+relations while claiming dependency closure. No universal all-domain relation
+model, relation editing DSL or structural/semantic inference is introduced.
+
+HOST evidence and compile gates are recorded in STATE; physical acceptance is
+pending user-run `make exp-arm64-cycle` on disposable Planning data.
+
 ## Strategic quest carry-forward (2026-10-26)
 
 Previous-arc quest -> "В поточну арку" creates new current-month carrier/FOCUS

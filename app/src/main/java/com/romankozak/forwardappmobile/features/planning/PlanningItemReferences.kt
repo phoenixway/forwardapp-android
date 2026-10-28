@@ -19,9 +19,11 @@ fun PlanningItemReferences(
     onRemoveCompatibility: (String) -> Unit = {},
     onOpenCompatibility: ((String) -> Unit)? = null,
     compact: Boolean = false,
+    includeComposition: Boolean = true,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PlanningReferencesPanel(owner, compact = compact)
+        if (includeComposition) PlanningCompositionPanel(owner)
         if (compatibilityLinks.isNotEmpty()) {
             Text("Попередні робочі зв’язки", style = MaterialTheme.typography.labelMedium)
             compatibilityLinks.forEach { (id, title) ->

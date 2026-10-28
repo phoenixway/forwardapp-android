@@ -45,8 +45,9 @@ class CanonicalPlanningSyncStore(
     suspend fun mergeIncoming(
         scopes: List<PlanningScopeSnapshot>?,
         commitments: List<PlanningCommitmentSnapshot>?,
+        relations: List<com.romankozak.forwardappmobile.shared.core.models.PlanningCommitmentRelationRecord>? = null,
     ) {
-        if (scopes == null && commitments == null) return
+        if (scopes == null && commitments == null && relations == null) return
         require(scopes != null && commitments != null) {
             "Canonical Planning merge requires atomic planningScopes/planningCommitments presence."
         }
@@ -121,6 +122,7 @@ class CanonicalPlanningSyncStore(
 
             scopeWinners.forEach { dao.upsertScope(it.toPlanningScopeEntity()) }
             commitmentWinners.forEach { dao.upsertCommitment(it.toPlanningCommitmentEntity()) }
+            CanonicalPlanningCommitmentRelationSyncStore(database).merge(relations)
         }
     }
 
@@ -141,10 +143,13 @@ class CanonicalPlanningSyncStore(
         return CanonicalPlanningDecodedPayload(decodedScopes, decodedCommitments)
     }
 
-    suspend fun restoreExactDecoded(payload: CanonicalPlanningDecodedPayload) {
+    suspend fun restoreExactDecoded(payload: CanonicalPlanningDecodedPayload,
+        relations: List<com.romankozak.forwardappmobile.shared.core.models.PlanningCommitmentRelationRecord>? = null) = database.withTransaction {
         requireValidProspectiveState(payload.scopes, payload.commitments)
         payload.scopes.forEach { dao.upsertScope(it.toPlanningScopeEntity()) }
         payload.commitments.forEach { dao.upsertCommitment(it.toPlanningCommitmentEntity()) }
+        val composition = CanonicalPlanningCommitmentRelationSyncStore(database)
+        if (relations == null) composition.merge(null) else composition.restore(relations)
     }
 
     suspend fun markSynced(

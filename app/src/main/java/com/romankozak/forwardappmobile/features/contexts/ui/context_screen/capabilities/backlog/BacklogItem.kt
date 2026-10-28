@@ -98,12 +98,14 @@ fun BacklogItem(
     onDragStopped: () -> Unit,
     workspaceTitle: String? = null,
     onOpenWorkspace: (() -> Unit)? = null,
+    planningBadges: @Composable () -> Unit = {},
 ) {
     when (item) {
         is BacklogItemContent.GoalItem -> {
             InternalGoalItem(
                 workspaceTitle = workspaceTitle,
                 onOpenWorkspace = onOpenWorkspace,
+                planningBadges = planningBadges,
                 goal = item.goal,
                 currentContextId = item.backlogItem.contextId,
                 reminders = item.reminders,
@@ -155,6 +157,7 @@ fun BacklogItem(
 private fun InternalGoalItem(
     workspaceTitle: String?,
     onOpenWorkspace: (() -> Unit)?,
+    planningBadges: @Composable () -> Unit,
     goal: Goal,
     currentContextId: String,
     reminders: List<Reminder>,
@@ -425,6 +428,7 @@ private fun InternalGoalItem(
                         Spacer(Modifier.height(6.dp))
                         BacklogGoalWorkspaceBadge(workspaceTitle, onOpenWorkspace)
                     }
+                    if (!isInlineEditing) planningBadges()
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||

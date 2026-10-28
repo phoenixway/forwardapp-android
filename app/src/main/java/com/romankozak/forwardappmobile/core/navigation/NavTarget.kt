@@ -34,6 +34,11 @@ sealed interface NavTarget {
         val subjectId: String,
     ) : NavTarget
 
+    /** Exact planning participation context, not its underlying semantic identity. */
+    data class PlanningParticipation(val commitmentId: String) : NavTarget
+
+    data class OrientationPlanning(val orientationId: String) : NavTarget
+
     /** Canonical operational identity; never a legacy Context locator. */
     data class Workspace(
         val workspaceId: String,

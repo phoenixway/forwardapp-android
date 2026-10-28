@@ -40,9 +40,9 @@ class Migration203To204SubjectConversionRoomTest {
                 helper.writableDatabase.execSQL("INSERT INTO managed_subjects(id,subjectType,title,createdAt,updatedAt,isDeleted,version) VALUES('aspect','ASPECT','Unchanged',1,2,0,7)")
                 helper.writableDatabase.execSQL("INSERT INTO aspects(subjectId,parentAspectId,aspectOrder,archived) VALUES('aspect',NULL,3,0)")
             }
-            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_203_204, MIGRATION_204_205).allowMainThreadQueries().build()
+            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_203_204, MIGRATION_204_205, MIGRATION_205_206).allowMainThreadQueries().build()
             try {
-                assertThat(room.openHelper.readableDatabase.version).isEqualTo(205)
+                assertThat(room.openHelper.readableDatabase.version).isEqualTo(206)
                 kotlinx.coroutines.runBlocking {
                     assertThat(room.managedSubjectConversionDao().getAll()).isEmpty()
                     assertThat(room.orientationDao().getManagedSubject("aspect")!!.version).isEqualTo(7)

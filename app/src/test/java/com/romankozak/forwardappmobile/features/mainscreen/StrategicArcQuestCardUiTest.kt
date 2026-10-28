@@ -100,10 +100,10 @@ class StrategicArcQuestCardUiTest {
     @Test fun `compact menu preserves existing quest commands`() {
         ui.setContent { Card() }
         openMenu()
-        listOf("Редагувати", "Відкрити контекст", "Створити місію", "В поточну арку", "Видалити").forEach {
+        listOf("Редагувати", "Відкрити контекст", "Add to Tactical", "В поточну арку", "Видалити").forEach {
             ui.onNodeWithText(it).assertIsDisplayed()
         }
-        menuClick("Створити місію")
+        menuClick("Add to Tactical")
         openMenu(); menuClick("В поточну арку")
         openMenu(); menuClick("Відкрити контекст")
         openMenu(); menuClick("Видалити")
@@ -117,7 +117,7 @@ class StrategicArcQuestCardUiTest {
         openMenu()
         ui.onNodeWithText("В поточну арку").assertDoesNotExist()
         ui.onNodeWithText("Відкрити контекст").assertDoesNotExist()
-        ui.onNodeWithText("Створити місію").assertIsDisplayed()
+        ui.onNodeWithText("Add to Tactical").assertIsDisplayed()
         ui.onNodeWithText("Видалити").assertIsDisplayed()
     }
 }

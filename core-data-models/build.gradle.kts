@@ -12,6 +12,7 @@ android {
 
     defaultConfig {
         minSdk = 26
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -29,7 +30,7 @@ kotlin {
 
 dependencies {
     api(kotlin("stdlib"))
-    implementation(project(":shared-core-data-models"))
+    api(project(":shared-core-data-models"))
     // Basic Kotlin and AndroidX dependencies for data classes
     implementation(libs.androidx.core.ktx)
     implementation("androidx.annotation:annotation:1.8.0")

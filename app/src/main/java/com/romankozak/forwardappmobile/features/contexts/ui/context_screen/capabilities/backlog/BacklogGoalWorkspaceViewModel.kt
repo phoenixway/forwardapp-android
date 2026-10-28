@@ -89,5 +89,6 @@ class BacklogGoalWorkspaceViewModel @Inject constructor(
         }
     }
     fun openSemantic(goalId: String) { links.value[goalId]?.let { navigation.navigate(NavTarget.SemanticEntityEditor(it.subjectId)) } }
+    fun openPlanning(goalId: String) { links.value[goalId]?.let { navigation.navigate(NavTarget.OrientationPlanning(it.subjectId)) } }
     fun openWorkspace(goalId: String) { links.value[goalId]?.workspace?.let { navigation.navigate(NavTarget.Workspace(it.ref.id)) } }
 }

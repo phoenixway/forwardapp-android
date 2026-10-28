@@ -167,6 +167,7 @@ private fun MissionEditorRoute(
                 TabSpec("General", Icons.Outlined.Description),
                 TabSpec("Attachments", Icons.Outlined.AttachFile),
                 TabSpec("Пов’язані сутності", Icons.Outlined.AccountTree),
+                TabSpec("Planning", Icons.Outlined.AccountTree),
             )
         }
 
@@ -322,13 +323,15 @@ private fun MissionEditorContent(
                             onRemoveAttachment = actions.onRemoveAttachment,
                             onOpenAttachments = actions.onOpenAttachments,
                         )
-                    else ->
+                    2 ->
                         com.romankozak.forwardappmobile.features.planning.PlanningItemReferences(
                             owner = com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
                                 com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION, state.missionId.toString()),
                             compatibilityLinks = state.projectLinks.map { id -> id to (projectOptions.firstOrNull { it.id == id }?.name ?: "Недоступний історичний зв’язок") },
                             onRemoveCompatibility = actions.onRemoveProject,
+                            includeComposition = false,
                         )
+                    else -> com.romankozak.forwardappmobile.features.planning.MissionPlanningTab(state.missionId)
                 }
 
                 Spacer(Modifier.height(16.dp))

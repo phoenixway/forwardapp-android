@@ -37,9 +37,9 @@ class Migration204To205OrientationKindRoomTest {
         }).build()
         try {
             FrameworkSQLiteOpenHelperFactory().create(config).use { it.writableDatabase }
-            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_204_205).allowMainThreadQueries().build()
+            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_204_205, MIGRATION_205_206).allowMainThreadQueries().build()
             try {
-                assertThat(room.openHelper.readableDatabase.version).isEqualTo(205)
+                assertThat(room.openHelper.readableDatabase.version).isEqualTo(206)
                 kotlinx.coroutines.runBlocking {
                     val row = room.managedSubjectConversionDao().getAll().single()
                     assertThat(row.formatVersion).isEqualTo(1); assertThat(row.previousAspectOrder).isEqualTo(5)

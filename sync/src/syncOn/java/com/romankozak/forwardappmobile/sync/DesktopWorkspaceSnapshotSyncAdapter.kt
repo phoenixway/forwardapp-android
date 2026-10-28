@@ -116,6 +116,11 @@ class DesktopWorkspaceSnapshotSyncAdapter {
             planningFormatVersion = snapshot.planningFormatVersion,
             planningScopes = snapshot.planningScopes?.map { scope -> scope.toAndroidSnapshot() },
             planningCommitments = snapshot.planningCommitments?.map { commitment -> commitment.toAndroidSnapshot() },
+            planningCommitmentRelations = snapshot.planningCommitmentRelations?.map {
+                com.romankozak.forwardappmobile.shared.core.models.PlanningCommitmentRelationRecord(
+                    it.id, it.sourceCommitmentId, it.targetCommitmentId, it.relationType, it.order,
+                    it.createdAt, it.updatedAt, it.syncedAt, it.isDeleted, it.version)
+            },
             dayPlanningScopeExtensions =
                 snapshot.dayPlanningScopeExtensions?.map { extension -> extension.toAndroidSnapshot() },
             tacticalPlanningScopeExtensions =

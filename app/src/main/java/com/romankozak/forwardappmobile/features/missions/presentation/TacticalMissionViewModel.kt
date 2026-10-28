@@ -93,6 +93,7 @@ class TacticalMissionViewModel
         private val updateTacticalMissionUseCase: UpdateTacticalMissionUseCase,
         private val deleteTacticalMissionUseCase: DeleteTacticalMissionUseCase,
         private val missionRepository: MissionRepository,
+        private val planningPromotion: com.romankozak.forwardappmobile.features.planning.PlanningPromotionActions,
         private val contextRepository: ContextRepository,
         private val canonicalWorkspaceRepository: CanonicalWorkspaceRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
@@ -653,41 +654,11 @@ class TacticalMissionViewModel
         }
 
         fun addMissionToTodayPlan(mission: TacticalMission) {
-            val trimmedTitle = mission.title.trim()
-            if (trimmedTitle.isBlank()) return
-            viewModelScope.launch {
-                val todayPlan = dayManagementRepository.createOrUpdateDayPlan(System.currentTimeMillis())
-                dayManagementRepository.addTaskToDayPlan(
-                    NewTaskParameters(
-                        dayPlanId = todayPlan.id,
-                        title = trimmedTitle,
-                        description = mission.description,
-                        projectId = mission.logicalProjectId,
-                        linkedProjectIds = mission.linkedProjectIds.orEmpty(),
-                        priority = TaskPriority.MEDIUM,
-                        taskType = BacklogItemTypeValues.GOAL,
-                        points = 0,
-                    ),
-                )
-            }
+            planningPromotion.missionToToday(viewModelScope, mission.id) { _uiMessages.tryEmit(it) }
         }
 
         fun addMissionToCurrentArc(mission: TacticalMission) {
-            val trimmedTitle = mission.title.trim()
-            if (trimmedTitle.isBlank()) return
-            viewModelScope.launch {
-                arcQuestRepository.addQuest(
-                    ArcQuestEntity(
-                        arcKey = YearMonth.now().toString(),
-                        title = trimmedTitle,
-                        description = mission.description,
-                        linkedContextId = mission.logicalProjectId,
-                        linkedMissionId = mission.id,
-                        sourceType = ArcQuestSourceType.MISSION.name,
-                        sourceId = mission.id.toString(),
-                    ),
-                )
-            }
+            planningPromotion.missionToArc(viewModelScope, mission.id) { _uiMessages.tryEmit(it) }
         }
 
 	        fun selectMode(mode: TacticsWorkspaceMode) {

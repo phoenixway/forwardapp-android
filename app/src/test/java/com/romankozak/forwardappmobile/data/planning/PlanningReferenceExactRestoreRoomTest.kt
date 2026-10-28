@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.planning.day.CanonicalDayPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -21,6 +22,40 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class PlanningReferenceExactRestoreRoomTest {
     private val owner = PlanningReferenceOwner(PlanningReferenceOwnerKind.SCOPE, "day")
+
+    private suspend fun composition(f: PlanningSourceRoomFixture) {
+        listOf("source" to "day", "target" to "cycle").forEach { (id, scope) ->
+            f.planning.saveCommitment(PlanningCommitment(PlanningCommitmentId(id), PlanningScopeId(scope), f.base.orientation(),
+                PlanningRoleCode.FOCUS, 0, null, PlanningCommitmentStatus.ACTIVE, PlanningProvenance(PlanningProvenanceKind.MANUAL),
+                20, 20, null, 1, false))
+        }
+        val row = CanonicalPlanningCommitmentRelationRepository(f.db).addRelation(PlanningCommitmentId("source"), PlanningCommitmentId("target"), now = 30)
+        f.db.planningCommitmentRelationDao().acknowledge(row.id.value, row.version, 99)
+    }
+
+    @Test fun `production full Restore preserves composition endpoints order versions and ACK metadata`() = runBlocking<Unit> {
+        PlanningSourceRoomFixture().use { source -> PlanningSourceRoomFixture().use { target ->
+            source.seed(); composition(source)
+            val bundle = snapshot(source).copy(planningFormatVersion = 5,
+                planningCommitmentRelations = source.db.planningCommitmentRelationDao().getAll().map { it.toRecord() })
+            restorer(target).replaceWith(bundle)
+            assertThat(target.db.planningCommitmentRelationDao().getAll().map { it.toRecord() }).isEqualTo(bundle.planningCommitmentRelations)
+            assertThat(target.db.planningDao().getAllCommitments()).isEqualTo(source.db.planningDao().getAllCommitments())
+        } }
+    }
+
+    @Test fun `invalid composition dependency fails before destructive full Restore`() = runBlocking<Unit> {
+        PlanningSourceRoomFixture().use { f ->
+            f.seed(); composition(f)
+            val rows = f.db.planningCommitmentRelationDao().getAll()
+            val subjects = f.base.rows()
+            val bundle = snapshot(f).copy(planningFormatVersion = 5,
+                planningCommitmentRelations = rows.map { it.toRecord().copy(targetCommitmentId = "missing") })
+            assertThat(runCatching { restorer(f).replaceWith(bundle) }.isFailure).isTrue()
+            assertThat(f.base.rows()).isEqualTo(subjects)
+            assertThat(f.db.planningCommitmentRelationDao().getAll()).isEqualTo(rows)
+        }
+    }
 
     private fun restorer(f: PlanningSourceRoomFixture) = SnapshotRestoreLocalDataSourceImpl(
         database = f.db,

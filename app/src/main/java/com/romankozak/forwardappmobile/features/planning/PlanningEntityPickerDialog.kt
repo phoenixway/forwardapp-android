@@ -21,9 +21,10 @@ fun PlanningEntityPickerDialog(
     onDismiss: () -> Unit,
     onSelected: suspend (CanonicalEntitySummary) -> Unit,
     host: PlanningReferencesViewModel = hiltViewModel(),
+    allowedClasses: Set<com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass> = com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass.entries.toSet(),
 ) {
     val store = remember { ViewModelStore() }
-    val picker = remember(host) { host.newPicker().also { store.put("picker", it) } }
+    val picker = remember(host, allowedClasses) { host.newPicker(allowedClasses).also { store.put("picker", it) } }
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }

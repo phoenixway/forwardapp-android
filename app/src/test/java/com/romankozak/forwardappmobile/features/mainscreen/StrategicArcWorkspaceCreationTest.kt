@@ -105,6 +105,7 @@ class StrategicArcWorkspaceCreationTest {
                     arcQuestRepository = arcQuestRepository,
                     mainBeaconRepository = mainBeaconRepository,
                     missionRepository = mockk<MissionRepository>(relaxed = true),
+                    planningPromotion = mockk(relaxed = true),
                 )
 
             assertEquals(workspaceId, viewModel.createRootContextForPicker("  Arc owner  "))

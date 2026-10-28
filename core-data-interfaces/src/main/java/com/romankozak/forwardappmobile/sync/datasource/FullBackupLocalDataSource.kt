@@ -62,6 +62,7 @@ data class CanonicalExecutionLogSyncVersion(
 )
 
 data class CanonicalPlanningSyncPayload(
+    val relations: List<com.romankozak.forwardappmobile.shared.core.models.PlanningCommitmentRelationRecord> = emptyList(),
     val scopes: List<PlanningScopeSnapshot> = emptyList(),
     val commitments: List<PlanningCommitmentSnapshot> = emptyList(),
     val dayScopeExtensions: List<DayPlanningScopeExtensionSnapshot> = emptyList(),
@@ -71,6 +72,7 @@ data class CanonicalPlanningSyncPayload(
 )
 
 data class CanonicalPlanningSyncAck(
+    val relations: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentRelationSyncVersion> = emptyList(),
     val scopes: List<PlanningScopeSyncVersion> = emptyList(),
     val commitments: List<PlanningCommitmentSyncVersion> = emptyList(),
     val dayScopeExtensions: List<DayPlanningScopeExtensionSyncVersion> = emptyList(),

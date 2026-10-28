@@ -414,6 +414,18 @@ private fun NavGraphBuilder.mainGraph(
         MagicBoxScreen(viewModel = viewModel, navController = navController)
     }
 
+    composable(NavigationRoutes.ORIENTATION_PLANNING_PATTERN,
+        arguments = listOf(navArgument("orientationId") { type = NavType.StringType })) { entry ->
+        com.romankozak.forwardappmobile.features.planning.OrientationPlanningScreen(
+            entry.arguments?.getString("orientationId").orEmpty(), onBack = { navController.popBackStack() })
+    }
+
+    composable(NavigationRoutes.PLANNING_PARTICIPATION_PATTERN,
+        arguments = listOf(navArgument("commitmentId") { type = NavType.StringType })) { entry ->
+        com.romankozak.forwardappmobile.features.planning.PlanningContextScreen(
+            entry.arguments?.getString("commitmentId").orEmpty(), onBack = { navController.popBackStack() })
+    }
+
     composable(
         route = NavigationRoutes.SEMANTIC_ENTITY_EDITOR_PATTERN,
         arguments = listOf(navArgument("subjectId") { type = NavType.StringType }),

@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBoot
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
 import com.romankozak.forwardappmobile.data.orientation.QuestOrientationBridge
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningRepository
+import com.romankozak.forwardappmobile.data.planning.toDomain
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import io.mockk.mockk
@@ -135,6 +136,68 @@ class StrategicQuestCarryForwardRoomTest {
         assertFalse(isHistoricalStrategicArc("2026-10", "2026-10"))
         assertFalse(isHistoricalStrategicArc("2026-11", "2026-10"))
         assertFalse(isHistoricalStrategicArc("unknown", "2026-10"))
+    }
+
+    @Test fun `same Goal component reused under two non QUEST Strategic focuses`() = runBlocking {
+        withDatabase { db, runtime ->
+            val planning = CanonicalPlanningRepository(db, db.planningDao(), db.dayPlanningScopeExtensionDao(), db.tacticalPlanningScopeExtensionDao())
+            val relations = com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(db)
+            val coordinator = com.romankozak.forwardappmobile.data.planning.PlanningCompositionCoordinator(db, planning, relations, runtime)
+            val orientations = CanonicalOrientationRepository(db, db.orientationDao())
+            val first = orientations.createOrientation(OrientationKind.ONGOING_STANDARD, "Crisis management")
+            val second = orientations.createOrientation(OrientationKind.INTENT, "Preparedness")
+            val goal = orientations.createOrientation(OrientationKind.GOAL, "Review crises")
+            runtime.addQuest(ArcQuestEntity(id = "first", arcKey = "2026-09", title = "Focus"), PlanningReferenceTarget(PlanningReferenceTargetKind.ORIENTATION, first))
+            runtime.addQuest(ArcQuestEntity(id = "second", arcKey = "2026-09", title = "Focus"), PlanningReferenceTarget(PlanningReferenceTargetKind.ORIENTATION, second))
+            val parents = db.planningDao().getAllCommitments().associateBy { it.orientationId }
+            coordinator.addStrategicComponent(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(parents.getValue(first).id), goal)
+            coordinator.addStrategicComponent(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(parents.getValue(second).id), goal)
+            assertEquals(3, db.planningDao().getAllCommitments().size)
+            assertEquals(3, db.orientationDao().getAllManagedSubjects().size)
+            assertEquals(2, db.planningCommitmentRelationDao().getAll().size)
+            assertEquals(1, db.planningDao().getAllCommitments().count { it.orientationId == goal })
+        }
+    }
+
+    @Test fun `batch carry maps selected components to new parent and keeps old graph`() = runBlocking {
+        withDatabase { db, runtime ->
+            val planning = CanonicalPlanningRepository(db, db.planningDao(), db.dayPlanningScopeExtensionDao(), db.tacticalPlanningScopeExtensionDao())
+            val relations = com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(db)
+            runtime.addQuest(ArcQuestEntity(id = "root", arcKey = "2026-09", title = "Root"))
+            runtime.addQuest(ArcQuestEntity(id = "component", arcKey = "2026-09", title = "Component"))
+            val old = db.planningDao().getAllCommitments()
+            val root = old.single { it.provenanceSourceId == "root" }
+            val component = old.single { it.provenanceSourceId == "component" }
+            val rootId = com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(root.id)
+            val componentId = com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(component.id)
+            val oldEdge = relations.addRelation(componentId, rootId)
+            val coordinator = StrategicCompositionCarryCoordinator(db, runtime, planning, relations)
+            val result = coordinator.carry("root", "2026-10", setOf(componentId))
+            coordinator.carry("root", "2026-10", setOf(componentId))
+            val rows = db.planningDao().getAllCommitments()
+            val newRoot = rows.single { it.provenanceSourceId == result.quest.id }
+            val newComponent = rows.single { it.scopeId == newRoot.scopeId && it.orientationId == component.orientationId }
+            assertNotEquals(root.id, newRoot.id); assertNotEquals(component.id, newComponent.id)
+            assertEquals(2, db.planningCommitmentRelationDao().getAll().size)
+            assertTrue(db.planningCommitmentRelationDao().getAll().any { it.sourceCommitmentId == newComponent.id && it.targetCommitmentId == newRoot.id })
+            assertEquals(oldEdge, db.planningCommitmentRelationDao().get(oldEdge.id.value)!!.toDomain())
+            old.forEach { assertEquals(it, db.planningDao().getCommitment(it.id)) }
+        }
+    }
+
+    @Test fun `late component relation failure rolls back new Strategic participation`() = runBlocking {
+        withDatabase { db, runtime ->
+            runtime.addQuest(ArcQuestEntity(id = "root", arcKey = "2026-09", title = "Root"))
+            val orientation = CanonicalOrientationRepository(db, db.orientationDao()).createOrientation(OrientationKind.PROJECT, "Project")
+            val planning = CanonicalPlanningRepository(db, db.planningDao(), db.dayPlanningScopeExtensionDao(), db.tacticalPlanningScopeExtensionDao())
+            val relations = com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(db)
+            val coordinator = com.romankozak.forwardappmobile.data.planning.PlanningCompositionCoordinator(db, planning, relations, runtime)
+            val old = db.planningDao().getAllCommitments()
+            val carriers = db.arcQuestDao().getAllSync()
+            db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_component BEFORE INSERT ON planning_commitment_relations BEGIN SELECT RAISE(ABORT,'test'); END")
+            assertTrue(runCatching { coordinator.addStrategicComponent(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(old.single().id), orientation) }.isFailure)
+            assertEquals(old, db.planningDao().getAllCommitments()); assertEquals(carriers, db.arcQuestDao().getAllSync())
+        }
     }
 
     private suspend fun withDatabase(block: suspend (AppDatabase, CanonicalStrategicPlanningAdapter) -> Unit) {

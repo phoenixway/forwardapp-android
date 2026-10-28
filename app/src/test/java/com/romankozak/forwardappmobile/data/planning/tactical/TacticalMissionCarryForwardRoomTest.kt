@@ -20,6 +20,35 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class TacticalMissionCarryForwardRoomTest {
+    @Test fun `canonical Mission carry retains COMPONENT_OF Strategic focus`() = runBlocking {
+        withDatabase { db ->
+            seedCycle(db, "old")
+            val runtime = adapter(db)
+            val previousId = runtime.insertMission(historical().copy(id = 0, iterationId = "old"))
+            val previous = requireNotNull(runtime.getMissionById(previousId))
+            val source = db.planningDao().getAllCommitments().single()
+            val planning = CanonicalPlanningRepository(db, db.planningDao(), db.dayPlanningScopeExtensionDao(), db.tacticalPlanningScopeExtensionDao())
+            val parentSubject = CanonicalOrientationRepository(db, db.orientationDao()).createOrientation(OrientationKind.ONGOING_STANDARD, "Strategic focus")
+            val arc = com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScope(
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScopeId("arc"),
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScopeKind.STRATEGIC_ARC,
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScopeLifecycle.ACTIVE, "Arc", null, null, 1, 1, null, 1, false)
+            planning.saveScope(arc)
+            val parent = com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitment(
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId("focus"), arc.id, parentSubject,
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleCode.FOCUS, 0, null,
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentStatus.ACTIVE,
+                com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningProvenance(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningProvenanceKind.MANUAL),
+                1, 1, null, 1, false)
+            planning.saveCommitment(parent)
+            val relations = com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(db)
+            relations.addRelation(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(source.id), parent.id)
+            val carried = runtime.insertMissionWithAutoOrder(carried(previous))
+            val next = db.planningDao().getAllCommitments().single { it.provenanceSourceType == "TACTICAL_MISSION" && it.provenanceSourceId == carried.toString() }
+            assertEquals(parent.id, relations.observeOutgoing(com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningCommitmentId(next.id)).first().single().targetCommitmentId)
+            assertEquals(source, db.planningDao().getCommitment(source.id))
+        }
+    }
     @Test fun `adopted unscoped historical mission carries exact semantic identity without rewriting history`() = runBlocking {
         withDatabase { db ->
             val previous = historical()

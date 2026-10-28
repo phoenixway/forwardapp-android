@@ -1,5 +1,62 @@
 # Next
 
+## Planning Context UX V2: physical acceptance pending
+
+After user-run `make exp-arm64-cycle`, on disposable data:
+
+1. Orientation editor -> Planning: test unplanned state, current Arc Focus,
+   current Tactical Mission and Today Task. Verify one semantic identity.
+2. Workspace Dashboard -> Planning: one Orientation opens directly, several
+   bindings show exact choices/kinds, Aspect-only creates no Planning target.
+3. Goal backlog: verify exact Strategic/Tactical badges, multiple links, context
+   menu Planning and reactive rename/status/relation changes without refresh.
+4. Strategic/Tactical main lists: counts only, no inline children; Properties
+   Planning tab opens full composition, remove/reorder/trace and exact navigation.
+5. Quest Add to Tactical -> Mission Add to Today; repeat both: distinct commitment
+   identities, same Orientation, correct COMPONENT_OF and no duplicate. Source
+   participation survives; test Mission Add to current Arc as well.
+6. Cancel Add/remove/chooser; test permitted status and participation removal,
+   then verify other participation/Orientation/Workspace survives. Day execution
+   status remains owned by Day Properties; no generic role conversion.
+7. Carry Day/Arc context, restart and verify badges/counts/history persist.
+
+HOST 185 tests / 18 classes and both separate compile gates PASS; Room 206 -> 206.
+Known separate DayTask -> Tactical copy seam: BACKLOG. No next global milestone.
+
+## Planning Composition UX V1: physical acceptance pending
+
+After user-run `make exp-arm64-cycle`, use disposable Planning data:
+
+1. Strategic Arc: existing ONGOING_STANDARD focus -> Edit -> Components; add a
+   GOAL and PROJECT, reuse one under a second focus, reorder/remove/re-add.
+2. Verify compact components on Strategic cards, both Tactical list modes and
+   minimal Day Part of. One parent opens its exact Planning context; +N opens
+   the current participant's context with all parents. Semantic editor/Workspace
+   are secondary, never an automatic composition-navigation redirect.
+3. Mission Properties -> Part of: link its exact participation to Strategic
+   focus. Day task Properties -> Realizes/Planning composition: link an already
+   canonical participation to that Mission; also try Day -> Strategic directly.
+4. Confirm free-form Day tasks acquire no hidden semantic identity/action.
+5. Carry Day task forward: new Day commitment, same Orientation, same live
+   Tactical target; old day/edge unchanged.
+6. Previous Arc -> In current arc: unfinished same-Arc components selected,
+   completed off by default; test explicit completed override and Cancel.
+   Confirm new commitment IDs, same Orientations, edges to new carried focus,
+   unchanged previous Arc, and no duplicate on repeated carry.
+7. Attempt a cycle; it must fail without partial records. Remove a relation:
+   participants and semantic identities must survive.
+8. Full Restore/Merge smoke only on disposable backup data. Nonempty composition
+   selective import intentionally explains unsupported endpoint-selection closure.
+9. Trace Day -> Tactical -> Strategic and a branching DAG; expand deeper
+   components, tap exact participants, test relation-menu up/down order under
+   two distinct targets. Rename/status/remove updates must appear without refresh.
+10. Restart: composition persists, carried task opens the new task Properties,
+    historical Arc/Day remains unchanged; no Workspace/H1/semantic mutation.
+
+HOST UX evidence: 111 tests / 10 classes PASS, Room 206 -> 206; predecessor
+backend evidence remains in STATE and the focused Canonical Planning contract.
+No next global milestone is selected.
+
 ## Backlog Goal Workspace creation / semantic open: physical smoke pending
 
 After user-run `make exp-arm64-cycle`, open a disposable backlog Goal menu:

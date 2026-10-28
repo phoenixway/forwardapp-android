@@ -103,6 +103,7 @@ fun TacticalMissionList(
     modifier: Modifier = Modifier,
 ) {
     val orientationSources = rememberTacticalOrientationSources()
+    val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     val hapticFeedback = LocalHapticFeedback.current
     val internalMissions =
         remember {
@@ -183,6 +184,13 @@ fun TacticalMissionList(
                 ReorderableItem(reorderableState, key = mission.id) { isDragging ->
                     TacticalMissionCard(
                         mission = mission,
+                        planningContext = {
+                            com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION,
+                                    mission.id.toString()), composition,
+                                modifier = Modifier.padding(start = 40.dp, end = 24.dp))
+                        },
                         selectionState = selectionState,
                         isDragging = isDragging,
                         lookups =
@@ -274,6 +282,7 @@ private fun TacticalMissionCard(
     lookups: TacticalMissionCardLookups,
     actions: TacticalMissionCardActions,
     checkboxDragHandleModifier: Modifier = Modifier,
+    planningContext: @Composable () -> Unit = {},
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val visualState = rememberTacticalMissionVisualState(mission = mission, onSurface = onSurface)
@@ -330,6 +339,7 @@ private fun TacticalMissionCard(
                 }
             }
         }
+        planningContext()
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     }
 }

@@ -79,6 +79,7 @@ fun DayTaskCard(
     orientationSource: CanonicalEntitySummary? = null,
     relatedOrientations: List<CanonicalEntitySummary> = emptyList(),
     onOpenOrientation: (String) -> Unit = {},
+    planningContext: @Composable () -> Unit = {},
 ) {
     val task = taskWithReminder.dayTask
     val contentAlpha = if (task.completed) COMPLETED_TASK_CONTENT_ALPHA else 1f
@@ -114,6 +115,7 @@ fun DayTaskCard(
             orientationSource = orientationSource,
             relatedOrientations = relatedOrientations,
             onOpenOrientation = onOpenOrientation,
+            planningContext = planningContext,
         )
 
         task.priority.dayTaskPriorityDescription()?.let { description ->
@@ -151,6 +153,7 @@ private fun RowScope.DayTaskCardContent(
     orientationSource: CanonicalEntitySummary?,
     relatedOrientations: List<CanonicalEntitySummary>,
     onOpenOrientation: (String) -> Unit,
+    planningContext: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
@@ -185,6 +188,7 @@ private fun RowScope.DayTaskCardContent(
             maxLines = 4,
         )
 
+        planningContext()
         if (hasVisibleTaskThemes(themes, selectedThemeIds)) EntityThemeSelector(
             themes = themes,
             selectedThemeIds = selectedThemeIds,

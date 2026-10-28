@@ -40,11 +40,11 @@ class Migration202To203DayTaskRealizationRoomTest {
                 helper.writableDatabase.execSQL("INSERT INTO day_plans(id,date,status,totalPlannedMinutes,totalCompletedMinutes,completionPercentage,createdAt,isDeleted,version) VALUES('d',1,'PLANNED',0,0,0,1,0,1)")
                 helper.writableDatabase.execSQL("INSERT INTO day_tasks(id,dayPlanId,title,description,notes,`order`,priority,status,completed,scheduledTime,estimatedDurationMinutes,dueTime,createdAt,isDeleted,version) VALUES('t','d','Task','Instruction','Journal',2,'HIGH','NOT_STARTED',0,100,30,300,1,0,4)")
             }
-            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_202_203, MIGRATION_203_204, MIGRATION_204_205).allowMainThreadQueries().build()
+            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(MIGRATION_202_203, MIGRATION_203_204, MIGRATION_204_205, MIGRATION_205_206).allowMainThreadQueries().build()
             try {
                 val db = room.openHelper.writableDatabase // Full current Room schema validation.
                 fun scalar(sql: String) = db.query(sql).use { it.moveToFirst(); it.getString(0) }
-                assertThat(scalar("PRAGMA user_version")).isEqualTo("205")
+                assertThat(scalar("PRAGMA user_version")).isEqualTo("206")
                 assertThat(scalar("SELECT realizedDayFocusItemIds FROM day_tasks WHERE id='t'")).isEqualTo("[]")
                 assertThat(scalar("SELECT description || ':' || notes || ':' || version FROM day_tasks WHERE id='t'")).isEqualTo("Instruction:Journal:4")
                 assertThat(scalar("SELECT scheduledTime || ':' || estimatedDurationMinutes || ':' || dueTime FROM day_tasks WHERE id='t'")).isEqualTo("100:30:300")

@@ -103,6 +103,7 @@ private fun TaskListContent(
     onToggleTheme: (String, String) -> Unit,
     orientationSources: DayTaskOrientationSourcesUi,
 ) {
+    val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     LazyColumn(
         state = lazyListState,
         modifier = Modifier.fillMaxSize(),
@@ -127,6 +128,7 @@ private fun TaskListContent(
                 dayThemesState = dayThemesState,
                 onToggleTheme = onToggleTheme,
                 orientationSources = orientationSources,
+                composition = composition,
             )
         }
     }
@@ -143,6 +145,7 @@ private fun LazyItemScope.TaskListItem(
     dayThemesState: DayThemesUiState,
     onToggleTheme: (String, String) -> Unit,
     orientationSources: DayTaskOrientationSourcesUi,
+    composition: com.romankozak.forwardappmobile.features.planning.PlanningCompositionListUi,
 ) {
     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
@@ -174,6 +177,12 @@ private fun LazyItemScope.TaskListItem(
                         orientationSource = orientationSources.byTask[taskWithReminder.dayTask.id],
                         relatedOrientations = orientationSources.relatedByTask[taskWithReminder.dayTask.id].orEmpty(),
                         onOpenOrientation = orientationSources.onOpen,
+                        planningContext = {
+                            com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_TASK,
+                                    taskWithReminder.dayTask.id), composition, compact = true)
+                        },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 }

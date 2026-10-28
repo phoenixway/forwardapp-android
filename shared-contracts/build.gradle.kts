@@ -8,6 +8,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":shared-core-domain"))
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     testImplementation(kotlin("test"))

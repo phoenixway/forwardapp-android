@@ -1,5 +1,40 @@
 # ForwardApp Decisions
 
+## 2026-10-28 - Orientation Planning Context and canonical promotion
+
+Planning is a reusable product surface over canonical Orientation participation
+and Planning Composition. Workspace is not a commitment target; it delegates
+through exact Orientation bindings, with a chooser when multiple are relevant.
+Backlog badges derive from exact Goal -> Orientation identity and canonical
+Planning, not Context/H1. Main lists show counts, full composition lives in
+Planning Properties/details. Quest -> Mission / Mission -> Day means creation
+or reuse of participation plus COMPONENT_OF, not semantic/carrier record copy.
+Carrier roles remain domain-owned; no generic role conversion UI is introduced.
+
+## 2026-10-28 - Planning composition navigation preserves participation context
+
+Part of / Components present a many-parent DAG, not semantic parenthood. Their
+primary navigation uses exact Planning participation context (Day task Properties
+or commitment-keyed Planning details); semantic editor and operational EMBODIES
+Workspace remain explicit secondary actions. No automatic Workspace redirect in
+composition navigation. Reuse the existing canonical relation/carry authorities.
+
+## 2026-10-28 - Planning composition belongs to commitments, not semantic identity
+
+User accepted `PlanningCommitmentRelation(COMPONENT_OF)` as a separate canonical
+Planning-only authority, with typed commitment endpoints, same/cross-scope
+many-to-many DAG semantics and relation-local order. Scope horizons are not a
+rigid tree; neither role nor OrientationKind encodes composition. Remove retires
+only relation; commitment/scope retirement owns atomic dependent-link lifecycle.
+No Orientation graph, Aspect taxonomy, WorkspaceBinding, H1 or PlanningReference
+authority is merged into it. Classified SEMANTIC_NOT_HIERARCHY, not a hierarchy
+migration. Carry is explicit endpoint remapping after all selected replacement
+participations are known, never scopeId mutation or semantic cloning. Room
+205 -> 206 starts with an empty relation table; Planning transport v5 protects
+the new stream. Selective Planning composition import remains explicitly
+fail-closed until an endpoint-selection closure exists. Focused contract:
+CANONICAL-PLANNING-CONTRACT-V3.md, PlanningCommitmentRelation V1.
+
 ## 2026-10-26 - One global dock, route-owned contextual creation
 
 MAIN_SCREEN_GLOBAL_DOCK_HOST_20261026

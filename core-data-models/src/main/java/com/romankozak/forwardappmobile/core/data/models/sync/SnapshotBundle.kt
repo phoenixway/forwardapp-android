@@ -127,6 +127,8 @@ data class SnapshotBundle(
     /** Null is pre-reference/unsupported authority; empty is an authoritative empty generation. */
     @SerializedName("planningReferences")
     val planningReferences: List<com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceEntity>? = null,
+    @SerializedName("planningCommitmentRelations")
+    val planningCommitmentRelations: List<com.romankozak.forwardappmobile.shared.core.models.PlanningCommitmentRelationRecord>? = null,
 
     @SerializedName("exportedAt")
     val exportedAt: Long = System.currentTimeMillis(),

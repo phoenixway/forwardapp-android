@@ -138,7 +138,7 @@ class CanonicalCreateCrashRoomRegressionTest {
                 db,
                 db.canonicalDayThemeDao(),
                 bridge,
-                CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority),
+                CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority, db),
             )
 
             val temporaryId = "regression-theme-definition"

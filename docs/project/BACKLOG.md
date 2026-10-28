@@ -1,5 +1,29 @@
 # ForwardApp Backlog
 
+## DayTask -> Tactical action: canonical/free-form promotion boundary
+
+Status: OBSERVED / NON-BLOCKING / NOT DECIDED. Priority: UNSET.
+Estimate: small (0.5–2 h).
+
+`DayPlanViewModel.addTaskToTacticalMissions` still authors a Mission from task
+fields. For already canonical Day participation, a future explicit cutover should
+reuse its Orientation, admit/reuse Tactical MISSION and link Day COMPONENT_OF
+Mission. Preserve the distinct free-form DayTask boundary: no hidden Orientation
+adoption merely to fabricate a relation. This reverse-horizon action is separate
+from the completed Quest -> Tactical / Mission -> Today / Mission -> Arc V2 slice.
+
+## Planning composition across recurrence replacement — policy follow-up
+
+Status: NON-BLOCKING / NOT DECIDED. Priority: UNSET. Estimate: medium (2–8 h).
+
+V1 composition correctly retires edges when an old Day participation is
+tombstoned during recurrence split/replacement. That operation is not an
+explicit carry-forward and therefore does not silently clone incident links.
+If composition should survive logical-task replacement, agree the exact
+one-to-one/one-to-many replacement semantics first, then add a narrow atomic
+replacement-map command and recurrence regression tests. No hidden Orientation
+creation or inferred relation transfer. Does not block explicit carry support.
+
 <!-- R2A3P_DEVICE_PERF_ACCEPTED_2026_10_15 -->
 
 ## PERF-P2 - Remaining canonical runtime performance debt

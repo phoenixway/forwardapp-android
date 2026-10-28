@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.data.planning.day
 
+import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
 import com.romankozak.forwardappmobile.data.orientation.ThemeOrientationBridge
 import com.romankozak.forwardappmobile.data.planning.PlanningDao
@@ -25,6 +28,7 @@ class CanonicalDayThemePlanningAdapter
         private val planningDao: PlanningDao,
         private val themeBridge: ThemeOrientationBridge,
         private val authorityActivator: CanonicalDayPlanningAuthorityActivator,
+        private val database: AppDatabase,
     ) {
         fun observeDayThemeCommitments(dayPlanId: String): Flow<List<PlanningCommitment>> =
             planningDao.observeLiveCommitmentsForScope(dayPlanId).map { rows ->
@@ -36,7 +40,7 @@ class CanonicalDayThemePlanningAdapter
             planningDao.getLiveCommitmentsForRole(dayPlanId, PlanningRoleCode.DAY_THEME.value)
                 .map { it.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL) }
 
-        suspend fun applyProjectionChanges(changes: List<DayThemeSnapshot>, carriedFrom: Map<String, PlanningCommitmentId> = emptyMap()) {
+        suspend fun applyProjectionChanges(changes: List<DayThemeSnapshot>, carriedFrom: Map<String, PlanningCommitmentId> = emptyMap()) = database.withTransaction {
             authorityActivator.requireActivated()
             changes.forEach { source ->
                 val id = canonicalDayThemeCommitmentId(source.id)
@@ -45,6 +49,7 @@ class CanonicalDayThemePlanningAdapter
                         ?.toPlanningCommitmentStrict(PlanningRoleRegistry.INITIAL)
                 if (source.isDeleted) {
                     if (existing != null && !existing.isDeleted) {
+                        CanonicalPlanningCommitmentRelationRepository(database).retireEndpoints(setOf(existing.id), source.updatedAt)
                         planningDao.upsertCommitment(
                             existing.copy(
                                 status = PlanningCommitmentStatus.DROPPED,
@@ -114,6 +119,8 @@ class CanonicalDayThemePlanningAdapter
                     )
                 }
             }
+            if (carriedFrom.isNotEmpty()) CanonicalPlanningCommitmentRelationRepository(database).carryRelations(
+                carriedFrom.entries.associate { (newThemeId, oldCommitment) -> oldCommitment to canonicalDayThemeCommitmentId(newThemeId) })
         }
 
         fun applyCanonicalProjection(

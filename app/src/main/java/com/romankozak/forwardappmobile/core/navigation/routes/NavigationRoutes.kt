@@ -3,6 +3,10 @@ package com.romankozak.forwardappmobile.core.navigation.routes
 import java.net.URLEncoder
 
 object NavigationRoutes {
+    const val ORIENTATION_PLANNING_PATTERN = "orientation_planning/{orientationId}"
+    fun orientationPlanning(id: String) = "orientation_planning/${URLEncoder.encode(id, "UTF-8")}"
+    const val PLANNING_PARTICIPATION_PATTERN = "planning_participation/{commitmentId}"
+    fun planningParticipation(id: String) = "planning_participation/${URLEncoder.encode(id, "UTF-8")}"
     const val MAIN_GRAPH = "main_graph"
     const val COMMAND_DECK = "command_deck_screen"
     const val CHARACTER = "character_screen"

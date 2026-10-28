@@ -103,11 +103,12 @@ private fun BigPicturePresentationSnapshot.toVersionAck() =
     )
 
 internal fun CanonicalPlanningSyncPayload.hasChanges(): Boolean =
-    references.isNotEmpty() || scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
+    relations.isNotEmpty() || references.isNotEmpty() || scopes.isNotEmpty() || commitments.isNotEmpty() || dayScopeExtensions.isNotEmpty() ||
         tacticalScopeExtensions.isNotEmpty() || strategicScopeExtensions.isNotEmpty()
 
 private fun CanonicalPlanningSyncPayload.toAck() =
     CanonicalPlanningSyncAck(
+        relations = relations.map { com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentRelationSyncVersion(it.id, it.version) },
         references = references.map { com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningReferenceSyncVersion(it.id, it.version) },
         scopes = scopes.map { PlanningScopeSyncVersion(it.id, it.version) },
         commitments = commitments.map { PlanningCommitmentSyncVersion(it.id, it.version) },
@@ -459,6 +460,9 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalWorkspacePresentationPreferences: List<WorkspacePresentationPreferencesSnapshot> = emptyList(),
     explicitCanonicalWorkspaceTags: List<WorkspaceTagRefEntity> = emptyList(),
 ): SnapshotBundle {
+    if (explicitCanonicalPlanning.relations.isNotEmpty()) {
+        return planningCompositionTransportClosure(fullSnapshot, explicitCanonicalPlanning)
+    }
     if (explicitCanonicalPlanning.references.isNotEmpty()) {
         return planningReferenceTransportClosure(fullSnapshot, explicitCanonicalPlanning.references)
     }
@@ -723,8 +727,10 @@ internal fun buildCanonicalSnapshotDelta(
     val result =
         baseDelta.copy(
             planningReferences = if (includeCanonicalPlanning) explicitCanonicalPlanning.references else null,
+            planningCommitmentRelations = if (includeCanonicalPlanning && fullSnapshot.planningFormatVersion ==
+                com.romankozak.forwardappmobile.core.data.models.sync.COMPOSITION_PLANNING_FORMAT_VERSION) explicitCanonicalPlanning.relations else null,
             planningFormatVersion =
-                if (includeCanonicalPlanning) CURRENT_PLANNING_FORMAT_VERSION else null,
+                if (includeCanonicalPlanning) fullSnapshot.planningFormatVersion ?: CURRENT_PLANNING_FORMAT_VERSION else null,
             planningScopes =
                 if (includeCanonicalPlanning) selectedPlanningScopes else null,
             planningCommitments =

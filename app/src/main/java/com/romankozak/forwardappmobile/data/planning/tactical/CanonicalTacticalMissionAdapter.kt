@@ -169,6 +169,15 @@ class CanonicalTacticalMissionAdapter
                             provenanceKind = persisted.runtimeProvenanceKind(),
                         ),
                     )
+                    persisted.carriedFromMissionId?.let { previousId ->
+                        val origins = missionCommitments(previousId).filterNot { it.isDeleted }
+                        require(origins.size <= 1) { "Ambiguous carried Mission participation" }
+                        origins.singleOrNull()?.let { origin ->
+                            val target = persisted.toCanonicalMissionCommitment(orientationId, persisted.runtimeProvenanceKind())
+                            com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationRepository(database)
+                                .carryRelations(mapOf(origin.id to target.id), persisted.updatedAt ?: persisted.createdAt)
+                        }
+                    }
                 }
                 source?.let {
                     com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository(database).attach(

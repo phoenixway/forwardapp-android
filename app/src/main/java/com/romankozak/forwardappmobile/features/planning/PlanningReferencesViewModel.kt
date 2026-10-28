@@ -81,8 +81,8 @@ class PlanningReferencesViewModel @Inject constructor(
     }
 
     /** Reuse the actual canonical picker engine, not a second query/selection stack. */
-    fun newPicker() = CanonicalEntityPickerViewModel(catalog, SavedStateHandle(mapOf(
-        "allowedClasses" to CanonicalEntityClass.entries.joinToString(",") { it.name },
+    fun newPicker(allowedClasses: Set<CanonicalEntityClass> = CanonicalEntityClass.entries.toSet()) = CanonicalEntityPickerViewModel(catalog, SavedStateHandle(mapOf(
+        "allowedClasses" to allowedClasses.joinToString(",") { it.name },
         "selectionMode" to "SINGLE",
     )), dispatcher)
 }

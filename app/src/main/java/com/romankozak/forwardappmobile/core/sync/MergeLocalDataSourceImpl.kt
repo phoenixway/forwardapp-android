@@ -211,13 +211,17 @@ class MergeLocalDataSourceImpl
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
             requireCanonicalMergeIngress(bundle)
-            if (bundle.planningReferences != null) {
+            if (bundle.planningReferences != null || bundle.planningFormatVersion != null ||
+                bundle.managedSubjects?.any { it.isDeleted } == true) {
                 // A new item, participation and its SOURCE must be admitted as one persisted unit.
                 db.withTransaction { applyCanonicalSnapshotBundle(bundle) }
             } else applyCanonicalSnapshotBundle(bundle)
         }
 
         override suspend fun applySelectiveSnapshotBundle(bundle: SnapshotBundle) {
+            require(bundle.planningCommitmentRelations.isNullOrEmpty()) {
+                "Selective Planning composition requires endpoint-selection closure; use full Restore or Merge"
+            }
             requireCanonicalMergeIngress(bundle)
             applyCanonicalSnapshotBundle(
                 bundle = bundle,
@@ -649,6 +653,7 @@ class MergeLocalDataSourceImpl
                 canonicalPlanningSyncStore.mergeIncoming(
                     scopes = bundle.planningScopes,
                     commitments = bundle.planningCommitments,
+                    relations = bundle.planningCommitmentRelations,
                 )
                 canonicalDayPlanningScopeExtensionSyncStore.mergeIncoming(
                     bundle.dayPlanningScopeExtensions,
@@ -868,7 +873,8 @@ class MergeLocalDataSourceImpl
                 tacticalPlanningAuthorityActivator.admitCanonicalIngress()
             }
             tacticalPlanningAuthorityActivator.projectCompatibilityRows()
-            if (bundle.planningFormatVersion == CURRENT_PLANNING_FORMAT_VERSION) {
+            if (bundle.planningFormatVersion in setOf(CURRENT_PLANNING_FORMAT_VERSION,
+                    com.romankozak.forwardappmobile.core.data.models.sync.COMPOSITION_PLANNING_FORMAT_VERSION)) {
                 strategicPlanningAuthorityActivator.admitCanonicalIngress()
             } else {
                 strategicPlanningAuthorityActivator.ensureActivated()
@@ -901,6 +907,7 @@ class MergeLocalDataSourceImpl
             // canonical postcondition. Legacy Context rows from old payloads
             // are bounded ingress evidence, never the returned runtime owner.
             databaseInitializer.ensureCanonicalSystemWorkspaceOwnership()
+            com.romankozak.forwardappmobile.data.planning.CanonicalPlanningCommitmentRelationSyncStore(db).requireCurrentValid()
         }
 
         private suspend fun mergeWorkspacePresentationPreferences(

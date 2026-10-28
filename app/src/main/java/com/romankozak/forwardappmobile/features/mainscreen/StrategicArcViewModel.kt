@@ -94,6 +94,7 @@ class StrategicArcViewModel
         private val arcQuestRepository: ArcQuestRepository,
         private val mainBeaconRepository: MainBeaconRepository,
         private val missionRepository: MissionRepository,
+        private val planningPromotion: com.romankozak.forwardappmobile.features.planning.PlanningPromotionActions,
     ) : ViewModel() {
         private val currentArcKey = MutableStateFlow(YearMonth.now().toString())
         private val _selectedTab = MutableStateFlow(StrategicArcTab.QUESTS)
@@ -106,16 +107,20 @@ class StrategicArcViewModel
         fun dismissCarryMessage() { _carryMessage.value = null }
         private var carryInProgress = false
 
+        fun revealCarriedQuest(result: com.romankozak.forwardappmobile.data.planning.strategic.StrategicQuestCarryForwardResult) {
+            currentArcKey.value = result.quest.arcKey
+            _selectedTab.value = StrategicArcTab.QUESTS
+            _pendingCreatedQuestId.value = result.quest.id
+            if (!result.created) _carryMessage.value = "Квест уже є в поточній арці"
+        }
+
         fun carryQuestToCurrentArc(quest: ArcQuestEntity) {
             if (carryInProgress) return
             carryInProgress = true
             viewModelScope.launch {
                 try {
                     val result = arcQuestRepository.carryQuest(quest.id, YearMonth.now().toString())
-                    currentArcKey.value = result.quest.arcKey
-                    _selectedTab.value = StrategicArcTab.QUESTS
-                    _pendingCreatedQuestId.value = result.quest.id
-                    if (!result.created) _carryMessage.value = "Квест уже є в поточній арці"
+                    revealCarriedQuest(result)
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
                 } catch (error: Exception) {
@@ -495,27 +500,7 @@ class StrategicArcViewModel
         }
 
         fun createMissionFromArcQuest(quest: ArcQuestEntity) {
-            val title = quest.title.trim()
-            if (title.isBlank()) return
-            viewModelScope.launch {
-                val missionId =
-                    missionRepository.insertMissionWithAutoOrder(
-                        TacticalMission(
-                            title = title,
-                            description = quest.description,
-                            deadline = NO_DEADLINE,
-                            status = MissionStatus.ACTIVE,
-                            priority = MissionPriority.MEDIUM,
-                            projectId = quest.linkedContextId,
-                            linkedProjectIds = quest.linkedContextId?.let(::listOf).orEmpty(),
-                            linkedAttachmentIds = emptyList(),
-                            weekKey = currentIsoWeekKey(),
-                            sourceType = MissionSourceType.ARC_QUEST,
-                            sourceArcQuestId = quest.id,
-                        ),
-                    )
-                arcQuestRepository.updateQuest(quest.copy(linkedMissionId = missionId))
-            }
+            planningPromotion.questToTactical(viewModelScope, quest.id) { _carryMessage.value = it }
         }
 
         fun openOrCreateArcArtifact(onReady: (String) -> Unit) {

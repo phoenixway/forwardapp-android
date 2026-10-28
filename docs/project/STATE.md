@@ -1,5 +1,169 @@
 # ForwardApp Project State
 
+## 2026-10-28 - Planning Context UX V2
+
+PLANNING_CONTEXT_UX_V2_HOST_20261028
+
+Implemented over the existing dirty Room-206 predecessor, HEAD
+d83c4a6af339402b098b3160cf9d8b9bcd40382c. Orientation-keyed Planning includes
+empty/all-horizon participation, exact context navigation and shared composition
+controls. Semantic Editor has an Orientation-only entry; Workspace Dashboard
+delegates through exact live Orientation bindings (single direct / multiple
+chooser / Aspect-only omitted). Canonical Goal backlog mapping feeds batched
+reactive Planning badges. Strategic/Tactical lists now show counts only, with
+full composition in dedicated Properties Planning tabs/details. No inline tree.
+
+Narrow transactional PlanningContextCoordinator reuses existing creation and
+lifecycle authorities. Current Arc FOCUS / current cycle MISSION / Today DAY.TASK
+admission reuses live compatible participation. Quest -> Tactical, Mission ->
+Today and Mission -> current Arc reuse one Orientation and add correctly directed
+COMPONENT_OF, without record-copy semantics or source retirement. Ambiguous
+Tactical cycles fail closed. Role is domain-fixed; permitted Strategic/Tactical
+statuses are editable, Day execution uses its own Properties. No Workspace/H1/
+Context/semantic mutation or persistence/transport redesign: Room **206 -> 206**.
+
+Focused HOST XML: **185 tests / 18 classes PASS**, failures/errors/skips all zero:
+
+| Class | Tests |
+| --- | ---: |
+| PlanningContextCoordinatorRoomTest | 19 |
+| OrientationPlanningProjectionTest | 18 |
+| WorkspacePlanningProjectionTest | 12 |
+| PlanningContextEntryUiTest | 10 |
+| OrientationPlanningScreenUiTest | 7 |
+| PlanningCompositionUiTest | 12 |
+| PlanningCompositionPresentationTest | 25 |
+| PlanningCommitmentPickerUiTest | 3 |
+| PlanningCommitmentCompositionRoomTest | 29 |
+| StrategicQuestCarryForwardRoomTest | 12 |
+| DayTaskCarryForwardRoomTest | 8 |
+| TacticalMissionCarryForwardRoomTest | 9 |
+| StrategicCarrySelectionTest | 1 |
+| StrategicArcQuestCardUiTest | 5 |
+| StrategicArcWorkspaceCreationTest | 1 |
+| SystemShellFreeMainScreenViewModelsTest | 3 |
+| BacklogGoalWorkspaceTest | 8 |
+| BacklogGoalWorkspaceUiTest | 3 |
+
+Separate production/test Kotlin compile gates PASS (BUILD SUCCESSFUL).
+Bounded diff review and git diff --check PASS. Physical acceptance pending;
+no automatic deployment, staging or commit. Separate DayTask -> Tactical copy
+seam is recorded in BACKLOG, not silently changed across the free-form boundary.
+
+## 2026-10-28 - Planning Composition UX V1
+
+PLANNING_COMPOSITION_UX_V1_HOST_20261028
+
+Implemented over the existing dirty Room-206 backend worktree, HEAD
+d83c4a6af339402b098b3160cf9d8b9bcd40382c. Part of / Components are outgoing /
+incoming COMPONENT_OF. Strategic and both Tactical lists have compact previews;
+canonical Day tasks have minimal Part of +N context, free-form tasks unchanged.
+Properties and the shared exact-participation Planning context destination own
+Add to / Add component, relation-only Remove and relation-local ordering menus.
+Indexed bulk reactive snapshots drive branch-preserving upward/downward trace,
+three initial levels with expansion and explicit safety bounds. Primary open
+retains Planning context (exact task Properties or commitment-keyed details),
+not semantic/Workspace redirection; semantic editor and unique EMBODIES Workspace
+remain secondary. Accepted carry policies/history remain unchanged.
+
+Focused HOST XML: **111 unique tests / 10 classes PASS** across scoped runs,
+zero failures/errors/skips:
+
+| Class | Tests |
+| --- | ---: |
+| PlanningCompositionPresentationTest | 25 |
+| PlanningCompositionUiTest | 12 |
+| PlanningCommitmentPickerUiTest | 3 |
+| PlanningCommitmentCompositionRoomTest | 29 |
+| StrategicQuestCarryForwardRoomTest | 12 |
+| DayTaskCarryForwardRoomTest | 8 |
+| TacticalMissionCarryForwardRoomTest | 9 |
+| DayThemeCarryForwardRoomTest | 7 |
+| StrategicCarrySelectionTest | 1 |
+| StrategicArcQuestCardUiTest | 5 |
+
+Separate `:app:compileProdDebugKotlin` and
+`:app:compileProdDebugUnitTestKotlin` gates PASS (BUILD SUCCESSFUL); bounded diff
+review and `git diff --check` PASS. No full-suite or physical acceptance claim.
+
+Room **206 -> 206**, no model/transport/semantic/H1 changes in this UX slice.
+Physical acceptance pending; no automatic device deployment. This note supersedes
+the predecessor's semantic-first composition-navigation behavior, not its domain
+or transport contract. Focused contract: CANONICAL-PLANNING-CONTRACT-V3.md.
+
+## 2026-10-28 - Canonical PlanningCommitmentRelation V1
+
+PLANNING_COMPOSITION_V1_HOST_20261028
+
+Implemented from clean HEAD d83c4a6af339402b098b3160cf9d8b9bcd40382c,
+Room 205 -> 206. Shared KMP typed commitment-to-commitment COMPONENT_OF is a
+same/cross-scope many-to-many DAG, independent of semantic kind/relations, roles,
+Workspace and H1. One transactional repository owns live-tuple idempotence,
+relation-local exact-set order, tombstones and endpoint retirement. Iterative
+validation includes cross-scope cycles; bulk reactive projection/picker use exact
+participation identity with canonical title/kind/scope/role context, no N+1 reads.
+
+Quest Edit, Mission Properties and canonical Day Properties share composition
+authoring. Strategic component creation reuses Orientation/FOCUS through the
+existing creation adapter; free-form Day records are not silently adopted.
+Day/Tactical carry preserve eligible outgoing edges; Strategic selection defaults
+completed components off, builds the complete replacement map and remaps edges
+once. Previous identities/history remain unchanged; no semantic/H1 writes are
+introduced by relation authoring. Recurrence split/replacement retires old
+participation links by lifecycle; automatic transfer is not a V1 carry rule.
+
+Planning wire v5 carries relations through snapshot/exact Full Restore, strict
+version Merge, dirty/changedSince and exact relation ACK; dependency closure
+includes both commitments/scopes/Orientation aggregates. Core Planning ingress
+coordinates commitments and composition in one transaction. Missing v5 lifecycle
+cleanup fails closed; pre-v5 ingress explicitly retires affected local links.
+Shared/Desktop DTO/parser/validator/merge and Android adapter retain the stream;
+existing Desktop specialized admission limits remain. Selective Planning has no
+endpoint-selection surface: nonempty composition import fails explicitly at both
+filter/writer boundaries; Full Restore/Merge supported. Schema export 206 is
+included; migration adds only the empty relation table/indexes, no inferred data.
+
+Accepted scoped HOST XML evidence (unique tests across runs, not a full-suite
+claim): **176 PASS**, all failures/errors/skips zero.
+
+| Module | JUnit class | Tests |
+| --- | --- | ---: |
+| app | PlanningCommitmentCompositionRoomTest | 29 |
+| app | StrategicQuestCarryForwardRoomTest | 12 |
+| app | DayTaskCarryForwardRoomTest | 8 |
+| app | TacticalMissionCarryForwardRoomTest | 9 |
+| app | DayThemeCarryForwardRoomTest | 7 |
+| app | PlanningCommitmentPickerUiTest | 3 |
+| app | StrategicCarrySelectionTest | 1 |
+| app | StrategicArcQuestCardUiTest | 5 |
+| app | CanonicalPlanningRepositoryRoomTest | 6 |
+| app | CanonicalPlanningSyncStoreRoomTest | 13 |
+| app | CanonicalCreateCrashRoomRegressionTest | 2 |
+| app | PlanningReferenceExactRestoreRoomTest | 4 |
+| app | CanonicalSemanticEntityLifecycleRoomTest | 13 |
+| app | Migration205To206PlanningCompositionRoomTest | 1 |
+| app | Migration204To205OrientationKindRoomTest | 1 |
+| app | Migration203To204SubjectConversionRoomTest | 1 |
+| app | Migration202To203DayTaskRealizationRoomTest | 1 |
+| sync | PlanningCompositionTransportTest | 7 |
+| sync | PlanningReferenceTransportTest | 3 |
+| sync | CanonicalPlanningWifiPushPlanTest | 8 |
+| sync | CanonicalPlanningSelectiveImportTest | 1 |
+| sync | DesktopWorkspacePlanningTransportTest | 7 |
+| shared-core-domain | PlanningCompositionContractTest | 11 |
+| shared-contracts | PlanningCompositionTransportContractTest | 5 |
+| shared-contracts | StrategicPlanningTransportContractTest | 3 |
+| desktop-data | PlanningCompositionDesktopMergeTest | 3 |
+| desktop-data | CanonicalPlanningDesktopTransportTest | 8 |
+| shared-domain | PlanningTransportParserTest | 4 |
+
+Separate compile gates PASS: app compileProdDebugKotlin and
+compileProdDebugUnitTestKotlin; shared-core-data-models compileKotlinJs;
+shared-core-domain compileKotlinJs. Existing JS Long-export compiler warning
+remains; no new compiler error. Diff check PASS. Physical acceptance pending;
+no deployment, device DB access, staging or commit performed. No global milestone
+or priority change; Backlog #2 remains Priority UNSET.
+
 ## 2026-10-28 - Obsidian note addresses in Connections
 
 The existing attachment picker and Workspace Obsidian dialog accept a copied

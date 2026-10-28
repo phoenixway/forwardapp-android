@@ -11,6 +11,9 @@ class SnapshotBundleSelectiveImportFilter {
         source: SnapshotBundle,
         selection: WorkspaceSelectiveImportSelection,
     ): SnapshotBundle {
+        require(source.planningCommitmentRelations.isNullOrEmpty()) {
+            "Selective Planning composition import has no endpoint-selection closure yet; use full Restore or Merge."
+        }
         require(source.managedSubjectConversions.isNullOrEmpty()) {
             "Selective import of semantic conversion history is not yet supported; use full Restore or Merge."
         }
@@ -134,6 +137,7 @@ class SnapshotBundleSelectiveImportFilter {
             planningScopes = null,
             planningCommitments = null,
             planningReferences = null,
+            planningCommitmentRelations = null,
             dayPlanningScopeExtensions = null,
             tacticalPlanningScopeExtensions = null,
             strategicPlanningScopeExtensions = null,

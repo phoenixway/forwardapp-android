@@ -60,6 +60,7 @@ internal suspend fun carryDayTaskForward(
             provenance = PlanningProvenance(PlanningProvenanceKind.CARRIED_FORWARD, "PLANNING_COMMITMENT", original.id.value),
             createdAt = now, updatedAt = now, syncedAt = null, version = 1, isDeleted = false,
         ))
+        CanonicalPlanningCommitmentRelationRepository(db).carryRelations(mapOf(original.id to dayTaskParticipationId(next.id)), now)
     }
     next
 }

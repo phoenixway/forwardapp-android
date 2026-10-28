@@ -13,6 +13,7 @@ data class DesktopWorkspaceSnapshot(
     val planningFormatVersion: Int? = null,
     val planningScopes: List<SharedPlanningScopeSnapshot>? = null,
     val planningCommitments: List<SharedPlanningCommitmentSnapshot>? = null,
+    val planningCommitmentRelations: List<SharedPlanningCommitmentRelationSnapshot>? = null,
     val dayPlanningScopeExtensions: List<SharedDayPlanningScopeExtensionSnapshot>? = null,
     val tacticalPlanningScopeExtensions: List<SharedTacticalPlanningScopeExtensionSnapshot>? = null,
     val strategicPlanningScopeExtensions: List<SharedStrategicPlanningScopeExtensionSnapshot>? = null,

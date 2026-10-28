@@ -85,6 +85,7 @@ fun DesktopWorkspaceSnapshot.hasCanonicalPlanningTransport(): Boolean =
             DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION,
             TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION,
             CURRENT_SHARED_PLANNING_FORMAT_VERSION,
+            COMPOSITION_SHARED_PLANNING_FORMAT_VERSION,
         ) &&
         planningScopes != null &&
         planningCommitments != null &&
@@ -97,7 +98,8 @@ fun DesktopWorkspaceSnapshot.hasCanonicalPlanningTransport(): Boolean =
                 setOf(LEGACY_SHARED_PLANNING_FORMAT_VERSION, DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION) ||
                 tacticalPlanningScopeExtensions != null
         ) &&
-        (planningFormatVersion != CURRENT_SHARED_PLANNING_FORMAT_VERSION || strategicPlanningScopeExtensions != null)
+        (planningFormatVersion !in setOf(CURRENT_SHARED_PLANNING_FORMAT_VERSION, COMPOSITION_SHARED_PLANNING_FORMAT_VERSION) || strategicPlanningScopeExtensions != null) &&
+        (planningFormatVersion != COMPOSITION_SHARED_PLANNING_FORMAT_VERSION || planningCommitmentRelations != null)
 
 fun DesktopWorkspaceSnapshot.hasCanonicalDayPlanningExtensionTransport(): Boolean =
     planningFormatVersion in
@@ -105,19 +107,21 @@ fun DesktopWorkspaceSnapshot.hasCanonicalDayPlanningExtensionTransport(): Boolea
             DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION,
             TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION,
             CURRENT_SHARED_PLANNING_FORMAT_VERSION,
+            COMPOSITION_SHARED_PLANNING_FORMAT_VERSION,
         ) &&
         dayPlanningScopeExtensions != null
 
 fun DesktopWorkspaceSnapshot.hasCanonicalTacticalPlanningExtensionTransport(): Boolean =
     planningFormatVersion in
-        setOf(TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION, CURRENT_SHARED_PLANNING_FORMAT_VERSION) &&
+        setOf(TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION, CURRENT_SHARED_PLANNING_FORMAT_VERSION, COMPOSITION_SHARED_PLANNING_FORMAT_VERSION) &&
         tacticalPlanningScopeExtensions != null
 
 fun DesktopWorkspaceSnapshot.hasCanonicalStrategicPlanningExtensionTransport(): Boolean =
-    planningFormatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION &&
+    planningFormatVersion in setOf(CURRENT_SHARED_PLANNING_FORMAT_VERSION, COMPOSITION_SHARED_PLANNING_FORMAT_VERSION) &&
         strategicPlanningScopeExtensions != null
 
 fun DesktopWorkspaceSnapshot.requireValidCanonicalPlanningTransport() {
+    requireValidPlanningComposition()
     val formatVersion = planningFormatVersion
     val scopesPresent = planningScopes != null
     val commitmentsPresent = planningCommitments != null
@@ -139,7 +143,7 @@ fun DesktopWorkspaceSnapshot.requireValidCanonicalPlanningTransport() {
             formatVersion == LEGACY_SHARED_PLANNING_FORMAT_VERSION ||
             formatVersion == DAY_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
             formatVersion == TACTICAL_EXTENSION_SHARED_PLANNING_FORMAT_VERSION ||
-            formatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION,
+            formatVersion == CURRENT_SHARED_PLANNING_FORMAT_VERSION || formatVersion == COMPOSITION_SHARED_PLANNING_FORMAT_VERSION,
     ) {
         "Unsupported canonical Planning format version: $formatVersion"
     }

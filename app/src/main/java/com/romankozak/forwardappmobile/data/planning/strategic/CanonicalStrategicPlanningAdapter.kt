@@ -171,9 +171,9 @@ class CanonicalStrategicPlanningAdapter
             }
         }
 
-        suspend fun carryQuest(questId: String, targetArcKey: String): StrategicQuestCarryForwardResult {
+        suspend fun carryQuest(questId: String, targetArcKey: String, preserveOutgoing: Boolean = true): StrategicQuestCarryForwardResult {
             authorityActivator.requireActivated()
-            return StrategicQuestCarryForward(database, this, orientationRepository).carry(questId, targetArcKey)
+            return StrategicQuestCarryForward(database, this, orientationRepository).carry(questId, targetArcKey, preserveOutgoing)
         }
 
         suspend fun updateQuest(quest: ArcQuestEntity) {

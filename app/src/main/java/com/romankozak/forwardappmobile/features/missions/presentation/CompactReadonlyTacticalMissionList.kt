@@ -60,6 +60,7 @@ internal fun CompactReadonlyTacticalMissionList(
     modifier: Modifier = Modifier,
 ) {
     val orientationSources = rememberTacticalOrientationSources()
+    val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     val hapticFeedback = LocalHapticFeedback.current
     val reorderableMissions =
         remember {
@@ -124,6 +125,12 @@ internal fun CompactReadonlyTacticalMissionList(
                     onOpenRelated = orientationSources.onOpen,
                     onOpenSource = { orientationSources.byMission[mission.id]?.let { orientationSources.onOpen(it.ref.id) } },
                     mission = mission,
+                    planningContext = {
+                        com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.TACTICAL_MISSION,
+                                mission.id.toString()), composition)
+                    },
                     streamTitle = mission.missionStreamId?.let(missionStreamTitleById::get),
                     showStream = showStream,
                     isDragging = isDragging,
@@ -157,6 +164,7 @@ private fun CompactReadonlyMissionRow(
     onToggle: () -> Unit,
     onMoreClick: () -> Unit,
     dragHandleModifier: Modifier = Modifier,
+    planningContext: @Composable () -> Unit = {},
 ) {
     val isDone = mission.status == MissionStatus.COMPLETED
     val isPaused = mission.status == MissionStatus.PAUSED
@@ -205,6 +213,7 @@ private fun CompactReadonlyMissionRow(
                                 null
                             },
                     )
+                    planningContext()
                     val meta = buildCompactMissionMeta(mission, streamTitle, showStream, isPaused)
                     if (orientationSource != null || relatedOrientations.isNotEmpty()) {
                         UnifiedStatusRow {

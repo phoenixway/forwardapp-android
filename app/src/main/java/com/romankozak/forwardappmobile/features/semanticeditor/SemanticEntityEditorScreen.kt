@@ -170,6 +170,7 @@ fun SemanticEntityEditorScreen(
                     model = if (deleteState.busy || conversionState.busy || kindState.busy) current.model.copy(isSaving = true, isRelationMutationInFlight = true) else current.model,
                     padding = padding,
                     onNameChange = viewModel::setName,
+                    onOpenPlanning = { navController.navigate(NavTargetRouter.routeOf(NavTarget.OrientationPlanning(current.model.id))) },
                     onAddSemantic = { openPicker(SemanticRelationPickerKind.SEMANTIC) },
                     onChooseAspectParent = { openPicker(SemanticRelationPickerKind.ASPECT_PARENT) },
                     onMakeAspectRoot = viewModel::requestAspectRoot,
@@ -239,6 +240,7 @@ private fun EditorContent(
     model: SemanticEntityEditorModel,
     padding: PaddingValues,
     onNameChange: (String) -> Unit,
+    onOpenPlanning: () -> Unit,
     onAddSemantic: () -> Unit,
     onChooseAspectParent: () -> Unit,
     onMakeAspectRoot: () -> Unit,
@@ -261,6 +263,8 @@ private fun EditorContent(
         SemanticTagsSection(model)
         if (model.entityClass == SemanticEntityClass.ORIENTATION) {
             OrientationTypeSection(model)
+            com.romankozak.forwardappmobile.features.planning.SemanticPlanningEntry(
+                com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef.Orientation(model.id), onOpenPlanning)
         }
         HorizontalDivider()
         if (model.entityClass == SemanticEntityClass.ASPECT) {

@@ -25,6 +25,7 @@ fun WorkspaceEntityNavigationHub(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(false) }
+    com.romankozak.forwardappmobile.features.planning.WorkspacePlanningEntry(onOpen)
     WorkspaceDashboardRelationsCard(state, onOpen, onViewAll = {
         if (state.enabled) onShowRelations() else expanded = true
     })

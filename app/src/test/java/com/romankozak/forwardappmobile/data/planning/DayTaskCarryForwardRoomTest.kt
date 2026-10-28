@@ -7,12 +7,32 @@ import com.romankozak.forwardappmobile.core.data.models.entities.planning.*
 import com.romankozak.forwardappmobile.data.planning.day.dayTaskParticipationId
 import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class DayTaskCarryForwardRoomTest {
+    @Test fun `canonical Day carry keeps live Tactical parent and exact old graph`() = runBlocking<Unit> {
+        PlanningSourceRoomFixture().use { f ->
+            f.seed(); val target = tomorrow(f); val old = source(f)
+            val orientation = f.base.orientation()
+            val mission = PlanningCommitment(PlanningCommitmentId("mission"), PlanningScopeId("cycle"), orientation,
+                PlanningRoleCode.MISSION, 0, null, PlanningCommitmentStatus.ACTIVE,
+                PlanningProvenance(PlanningProvenanceKind.MANUAL), 1, 1, null, 1, false)
+            f.planning.saveCommitment(mission)
+            val relations = CanonicalPlanningCommitmentRelationRepository(f.db)
+            val before = relations.addRelation(dayTaskParticipationId(old.id), mission.id)
+            val next = f.day.carryForward(old, System.currentTimeMillis()) { target }
+            val reads = PlanningCompositionReadRepository(f.db,
+                com.romankozak.forwardappmobile.data.entitybrowser.CanonicalEntityCatalogRepository(f.db.canonicalEntityCatalogDao()))
+            val frame = reads.projection.first { projection -> projection.participants.any { it.dayTaskId == next.id } }
+            assertThat(frame.participants.single { it.commitment.id == dayTaskParticipationId(next.id) }.dayTaskId).isEqualTo(next.id)
+            assertThat(relations.observeOutgoing(dayTaskParticipationId(next.id)).first().single().targetCommitmentId).isEqualTo(mission.id)
+            assertThat(f.db.planningCommitmentRelationDao().get(before.id.value)!!.toDomain()).isEqualTo(before)
+        }
+    }
     private suspend fun tomorrow(f: PlanningSourceRoomFixture): DayPlan {
         val plan = DayPlan(id = "tomorrow", date = 86_400_000)
         f.db.dayPlanDao().insert(plan)
