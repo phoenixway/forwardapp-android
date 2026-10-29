@@ -37,6 +37,7 @@ class PlanningCompositionViewModel @Inject constructor(
     fun promote(item: PlanningParticipantSummary, horizon: PlanningScopeKind) = command { contextCommands.promote(item.commitment.id, horizon) }
     fun removeParticipation(item: PlanningParticipantSummary) = command { contextCommands.remove(item.commitment.id, item.commitment.version) }
     fun setStatus(item: PlanningParticipantSummary, status: PlanningCommitmentStatus) = command { contextCommands.status(item.commitment.id, item.commitment.version, status) }
+    fun toggleCompleted(item: PlanningParticipantSummary) = setStatus(item, completionToggleStatus(item.commitment.status))
     fun semantic(item: PlanningParticipantSummary) = navigation.navigate(NavTarget.SemanticEntityEditor(item.commitment.orientationId))
     fun workspace(item: PlanningParticipantSummary) {
         val ref = com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef.Orientation(item.commitment.orientationId)

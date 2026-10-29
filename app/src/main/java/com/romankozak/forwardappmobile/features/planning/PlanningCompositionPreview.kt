@@ -13,14 +13,20 @@ import com.romankozak.forwardappmobile.core.data.models.entities.planning.Planni
 import com.romankozak.forwardappmobile.data.planning.*
 
 internal data class PlanningCompositionListUi(val frame: PlanningCommitmentCompositionProjection,
-    val open: (PlanningParticipantSummary) -> Unit, val context: (PlanningParticipantSummary) -> Unit)
+    val open: (PlanningParticipantSummary) -> Unit, val context: (PlanningParticipantSummary) -> Unit,
+    val toggleCompleted: (PlanningParticipantSummary) -> Unit = {}, val busy: Boolean = false,
+    val error: String? = null, val clearError: () -> Unit = {})
 
 /** Call once per list, not from each card. All cards share the same observable graph snapshot. */
 @Composable
 internal fun rememberPlanningCompositionList(): PlanningCompositionListUi {
     val model: PlanningCompositionViewModel = hiltViewModel(key = "planning-composition-list")
     val frame by model.projection.collectAsStateWithLifecycle()
-    return remember(frame, model) { PlanningCompositionListUi(frame, model::open, model::context) }
+    val busy by model.busy.collectAsStateWithLifecycle()
+    val error by model.error.collectAsStateWithLifecycle()
+    return remember(frame, model, busy, error) {
+        PlanningCompositionListUi(frame, model::open, model::context, model::toggleCompleted, busy, error, { model.error.value = null })
+    }
 }
 
 @Composable

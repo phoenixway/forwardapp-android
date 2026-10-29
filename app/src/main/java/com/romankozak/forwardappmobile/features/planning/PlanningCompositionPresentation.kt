@@ -4,6 +4,9 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.planning.*
 import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 
+internal fun completionToggleStatus(status: PlanningCommitmentStatus): PlanningCommitmentStatus =
+    if (status == PlanningCommitmentStatus.COMPLETED) PlanningCommitmentStatus.ACTIVE else PlanningCommitmentStatus.COMPLETED
+
 /** Presentation over an already loaded canonical frame. Repository validation remains authoritative. */
 internal fun PlanningCommitmentCompositionProjection.relationCandidates(
     current: PlanningCommitmentId, addingParent: Boolean,

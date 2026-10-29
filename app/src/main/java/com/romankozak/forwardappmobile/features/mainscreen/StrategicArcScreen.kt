@@ -521,6 +521,10 @@ private fun ArcQuestList(
     val referencesModel: StrategicQuestReferencesViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val questReferences by referencesModel.links.collectAsState()
     val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
+    composition.error?.let { error ->
+        AlertDialog(onDismissRequest = composition.clearError, title = { Text("Не вдалося змінити статус") },
+            text = { Text(error) }, confirmButton = { TextButton(onClick = composition.clearError) { Text("Закрити") } })
+    }
     val lazyListState = rememberLazyListState()
     com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
         lazyListState, quests.map { it.id }, revealQuestId, onQuestRevealed,
@@ -563,8 +567,13 @@ private fun ArcQuestList(
     ) {
         itemsIndexed(internalQuests, key = { _, quest -> quest.id }) { _, quest ->
             ReorderableItem(reorderableState, key = quest.id) { isDragging ->
+                val participant = composition.frame.forOwner(
+                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id))
                 ArcQuestCard(
                     quest = quest,
+                    onToggleCompleted = participant?.let { { composition.toggleCompleted(it) } },
+                    completionEnabled = !composition.busy,
                     planningContext = {
                         com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
                             com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(

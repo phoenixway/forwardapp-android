@@ -98,6 +98,7 @@ data class SemanticEntityEditorModel(
     val description: String?,
     val version: Long,
     val orientationKind: OrientationKind? = null,
+    val relationTitles: Map<CanonicalEntityRef, String> = emptyMap(),
     val aspectAssociations: List<AspectAssociationItem> = emptyList(),
     val workspaceBindings: List<WorkspaceBindingItem> = emptyList(),
     val orientationRelations: List<OrientationGraphRelationItem> = emptyList(),
@@ -164,6 +165,7 @@ class SemanticEntityEditorViewModel
                         publishLoaded(if (draft != null) refreshed.copy(name = draft) else refreshed)
                     } else updateModel { copy(
                         workspaceBindings = refreshed.workspaceBindings,
+                        relationTitles = refreshed.relationTitles,
                         aspectParentId = refreshed.aspectParentId,
                         aspectChildren = refreshed.aspectChildren,
                         aspectTitles = refreshed.aspectTitles,

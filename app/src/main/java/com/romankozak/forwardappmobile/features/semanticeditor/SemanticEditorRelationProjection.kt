@@ -18,6 +18,7 @@ internal fun SemanticEntityEditorModel.withRelations(
 ): SemanticEntityEditorModel {
     val byRef = catalog.associateBy(CanonicalEntitySummary::ref)
     return copy(
+        relationTitles = byRef.mapValues { it.value.title },
         aspectTitles = if (entityClass == SemanticEntityClass.ASPECT) catalog
             .filter { it.ref is CanonicalEntityRef.Aspect }.associate { it.ref.id to it.title } else emptyMap(),
         orientationRelations = graphRelations.map { relation ->

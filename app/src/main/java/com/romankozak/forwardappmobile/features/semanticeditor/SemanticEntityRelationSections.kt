@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.semanticeditor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +26,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
 import androidx.compose.ui.Modifier
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AspectOrientationRelationType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationRelationType
@@ -43,7 +48,7 @@ internal fun AspectAssociationsSection(
             RelationRow(
                 title = association.title,
                 subtitle =
-                    association.relationType.displayLabel() +
+                    aspectAssociationSentence(association.relationType, model.name, association.title) +
                         if (association.isPrimary) " · основний" else "",
                 enabled = !model.isRelationMutationInFlight,
                 onRemove = { onRemove(association.refId) },
@@ -67,7 +72,7 @@ internal fun WorkspaceBindingsSection(
         model.workspaceBindings.forEach { binding ->
             RelationRow(
                 title = binding.title,
-                subtitle = binding.bindingType.displayLabel() + if (binding.isPrimary) " · основний" else "",
+                subtitle = workspaceBindingSentence(binding.bindingType, binding.title, model.name) + if (binding.isPrimary) " · основний робочий простір" else "",
                 enabled = !model.isRelationMutationInFlight,
                 onRemove = { onRemove(binding.bindingId) },
                 onOpen = { onOpen(binding) },
@@ -88,17 +93,9 @@ internal fun OrientationGraphRelationsSection(
         Text("Немає зв’язків", style = MaterialTheme.typography.bodyMedium)
     } else {
         model.orientationRelations.forEach { relation ->
-            val directionLabel =
-                when {
-                    relation.relationType == OrientationRelationType.CONFLICTS_WITH ->
-                        "Взаємний ↔"
-                    relation.direction == OrientationRelationEditDirection.OUTGOING ->
-                        "Вихідний →"
-                    else -> "Вхідний ←"
-                }
             val subtitle =
-                "$directionLabel ${relation.relationType.displayLabel()}" +
-                    if (relation.isEditable) "" else " · керується ієрархією"
+                orientationRelationSentence(relation.relationType, model.name, relation.title, relation.direction) +
+                    if (relation.isEditable) "" else " · лише перегляд"
             RelationRow(
                 title = relation.title,
                 subtitle = subtitle,
@@ -159,16 +156,22 @@ internal fun SemanticRelationTypeDialog(
     onAddAspect: (AspectOrientationRelationType, Boolean) -> Unit,
     onAddWorkspace: (WorkspaceBindingType) -> Unit,
     onAddOrientation: (OrientationRelationType, OrientationRelationEditDirection?) -> Unit,
+    currentTitle: String = "Поточний орієнтир",
+    relatedTitles: Map<CanonicalEntityRef, String> = emptyMap(),
 ) {
     when (pending) {
         is PendingSemanticRelation.Aspect ->
-            AspectTypeDialog(pending.aspectId, mutationInFlight, onDismiss, onAddAspect)
+            AspectTypeDialog(pending.aspectId, mutationInFlight, onDismiss, onAddAspect,
+                currentTitle, relatedTitles[CanonicalEntityRef.Aspect(pending.aspectId)] ?: "Вибраний аспект")
         is PendingSemanticRelation.AspectOrientation ->
-            AspectTypeDialog("orientation:${pending.orientationId}", mutationInFlight, onDismiss, onAddAspect)
+            AspectTypeDialog("orientation:${pending.orientationId}", mutationInFlight, onDismiss, onAddAspect,
+                relatedTitles[CanonicalEntityRef.Orientation(pending.orientationId)] ?: "Вибраний орієнтир", currentTitle)
         is PendingSemanticRelation.Workspace ->
-            WorkspaceTypeDialog(pending.workspaceId, mutationInFlight, onDismiss, onAddWorkspace)
+            WorkspaceTypeDialog(pending.workspaceId, mutationInFlight, onDismiss, onAddWorkspace,
+                relatedTitles[CanonicalEntityRef.Workspace(pending.workspaceId)] ?: "Вибраний робочий простір", currentTitle)
         is PendingSemanticRelation.Orientation ->
-            OrientationTypeDialog(pending.orientationId, mutationInFlight, onDismiss, onAddOrientation)
+            OrientationTypeDialog(pending.orientationId, mutationInFlight, onDismiss, onAddOrientation,
+                currentTitle, relatedTitles[CanonicalEntityRef.Orientation(pending.orientationId)] ?: "Вибраний орієнтир")
         is PendingSemanticRelation.AspectParent, null -> Unit
     }
 }
@@ -179,24 +182,31 @@ private fun AspectTypeDialog(
     inFlight: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (AspectOrientationRelationType, Boolean) -> Unit,
+    orientationTitle: String,
+    aspectTitle: String,
 ) {
     var selected by remember(key) { mutableStateOf<AspectOrientationRelationType?>(null) }
     var primary by remember(key) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = { if (!inFlight) onDismiss() },
-        title = { Text("Зв’язок Orientation → Aspect") },
+        title = { Text("Зв’язок орієнтира з аспектом") },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
                 AspectOrientationRelationType.entries.forEach { type ->
                     TypeChoice(type.displayLabel(), selected == type) {
                         selected = type
                         if (type != AspectOrientationRelationType.BELONGS_TO) primary = false
                     }
                 }
+                selected?.let { type ->
+                    Text(aspectAssociationSentence(type, orientationTitle, aspectTitle), style = MaterialTheme.typography.bodyMedium)
+                    Text(if (type == AspectOrientationRelationType.BELONGS_TO) "Класифікує орієнтир у цьому аспекті." else
+                        "Має відношення до аспекту, але не обов’язково належить до нього.", style = MaterialTheme.typography.bodySmall)
+                }
                 if (selected == AspectOrientationRelationType.BELONGS_TO) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = primary, onCheckedChange = { primary = it })
-                        Text("Основний Aspect")
+                        Text("Основний аспект для класифікації")
                     }
                 }
             }
@@ -217,18 +227,21 @@ private fun WorkspaceTypeDialog(
     inFlight: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (WorkspaceBindingType) -> Unit,
+    workspaceTitle: String,
+    subjectTitle: String,
 ) {
     var selected by remember(key) { mutableStateOf<WorkspaceBindingType?>(null) }
     AlertDialog(
         onDismissRequest = { if (!inFlight) onDismiss() },
-        title = { Text("Тип зв’язку з Workspace") },
+        title = { Text("Як робочий простір пов’язаний із сутністю?") },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
                 WorkspaceBindingType.entries.forEach { type ->
                     TypeChoice(type.displayLabel(), selected == type) { selected = type }
                 }
-                if (selected == WorkspaceBindingType.EMBODIES) {
-                    Text("EMBODIES є основним і має бути унікальним для сутності та Workspace")
+                selected?.let { type ->
+                    Text(workspaceBindingSentence(type, workspaceTitle, subjectTitle), style = MaterialTheme.typography.bodyMedium)
+                    Text(type.explanation(), style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -248,6 +261,8 @@ private fun OrientationTypeDialog(
     inFlight: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (OrientationRelationType, OrientationRelationEditDirection?) -> Unit,
+    currentTitle: String,
+    selectedTitle: String,
 ) {
     var selected by remember(key) { mutableStateOf<OrientationRelationType?>(null) }
     var direction by remember(key) { mutableStateOf<OrientationRelationEditDirection?>(null) }
@@ -257,7 +272,7 @@ private fun OrientationTypeDialog(
         onDismissRequest = { if (!inFlight) onDismiss() },
         title = { Text("Зв’язок між орієнтирами") },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
                 Text("Тип зв’язку", style = MaterialTheme.typography.labelLarge)
                 OrientationRelationType.entries
                     .filterNot { it == OrientationRelationType.PART_OF }
@@ -267,21 +282,22 @@ private fun OrientationTypeDialog(
                         }
                     }
 
+                selected?.let { Text(it.explanation(), style = MaterialTheme.typography.bodySmall) }
                 if (isMutual) {
                     Text(
-                        "Взаємний зв’язок. Порядок вузлів визначає canonical authority.",
+                        orientationRelationSentence(requireNotNull(selected), currentTitle, selectedTitle),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 } else if (selected != null) {
-                    Text("Напрямок відносно поточного орієнтира")
+                    Text("Яке речення описує ваш задум?", style = MaterialTheme.typography.labelLarge)
                     TypeChoice(
-                        "Вихідний: цей → вибраний",
+                        orientationRelationSentence(requireNotNull(selected), currentTitle, selectedTitle),
                         direction == OrientationRelationEditDirection.OUTGOING,
                     ) {
                         if (!inFlight) direction = OrientationRelationEditDirection.OUTGOING
                     }
                     TypeChoice(
-                        "Вхідний: вибраний → цей",
+                        orientationRelationSentence(requireNotNull(selected), currentTitle, selectedTitle, OrientationRelationEditDirection.INCOMING),
                         direction == OrientationRelationEditDirection.INCOMING,
                     ) {
                         if (!inFlight) direction = OrientationRelationEditDirection.INCOMING

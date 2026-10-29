@@ -1,5 +1,36 @@
 # ForwardApp Project State
 
+## 2026-10-28 - Strategic Quest completion checkbox
+
+Quest cards use the shared square checkbox instead of the rocket drag handle.
+It dispatches existing canonical Planning status commands: incomplete ->
+COMPLETED, completed -> ACTIVE; PAUSED remains a Properties action. Completed
+titles are muted/struck through. Checkbox click does not open the card; the same
+long-press reorder handle remains on the checkbox. Loading/unsupported targets
+and in-flight status writes disable completion; failures are surfaced explicitly.
+Orientation identity/lifecycle, other participation and composition edges stay
+unchanged. Room 206 unchanged. Focused HOST: StrategicArcQuestCardUiTest 9,
+PlanningCompositionPresentationTest 27, PlanningContextCoordinatorRoomTest 20,
+PlanningCompositionUiTest 12: **68 PASS**, zero failures/errors/skips.
+Production/test Kotlin compilation passed within the focused test task;
+bounded diff review and git diff --check PASS. Device checkbox/DnD smoke pending.
+
+## 2026-10-28 - Semantic relation copy uses named sentences
+
+Semantic Editor replaces incoming/outgoing jargon with selectable sentences
+containing both canonical titles; equal titles include opened/selected endpoint
+hints. Existing graph, Aspect membership and Workspace binding rows also state
+the direction in words. Selected relation types have short explanations;
+Workspace binding always reads Workspace -> semantic subject. Embodying creation
+is labelled "Створити основний робочий простір" and explains the separate semantic
+identity and absence of automatic Navigation placement. Titles reuse the existing
+typed catalog snapshot; no per-row reads or mutation-authority/schema changes.
+Room 206 unchanged. Focused HOST: SemanticRelationCopyTest 8,
+SemanticRelationDialogUiTest 9, SemanticEntityEditorViewModelTest 27,
+EmbodyingWorkspaceViewModelTest 6: **50 PASS**, zero failures/errors/skips.
+Production/test Kotlin compilation passed as part of the focused test task;
+bounded diff review and git diff --check PASS. New wording physical smoke pending.
+
 ## 2026-10-28 - Planning Context UX V2
 
 PLANNING_CONTEXT_UX_V2_HOST_20261028

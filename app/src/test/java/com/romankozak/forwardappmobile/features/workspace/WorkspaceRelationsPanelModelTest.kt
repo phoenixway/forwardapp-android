@@ -53,4 +53,42 @@ class WorkspaceRelationsPanelModelTest {
         assertThat(rows).containsExactly(planning); assertThat(rows.single().navigation).isNull()
         assertThat(rows.single().panelRelationLabel()).isEqualTo("← source")
     }
+
+    @Test fun `Orientation relations explain both directions relative to exact source title`() {
+        val labels = mapOf(
+            "PART_OF" to ("Містить" to "Частина"),
+            "SUPPORTS" to ("Отримує підтримку від" to "Підтримує"),
+            "REALIZES" to ("Реалізується через" to "Реалізує"),
+            "DEPENDS_ON" to ("Потрібний для" to "Залежить від"),
+            "PRECEDES" to ("Після" to "Передує"),
+            "REFINES" to ("Уточнюється через" to "Уточнює"),
+            "DERIVED_FROM" to ("Основа для" to "Походить від"),
+        )
+        labels.forEach { (kind, verbs) ->
+            val outgoing = row("ORIENTATION", "other", listOf(kind), WorkspaceRelationDirection.ORIENTATION_TO_ENTITY)
+            val incoming = outgoing.copy(direction = WorkspaceRelationDirection.ENTITY_TO_ORIENTATION)
+            assertThat(outgoing.panelRelationLabel("Meaning")).isEqualTo("${verbs.first} «Meaning»")
+            assertThat(incoming.panelRelationLabel("Meaning")).isEqualTo("${verbs.second} «Meaning»")
+        }
+    }
+
+    @Test fun `mutual relation and multiple kinds stay concise without direction arrows`() {
+        val mutual = row("ORIENTATION", "other", listOf("CONFLICTS_WITH"), WorkspaceRelationDirection.ORIENTATION_MUTUAL)
+        assertThat(mutual.panelRelationLabel("Meaning")).isEqualTo("Конфліктує з «Meaning»")
+        val multiple = mutual.copy(kinds = listOf("SUPPORTS", "REFINES"), direction = WorkspaceRelationDirection.ENTITY_TO_ORIENTATION)
+        assertThat(multiple.panelRelationLabel("Meaning")).isEqualTo("Підтримує «Meaning» · Уточнює «Meaning»")
+    }
+
+    @Test fun `Aspect membership names the embodied Orientation instead of ambiguous relevant to arrow`() {
+        val aspect = row("ASPECT", "aspect", listOf("BELONGS_TO", "RELEVANT_TO"), WorkspaceRelationDirection.ORIENTATION_TO_ENTITY)
+        assertThat(aspect.panelRelationLabel("Meaning")).isEqualTo(
+            "«Meaning» належить до цього аспекту · «Meaning» стосується цього аспекту")
+    }
+
+    @Test fun `presentation wording preserves exact navigation identity and unknown vocabulary`() {
+        val relation = row("ORIENTATION", "id", listOf("FUTURE_KIND"), WorkspaceRelationDirection.ORIENTATION_TO_ENTITY)
+        assertThat(relation.panelRelationLabel("Meaning")).isEqualTo("FUTURE_KIND")
+        assertThat(relation.navigation).isEqualTo(NavTarget.SemanticEntityEditor("id"))
+        assertThat(relation.kinds).containsExactly("FUTURE_KIND")
+    }
 }

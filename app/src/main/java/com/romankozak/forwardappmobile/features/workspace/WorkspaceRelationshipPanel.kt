@@ -72,7 +72,7 @@ internal fun WorkspaceRelationshipPanel(projection: WorkspaceRelationsProjection
             Text(model.structureLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         model.groups.forEachIndexed { index, group ->
-            RelationshipBranch(group, index == model.groups.lastIndex, onOpen)
+            RelationshipBranch(group, index == model.groups.lastIndex, projection.embodiedOrientation?.title, onOpen)
         }
     }
 }
@@ -101,7 +101,7 @@ private fun SourceTile(title: String, type: String, targetType: String, modifier
 }
 
 @Composable
-private fun RelationshipBranch(group: WorkspaceEntityHubGroup, last: Boolean, onOpen: (NavTarget) -> Unit) {
+private fun RelationshipBranch(group: WorkspaceEntityHubGroup, last: Boolean, orientationTitle: String?, onOpen: (NavTarget) -> Unit) {
     val rail = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().drawBehind {
@@ -126,7 +126,7 @@ private fun RelationshipBranch(group: WorkspaceEntityHubGroup, last: Boolean, on
                 drawLine(rail, Offset(x, 0f), Offset(x, end), 1.5.dp.toPx())
                 drawLine(rail, Offset(x, y), Offset(32.dp.toPx(), y), 1.5.dp.toPx())
                 drawCircle(rail, 3.5.dp.toPx(), Offset(x, y))
-            }.padding(start = 32.dp, bottom = 10.dp)) { RelationshipEntityCard(row, onOpen) }
+            }.padding(start = 32.dp, bottom = 10.dp)) { RelationshipEntityCard(row, orientationTitle, onOpen) }
         }
         Spacer(Modifier.fillMaxWidth().height(14.dp).drawBehind {
             if (!last) drawLine(rail, Offset(12.dp.toPx(), 0f), Offset(12.dp.toPx(), size.height), 1.5.dp.toPx())
@@ -135,9 +135,10 @@ private fun RelationshipBranch(group: WorkspaceEntityHubGroup, last: Boolean, on
 }
 
 @Composable
-private fun RelationshipEntityCard(row: WorkspaceRelationItem, onOpen: (NavTarget) -> Unit) {
+private fun RelationshipEntityCard(row: WorkspaceRelationItem, orientationTitle: String?, onOpen: (NavTarget) -> Unit) {
+    val relationLabel = row.panelRelationLabel(orientationTitle)
     Surface(onClick = { row.navigation?.let(onOpen) }, enabled = row.navigation != null,
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${row.title}. ${row.description()}" },
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${row.title}. ${row.typeLabel}. $relationLabel" },
         shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLowest,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))) {
         Row(Modifier.heightIn(min = 80.dp).padding(12.dp), verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +151,7 @@ private fun RelationshipEntityCard(row: WorkspaceRelationItem, onOpen: (NavTarge
                     Text(row.typeLabel, Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(row.panelRelationLabel() + if (row.navigation == null) " · Перегляд недоступний" else "",
+                Text(relationLabel + if (row.navigation == null) " · Перегляд недоступний" else "",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (row.navigation != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(22.dp),

@@ -32,7 +32,7 @@ internal fun EmbodyingWorkspaceAction(
                 enabled = !blocked && !state.busy && !model.isDirty && !model.isSaving && !model.isRelationMutationInFlight,
                 onClick = { expanded = false; convert() })
         }
-        DropdownMenuItem(text = { Text("Створити embodying workspace") },
+        DropdownMenuItem(text = { Text("$CREATE_EMBODYING_WORKSPACE_LABEL…") },
             enabled = model.canCreateEmbodyingWorkspace && !state.busy && !blocked,
             onClick = { expanded = false; onOpen() })
         onDelete?.let { delete ->
@@ -60,10 +60,10 @@ internal fun EmbodyingWorkspaceDialogContent(
     val request = state.request ?: return
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Створити embodying workspace") },
+        title = { Text(CREATE_EMBODYING_WORKSPACE_LABEL) },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Новий робочий простір буде пов’язаний із цією сутністю через EMBODIES. Сутність не змінюється. Поява в Navigation не створюється.")
+                Text("Основний робочий простір для організації роботи над цією семантичною сутністю. Зв’язок читається: робочий простір втілює сутність. Сутність залишається окремою; поява в Navigation автоматично не створюється.")
                 OutlinedTextField(value = request.name, onValueChange = onName, enabled = !state.busy,
                     singleLine = true, label = { Text("Назва робочого простору") })
                 OutlinedTextField(value = request.description.orEmpty(), onValueChange = onDescription, enabled = !state.busy,

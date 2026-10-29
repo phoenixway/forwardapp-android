@@ -205,6 +205,8 @@ fun SemanticEntityEditorScreen(
     }
     SemanticRelationTypeDialog(
         pending = loaded?.model?.pendingRelation,
+        currentTitle = loaded?.model?.let { it.name.ifBlank { it.persistedName } } ?: "Поточна сутність",
+        relatedTitles = loaded?.model?.relationTitles.orEmpty(),
         mutationInFlight = loaded?.model?.isRelationMutationInFlight == true,
         onDismiss = viewModel::cancelPendingRelation,
         onAddAspect = viewModel::addAspectAssociation,

@@ -25,6 +25,7 @@ fun UnifiedItemCheckbox(
     style: UnifiedCheckboxStyle,
     modifier: Modifier = Modifier,
     colors: UnifiedCheckboxColors = unifiedCheckboxColors(),
+    enabled: Boolean = true,
 ) {
     val shape: Shape =
         when (style) {
@@ -34,6 +35,7 @@ fun UnifiedItemCheckbox(
 
     IconToggleButton(
         checked = checked,
+        enabled = enabled,
         onCheckedChange = onCheckedChange,
         modifier = modifier.size(32.dp),
     ) {

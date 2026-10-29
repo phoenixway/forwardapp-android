@@ -36,6 +36,7 @@ class StrategicArcQuestCardUiTest {
     private var missions = 0
     private var deletes = 0
     private var carries = 0
+    private var toggles = 0
     private var openedContext: String? = null
     private var openedReference: CanonicalEntityRef? = null
 
@@ -47,7 +48,7 @@ class StrategicArcQuestCardUiTest {
                     onCreateMission = { missions++ }, onEditQuest = { _, _ -> }, onDeleteQuest = { deletes++ },
                     onCarryToCurrentArc = if (historical) ({ carries++ }) else null,
                     dragHandleModifier = Modifier, references = references,
-                    onOpenReference = { openedReference = it }, isDragging = dragging)
+                    onOpenReference = { openedReference = it }, isDragging = dragging, onToggleCompleted = { toggles++ })
             }
         }
     }
@@ -78,8 +79,33 @@ class StrategicArcQuestCardUiTest {
         ui.setContent { Card() }
         ui.onNodeWithText("Quest title").assertIsDisplayed().performClick()
         ui.onNodeWithText("Useful details").assertIsDisplayed()
-        ui.onNodeWithContentDescription("ArcQuest").assertIsDisplayed()
+        ui.onNodeWithContentDescription("Позначити завершеним").assertIsDisplayed().assertIsOff()
         ui.runOnIdle { assertEquals(1, opens) }
+    }
+
+    @Test fun `quest completion checkbox dispatches once without opening the card`() {
+        ui.setContent { Card() }
+        ui.onNodeWithContentDescription("Позначити завершеним").performClick()
+        ui.runOnIdle { assertEquals(1, toggles); assertEquals(0, opens) }
+    }
+
+    @Test fun `completed quest has checked checkbox and can be made active`() {
+        ui.setContent { Card(value = quest.copy(status = "DONE")) }
+        ui.onNodeWithContentDescription("Позначити активним").assertIsOn().performClick()
+        ui.runOnIdle { assertEquals(1, toggles); assertEquals(0, opens) }
+    }
+
+    @Test fun `paused quest is unchecked and checkbox offers completion not pause`() {
+        ui.setContent { Card(value = quest.copy(status = "PAUSED")) }
+        ui.onNodeWithContentDescription("Позначити завершеним").assertIsOff().performClick()
+        ui.runOnIdle { assertEquals(1, toggles) }
+    }
+
+    @Test fun `unsupported or loading quest cannot dispatch fake completion`() {
+        ui.setContent { MaterialTheme {
+            ArcQuestCard(quest, null, {}, {}, {}, { _, _ -> }, {}, null, Modifier)
+        } }
+        ui.onNodeWithContentDescription("Позначити завершеним").assertIsNotEnabled()
     }
 
     @Test fun `source and RELATED badges wrap on narrow row and retain exact typed callbacks`() {
@@ -113,7 +139,7 @@ class StrategicArcQuestCardUiTest {
     @Test fun `dragging and minimal current quest retain controls without historical actions`() {
         ui.setContent { Card(quest.copy(description = null, linkedContextId = null), historical = false, dragging = true) }
         ui.onNodeWithText("Quest title").assertIsDisplayed()
-        ui.onNodeWithContentDescription("ArcQuest").assertIsDisplayed()
+        ui.onNodeWithContentDescription("Позначити завершеним").assertIsDisplayed().assertIsOff()
         openMenu()
         ui.onNodeWithText("В поточну арку").assertDoesNotExist()
         ui.onNodeWithText("Відкрити контекст").assertDoesNotExist()

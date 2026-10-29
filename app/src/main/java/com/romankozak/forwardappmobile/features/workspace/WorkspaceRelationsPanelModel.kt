@@ -37,7 +37,28 @@ internal fun WorkspaceRelationsProjection.relationshipPanel(): WorkspaceRelation
     }, groups)
 }
 
-internal fun WorkspaceRelationItem.panelRelationLabel(): String {
+internal fun WorkspaceRelationItem.panelRelationLabel(orientationTitle: String? = null): String {
+    if (direction in setOf(WorkspaceRelationDirection.ORIENTATION_TO_ENTITY,
+            WorkspaceRelationDirection.ENTITY_TO_ORIENTATION, WorkspaceRelationDirection.ORIENTATION_MUTUAL)) {
+        val anchor = "«${orientationTitle ?: "поточний орієнтир"}»"
+        val outgoing = direction == WorkspaceRelationDirection.ORIENTATION_TO_ENTITY
+        // The card title is the sentence subject; name the other endpoint instead of an ambiguous arrow.
+        return kinds.joinToString(" · ") { kind ->
+            when (kind) {
+                "PART_OF" -> if (outgoing) "Містить $anchor" else "Частина $anchor"
+                "SUPPORTS" -> if (outgoing) "Отримує підтримку від $anchor" else "Підтримує $anchor"
+                "REALIZES" -> if (outgoing) "Реалізується через $anchor" else "Реалізує $anchor"
+                "DEPENDS_ON" -> if (outgoing) "Потрібний для $anchor" else "Залежить від $anchor"
+                "CONFLICTS_WITH" -> "Конфліктує з $anchor"
+                "PRECEDES" -> if (outgoing) "Після $anchor" else "Передує $anchor"
+                "REFINES" -> if (outgoing) "Уточнюється через $anchor" else "Уточнює $anchor"
+                "DERIVED_FROM" -> if (outgoing) "Основа для $anchor" else "Походить від $anchor"
+                "BELONGS_TO" -> "$anchor належить до цього аспекту"
+                "RELEVANT_TO" -> "$anchor стосується цього аспекту"
+                else -> kind
+            }
+        }
+    }
     val arrow = when (direction) {
         WorkspaceRelationDirection.ENTITY_TO_WORKSPACE, WorkspaceRelationDirection.ENTITY_TO_ASPECT,
         WorkspaceRelationDirection.ENTITY_TO_ORIENTATION -> "←"

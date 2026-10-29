@@ -132,6 +132,23 @@ class PlanningContextCoordinatorRoomTest {
         assertEquals(PlanningCommitmentStatus.COMPLETED, f.planning.getCommitment(item.id)!!.status)
         assertEquals(semantic, f.base.dao.getManagedSubject(id))
     }
+    @Test fun `Strategic completion can return to active without changing identity or composition`() = test { id ->
+        val focus = commands.add(id, PlanningScopeKind.STRATEGIC_ARC, now)
+        val mission = commands.promote(focus.id, PlanningScopeKind.TACTICAL_CYCLE, now)
+        val semantics = f.base.snapshot()
+        val edges = f.db.planningCommitmentRelationDao().getAll()
+        commands.status(focus.id, focus.version, PlanningCommitmentStatus.COMPLETED)
+        val done = requireNotNull(f.planning.getCommitment(focus.id))
+        commands.status(done.id, done.version, PlanningCommitmentStatus.ACTIVE)
+        val active = requireNotNull(f.planning.getCommitment(focus.id))
+        assertEquals(focus.id, active.id)
+        assertEquals(focus.orientationId, active.orientationId)
+        assertEquals(focus.scopeId, active.scopeId)
+        assertEquals(PlanningCommitmentStatus.ACTIVE, active.status)
+        assertEquals(mission, f.planning.getCommitment(mission.id))
+        assertEquals(edges, f.db.planningCommitmentRelationDao().getAll())
+        assertEquals(semantics.copy(exportedAt = 0), f.base.snapshot().copy(exportedAt = 0))
+    }
     @Test fun `stale version status fails without mutation`() = test { id ->
         val item = commands.add(id, PlanningScopeKind.TACTICAL_CYCLE, now)
         assertTrue(runCatching { commands.status(item.id, item.version + 1, PlanningCommitmentStatus.COMPLETED) }.isFailure)

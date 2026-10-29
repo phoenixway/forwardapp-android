@@ -32,6 +32,14 @@ internal object CompositionUiFixture {
 
 class PlanningCompositionPresentationTest {
     private val f = CompositionUiFixture
+    @Test fun `checkbox completes active and reactivates completed participation`() {
+        assertEquals(PlanningCommitmentStatus.COMPLETED, completionToggleStatus(PlanningCommitmentStatus.ACTIVE))
+        assertEquals(PlanningCommitmentStatus.ACTIVE, completionToggleStatus(PlanningCommitmentStatus.COMPLETED))
+    }
+    @Test fun `checkbox never assigns pause`() {
+        assertEquals(PlanningCommitmentStatus.COMPLETED, completionToggleStatus(PlanningCommitmentStatus.PAUSED))
+        PlanningCommitmentStatus.entries.forEach { assertNotEquals(PlanningCommitmentStatus.PAUSED, completionToggleStatus(it)) }
+    }
     @Test fun `Part of follows outgoing edge`() {
         assertEquals("b", f.frame("a" to "b").outgoing(f.id("a")).single().participant.commitment.id.value)
     }

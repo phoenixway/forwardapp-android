@@ -30,7 +30,7 @@ internal fun SemanticAssociationsSection(
         model.orientationAssociations.forEach { association ->
             RelationRow(
                 title = association.title,
-                subtitle = "Орієнтир → цей Aspect · ${association.relationType.displayLabel()}" +
+                subtitle = aspectAssociationSentence(association.relationType, association.title, model.name) +
                     if (association.isPrimary) " · основний Aspect" else "",
                 enabled = !model.isSaving && !model.isRelationMutationInFlight,
                 onRemove = { onRemoveAssociation(association.refId) },
