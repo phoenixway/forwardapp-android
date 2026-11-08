@@ -37,6 +37,7 @@ internal fun ContextualActionsButton(
     title: String,
     actions: List<ContextualAction>,
     extraContent: (@Composable (() -> Unit) -> Unit)? = null,
+    sheetContent: (@Composable (onSelected: (ContextualAction) -> Unit) -> Unit)? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
@@ -47,12 +48,16 @@ internal fun ContextualActionsButton(
     }
     if (visible) {
         ModalBottomSheet(onDismissRequest = { visible = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-                Text(title, Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleMedium)
-                extraContent?.invoke { visible = false }
-                ContextualActionItems(actions) { action ->
-                    visible = false
-                    action.invokeIfEnabled()
+            if (sheetContent != null) {
+                sheetContent { action -> visible = false; action.invokeIfEnabled() }
+            } else {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+                    Text(title, Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleMedium)
+                    extraContent?.invoke { visible = false }
+                    ContextualActionItems(actions) { action ->
+                        visible = false
+                        action.invokeIfEnabled()
+                    }
                 }
             }
         }

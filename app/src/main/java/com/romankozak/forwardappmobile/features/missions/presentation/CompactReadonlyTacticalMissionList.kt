@@ -60,6 +60,7 @@ internal fun CompactReadonlyTacticalMissionList(
     modifier: Modifier = Modifier,
 ) {
     val orientationSources = rememberTacticalOrientationSources()
+    val primaryNavigation = rememberMissionPrimaryNavigation()
     val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     val hapticFeedback = LocalHapticFeedback.current
     val reorderableMissions =
@@ -120,6 +121,11 @@ internal fun CompactReadonlyTacticalMissionList(
         itemsIndexed(reorderableMissions, key = { _, mission -> mission.id }) { _, mission ->
             ReorderableItem(reorderableState, key = mission.id) { isDragging ->
                 CompactReadonlyMissionRow(
+                    workspace = primaryNavigation.targets[mission.id]?.workspace,
+                    onOpenMission = {
+                        if (mission.id in primaryNavigation.targets) primaryNavigation.open(mission.id)
+                        else onMissionMoreClick(mission)
+                    },
                     orientationSource = orientationSources.byMission[mission.id],
                     relatedOrientations = orientationSources.relatedByMission[mission.id].orEmpty(),
                     onOpenRelated = orientationSources.onOpen,
@@ -152,7 +158,9 @@ internal fun CompactReadonlyTacticalMissionList(
 }
 
 @Composable
-private fun CompactReadonlyMissionRow(
+internal fun CompactReadonlyMissionRow(
+    workspace: MissionSemanticWorkspaceAction.Open?,
+    onOpenMission: () -> Unit,
     orientationSource: CanonicalEntitySummary?,
     relatedOrientations: List<CanonicalEntitySummary>,
     onOpenRelated: (String) -> Unit,
@@ -180,7 +188,7 @@ private fun CompactReadonlyMissionRow(
                 Modifier
                     .fillMaxWidth()
                     .then(dragHandleModifier)
-                    .clickable(onClick = onToggle),
+                    .clickable(onClick = onOpenMission),
             color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
             shadowElevation = if (isDragging) 8.dp else 0.dp,
         ) {
@@ -215,8 +223,9 @@ private fun CompactReadonlyMissionRow(
                     )
                     planningContext()
                     val meta = buildCompactMissionMeta(mission, streamTitle, showStream, isPaused)
-                    if (orientationSource != null || relatedOrientations.isNotEmpty()) {
+                    if (orientationSource != null || relatedOrientations.isNotEmpty() || workspace != null) {
                         UnifiedStatusRow {
+                            MissionWorkspaceBadge(workspace, onOpenMission)
                             orientationSource?.let { source -> TacticalMissionOrientationBadge(source, onOpenSource) }
                             relatedOrientations.forEach { related ->
                                 PlanningOrientationSourceBadge(related, related = true) { onOpenRelated(related.ref.id) }

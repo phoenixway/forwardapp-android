@@ -186,12 +186,11 @@ interface GoalDao {
 
     @Query(
         """
-        SELECT DISTINCT g.*
+        SELECT g.*
         FROM goals g
         WHERE g.is_deleted = 0
-          AND (
-            EXISTS (
-                SELECT 1
+          AND g.id IN (
+                SELECT mapping.sourceId
                 FROM workspace_backlog_entries entry
                 JOIN legacy_subject_mappings mapping
                   ON mapping.subjectId = entry.targetId
@@ -199,16 +198,12 @@ interface GoalDao {
                   AND entry.targetKind = 'ORIENTATION'
                   AND entry.isDeleted = 0
                   AND mapping.sourceType = 'GOAL'
-                  AND mapping.sourceId = g.id
                   AND mapping.state = 'CUT_OVER'
                   AND mapping.isDeleted = 0
-            )
-            OR EXISTS (
-                SELECT 1
+                UNION
+                SELECT bg.goal_id
                 FROM backlog_goal_association_links bg
-                WHERE bg.goal_id = g.id
-                  AND bg.context_id = :contextId
-            )
+                WHERE bg.context_id = :contextId
           )
         """,
     )

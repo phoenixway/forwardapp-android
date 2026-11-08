@@ -42,6 +42,17 @@ class WorkspacePresentationPreferencesRepository
             }
         }
 
+        /** Automatic view remembering may race destination removal; never create preferences for a dead owner. */
+        suspend fun rememberDefaultViewModeIfLive(
+            workspaceId: String,
+            defaultViewModeName: String?,
+            now: Long = System.currentTimeMillis(),
+        ): Boolean = database.withTransaction {
+            if (workspaceDao.getById(workspaceId)?.isDeleted != false) return@withTransaction false
+            setDefaultViewMode(workspaceId, defaultViewModeName, now)
+            true
+        }
+
         suspend fun toggleAttachmentsExpanded(
             workspaceId: String,
             now: Long = System.currentTimeMillis(),

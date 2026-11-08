@@ -17,6 +17,7 @@ enum class AttachmentLibraryFilter {
     Checklists,
     Links,
     Contexts,
+    MusicNotes,
     ;
 
     fun matches(type: AttachmentLibraryType): Boolean =
@@ -28,6 +29,7 @@ enum class AttachmentLibraryFilter {
             Checklists -> type == AttachmentLibraryType.CHECKLIST
             Links -> type == AttachmentLibraryType.LINK
             Contexts -> type == AttachmentLibraryType.CONTEXT
+            MusicNotes -> type == AttachmentLibraryType.MUSIC_NOTE
         }
 }
 

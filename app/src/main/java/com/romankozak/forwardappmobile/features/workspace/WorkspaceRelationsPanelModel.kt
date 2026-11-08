@@ -59,11 +59,32 @@ internal fun WorkspaceRelationItem.panelRelationLabel(orientationTitle: String? 
             }
         }
     }
-    val arrow = when (direction) {
-        WorkspaceRelationDirection.ENTITY_TO_WORKSPACE, WorkspaceRelationDirection.ENTITY_TO_ASPECT,
-        WorkspaceRelationDirection.ENTITY_TO_ORIENTATION -> "←"
-        WorkspaceRelationDirection.ORIENTATION_MUTUAL -> "↔"
-        else -> "→"
+    val aspectContext = direction == WorkspaceRelationDirection.ENTITY_TO_ASPECT
+    return kinds.joinToString(" · ") { kind ->
+        when {
+            family == WorkspaceRelationFamily.PLANNING -> when (kind) {
+                "SOURCE" -> if (aspectContext) "Створено на основі цього аспекту" else "Створено на основі цього простору"
+                "RELATED" -> if (aspectContext) "Пов’язано з цим аспектом" else "Пов’язано з цим простором"
+                else -> kind
+            }
+            kind == "PARENT_ASPECT" -> if (aspectContext) "Дочірній аспект" else "Батьківський аспект"
+            kind == "BELONGS_TO" && aspectContext -> "Належить до цього аспекту"
+            kind == "RELEVANT_TO" && aspectContext -> "Стосується цього аспекту"
+            direction == WorkspaceRelationDirection.WORKSPACE_TO_ENTITY -> when (kind) {
+                "EMBODIES" -> "Цей простір втілює цю сутність"
+                "REALIZES" -> "Цей простір реалізує цю сутність"
+                "SUPPORTS" -> "Цей простір підтримує цю сутність"
+                "MONITORS" -> "Цей простір моніторить цю сутність"
+                else -> kind
+            }
+            aspectContext -> when (kind) {
+                "EMBODIES" -> "Втілює цей аспект"
+                "REALIZES" -> "Реалізує цей аспект"
+                "SUPPORTS" -> "Підтримує цей аспект"
+                "MONITORS" -> "Моніторить цей аспект"
+                else -> kind
+            }
+            else -> kind
+        }
     }
-    return "$arrow ${kinds.joinToString(" · ") { it.lowercase(java.util.Locale.ROOT).replace('_', ' ') }}"
 }

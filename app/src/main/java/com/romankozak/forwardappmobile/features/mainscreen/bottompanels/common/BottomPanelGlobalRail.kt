@@ -76,6 +76,8 @@ fun BottomPanelGlobalRail(
         imageVector = Icons.Outlined.AutoAwesome,
         contentDescription = "Magicbox",
         onClick = actions.onNavigateToGlobalSearch,
+        onLongClick = if (mode == BottomPanelGlobalRailMode.FULL) ({ showRecentSheet = true }) else null,
+        onLongClickLabel = "Відкрити недавні",
     )
     BottomPanelIconButton(
         imageVector = Icons.Default.Add,

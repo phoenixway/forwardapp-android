@@ -1,5 +1,152 @@
 # Next
 
+## MagicBox attachments: physical smoke
+
+After user-run `make exp-arm64-cycle`, open MagicBox from the main dock. With
+Attachments enabled, search a document title and a word in its body, then a
+checklist/item word. Results must appear alongside canonical entities without
+Other results. Open each: exact note/checklist; repeat with music note/script.
+Rename or delete a disposable document and repeat the query; no stale/deleted
+result. Verify `type:orientation` / `#tag` stay canonical-only and disabling
+Attachments hides the document group. HOST 48 tests across focused runs PASS;
+Room 206 unchanged; no automatic deployment.
+
+## Navigation clipboard: physical smoke
+
+After user-run `make exp-arm64-cycle`, copy a Workspace via lower dock -> More
+(⋮) -> Navigation group in the actions sheet (not Workspace Properties)
+and paste using a leaf card's Вставити нащадки in Navigation. Verify a new
+appearance of the same Workspace, no duplicated content, original survives.
+Repeat with Orientation/Aspect Copy from Navigation. For a Workspace with two
+appearances, Cut from the same actions sheet, select exact full-path LINK and paste under a
+section; the other appearance must stay put. Cancel chooser: nothing changes.
+An unplaced Workspace can Copy but not Cut. Reject cyclic/self Cut paste safely
+and retain clipboard. HOST 46/46 PASS; Room 206; no automatic deployment.
+Placement/visual follow-up HOST 24/24 PASS. Verify Copy/successful Cut closes the
+actions sheet with feedback, cancelling the chooser leaves it open, other sheet
+actions remain accessible, and Properties no longer duplicates Copy/Cut.
+
+## Semantic Editor tabs: physical UX check
+
+After user-run `make exp-arm64-cycle`, open an Orientation and an Aspect.
+Check Основне -> Семантика -> Workspaces: name/tag drafts and scroll position
+survive switching; name still requires Save and dirty Back still confirms.
+Check Aspect parent/children, semantic relation add/open/remove, Workspace
+binding add/open/remove and Orientation Planning. Create-embodiment now appears
+directly in Workspaces; linking an existing Workspace remains a separate action.
+Transform/kind-change/delete remain in the top action menu; cancel a destructive
+dialog without mutation. HOST 47/47 PASS, compile prerequisites/diff check PASS;
+Room 206 unchanged. No automatic deployment.
+
+## Day Focus legacy-link trash: physical persistence check
+
+After user-run `make exp-arm64-cycle`: edit an existing Focus -> Links, trash the
+old Context/Workspace link, close without Save, reopen: the link and card badge
+must remain absent. Edit title/notes before trashing: closing without Save must
+discard those drafts, not the committed unlink. Check another day/recurrence
+template remains unchanged; a new unsaved Focus still uses ordinary Save.
+Trash removes the exact typed reference only, never its target. HOST 11/11 PASS
+in four classes; production/test Kotlin compile and diff check PASS; Room 206.
+No automatic deployment or live-data repair was performed.
+
+## Day Focus badge destination crash: physical smoke
+
+After user-run `make exp-arm64-cycle`, open Today -> Day Focuses and tap the
+reported Workspace badge. A stale deleted target must show canonical Unavailable,
+not instantiate the legacy operational screen or auto-save its preferences.
+A distinct live Workspace with the same title must not silently replace it.
+Verify an exact live Workspace badge opens correctly, plus note/checklist badges
+and return navigation. Explicit relinking of stale user references is separate;
+none were rewritten. Latest routing/preferences HOST 22/22 PASS in four classes;
+earlier attachment read regressions 17/17 PASS. Production/test Kotlin compile
+and diff checks PASS; Room 206 unchanged. No automatic deployment or DB repair.
+
+## Strategic Arc atomic reorder: finish HOST verification
+
+The bounded transaction/cancellation fix is implemented; focused HOST execution
+is pending cold-cache dependency downloads. Inspect current execution/XML before
+restarting `tools/agent-test :app:testProdDebugUnitTest '*StrategicArcReorderAtomicityRoomTest'`.
+Do not declare completion without the six focused Room outcomes. Room 206 is
+unchanged. After HOST acceptance and user-run `make exp-arm64-cycle`, reorder
+several disposable Arc quests quickly, switch overview/all-participants, reopen
+and restart: final order persists, hidden slots and component relation order
+remain independent. No automatic deployment or live-data repair.
+
+## Tactical Mission Workspace shortcut: physical smoke
+
+After user-run `make exp-arm64-cycle`: create a Mission through Tactical quick
+input, open its card menu -> Create Workspace for Orientation, check canonical
+prefill, Cancel once, then confirm. Verify exact Workspace opens and returning
+to the same Mission now offers Open Workspace, without another semantic entity
+or automatic Navigation appearance. Repeat with an existing Orientation source
+that already EMBODIES a Workspace. HOST 22/4 PASS; Room 206 unchanged.
+
+## Workspace quick-Add latency: verify reader-queue bypass
+
+Ordinary quick-Add was physically reported improved by the user; rapid/burst
+behavior and global contention remain unaccepted. Correlated pre-fix device
+baseline: op=1 completed in 3876 ms; write committed at +482,
+Backlog snapshot requested at +511 but entered its transaction at +3496
+(2985 ms waiting), then read in 73 ms. post.auto_move took an overlapping
+2944 ms. This is queue/scheduling evidence, not additive independent timings.
+Ordinary list/direct reads now use one joined SQL snapshot without a writer
+transaction. New Goal creation without hashtag copies skips a redundant
+visibility writer. Existing edit/tag removal and real auto-hide remain intact.
+
+After user-run `make exp-arm64-cycle`, add one plain Goal, then 3 quickly in
+succession, then one with a reminder/tag. Remove a tag from an auto-hidden Goal
+and verify source placement restoration. Read `BacklogAddTiming` and existing `ForwardStartup` together:
+one `op` identifies each submit; `+Nms` is monotonic elapsed time, `duration=Nms`
+is the local span. New timing logs contain no text/domain IDs. Debug only.
+
+Check `worker.enter`, `parse.await`, `write.request` -> `write.tx_enter`
+(Room queue), `write.goal/semantic/placement`, `write.committed`, each `post.*`
+step, `repository.returned`, `main.dispatch` -> `main.enter`, `input.updated`,
+`backlog.snapshot`/`backlog.target_received`, `observer.map`/`observer.target_received`,
+`list.apply_requested`, and `ui.visible`. The last is an exact LazyColumn visible
+layout key, not merely data in the list and not a measured GPU presentation.
+`complete` waits for both input update and visible layout; failures/cancellation
+are explicit. Missing layout after leaving the screen is not assumed success.
+`backlog.snapshot.tx_enter` is no longer expected on the ordinary read path:
+the statement is coherent without an explicit writer transaction. Inspect the
+initial write queue too, particularly for rapid submissions. Full ProductRead /
+Mission transaction costs and ID-based mixed lookup are not eliminated by this
+bounded change. No speculative decoder cache or global Mission sharing retained.
+Room 206 unchanged; no deployment/DB repair by the agent. Physical latency
+acceptance pending; PERF-P2 remains open.
+
+## Strategic Arc overview: physical check pending
+
+After user-run `make exp-arm64-cycle`, on a disposable same-Arc Focus + Goal
+component: default overview shows Focus with Components count, not Goal as a peer.
+In the tab's blocks/contextual menu, under `Склад списку`, choose `Усі учасники`: both exact
+participations and Goal's Part of context appear; no selector row remains above
+the list. Reopen the menu and verify selected state, then switch back to overview. Open
+Planning details and verify the same component; remove/re-add only the relation
+and check automatic overview updates. Reorder two overview roots, then open All:
+hidden component slots and relation-local order must remain unchanged. Check
+history/another Arc, navigation recreation, and restart with identity/relations
+intact; the mode is saveable UI state, not a durable domain preference.
+The grouped sheet also needs narrow-screen/large-font smoke: selected view,
+current period and previous/next gates, canonical source/Beacon/group creation,
+artifact view vs artifact editor, attached materials, clear-draft-only behavior,
+scrolling and Android Back. Today/Tactics/global More must remain unchanged.
+Initial overview HOST 37/4; contextual-menu follow-up HOST 45/5 and
+production/test Kotlin compilation PASS; Room 206.
+Existing reorder atomicity risk remains separate BACKLOG debt.
+
+## Navigation Orientation move into group: physical regression check pending
+
+After user-run `make exp-arm64-cycle`, repeat the reported exact appearance:
+Cut -> open group/section "Геммел" -> Paste. Verify it moves (not copies), keeps
+PRIMARY/LINK and target identity, appears only at its new authored location,
+and opens the same semantic/operational destination. Repeat once with PRIMARY
+and LINK, then restart. Other appearances, semantic relations and Workspace
+bindings must survive. HOST: 85 tests / 11 classes PASS, Room 206 unchanged.
+If a genuine unknown root still blocks, the error now includes exact placement
+and target IDs; do not guess lineage or mass-convert it to NATIVE.
+No automatic device deployment or live-data repair has been performed.
+
 ## Planning Context UX V2: physical acceptance pending
 
 After user-run `make exp-arm64-cycle`, on disposable data:

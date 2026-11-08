@@ -1,5 +1,403 @@
 # ForwardApp Project State
 
+## 2026-11-08 - Attachments in ordinary MagicBox results
+
+Plain DataSearch no longer hides attachment documents behind Other results.
+The canonical list now shares one scroll surface with NOTE_DOCUMENT, CHECKLIST,
+MUSIC_NOTE and SCRIPT results. Attachment title/body matching reuses the existing
+SearchRepository projection over a bulk observable library read, with 180 ms
+debounce/background processing and no per-result DAO reads. Rename/content and
+live-state changes are reactive. The Attachments toggle remains authoritative.
+Structured operators/saved queries stay canonical-only; no invented attachment
+tag/scoring semantics or expanded CanonicalEntityQuery classes. Exact editor
+navigation reuses the existing GlobalSearchViewModel opener; other mixed results
+remain available via Other results.
+
+Inspection also exposed missing live gates in the attachment-library SQL. It
+now excludes attachment tombstones and deleted/missing targets for these four
+document types; historical rows/transport are not erased or modified. No Context
+shell, Workspace, Planning/H1 mutation or schema change; Room remains 206.
+
+HOST XML across focused runs **48/48 PASS / 6 classes**:
+MagicBoxAttachmentSearchTest 7, MagicBoxAttachmentLibraryRoomTest 3,
+MagicBoxAttachmentResultsUiTest 4, SearchRepositoryTest 26,
+MagicBoxCanonicalQueryViewModelTest 4, AttachmentsLibraryFilterTest 4.
+The first run exposed JUnit coroutine return-signature errors in two new classes;
+both were corrected and narrowly rerun successfully. Production/test Kotlin
+compilation and git diff --check PASS. No deployment; physical smoke pending.
+
+## 2026-11-08 - Workspace clipboard actions live in the lower-dock More sheet
+
+User clarified Copy/Cut placement: Workspace lower dock -> More (⋮) -> actions
+sheet, not Workspace Properties. Properties integration was removed. The sheet
+now has a dedicated Navigation group with themed icon/title/description rows;
+other existing actions remain in the grid below. Copy confirms and closes the
+sheet; Cut first opens the existing exact-occurrence chooser. Successful selection
+confirms/closes; cancelling or failed preparation does not dismiss or mutate H1.
+The shared clipboard, source identity, H1 commands and appearance semantics are
+unchanged. Read subscription is now owned by the visible actions-sheet content.
+
+HOST XML **24/24 PASS / 3 classes**: NavigationClipboardUiTest 10,
+NavigationClipboardTest 6, WorkspaceOccurrencesTest 8. Production/test Kotlin
+compile PASS as focused-test prerequisites; Room 206 unchanged;
+git diff --check PASS. No deployment; physical acceptance pending.
+
+## 2026-11-07 - Shared Navigation clipboard and paste-under-leaf
+
+Navigation card menus now offer Вставити нащадки for exact occurrence/container
+destinations, including leaves. Workspace Properties General has Copy/Cut using
+the same transient clipboard. Copy adds an appearance of the typed source via
+existing H1 addAppearance (no source/subtree duplication); Cut chooses a concrete
+PRIMARY/LINK by full path, then moves that occurrence/subtree on paste. An
+unplaced live Workspace can Copy but not Cut. Selection/cancel has no H1 writes;
+failed paste retains clipboard and successful Cut cannot clear a newer command.
+CURRENT V2 H1 remains the sole structural authority; no semantic/binding/Planning
+or Workspace identity changes. Legacy clipboard authorities remain separate.
+
+HOST XML **46/46 PASS / 6 classes**: NavigationClipboardTest 6,
+NavigationClipboardUiTest 8, BigPictureMutationViewModelTest 14,
+WorkspaceOccurrencesTest 8, BigPictureSourceDeleteFocusTest 3,
+BigPictureMutationUxRoomTest 7. Production/test Kotlin compilation passed as
+focused-test prerequisites; Room 206 unchanged; git diff --check PASS.
+No deployment/data repair; physical acceptance pending.
+
+## 2026-11-07 - Semantic Editor visual follow-up
+
+The editor now has a compact themed identity header, lower-weight tab labels,
+grouped name/Planning sections and inline save guidance instead of repeated
+paragraphs. Workspaces exposes primary-embodiment creation directly, through the
+existing dialog/ViewModel/coordinator. The top overflow no longer duplicates
+creation; transform/kind-change/delete remain there. Existing Workspace linking
+is a distinct Пов’язати action; an existing EMBODIES binding hides redundant
+primary creation. Eligibility/busy guards and all domain authorities are unchanged.
+
+Focused HOST evidence across runs: SemanticEditorTabsUiTest **14/14 PASS**
+(final class rerun), SemanticEditorRelationsUiTest **8/8 PASS**,
+EmbodyingWorkspaceViewModelTest **6/6 PASS**, SemanticRelationCopyTest **10/10 PASS**.
+One initial UI-test failure was an off-screen Planning click; explicit scrolling
+now verifies the real reachable action. Production/test Kotlin compile PASS as
+test prerequisites; Room 206 unchanged; git diff --check PASS. No deployment;
+physical visual/interaction acceptance pending.
+
+## 2026-11-07 - Tabbed Universal Semantic Editor
+
+Physical follow-up reported tab/content mismatch (not reproduced in HOST).
+Tab selection/content now share HorizontalPager state, with touch and swipe
+support. Follow-up SemanticEditorTabsUiTest XML **10/10 PASS**, including
+repeated touch transitions, swipe synchronization and saved-state restoration;
+production/test Kotlin compile PASS as prerequisites. Device recheck pending.
+
+Editor content is now grouped into Основне (name/type/tags, Orientation Planning),
+Семантика (existing taxonomy/membership/graph), and Workspaces (bindings).
+Subject title/type, errors and existing top-bar Save/action menu remain available
+across tabs. Selected tab and per-tab scroll/saveable state survive recreation;
+switching tabs neither saves nor discards name/tag drafts. Existing command,
+dialog, navigation and immediate relation/tag persistence boundaries are unchanged.
+No schema/model changes: Room 206. No deployment; physical smoke pending.
+
+Focused HOST XML **47/47 PASS / 4 classes**: SemanticEditorTabsUiTest 8,
+SemanticEditorRelationsUiTest 8, SemanticEntityEditorViewModelTest 27,
+SemanticTagsViewModelTest 4. Production/test Kotlin compilation passed as test
+prerequisites. git diff --check PASS.
+
+## 2026-11-07 - Persisted Day Focus legacy-link removal
+
+User clarified the trash issue was draft-only unlink, not a crash: the row
+disappeared locally but returned when reopening without Save. Existing Focus
+editors now persist exact legacy RelatedLink removal immediately through
+DayFocusesRepository and one Room transaction reading the current live row.
+Typed reference identity is type + target + vault (display title excluded).
+Only relatedLinks and version/dirty timestamps change. Other drafts remain
+unsaved; recurrence provenance/templates and other days are untouched. The edit
+baseline refreshes after unlink so later Save does not reuse the pre-unlink
+version. New unsaved Focus links remain draft-only. Failure retains the visible
+row/error; cancellation is propagated; duplicate taps/Save are gated while busy.
+This does not delete a target entity, PlanningReference or semantic relation.
+
+HOST XML **11/11 PASS / 4 classes**: DayFocusLinkRemovalRoomTest 5,
+DayFocusLinkRemovalTest 4, DayFocusLinkRemovalUiTest 1,
+DayFocusesRepositoryCanonicalEditTest 1. Production/test Kotlin compilation
+passed as focused-test prerequisites; Room 206 unchanged; git diff --check PASS.
+No phone data writes/deployment; physical acceptance pending.
+
+## 2026-11-06 - Day Focus Workspace badge canonical routing follow-up
+
+Physical follow-up exposed a second crash: the legacy context_detail destination
+instantiated the operational screen for an unavailable target and auto-saved view
+preferences against a deleted Workspace. Day Focus Workspace badges now route
+by exact stored ID through the canonical Workspace destination, whose
+Loading/Unavailable gate precedes operational ViewModel/UI construction.
+Automatic view remembering uses an atomic live-conditional command; strict
+manual preference writes are unchanged. Other attachment/external link routes
+are preserved. No title matching, semantic-ID guessing or automatic relinking.
+
+Scoped read-only device inspection proved the affected stored links reference
+a deleted Workspace while a distinct live Workspace has the same display title.
+This stale-data condition is not an instruction to substitute the newer entity.
+No database copy/write, reference rewrite or deployment was performed; temporary
+device diagnostic helpers were removed.
+
+HOST XML **22/22 PASS**: DayFocusLinkNavigationTest 3,
+WorkspaceDestinationViewModelTest 10,
+WorkspacePresentationPreferencesRepositoryRoomTest 4,
+ContextSettingsActionsTargetDeletionTest 5; zero failures/errors/skips.
+Production/test Kotlin compilation passed as focused-test prerequisites.
+Room 206 unchanged; git diff --check PASS. Physical acceptance remains pending.
+
+## 2026-11-06 - Stale Day Focus Workspace badge destination crash
+
+Device crash evidence identified an uncaught deleted-owner exception in
+AttachmentsLocalDataSourceImpl during Workspace destination observation.
+Attachment reads now resolve canonical provenance separately from authoring
+liveness checks. The canonical Connections query joins the live Workspace,
+so stale/deleted destinations read empty and existing subscriptions react to
+owner deletion/restoration. Existing unavailable-state UI remains destination
+owned; no badge identity/route, source record or placement is rewritten.
+All attachment authoring operations still reject deleted owners. Canonical,
+standalone, Context-backed and System ownership plus shared-attachment isolation
+are covered. No lifecycle cascade or legacy authority was added.
+
+HOST XML: AttachmentsLocalDataSourceCanonicalSystemRoutingRoomTest **17/17 PASS**,
+zero failures/errors/skips. ProdDebug production/test Kotlin compilation passed
+as focused-test prerequisites. Room 206 unchanged, git diff --check PASS.
+Physical badge acceptance pending; no deployment or phone DB mutation.
+
+## 2026-11-05 - Strategic Arc atomic reorder implementation
+
+User-authorized bounded correction: CanonicalStrategicPlanningAdapter.reorder
+now owns one outer Room transaction across the existing canonical participation
+and ArcQuest carrier updates. Cancellation checks between items and before
+completion preserve cancel-previous UI behavior without partial persistence.
+Semantic identity and relation-local COMPONENT_OF order remain independent;
+no UI, authority or schema change (Room 206). Six real-Room regressions were
+added for success/no-op, late carrier/canonical failures, missing target and
+mid-command cancellation/retry. HOST verification is pending cold-cache Gradle
+dependency downloads; no compile or test PASS is claimed at this checkpoint.
+Existing dirty/untracked work is preserved. Physical reorder smoke is pending.
+
+## 2026-11-01 - Tactical Mission semantic Workspace menu
+
+Primary Tactical Mission card actions now expose `Відкрити робочий простір`
+for the own Orientation's unique live EMBODIES, or `Створити робочий простір
+для орієнтира…` when unbound. Resolution uses exact canonical MISSION
+participation provenance and live catalog/subject/binding snapshots; unresolved
+legacy-only or ambiguous/unavailable targets advertise neither action. It does
+not confuse external SOURCE/RELATED entities with the participating Orientation.
+Bulk observation is menu-scoped, with no per-card lookup. The existing creation
+dialog prefills canonical title/description/version; confirmation delegates to
+SemanticEmbodyingWorkspaceCoordinator, opens the exact created Workspace and
+consumes success once. Cancel/failure/double-confirm are safe. MissionActionSheet
+was extracted from the oversized screen; all existing menu handlers remain.
+
+HOST XML across focused runs: **22 PASS / 4 classes**, zero accepted failures,
+errors/skips: MissionSemanticWorkspaceTest 9, MissionWorkspaceActionUiTest 4,
+SemanticEmbodyingWorkspaceRoomTest 8, CanonicalTacticalMissionAdapterRoomTest 1
+(fresh MANUAL authoring -> INTENT/MISSION). Production/test Kotlin compilation
+and git diff --check PASS. Room 206 unchanged; no transport or identity model
+change. Physical menu/create/open acceptance pending; no deployment.
+
+## 2026-11-01 - Backlog ordinary quick-Add physical feedback
+
+User reports the reader-queue/no-op fix helped the ordinary Backlog quick-Add
+scenario. That scenario is physically confirmed, not a new device benchmark.
+Rapid successive creation and wider ProductRead/Mission contention are not
+declared accepted or eliminated; PERF-P2 remains separate.
+
+## 2026-11-01 - Backlog reader queue bypass and new-Goal no-op removal
+
+Correlated device baseline op=1: complete at +3876 ms; canonical write committed
+at +482; Backlog snapshot request +511 -> transaction entry +3496 (2985 ms wait),
+then 73 ms reading. post.auto_move took an overlapping 2944 ms. These are not
+additive independent delays.
+
+Ordinary list/direct Backlog reads now join canonical entries, exact live
+CUT_OVER GOAL mappings, Workspace endpoint state and the separate hashtag cache
+in one SQL statement, without `withTransaction`/the writer transaction executor.
+Existing UNIQUE(subjectId) proves mapping cardinality. Typed DTO identity,
+metadata, ordering and derived provenance remain; missing mapping/Workspace
+targets fail closed. Invalidation remains reactive; mixed ID lookup keeps its
+existing transaction. No split-table snapshot, read-time repair, raw-ID inference
+or H1 authority change. A new Goal with no hashtag copies skips the redundant
+follow-up visibility writer: its initial placement is already live. Tagged
+creation and existing-Goal edits, including last-tag removal restoration, retain
+the canonical policy. Full ProductRead/Mission snapshots are unchanged.
+
+Accepted HOST evidence across focused runs: **32 unique tests / 6 classes**:
+BacklogReadQueueRoomTest 1 (read completes while transaction executor is held),
+GoalQuickAddPostPolicyRoomTest 3, CanonicalBacklogCompatibilityReaderRoomTest 13,
+GoalRepositoryCanonicalBacklogPolicyTest 3, InputHandlerGoalSubmissionTest 10,
+GoalRepositoryReminderOutcomeTest 2. A test's duplicate-mapping assumption was
+corrected to the actual UNIQUE contract and its stable-PK replacement case
+passed on exact rerun. Production/test Kotlin compilation and diff check PASS.
+Room 206/schema export unchanged (DAO only); no deploy or live-data writes.
+Post-fix device latency and rapid successive creation remain PENDING. Wider
+transaction contention is not declared eliminated; PERF-P2 stays open.
+
+## 2026-11-01 - Correlated Backlog quick-Add timing (diagnostic only)
+
+Remaining pause reproduced after the bounded optimizations: ~3.5 s from parser
+result to list/scroll delivery, overlapping ProductRead load/assembly and two
+Mission read frames. These coarse timings do not identify the causal phase.
+At the user's request, further speculative optimization is deferred in favor of
+debug-only `BacklogAddTiming`: per-command `op`, monotonic elapsed time and local
+span durations, with no text/domain IDs in the new logs.
+
+Markers cover dispatch/parser wait, Room transaction request/entry/commit, Goal,
+semantic identity and placement writes, Context-marker/tag/auto-move/reminder
+post-write hooks, repository return and Main dispatch/entry, input result update,
+coherent Backlog snapshot/target arrival, screen mapper/target arrival, list
+application request and exact LazyColumn visible-layout key. Layout evidence is
+not GPU-frame presentation. Error/cancellation are explicit. Correlation follows
+coroutine context; in-memory retention is capped at 32 operations / 60 seconds.
+No new SQL, persistence, authority, UI controls or creation semantics; Room 206.
+Neither the tentative assessment decoder cache nor global Mission sharing was
+retained. No deployment/DB copy; latency resolution remains PENDING measurement.
+
+Accepted focused HOST checks across runs: **42 unique tests / 6 classes**:
+BacklogAddTraceRecorderTest 8, BacklogAddVisibilityTraceTest 2,
+InputHandlerGoalSubmissionTest 10, WorkspaceInitialViewTest 10,
+CanonicalBacklogCompatibilityReaderRoomTest 10, GoalRepositoryReminderOutcomeTest
+2. The initial cold-host 2-second submission watchdog timed out; it now matches
+the other 10-second watchdogs and the exact case passed on rerun. No wall-clock
+performance claim is derived from that test; no-NER and virtual-time checks
+remain the performance contract. Production/test Kotlin compilation and
+git diff --check PASS. NEXT contains the device capture checkpoints.
+
+## 2026-11-01 - Workspace Backlog quick-Add read amplification
+
+Read-only device reproduction: parser finished in ~4 ms; the same update burst
+included three full Mission read frames (~1.3/1.7/2.1 s) and ProductRead assembly
+(~1.05 s). Do not attribute that observed delay to NER or claim a new device
+latency measurement before installation/acceptance.
+
+Workspace's Tactical badge ID/stream facets now share one existing canonical
+Mission stream. Backlog compatibility reads use one conflated table-invalidation
+signal plus the unchanged coherent snapshot transaction, instead of querying
+four signal tables and requerying on each separate emission. Unchanged DTOs are
+deduplicated. The scoped Goal query builds exact eligible IDs from canonical
+placements/CUT_OVER mappings and hashtag projections, then looks up Goal PKs;
+Room EXPLAIN proves indexed identity lookup without a whole-Goal scan. No new
+membership inference, optimistic fake rows, placement/association policy or
+mutation authority. An additional conservative reminder preflight bypasses NER
+only for non-temporal text; accepted date/time/duration parsing remains intact.
+
+Accepted focused HOST XML across runs: **44 unique tests / 7 classes PASS**:
+ReminderPlainTextFastPathTest 6, ReminderParserCancellationTest 3,
+InputHandlerGoalSubmissionTest 10, CanonicalBacklogCompatibilityReaderRoomTest
+10, WorkspaceBacklogTacticalProjectionTest 2, WorkspaceInitialViewTest 10,
+GoalRepositoryCanonicalBacklogPolicyTest 3. All accepted class XML has zero
+failures/errors/skips; the initial SQL-plan assertion was corrected for HOST
+SQLite's `SEARCH TABLE ... AS` formatting and the affected Room class rerun.
+Production/test Kotlin compilation and git diff --check PASS. Room 206 unchanged.
+No deployment, DB copy or live-data mutation. Device end-to-end latency remains
+PENDING; wider ProductRead/Mission costs remain PERF-P2, not declared resolved.
+
+## 2026-10-31 - Grouped Strategic Arc tools sheet
+
+Arc contextual tools now group existing actions into Перегляд, Склад списку,
+Період, Додати до арки and Інструменти арки. View chips and list radio choices
+expose selected state; current month and period navigation are adjacent. Clear
+input is labelled Очистити чернетку with an explicit non-deletion explanation.
+All 12 action IDs keep existing callbacks/availability; unknown actions have an
+Other section. Artifact-view selection remains distinct from opening its note
+editor. Today/Tactics/global More are not redesigned. No persistence/domain
+changes; Room 206 unchanged. Full disposition: MAIN-SCREEN-DOCK-PARITY.md.
+
+Focused HOST JUnit XML **45 tests / 5 classes PASS**, zero failures/errors/skips:
+StrategicArcToolsSheetTest 6, StrategicArcOverviewUiTest 3,
+GlobalDockComposerUiTest 24, MainScreenContextMenuActionsTest 4,
+ContextualComposerActionsTest 8. Production/test Kotlin compilation passed within
+the focused task; bounded diff review and git diff --check PASS. Device visual,
+large-font, scroll and Back acceptance PENDING; no deployment.
+
+## 2026-10-31 - Arc inventory selection moved to contextual tools
+
+The standalone/all-participants selector is now only in the Arc tab's blocks
+menu: `Список: квести / фокуси` / `Список: усі учасники`, with selected state.
+The inline chip row is removed. One StrategicArcViewModel SavedStateHandle
+selection drives both list and dock; auto-reveal uses the same setter. Artifact
+tools do not advertise Quest inventory controls. Filtering, identities, relations
+and DnD policy are unchanged; Room 206 unchanged. Focused HOST XML **45 PASS**,
+zero failures/errors/skips: StrategicArcOverviewUiTest 3, StrategicArcOverviewTest
+14, GlobalDockComposerUiTest 24, SystemShellFreeMainScreenViewModelsTest 3,
+StrategicArcWorkspaceCreationTest 1. Production/test Kotlin compilation and
+git diff --check PASS. Device menu/selection smoke pending; no deployment.
+
+## 2026-10-31 - Strategic Arc standalone overview / full inventory
+
+Strategic main lists default to standalone Quests/Focus. Exact live same-Arc
+COMPONENT_OF sources are omitted from the overview, not removed from Planning;
+`Усі учасники` reveals the full existing inventory. Other-Arc/cross-horizon or
+missing/unresolved parents do not hide current work. Multiple parents are valid.
+Properties retain full Components/Part of; cards retain compact component counts.
+Relation removal reactively returns the participant to the overview. Saveable
+mode is scoped to the current Arc; exact creation/reuse reveal may open All.
+Initial rendering waits for the first shared composition frame. Filtered DnD
+merges visible order back into the complete carrier list, retaining hidden slots
+and independent relation-local component order. No new per-row reads, Planning
+roles, identity, relation semantics, transport or persistence: Room 206 -> 206.
+
+Focused HOST JUnit XML: **37 tests / 4 classes PASS**, zero failures/errors/skips:
+StrategicArcOverviewTest 14, StrategicArcOverviewUiTest 2,
+StrategicArcQuestCardUiTest 9, PlanningCompositionUiTest 12. Production/test
+Kotlin compilation passed within the focused test task; bounded diff review and
+git diff --check PASS. Physical acceptance pending, no automatic deployment.
+Pre-existing sequential/cancellable reorder atomicity risk is recorded in
+BACKLOG, not silently changed by this presentation slice.
+
+## 2026-10-29 - Navigation unknown-lineage container move regression
+
+Reproduced PRIMARY and LINK moves from admitted nested LEGACY_UNKNOWN appearances
+into root-level containers failing GroupScopeCoverageStore's physical-null-parent
+test. Root completeness now excludes verified live container membership in the
+same hierarchy/location. Coverage mode/history/identity are unchanged; actual
+unknown roots still fail closed with exact placement/target IDs. No inferred
+GroupScope, semantic relations, WorkspaceBinding, Planning or Context mutation.
+
+Epochs: typed H1 placements/containers retain the completed canonical V2 structural
+cutover; GroupScope is historical compatibility provenance; applicability is its
+V2 compatibility lineage sidecar, not semantic ownership. Restore and Merge admit
+container evidence before final GroupScope validation atomically. Strictly older
+scope replay respects exact local retirement evidence; equal-version conflicts
+and final live-state validation remain strict. Reactive compatibility reads use
+one batched membership query and observe membership changes. The affected Merge
+stream block was extracted into CanonicalHierarchyIngress, not duplicated.
+
+Room **206 -> 206**. Focused JUnit XML **85 tests / 11 classes PASS**, all zero
+failures/errors/skips: LegacyUnknownContainerMoveRoomTest 6,
+GroupScopeCoverageRoomTest 12, H1StructuralMutationCoordinatorRoomTest 12,
+H1CoordinatorRestoreConvergenceRoomTest 7,
+CanonicalHierarchyPlacementGroupScopeSyncStoreRoomTest 4,
+CanonicalV2NativeHierarchyReactiveReadRoomTest 3, HierarchyPlacementRestoreRoomTest
+17, BigPictureMutationTransportBoundaryRoomTest 2,
+HierarchyPlacementGroupScopeValidationTest 4, CanonicalV2HierarchyScopePlannerTest
+7, HistoricalGroupContainerCutoverRoomTest 11. Production/test Kotlin compilation
+passed within the focused test task; bounded review and git diff --check PASS.
+An accidentally matched historical migration fixture failed due to its stale
+199->201-only setup against Room 206; separate test-harness debt is in BACKLOG,
+not included in the final 85-test selection. No full-suite PASS claim.
+Device reproduction/acceptance pending; no device data copied or modified.
+
+## 2026-10-29 - Compact Semantic Editor sections
+
+Semantic Editor uses theme-tinted counted section headers, compact relation rows
+and a one-line entity-class toolbar title. Rows show each endpoint title once
+with a short direction-aware caption; creation dialogs retain full named-endpoint
+sentences. Exact navigation is unchanged; relation removal is in each row's menu,
+not source deletion. Aspect parent/root/children actions, Workspace links, tags,
+Planning, conversion and save remain available. The obsolete immutable-kind hint
+is removed. No domain/persistence change; Room 206 unchanged.
+Focused HOST: SemanticEditorRelationsUiTest 8, SemanticRelationCopyTest 10,
+SemanticRelationDialogUiTest 9, SemanticEntityEditorViewModelTest 27: **54 PASS**,
+zero failures/errors/skips. Production/test Kotlin compilation passed within the
+focused task; git diff --check PASS. Device visual acceptance pending.
+
+Workspace Semantics also explains Aspect-side membership, taxonomy, supporting
+Workspace bindings and Planning SOURCE/RELATED rows in compact words instead of
+raw English codes/arrows. Focused WorkspaceRelationsPanelModelTest: **12 PASS**,
+zero failures/errors/skips; production/test Kotlin compilation and diff check
+PASS. Card structure, exact navigation and relation authority are unchanged.
+
 ## 2026-10-28 - Strategic Quest completion checkbox
 
 Quest cards use the shared square checkbox instead of the rocket drag handle.

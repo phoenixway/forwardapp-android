@@ -41,7 +41,7 @@ class CanonicalV2ReactiveHierarchyReadSource
             return database.invalidationTracker.createFlow(
                 "hierarchy_placements", "hierarchy_placement_group_scopes",
                 "hierarchy_placement_linked_appearances", "hierarchy_group_scope_applicability",
-                "big_picture_containers", "managed_subjects", "legacy_subject_mappings",
+                "big_picture_containers", "big_picture_memberships", "managed_subjects", "legacy_subject_mappings",
                 "orientation_relations", "main_beacon_groups", "workspaces", "contexts",
                 "workspace_tag_refs", "system_workspace_tag_seed_states",
             ).map {
@@ -54,6 +54,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                     val mappings = dao.getAllLegacyMappings()
                     val relations = dao.getAllOrientationRelations()
                     val groups = database.mainBeaconDao().getAllGroupsSync()
+                    val containerMembers = database.bigPicturePresentationDao().liveContainerMemberIds().toSet()
                     StartupTrace.measureSync("Hierarchy.project") {
                         assembler.assemble(
                             placements = rows.map { it.placement.toHierarchyPlacementStrict() }
@@ -70,6 +71,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                             hierarchyId = hierarchyId,
                             applicability = rows.mapNotNull { it.applicability },
                             materializedHistoricalGroupSubjects = rows.mapNotNullTo(hashSetOf()) { it.materializedHistoricalGroupSubjectId },
+                            containerMemberPlacementIds = containerMembers,
                         )
                     }
                 }

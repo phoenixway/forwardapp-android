@@ -24,6 +24,16 @@ interface BigPicturePresentationDao {
     suspend fun containers(): List<BigPictureContainerEntity>
     @Query("SELECT * FROM big_picture_memberships ORDER BY placementId")
     suspend fun memberships(): List<BigPictureMembershipEntity>
+    /** Structural parent evidence only; never semantic or historical GroupScope inference. */
+    @Query("""
+        SELECT m.placementId FROM big_picture_memberships m
+        JOIN big_picture_containers c ON c.id = m.containerId AND c.isDeleted = 0 AND c.hierarchyId = m.hierarchyId
+        JOIN hierarchy_placements p ON p.id = m.placementId AND p.isDeleted = 0 AND p.hierarchyId = m.hierarchyId
+        WHERE m.isDeleted = 0
+          AND p.parentPlacementId IS c.anchorPlacementId
+        ORDER BY m.placementId
+    """)
+    suspend fun liveContainerMemberIds(): List<String>
     @Upsert suspend fun upsertContainers(rows: List<BigPictureContainerEntity>)
     @Upsert suspend fun upsertMemberships(rows: List<BigPictureMembershipEntity>)
     @Query("DELETE FROM big_picture_memberships") suspend fun clearMemberships()

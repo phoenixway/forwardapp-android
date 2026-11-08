@@ -74,6 +74,14 @@ recurrence:${kind}:${seriesId}:${dayKey}
 
 A tombstoned occurrence still counts as existing and must block rematerialization.
 
+Day Focus legacy-link trash (2026-11-07) is a current-occurrence metadata edit:
+it atomically removes the exact typed RelatedLink from the latest live Focus
+row, bumps its version/dirty metadata, and preserves recurrence provenance.
+It does not edit the series template, other days, semantic targets or canonical
+PlanningReference rows. Existing-editor unlink commits immediately; unrelated
+form fields and new unsaved Focus links retain explicit Save semantics.
+Focused Room/editor/UI regression evidence is recorded in STATE.
+
 ## Implemented canonical foundation
 
 The following recurrence-v2 infrastructure is implemented:

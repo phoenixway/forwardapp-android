@@ -7,6 +7,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.sameReferenceAs
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -46,6 +48,24 @@ interface DayFocusItemDao {
 
     @Query("SELECT * FROM day_focus_items WHERE id = :itemId LIMIT 1")
     suspend fun getByIdForCanonicalRecurrenceSync(itemId: String): DayFocusItem?
+
+    /** Current occurrence only. Reads the latest row so unrelated edits and provenance survive. */
+    @Transaction
+    suspend fun removeRelatedLink(itemId: String, link: RelatedLink, now: Long): DayFocusItem {
+        val current = requireNotNull(getByIdForCanonicalRecurrenceSync(itemId)) { "Фокус дня недоступний" }
+        require(!current.isDeleted) { "Фокус дня видалений" }
+        val links = current.relatedLinks.orEmpty()
+        val remaining = links.filterNot { it.sameReferenceAs(link) }
+        if (remaining.size == links.size) return current
+        val updated = current.copy(
+            relatedLinks = remaining,
+            updatedAt = maxOf(now, current.updatedAt ?: current.createdAt),
+            syncedAt = null,
+            version = Math.addExact(current.version, 1L),
+        )
+        update(updated)
+        return updated
+    }
 
     @Query(
         """

@@ -41,6 +41,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
             hierarchyId: HierarchyId = HierarchyId.GENERAL,
             applicability: Collection<GroupScopeApplicabilityEntity> = emptyList(),
             materializedHistoricalGroupSubjects: Set<String> = emptySet(),
+            containerMemberPlacementIds: Set<String> = emptySet(),
         ): CanonicalV2ProductionHierarchyRead {
             require(hierarchyId == HierarchyId.GENERAL) {
                 "Canonical V2 production assembler currently supports only GENERAL"
@@ -72,6 +73,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
                     relations = relations,
                     groupScopes = groupScopes,
                     applicability = applicability,
+                    containerMemberPlacementIds = containerMemberPlacementIds,
                 )
             val presentation =
                 composer.compose(
@@ -80,7 +82,7 @@ class CanonicalV2HierarchyReadSnapshotAssembler
                     unscopedPlacementIds = applicability.asSequence()
                         .filter { it.mode == "NATIVE" || it.mode == "HISTORICAL" }
                         .map { PlacementId(it.placementId) }
-                        .toSet(),
+                        .toSet() + containerMemberPlacementIds.map(::PlacementId),
                 )
 
             val historicalIds = applicability.filter { it.mode == "HISTORICAL" }

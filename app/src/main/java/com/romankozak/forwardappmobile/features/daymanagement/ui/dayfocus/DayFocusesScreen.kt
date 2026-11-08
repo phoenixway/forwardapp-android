@@ -101,12 +101,17 @@ fun DayFocusesScreen(
         onToggleTheme = dayThemesViewModel::toggleTheme,
         onRelatedLinkClick = { link ->
             val resolvedNavController = navController ?: return@DayFocusesContent
-            handleRelatedLinkClick(
-                link = link,
-                context = context,
-                navController = resolvedNavController,
-                globalObsidianVaultName = globalObsidianVaultName,
-            )
+            val workspaceRoute = dayFocusWorkspaceRoute(link)
+            if (workspaceRoute != null) {
+                resolvedNavController.navigate(workspaceRoute)
+            } else {
+                handleRelatedLinkClick(
+                    link = link,
+                    context = context,
+                    navController = resolvedNavController,
+                    globalObsidianVaultName = globalObsidianVaultName,
+                )
+            }
         },
     )
 }

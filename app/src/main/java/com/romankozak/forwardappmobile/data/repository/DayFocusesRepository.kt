@@ -80,6 +80,9 @@ class DayFocusesRepository
             dayFocusItemDao.softDelete(itemId = itemId, updatedAt = System.currentTimeMillis())
         }
 
+        suspend fun removeRelatedLink(itemId: String, link: RelatedLink): DayFocusItem =
+            dayFocusItemDao.removeRelatedLink(itemId, link, System.currentTimeMillis())
+
         suspend fun deleteItemEverywhere(item: DayFocusItem) {
             val seriesId =
                 requireNotNull(item.recurrenceSeriesId) {

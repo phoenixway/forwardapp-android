@@ -63,6 +63,16 @@ class ReminderParser
         ) {
             Log.d(TAG, "[ReminderParser] Parsing started: '$text'")
 
+            if (!mayContainReminderExpression(text)) {
+                callback(ReminderParseResult(
+                    originalText = text,
+                    dateTimeEntities = emptyList(),
+                    otherEntities = emptyList(),
+                    success = false,
+                ))
+                return
+            }
+
             val nerState = nerManager.nerState.value
             if (nerState !is NerState.Ready) {
                 Log.w(TAG, "[ReminderParser] NER not ready, state: $nerState, trying fallback")

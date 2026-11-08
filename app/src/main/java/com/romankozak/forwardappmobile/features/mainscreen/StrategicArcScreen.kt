@@ -79,6 +79,7 @@ fun StrategicArcScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
+    val showAllParticipants by viewModel.showAllParticipants.collectAsState()
     val pendingCreatedQuestId by viewModel.pendingCreatedQuestId.collectAsState()
     val carryMessage by viewModel.carryMessage.collectAsState()
     var carryQuest by remember { mutableStateOf<ArcQuestEntity?>(null) }
@@ -264,6 +265,8 @@ fun StrategicArcScreen(
                 when (selectedTab) {
                     StrategicArcTab.QUESTS ->
                         ArcQuestList(
+                            showAllParticipants = showAllParticipants,
+                            onShowAllParticipantsChange = viewModel::setShowAllParticipants,
                             quests = uiState.arcQuests,
                             revealQuestId = pendingCreatedQuestId,
                             onQuestRevealed = viewModel::consumeCreatedQuest,
@@ -505,6 +508,8 @@ private fun StrategicArcMonthHeader(
 
 @Composable
 private fun ArcQuestList(
+    showAllParticipants: Boolean,
+    onShowAllParticipantsChange: (Boolean) -> Unit,
     quests: List<ArcQuestEntity>,
     revealQuestId: String?,
     onQuestRevealed: () -> Unit,
@@ -521,19 +526,26 @@ private fun ArcQuestList(
     val referencesModel: StrategicQuestReferencesViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val questReferences by referencesModel.links.collectAsState()
     val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
+    val componentIds = remember(quests, composition.frame) { strategicArcComponentQuestIds(quests, composition.frame) }
+    val visibleQuests = remember(quests, componentIds, showAllParticipants) {
+        if (showAllParticipants) quests else quests.filterNot { it.id in componentIds }
+    }
+    LaunchedEffect(revealQuestId, componentIds) {
+        if (revealQuestId != null && revealQuestId in componentIds) onShowAllParticipantsChange(true)
+    }
     composition.error?.let { error ->
         AlertDialog(onDismissRequest = composition.clearError, title = { Text("Не вдалося змінити статус") },
             text = { Text(error) }, confirmButton = { TextButton(onClick = composition.clearError) { Text("Закрити") } })
     }
     val lazyListState = rememberLazyListState()
     com.romankozak.forwardappmobile.features.planning.RevealCreatedPlanningItem(
-        lazyListState, quests.map { it.id }, revealQuestId, onQuestRevealed,
+        lazyListState, visibleQuests.map { it.id }, revealQuestId, onQuestRevealed,
     )
-    var internalQuests by remember(quests) { mutableStateOf(quests) }
+    var internalQuests by remember(visibleQuests) { mutableStateOf(visibleQuests) }
     var hasPendingReorder by remember { mutableStateOf(false) }
     val persistPendingReorder = {
         if (hasPendingReorder) {
-            onReorder(internalQuests)
+            onReorder(mergeStrategicArcOverviewOrder(quests, internalQuests))
         }
         hasPendingReorder = false
     }
@@ -550,6 +562,10 @@ private fun ArcQuestList(
             hasPendingReorder = true
         }
 
+    if (!composition.ready) {
+        Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        return
+    }
     if (quests.isEmpty()) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text(
@@ -561,48 +577,47 @@ private fun ArcQuestList(
         return
     }
 
-    LazyColumn(
-        state = lazyListState,
-        modifier = modifier,
-    ) {
-        itemsIndexed(internalQuests, key = { _, quest -> quest.id }) { _, quest ->
-            ReorderableItem(reorderableState, key = quest.id) { isDragging ->
-                val participant = composition.frame.forOwner(
-                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                        com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id))
-                ArcQuestCard(
-                    quest = quest,
-                    onToggleCompleted = participant?.let { { composition.toggleCompleted(it) } },
-                    completionEnabled = !composition.busy,
-                    planningContext = {
-                        com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
-                                quest.id), composition)
-                    },
-                    onPlanningContext = composition.frame.forOwner(
+    Column(modifier) {
+        if (internalQuests.isEmpty()) Text("Компоненти доступні у властивостях квестів або в «Усі учасники».",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.weight(1f),
+        ) {
+            itemsIndexed(internalQuests, key = { _, quest -> quest.id }) { _, quest ->
+                ReorderableItem(reorderableState, key = quest.id) { isDragging ->
+                    val participant = composition.frame.forOwner(
                         com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
-                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
-                            quest.id))?.let { participant -> { composition.context(participant) } },
-                    isDragging = isDragging,
-                    references = questReferences[quest.id].orEmpty(),
-                    onOpenReference = referencesModel::open,
-                    contextName = quest.linkedContextId?.let(contextNames::get),
-                    onQuestClick = { onQuestClick(quest) },
-                    onOpenContext = onOpenContext,
-                    onCreateMission = { onCreateMission(quest) },
-                    onEditQuest = { title, description -> onEditQuest(quest, title, description) },
-                    onDeleteQuest = { onDeleteQuest(quest) },
-                    onCarryToCurrentArc = if (!quest.isDeleted &&
-                        com.romankozak.forwardappmobile.data.planning.strategic.isHistoricalStrategicArc(quest.arcKey, YearMonth.now().toString())
-                    ) { { onCarryToCurrentArc(quest) } } else null,
-                    dragHandleModifier =
-                        with(this@ReorderableItem) {
-                            Modifier.longPressDraggableHandle(
-                                onDragStopped = { persistPendingReorder() },
-                            )
+                            com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST, quest.id))
+                    ArcQuestCard(
+                        quest = quest,
+                        onToggleCompleted = participant?.let { { composition.toggleCompleted(it) } },
+                        completionEnabled = !composition.busy,
+                        planningContext = {
+                            com.romankozak.forwardappmobile.features.planning.PlanningCompositionPreview(
+                                com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
+                                    com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.ARC_QUEST,
+                                    quest.id), composition)
                         },
-                )
+                        onPlanningContext = participant?.let { { composition.context(it) } },
+                        isDragging = isDragging,
+                        references = questReferences[quest.id].orEmpty(),
+                        onOpenReference = referencesModel::open,
+                        contextName = quest.linkedContextId?.let(contextNames::get),
+                        onQuestClick = { onQuestClick(quest) },
+                        onOpenContext = onOpenContext,
+                        onCreateMission = { onCreateMission(quest) },
+                        onEditQuest = { title, description -> onEditQuest(quest, title, description) },
+                        onDeleteQuest = { onDeleteQuest(quest) },
+                        onCarryToCurrentArc = if (!quest.isDeleted &&
+                            com.romankozak.forwardappmobile.data.planning.strategic.isHistoricalStrategicArc(quest.arcKey, YearMonth.now().toString())
+                        ) { { onCarryToCurrentArc(quest) } } else null,
+                        dragHandleModifier =
+                            with(this@ReorderableItem) {
+                                Modifier.longPressDraggableHandle(onDragStopped = { persistPendingReorder() })
+                            },
+                    )
+                }
             }
         }
     }
@@ -649,7 +664,7 @@ private fun buildExternalTarget(
     return trimmed
 }
 
-private fun formatStrategicArcMonth(arcKey: String): String {
+internal fun formatStrategicArcMonth(arcKey: String): String {
     val month = runCatching { YearMonth.parse(arcKey) }.getOrNull() ?: return arcKey
     val title =
         when (month.monthValue) {

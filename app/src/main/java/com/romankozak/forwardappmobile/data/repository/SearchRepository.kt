@@ -40,6 +40,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -259,6 +261,13 @@ class SearchRepository
 
         /** Test seam: production reads the shared bulk canonical product frame. */
         internal var canonicalProductSearchReadProvider: (suspend () -> CanonicalProductReadResult)? = null
+
+        /** Same attachment matching/projection as global search, without loading unrelated aggregates. */
+        fun observeAttachmentSearch(query: String): Flow<List<GlobalSearchResultItem.AttachmentItem>> =
+            attachmentsRepository.getAttachmentLibraryItems().map { items ->
+                items.mapNotNull { buildAttachmentSearchResult(it, normalizeSearchQuery(query)) }
+                    .distinctBy { it.uniqueId }
+            }
 
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
             val structuredQuery = StructuredSearchQuery.parse(query)

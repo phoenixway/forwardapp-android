@@ -267,6 +267,7 @@ private fun FilterRow(
         listOf(
             AttachmentLibraryFilter.All,
             AttachmentLibraryFilter.Notes,
+            AttachmentLibraryFilter.MusicNotes,
             AttachmentLibraryFilter.Checklists,
             AttachmentLibraryFilter.Links,
         )
@@ -364,6 +365,7 @@ private fun AttachmentLibraryFilter.displayName(): String =
     when (this) {
         AttachmentLibraryFilter.All -> "Усі"
         AttachmentLibraryFilter.Notes -> "Нотатки"
+        AttachmentLibraryFilter.MusicNotes -> "Ноти"
         AttachmentLibraryFilter.Checklists -> "Чеклісти"
         AttachmentLibraryFilter.Links -> "Посилання"
         AttachmentLibraryFilter.Contexts -> "Контексти"

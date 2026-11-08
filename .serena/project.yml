@@ -74,7 +74,7 @@ ignore_all_files_in_gitignore: true
 # See https://oraios.github.io/serena/02-usage/050_configuration.html#language-server-specific-settings
 ls_specific_settings:
   kotlin:
-    kotlin_lsp_version: "262.9593.0"
+    kotlin_lsp_version: "263.7084.0"
     jvm_options: "-Xmx2G"
 # list of workspace folder paths (LSP backend only).
 # These folders will be used to build up Serena's symbol index.

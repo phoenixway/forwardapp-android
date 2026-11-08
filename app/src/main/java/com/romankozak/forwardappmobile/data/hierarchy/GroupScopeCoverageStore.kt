@@ -112,10 +112,7 @@ class GroupScopeCoverageStore(private val db: AppDatabase) {
         val records = snapshot()
         validateCoverageRecords(records, placements)
         val scopes = db.hierarchyPlacementGroupScopeDao().getAll().associateBy { it.placementId }
-        val containers = db.bigPicturePresentationDao().containers().filterNot { it.record.isDeleted }.mapTo(hashSetOf()) { it.record.id }
-        val members = db.bigPicturePresentationDao().memberships().filter {
-            !it.record.isDeleted && it.record.containerId in containers
-        }.mapTo(hashSetOf()) { it.record.placementId }
+        val members = db.bigPicturePresentationDao().liveContainerMemberIds().toSet()
         val byId = placements.associateBy { it.id.value }
         records.records.forEach { r ->
             val p = byId.getValue(r.placementId)
@@ -126,8 +123,10 @@ class GroupScopeCoverageStore(private val db: AppDatabase) {
                     "Active GroupScope is incompatible with applicability/location"
                 }
             }
-            if (r.mode == "LEGACY_UNKNOWN" && !p.isDeleted && p.parentPlacementId == null) {
-                require(scope != null && !scope.isDeleted && p.id.value !in members) { "LEGACY_UNKNOWN root requires conservative GroupScope admission" }
+            if (r.mode == "LEGACY_UNKNOWN" && !p.isDeleted && p.parentPlacementId == null && p.id.value !in members) {
+                require(scope != null && !scope.isDeleted) {
+                    "LEGACY_UNKNOWN root requires conservative GroupScope admission: placementId=${p.id.value}, targetId=${p.target.id}"
+                }
             }
         }
     }

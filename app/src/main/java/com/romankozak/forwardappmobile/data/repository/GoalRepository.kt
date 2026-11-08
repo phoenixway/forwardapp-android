@@ -17,6 +17,9 @@ import com.romankozak.forwardappmobile.data.orientation.GoalOrientationBridge
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.product.CanonicalGoalSemanticReadRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTrace
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTraceRecorder
+import kotlinx.coroutines.currentCoroutineContext
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.createGoalLikeCanonicalSubject
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemContextCanonicalBacklogConfigurationAccess
@@ -107,26 +110,43 @@ class GoalRepository
                 normalizeGoalState(goal).copy(
                     updatedAt = goal.updatedAt ?: System.currentTimeMillis(),
                 )
-            val backlogItemId = database.withTransaction {
-                goalDao.insertGoal(goalToInsert)
-                createCanonicalGoalSubject(goalToInsert)
-                backlogPlacementCommands.addToContextBacked(
-                    contextId = contextId,
-                    itemType = BacklogItemTypeValues.GOAL,
-                    entityId = goalToInsert.id,
-                )
+            val timing = currentCoroutineContext()[BacklogAddTraceRecorder.Operation]
+            timing?.goalId = goalToInsert.id
+            timing?.mark("write.request")
+            val backlogItemId = BacklogAddTrace.measure("write.transaction") { database.withTransaction {
+                timing?.mark("write.tx_enter")
+                BacklogAddTrace.measure("write.goal") { goalDao.insertGoal(goalToInsert) }
+                BacklogAddTrace.measure("write.semantic") { createCanonicalGoalSubject(goalToInsert) }
+                BacklogAddTrace.measure("write.placement") {
+                    backlogPlacementCommands.addToContextBacked(
+                        contextId = contextId,
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = goalToInsert.id,
+                    ).also { timing?.placementId = it }
+                }
+            } }
+            timing?.mark("write.committed")
+
+            BacklogAddTrace.measure("post.context_marker") { syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD) }
+
+            val finalGoalState = BacklogAddTrace.measure("post.read_goal") { goalDao.getGoalById(goalToInsert.id)!! }
+            BacklogAddTrace.measure("post.marker_links") { contextMarkerHandler.handleContextsOnCreate(finalGoalState) }
+            val associatedContexts = BacklogAddTrace.measure("post.tag_links") {
+                tagAssociationHandler.syncGoalAssociations(finalGoalState, contextId)
             }
-
-            syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD)
-
-            val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
-            contextMarkerHandler.handleContextsOnCreate(finalGoalState)
-            val associatedContexts = tagAssociationHandler.syncGoalAssociations(finalGoalState, contextId)
-            applyBacklogAutoMovePolicy(
-                goalId = finalGoalState.id,
-                sourceContextId = contextId,
-                associatedContextIds = associatedContexts.keys,
-            )
+            BacklogAddTrace.measure("post.auto_move") {
+                // This new Goal's explicit placement was just committed live.
+                // Without hashtag copies there is nothing to auto-move: avoid
+                // queueing a second no-op writer behind full-graph read frames.
+                // Editing an existing Goal still runs the complete policy below.
+                if (associatedContexts.isNotEmpty()) {
+                    applyBacklogAutoMovePolicy(
+                        goalId = finalGoalState.id,
+                        sourceContextId = contextId,
+                        associatedContextIds = associatedContexts.keys,
+                    )
+                }
+            }
             return backlogItemId
         }
 
@@ -153,7 +173,7 @@ class GoalRepository
             // Never schedule an alarm inside the canonical write transaction.
             val reminderSetupSucceeded =
                 try {
-                    reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
+                    BacklogAddTrace.measure("post.reminder") { reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime) }
                     true
                 } catch (e: CancellationException) {
                     throw e

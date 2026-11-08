@@ -143,6 +143,13 @@ class DayFocusesViewModel
             dialogModeFlow.value = null
         }
 
+        suspend fun removeSavedRelatedLink(itemId: String, link: RelatedLink) {
+            val updated = repository.removeRelatedLink(itemId, link)
+            // Keep the editor's persistence baseline current without replacing its local drafts.
+            val current = dialogModeFlow.value as? DayFocusDialogMode.Edit
+            if (current?.item?.id == itemId) dialogModeFlow.value = DayFocusDialogMode.Edit(updated)
+        }
+
         fun requestDelete(item: DayFocusItem) {
             pendingDeleteItemFlow.value = item
         }

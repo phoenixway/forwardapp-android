@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
@@ -95,8 +96,12 @@ class StrategicArcViewModel
         private val mainBeaconRepository: MainBeaconRepository,
         private val missionRepository: MissionRepository,
         private val planningPromotion: com.romankozak.forwardappmobile.features.planning.PlanningPromotionActions,
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
     ) : ViewModel() {
         private val currentArcKey = MutableStateFlow(YearMonth.now().toString())
+        private val overviewSelection = StrategicArcOverviewSelection(savedStateHandle, currentArcKey, viewModelScope)
+        val showAllParticipants = overviewSelection.showAll
+        fun setShowAllParticipants(showAll: Boolean) = overviewSelection.select(showAll)
         private val _selectedTab = MutableStateFlow(StrategicArcTab.QUESTS)
         private val _pendingCreatedQuestId = MutableStateFlow<String?>(null)
         val pendingCreatedQuestId = _pendingCreatedQuestId.asStateFlow()

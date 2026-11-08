@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityBrowserList
 
 /** Thin shell adapter: typed rows and routes; all predicates remain in the shared engine. */
 @Composable
@@ -18,13 +17,21 @@ fun MagicBoxCanonicalResults(
     input: String,
     navController: NavController,
     onLegacyResults: () -> Unit,
+    attachmentsEnabled: Boolean = true,
     viewModel: MagicBoxCanonicalQueryViewModel = hiltViewModel(),
+    attachmentsViewModel: MagicBoxAttachmentViewModel = hiltViewModel(),
+    globalSearch: GlobalSearchViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(input) { viewModel.setInput(input) }
+    val showAttachments = attachmentsEnabled && !hasCanonicalQueryOperators(input)
+    LaunchedEffect(input, showAttachments) {
+        viewModel.setInput(input)
+        attachmentsViewModel.setInput(if (showAttachments) input else "")
+    }
     val state by viewModel.state.collectAsState()
+    val attachmentState by attachmentsViewModel.state.collectAsState()
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Сутності · ${if (state.input == input) state.results.size else "…"}", modifier = Modifier.padding(12.dp))
+            Text("Результати", modifier = Modifier.padding(12.dp))
             if (!hasCanonicalQueryOperators(input)) TextButton(onClick = onLegacyResults) { Text("Інші результати") }
         }
         if (state.input != input) {
@@ -39,8 +46,13 @@ fun MagicBoxCanonicalResults(
                 }
             }
         } else {
-            CanonicalEntityBrowserList(items = state.results, emptyMessage = "Нічого не знайдено",
-                onSelect = { navController.navigate(NavTargetRouter.routeOf(magicBoxCanonicalDestination(it))) })
+            MagicBoxCombinedResultList(entities = state.results,
+                attachments = attachmentState.results.takeIf { attachmentState.input == input }.orEmpty(),
+                onEntity = { navController.navigate(NavTargetRouter.routeOf(magicBoxCanonicalDestination(it))) },
+                onAttachment = globalSearch::openAttachmentResult,
+                showAttachments = showAttachments,
+                attachmentsLoading = showAttachments && attachmentState.input != input,
+                attachmentError = attachmentState.error.takeIf { attachmentState.input == input })
         }
     }
 }

@@ -28,8 +28,13 @@ internal fun StrategicArcBottomPanelContent(
     onShowContextPicker: () -> Unit,
     onClearInput: () -> Unit,
     additionalActions: List<ContextualAction> = emptyList(),
+    showAllParticipants: Boolean = false,
+    onShowAllParticipantsChange: ((Boolean) -> Unit)? = null,
+    arcKey: String? = null,
 ) {
-    val actions = strategicComposerActions(selectedTab, inputValue.text.isNotBlank(), onSelectTab, onShowContextPicker, onClearInput) + additionalActions
+    val overviewActions = if (selectedTab == StrategicArcTab.QUESTS && onShowAllParticipantsChange != null)
+        strategicArcOverviewActions(showAllParticipants, onShowAllParticipantsChange) else emptyList()
+    val actions = strategicComposerActions(selectedTab, inputValue.text.isNotBlank(), onSelectTab, onShowContextPicker, onClearInput) + overviewActions + additionalActions
     ContextualComposerSurface {
         if (selectedTab == StrategicArcTab.QUESTS) {
             BottomPanelComposer(
@@ -39,6 +44,7 @@ internal fun StrategicArcBottomPanelContent(
                 trailingContent = {
                     ContextualActionsButton(
                         "Стратегічна арка · Квести", actions,
+                        sheetContent = { onSelected -> StrategicArcToolsSheet(actions, arcKey, onSelected) },
                     )
                 },
             )
@@ -51,11 +57,19 @@ internal fun StrategicArcBottomPanelContent(
                     style = MaterialTheme.typography.labelMedium)
                 ContextualActionsButton(
                     "Стратегічна арка · Артефакт", actions,
+                    sheetContent = { onSelected -> StrategicArcToolsSheet(actions, arcKey, onSelected) },
                 )
             }
         }
     }
 }
+
+internal fun strategicArcOverviewActions(showAll: Boolean, onChange: (Boolean) -> Unit) = listOf(
+    ContextualAction("arc-overview", "Список: квести / фокуси", Icons.AutoMirrored.Outlined.FormatListBulleted,
+        selected = !showAll, onClick = { onChange(false) }),
+    ContextualAction("arc-all-participants", "Список: усі учасники", Icons.AutoMirrored.Outlined.FormatListBulleted,
+        selected = showAll, onClick = { onChange(true) }),
+)
 
 internal fun strategicComposerActions(
     selectedTab: StrategicArcTab,

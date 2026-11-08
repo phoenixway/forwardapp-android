@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun EmbodyingWorkspaceAction(
-    model: SemanticEntityEditorModel, state: EmbodyingWorkspaceState, onOpen: () -> Unit,
+    model: SemanticEntityEditorModel, state: EmbodyingWorkspaceState,
     onDelete: (() -> Unit)? = null, deleteLabel: String = "Видалити сутність…", blocked: Boolean = false,
     onConvert: (() -> Unit)? = null,
     onChangeKind: (() -> Unit)? = null,
@@ -32,9 +32,6 @@ internal fun EmbodyingWorkspaceAction(
                 enabled = !blocked && !state.busy && !model.isDirty && !model.isSaving && !model.isRelationMutationInFlight,
                 onClick = { expanded = false; convert() })
         }
-        DropdownMenuItem(text = { Text("$CREATE_EMBODYING_WORKSPACE_LABEL…") },
-            enabled = model.canCreateEmbodyingWorkspace && !state.busy && !blocked,
-            onClick = { expanded = false; onOpen() })
         onDelete?.let { delete ->
             DropdownMenuItem(text = { Text(deleteLabel, color = MaterialTheme.colorScheme.error) },
                 enabled = !blocked && !state.busy && !model.isSaving && !model.isRelationMutationInFlight,

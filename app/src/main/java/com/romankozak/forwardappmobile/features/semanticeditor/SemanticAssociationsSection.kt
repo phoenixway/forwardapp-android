@@ -6,6 +6,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.shared.core.models.orientation.AspectOrientationRelationType
 import androidx.compose.runtime.Composable
 import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
 
@@ -25,17 +29,21 @@ internal fun SemanticAssociationsSection(
     if (model.canEditAspects) AspectAssociationsSection(model, null, onRemoveAssociation, onOpen)
     if (model.canEditOrientationRelations) OrientationGraphRelationsSection(model, null, onRemoveGraphRelation, onOpen)
     if (model.entityClass == SemanticEntityClass.ASPECT) {
-        RelationSectionHeader("Пов’язані орієнтири", model.isRelationMutationInFlight, null)
-        if (model.orientationAssociations.isEmpty()) Text("Немає зв’язків", style = MaterialTheme.typography.bodyMedium)
-        model.orientationAssociations.forEach { association ->
-            RelationRow(
-                title = association.title,
-                subtitle = aspectAssociationSentence(association.relationType, association.title, model.name) +
-                    if (association.isPrimary) " · основний Aspect" else "",
-                enabled = !model.isSaving && !model.isRelationMutationInFlight,
-                onRemove = { onRemoveAssociation(association.refId) },
-                onOpen = { onOpen(association.orientationId) },
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            RelationSectionHeader("Пов’язані орієнтири", model.isRelationMutationInFlight, null, model.orientationAssociations.size)
+            if (model.orientationAssociations.isEmpty()) Text("Немає зв’язків", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            model.orientationAssociations.forEach { association ->
+                RelationRow(
+                    title = association.title,
+                    subtitle = (if (association.relationType == AspectOrientationRelationType.BELONGS_TO)
+                        "Належить до цього аспекту" else "Стосується цього аспекту") +
+                        if (association.isPrimary) " · основний аспект" else "",
+                    enabled = !model.isSaving && !model.isRelationMutationInFlight,
+                    onRemove = { onRemoveAssociation(association.refId) },
+                    onOpen = { onOpen(association.orientationId) },
+                )
+            }
         }
     }
 }

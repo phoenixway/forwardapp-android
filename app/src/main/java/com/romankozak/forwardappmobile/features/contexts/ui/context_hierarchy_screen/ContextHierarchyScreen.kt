@@ -126,6 +126,8 @@ fun ProjectHierarchyScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     mutationEnabled = BIG_PICTURE_MUTATION_UX_ENABLED && !mutation.busy && !sourceState.busy && !renameState.busy,
                     onCut = mutations::cut,
+                    onCopy = mutations::copy,
+                    onPasteChildren = if (clipboard != null) mutations::paste else null,
                     onRemove = mutations::remove,
                     onRenameSection = mutations::renameSection,
                     onRenameWorkspace = workspaceRename::request,

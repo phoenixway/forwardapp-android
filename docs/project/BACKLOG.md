@@ -1,5 +1,33 @@
 # ForwardApp Backlog
 
+## Strategic Arc reorder cancellation / atomicity
+
+Status: IMPLEMENTED / HOST VERIFICATION PENDING (2026-11-05).
+Estimate: small (0.5–2 h).
+
+User authorized the bounded fix. `CanonicalStrategicPlanningAdapter.reorder`
+now wraps every existing canonical/carrier update in one outer Room transaction,
+with cancellation checks between items and before completion. The ViewModel's
+cancel-previous behavior remains intact. Six focused Room regressions cover
+success, no-op, late carrier/canonical SQL failures, missing endpoint and
+mid-command cancellation followed by a successful retry. Independent component
+relation order and semantic identity remain unchanged. Room 206 unchanged.
+The focused HOST run is currently waiting on cold-cache Gradle/Android dependency
+downloads; no PASS is claimed until XML evidence is available.
+
+## Historical GroupScope migration test fixture stops at Room 201
+
+Status: OBSERVED / NON-BLOCKING / NOT DECIDED. Priority: UNSET.
+Estimate: tiny (<30 min).
+
+`Migration199To200GroupScopeCoverageRoomTest` opens current AppDatabase (206)
+but registers only 199->200->201 and asserts user_version=201. It fails before
+checking migration data with "migration from 199 to 206 ... not found". Refresh
+the fixture's complete migration chain/current-version assertion, or isolate
+the intended historical migration against its exported schema. This is test
+harness debt, not evidence of a missing production migration. Discovered during
+H1 container/root-admission regression checks; no schema change in that fix.
+
 ## DayTask -> Tactical action: canonical/free-form promotion boundary
 
 Status: OBSERVED / NON-BLOCKING / NOT DECIDED. Priority: UNSET.
@@ -29,6 +57,33 @@ creation or inferred relation transfer. Does not block explicit carry support.
 ## PERF-P2 - Remaining canonical runtime performance debt
 
 Status: NON-BLOCKING / MEASURED
+
+Correlated op=1 later located 2985 ms waiting to enter the Backlog read
+transaction (73 ms actual read), with an overlapping redundant post-create
+visibility transaction. Ordinary list/direct reads now use one coherent joined
+SQL statement on the read path; new Goal creation without hashtag copies skips
+the visibility no-op. HOST busy-executor regression PASS. Device follow-up must
+also test rapid successive creation: initial Goal writes and full aggregate
+read frames still use the transaction executor. This bounded fix does not
+claim elimination of all global transaction contention.
+
+Follow-up reproduction after the bounded fix still showed ~3.5 s from parser
+result to list/scroll delivery. The user requested per-command timings before
+further optimization: debug-only `BacklogAddTiming` now correlates write queue,
+write stages, post-write hooks, read delivery and actual visible layout. Gather
+fresh correlated evidence before attributing the delay to decoder or global
+Mission sharing; neither speculative optimization was retained in this step.
+
+2026-11-01 read-only Workspace quick-Add logs reconfirm this debt: reminder
+parsing completed in ~4 ms, while three Mission read frames took ~1.3/1.7/2.1 s
+and ProductRead assembly ~1.05 s during the same update burst. The bounded fix
+shares Workspace's two Tactical badge consumers, consolidates Backlog snapshot
+invalidation reads and replaces correlated whole-Goal inventory scanning.
+It does not eliminate the remaining full ProductRead/Mission frame cost.
+If device Add latency persists after this fix, profile the remaining graph
+assembly/consumers and introduce narrower reads only with equivalent canonical
+integrity checks. Estimate: medium (2–8 h), proposed follow-up, not a new
+authority/cutover decision. No new end-to-end device timing is claimed yet.
 
 R2A.3P removed the severe runtime regressions, but the physical historical
 dataset still exposes bounded performance debt.

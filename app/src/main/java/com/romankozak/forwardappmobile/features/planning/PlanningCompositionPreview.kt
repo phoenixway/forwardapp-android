@@ -15,7 +15,7 @@ import com.romankozak.forwardappmobile.data.planning.*
 internal data class PlanningCompositionListUi(val frame: PlanningCommitmentCompositionProjection,
     val open: (PlanningParticipantSummary) -> Unit, val context: (PlanningParticipantSummary) -> Unit,
     val toggleCompleted: (PlanningParticipantSummary) -> Unit = {}, val busy: Boolean = false,
-    val error: String? = null, val clearError: () -> Unit = {})
+    val error: String? = null, val clearError: () -> Unit = {}, val ready: Boolean = true)
 
 /** Call once per list, not from each card. All cards share the same observable graph snapshot. */
 @Composable
@@ -24,8 +24,9 @@ internal fun rememberPlanningCompositionList(): PlanningCompositionListUi {
     val frame by model.projection.collectAsStateWithLifecycle()
     val busy by model.busy.collectAsStateWithLifecycle()
     val error by model.error.collectAsStateWithLifecycle()
-    return remember(frame, model, busy, error) {
-        PlanningCompositionListUi(frame, model::open, model::context, model::toggleCompleted, busy, error, { model.error.value = null })
+    val ready by model.isReady.collectAsStateWithLifecycle()
+    return remember(frame, model, busy, error, ready) {
+        PlanningCompositionListUi(frame, model::open, model::context, model::toggleCompleted, busy, error, { model.error.value = null }, ready)
     }
 }
 

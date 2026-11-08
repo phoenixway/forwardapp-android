@@ -517,18 +517,7 @@ class GlobalSearchViewModel
 
         fun openAttachmentResult(result: GlobalSearchResultItem.AttachmentItem) {
             val searchResult = result.searchResult
-            val target =
-                when (searchResult.attachmentType) {
-                    BacklogItemTypeValues.NOTE_DOCUMENT -> NavTarget.NoteDocument(id = searchResult.entityId)
-                    BacklogItemTypeValues.CHECKLIST -> NavTarget.Checklist(id = searchResult.entityId)
-                    BacklogItemTypeValues.MUSIC_NOTE -> NavTarget.MusicNote(id = searchResult.entityId)
-                    BacklogItemTypeValues.SCRIPT ->
-                        NavTarget.ScriptEditor(
-                            contextId = searchResult.ownerContextId,
-                            scriptId = searchResult.entityId,
-                        )
-                    else -> null
-                }
+            val target = attachmentSearchDestination(searchResult)
             onDataResultOpened(result.uniqueId)
             if (target != null) {
                 enhancedNavigationManager.navigate(target = target)

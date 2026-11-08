@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.*
 import io.mockk.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
+import com.romankozak.forwardappmobile.features.workspace.NavigationClipboardEntry
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -51,7 +52,7 @@ class BigPictureMutationViewModelTest {
         val model = vm(saved)
         model.removeSubtree(H1TypedNode.Occurrence("link"))
         advanceUntilIdle()
-        assertThat(model.clipboard.value).isEqualTo("occurrence:link")
+        assertThat((model.clipboard.value as NavigationClipboardEntry.Cut).node).isEqualTo(H1TypedNode.Occurrence("link"))
         assertThat(model.state.value.busy).isFalse()
         assertThat(model.state.value.message).contains("rejected")
     }
@@ -163,7 +164,7 @@ class BigPictureMutationViewModelTest {
         coEvery { writer.moveNode(any(), any(), any(), any()) } throws IllegalArgumentException("Cycle")
         restored.paste(cyclic)
         advanceUntilIdle()
-        assertThat(restored.clipboard.value).isEqualTo("occurrence:occurrence:LINK")
+        assertThat((restored.clipboard.value as NavigationClipboardEntry.Cut).node).isEqualTo(H1TypedNode.Occurrence("occurrence:LINK"))
         assertThat(restored.state.value.message).contains("Cycle")
         coEvery { writer.moveNode(any(), any(), any(), any()) } just Runs
         val destinations = listOf(H1StructuralParent.Root,

@@ -37,6 +37,7 @@ class CanonicalV2HierarchyScopePlanner {
         groupScopes: Collection<HierarchyPlacementGroupScopeEntity>,
         noGroupTitle: String = "No group",
         applicability: Collection<GroupScopeApplicabilityEntity> = emptyList(),
+        containerMemberPlacementIds: Set<String> = emptySet(),
     ): List<CanonicalV2SyntheticScopeInput> {
         val groupList =
             groups.sortedWith(
@@ -76,7 +77,7 @@ class CanonicalV2HierarchyScopePlanner {
                 }
             }
         val subjectRoots =
-            roots.filter { it.target.type == HierarchyTargetType.MANAGED_SUBJECT }
+            roots.filter { it.target.type == HierarchyTargetType.MANAGED_SUBJECT && it.placementId.value !in containerMemberPlacementIds }
         val subjectRootIds =
             subjectRoots.mapTo(linkedSetOf()) { it.placementId.value }
 

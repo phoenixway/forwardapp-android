@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.workspace.capability
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
@@ -19,6 +20,11 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,6 +35,112 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalBacklogCompatibilityReaderRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `initial reactive snapshot is one joined statement rather than queued multi-table transaction`() = runBlocking {
+        val queries = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val database = database(queries)
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            queries.clear()
+            assertTrue(CanonicalBacklogCompatibilityReader(database).observeItemsForContext("owner").first().isEmpty())
+            val reads = queries.filter { it.trimStart().startsWith("SELECT", ignoreCase = true) && it.contains("FROM workspace_backlog_entries e") }
+            assertEquals("Exactly one coherent joined statement: $reads", 1, reads.size)
+            assertTrue(reads.single().contains("UNION ALL"))
+            assertTrue(reads.single().contains("legacy_subject_mappings"))
+            assertTrue(queries.none { it.trim().equals("SELECT * FROM legacy_subject_mappings", true) })
+        } finally { database.close() }
+    }
+
+    @Test
+    fun `one committed add and removal reactively deliver coherent exact placements`() = runBlocking {
+        val database = database()
+        val updates = Channel<List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem>>(Channel.UNLIMITED)
+        var job: kotlinx.coroutines.Job? = null
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            job = launch(Dispatchers.IO) {
+                CanonicalBacklogCompatibilityReader(database).observeItemsForContext("owner").collect { updates.send(it) }
+            }
+            assertTrue(withTimeout(5_000) { updates.receive() }.isEmpty())
+            val placement = entry("new", "owner", "ORIENTATION", "semantic", 0)
+            database.withTransaction {
+                seedGoalOrientationMapping(database, "goal", "semantic")
+                database.workspaceBacklogEntryDao().upsert(listOf(placement))
+            }
+            val added = withTimeout(5_000) { updates.receive() }
+            assertEquals(listOf("new"), added.map { it.id })
+            assertEquals(listOf("goal"), added.map { it.entityId })
+            database.workspaceBacklogEntryDao().upsert(listOf(placement.copy(isDeleted = true, version = 2)))
+            assertTrue(withTimeout(5_000) { updates.receive() }.isEmpty())
+        } finally { job?.cancel(); job?.join(); database.close() }
+    }
+
+    @Test
+    fun `Workspace Goal query uses indexed identity lookup rather than scanning every Goal`() = runBlocking {
+        val queries = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val database = database(queries)
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            seedGoal(database, "goal")
+            seedGoal(database, "unrelated")
+            seedGoalOrientationMapping(database, "goal", "semantic")
+            database.workspaceBacklogEntryDao().upsert(listOf(entry("placement", "owner", "ORIENTATION", "semantic", 0)))
+            queries.clear()
+            assertEquals(listOf("goal"), database.goalDao().getGoalsByContextIdFlow("owner").first().map { it.id })
+            val sql = queries.single { it.contains("FROM goals g") }
+            val plan = database.openHelper.readableDatabase.query(
+                androidx.sqlite.db.SimpleSQLiteQuery("EXPLAIN QUERY PLAN $sql", arrayOf("owner", "owner")),
+            ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(3)) } }
+            assertTrue("Expected indexed Goal identity lookup: $plan", plan.any {
+                it.startsWith("SEARCH") && (it.contains("goals AS g") || it.startsWith("SEARCH g ")) && it.contains("(id=?)")
+            })
+            assertTrue("Must not scan every Goal: $plan", plan.none {
+                it.startsWith("SCAN") && (it.contains("goals AS g") || Regex("SCAN g(?: |$)").containsMatchIn(it))
+            })
+        } finally { database.close() }
+    }
+
+    @Test
+    fun `joined reader preserves typed targets with same raw Orientation and Workspace id`() = runBlocking {
+        val database = database()
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            seedContextBackedWorkspace(database, "shared")
+            seedGoalOrientationMapping(database, "goal", "shared")
+            database.workspaceBacklogEntryDao().upsert(listOf(
+                entry("semantic", "owner", "ORIENTATION", "shared", 0),
+                entry("operational", "owner", "WORKSPACE", "shared", 1),
+            ))
+            val rows = CanonicalBacklogCompatibilityReader(database).getDirectItemsForContext("owner")
+            assertEquals(listOf(BacklogItemTypeValues.GOAL, BacklogItemTypeValues.SUBLIST), rows.map { it.itemType })
+            assertEquals(listOf("goal", "shared"), rows.map { it.entityId })
+        } finally { database.close() }
+    }
+
+    @Test
+    fun `joined reader follows authoritative mapping replacement without retaining old Goal id`() = runBlocking {
+        val database = database()
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            seedGoalOrientationMapping(database, "goal-one", "semantic")
+            val mapping = database.orientationDao().getAllLegacyMappings().single()
+            database.orientationDao().upsertLegacyMappings(listOf(mapping.copy(sourceId = "goal-two", version = 2)))
+            database.workspaceBacklogEntryDao().upsert(listOf(entry("placement", "owner", "ORIENTATION", "semantic", 0)))
+            assertEquals(1, database.orientationDao().getAllLegacyMappings().count { it.subjectId == "semantic" })
+            assertEquals(listOf("goal-two"), CanonicalBacklogCompatibilityReader(database).getItemsForContext("owner").map { it.entityId })
+        } finally { database.close() }
+    }
+
+    @Test
+    fun `joined reader rejects missing Workspace target instead of fabricating a live DTO`() = runBlocking {
+        val database = database()
+        try {
+            seedContextBackedWorkspace(database, "owner")
+            database.workspaceBacklogEntryDao().upsert(listOf(entry("placement", "owner", "WORKSPACE", "missing", 0)))
+            assertTrue(runCatching { CanonicalBacklogCompatibilityReader(database).getItemsForContext("owner") }.isFailure)
+        } finally { database.close() }
+    }
 
     @Test
     fun `canonical explicit entries project to stable legacy DTO identities`() = runBlocking {
@@ -329,9 +441,10 @@ class CanonicalBacklogCompatibilityReaderRoomTest {
         }
     }
 
-    private fun database(): AppDatabase =
+    private fun database(queries: MutableList<String>? = null): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryCallback({ sql, _ -> queries?.add(sql) }, java.util.concurrent.Executor { it.run() })
             .build()
 
     private suspend fun seedContext(

@@ -16,6 +16,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTrace
+import kotlin.coroutines.EmptyCoroutineContext
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -249,13 +251,15 @@ class InputHandler(
         }
 
         val submittedRevision = inputRevision
+        val timing = BacklogAddTrace.start(currentProjectId)
         nerJob?.cancel()
         smartDebouncer.cancel()
         val submittedParse = reminderSession.takeForSubmission(originalText)
 
-        pendingGoalSubmit = scope.launch(Dispatchers.IO) {
+        pendingGoalSubmit = scope.launch(Dispatchers.IO + (timing ?: EmptyCoroutineContext)) {
             try {
-                val definitiveResult = submittedParse.await()
+                timing?.mark("worker.enter")
+                val definitiveResult = BacklogAddTrace.measure("parse.await") { submittedParse.await() }
                 Log.d(
                     REMINDER_FLOW_TAG,
                     "Submit Parser Result: " +
@@ -283,7 +287,10 @@ class InputHandler(
                         )
                     }
 
+                timing?.mark("repository.returned")
+                timing?.mark("main.dispatch")
                 withContext(Dispatchers.Main) {
+                    timing?.mark("main.enter")
                     if (
                         inputRevision == submittedRevision &&
                         projectIdFlow.value == currentProjectId
@@ -291,6 +298,7 @@ class InputHandler(
                         resetInput(clearDetectedReminder = true)
                     }
                     resultListener.updateInputState(newlyAddedItemId = newItemIdentifier)
+                    timing?.mark("input.updated")
                     if (reminderSetupWarning) {
                         onGoalSubmitError(
                             "Ціль створено, але нагадування не вдалося налаштувати. Перевірте його.",
@@ -298,13 +306,17 @@ class InputHandler(
                     }
                 }
             } catch (e: CancellationException) {
+                timing?.mark("cancelled")
                 throw e
             } catch (e: Exception) {
+                timing?.mark("failed")
                 Log.e(REMINDER_FLOW_TAG, "Submit error: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     onGoalSubmitError("Не вдалося додати ціль. Текст збережено.")
                 }
             }
+        }.also { job ->
+            job.invokeOnCompletion { cause -> if (cause is CancellationException) timing?.mark("cancelled") }
         }
     }
 

@@ -5,6 +5,43 @@ Source baseline: a4d01169e, intentionally dirty tree, 2026-10-26.
 Classification: SEMANTIC_NOT_HIERARCHY presentation only. No persisted/domain
 authority or Room change. Existing UI analysis is reference, not a new contract.
 
+## 2026-10-31 - Strategic Arc contextual sheet readability
+
+Only the Arc tab uses the grouped tools sheet; Today/Tactics/global More keep
+their existing presentation. Every existing action retains its handler and
+enabled/selected rules. Unknown future action IDs remain visible in Other actions.
+
+| Existing actions | New section / presentation |
+| --- | --- |
+| quests / artifact | Перегляд: selected view chips |
+| arc-overview / arc-all-participants | Склад списку: Квести / фокуси vs Усі учасники, radio selection and scope-limited component explanation; QUESTS only |
+| arc-previous / arc-next | Період: current month/year and adjacent navigation buttons |
+| quest-source / arc-beacon / arc-group | Додати до арки: primary canonical-source action plus existing distinct catalog actions |
+| quest-clear | Same creation section: Очистити чернетку; explicitly only input text, never saved Quests |
+| arc-open-artifact / arc-links | Інструменти арки: existing note editor and attached-material actions, not the view selector or semantic relations |
+
+The sheet scrolls, uses theme-derived section surfaces, and closes through the
+existing dispatch boundary. No new creation, persistence, selection or domain
+authority. Physical narrow-screen geometry, large font, scrolling and Back
+acceptance remain pending; HOST semantics checks are not device visual evidence.
+Focused HOST XML: StrategicArcToolsSheetTest 6, StrategicArcOverviewUiTest 3,
+GlobalDockComposerUiTest 24, MainScreenContextMenuActionsTest 4,
+ContextualComposerActionsTest 8: **45 PASS**, zero failures/errors/skips.
+Production/test Kotlin compilation and git diff --check PASS; Room 206 unchanged.
+
+## 2026-10-29 - Global shortcuts and explicit menu visibility revision
+
+Long-press MagicBox opens the existing Recents sheet on every main-screen tab;
+short tap still opens search, with a named accessibility long-click action.
+Global More retains Recents and groups AI Life-Management/Chat/Insights under
+the standard `AI features` popup, preserving callbacks and existing feature
+gates. Explicit Back closes the submenu; system Back dismisses menus without
+dispatching a command. Context Markers and Structure presets are intentionally
+hidden by user request, not deleted or retired. Their routes/callbacks/data stay.
+GlobalDockComposerUiTest: **24 HOST tests PASS**, zero failures/errors/skips;
+production/test Kotlin compilation and git diff --check PASS. Room unchanged.
+Physical popup geometry, long press and Recents item/pin smoke remain pending.
+
 ## Before-code inventory and intended disposition
 
 Paths below are relative to `features/mainscreen/` unless stated otherwise.
@@ -16,7 +53,7 @@ review, D = device workflow pending. S alone does not prove physical parity.
 | --- | --- | --- | --- | --- |
 | Deck journal / MenuBook | GlobalActions.onNavigateToTracker; Life Journal route | G | Dock slot 1 on every tab | H/S/D |
 | Deck tree / AccountTree | onNavigateToProjectHierarchy; Navigation | G | Dock slot 2 | H/S/D |
-| Deck sparkle | onNavigateToGlobalSearch; MagicBox | G | Dock slot 3 | H/S/D |
+| Deck sparkle | Short tap: onNavigateToGlobalSearch; long press: existing Recents sheet | G | Dock slot 3, every main-screen tab | H/S/D |
 | Deck plus | onShowCreateActions; MainScreenLayout.showGlobalCreateSheet | G | Dock slot 4, never contextual submit | H/S/D |
 | Deck MoreVert | CommandDeckMoreActionButton; global sheet state | G | Dock slot 5 | H/S/D |
 | Global create Workspace | GlobalCreateActionsHost.onCreateContext, existing dialog | G | Same global create host | S/D |
@@ -24,13 +61,13 @@ review, D = device workflow pending. S alone does not prove physical parity.
 | Global create document/note | ConnectionsCreateActionsDialog -> canonical note or LinkedTargetsPickerDialog create action | G | Same host, all document/checklist/music/web/Obsidian options retained | S/D |
 | Global create reminder | timestamp dialog -> onCreateReminder | G | Same host | S/D |
 | More: Recents | NewRecentListsSheet: open exact item / pin | G | Global More, every tab | S/D |
-| More: Context Markers | onShowContextMarkersSheet; existing markers sheet | G | Global More | S/D |
+| More: Context Markers | onShowContextMarkersSheet; existing implementation retained | G | Hidden by explicit user request, 2026-10-29 | H/S |
 | More: Inbox | onNavigateToInbox | G | Global More | S/D |
-| More: AI Life-Management | feature flag AiLifeManagement, onNavigateToAiLifeManagement | G | Global More, same gate | S/D |
-| More: AI-Chat | feature flag AiChat, onNavigateToAiChat | G | Global More, same gate | S/D |
-| More: AI Insights | onNavigateToAiInsights, unconditional | G | Global More | S/D |
+| More: AI Life-Management | feature flag AiLifeManagement, onNavigateToAiLifeManagement | G | Global More -> AI features, same gate | H/S/D |
+| More: AI-Chat | feature flag AiChat, onNavigateToAiChat | G | Global More -> AI features, same gate | H/S/D |
+| More: AI Insights | onNavigateToAiInsights, unconditional | G | Global More -> AI features | H/S/D |
 | More: Reminders | onNavigateToReminders | G | Global More | S/D |
-| More: Structure presets | onNavigateToPresets; independent legacy tool, not Workspace Properties | G | Global More | S/D |
+| More: Structure presets | onNavigateToPresets; independent legacy tool retained | G | Hidden by explicit user request, 2026-10-29 | H/S |
 | More: Library | onNavigateToEntityLibrary | G | Global More | S/D |
 | More: Attachments | AttachmentsLibrary flag; onNavigateToAttachments | G | Global More, same gate | S/D |
 | More: Scripts | ScriptsLibrary flag; onNavigateToScripts | G | Global More, same gate | S/D |
@@ -75,6 +112,7 @@ review, D = device workflow pending. S alone does not prove physical parity.
 | Strategic input/send/IME | addArcQuest(title), currentArcKey from same shared VM | L | Compact composer in QUESTS mode | S/D |
 | Strategic clear X | onClearInput; originally visible with nonblank input | L | Local creation menu, nonblank availability | H/S/D |
 | Strategic list/article toggles | selectTab(QUESTS/ARTIFACT) | L | Local menu, selected indicator | H/S/D |
+| Strategic overview/all participants | StrategicArcViewModel.setShowAllParticipants; shared SavedStateHandle UI selection | L | Blocks contextual menu in QUESTS mode only; inline selector removed | H/S/D |
 | Strategic plus | showContextPicker -> addArcQuestFromEntity | L | Local menu | H/S/D |
 | Strategic content FAB | previous (if available)/next arc; entity/beacon/group quest; open/create artifact; links | L | Unified local menu; FAB removed; duplicate entity-source entry consolidated | H/S/D |
 | Strategic connections panel | scope links, picker/create/open/remove | L | Original content/modal unchanged | S/D |

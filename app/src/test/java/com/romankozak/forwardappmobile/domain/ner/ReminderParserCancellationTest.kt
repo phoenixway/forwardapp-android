@@ -21,7 +21,7 @@ class ReminderParserCancellationTest {
     private val parser = ReminderParser(manager)
 
     @Test fun `missing NER callback cannot extend timeout and late callback is harmless`() = runTest {
-        val result = async { parser.parseWithTimeout("Ordinary goal", 100) }
+        val result = async { parser.parseWithTimeout("Goal at 18:00", 100) }
         runCurrent()
         assertNotNull(callback)
         advanceTimeBy(100); runCurrent()
@@ -40,7 +40,7 @@ class ReminderParserCancellationTest {
     }
 
     @Test fun `caller cancellation propagates instead of becoming a fallback result`() = runTest {
-        val result = async { parser.parseWithTimeout("Ordinary goal", 10_000) }
+        val result = async { parser.parseWithTimeout("Goal at 18:00", 10_000) }
         runCurrent()
         result.cancel(); runCurrent()
         assertTrue(result.isCancelled)

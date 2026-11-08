@@ -28,6 +28,69 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class AttachmentsLocalDataSourceCanonicalSystemRoutingRoomTest {
+    @Test fun `stale Workspace badge destination reads empty without permitting authoring or mutating data`() = runBlocking {
+        val cases = listOf(
+            "native" to WorkspaceProvenance.CANONICAL_ONLY,
+            "standalone" to WorkspaceProvenance.STANDALONE,
+            "context-backed" to WorkspaceProvenance.CONTEXT_BACKED,
+            SystemContexts.TODAY.raw to WorkspaceProvenance.CANONICAL_ONLY,
+        )
+        for ((owner, provenance) in cases) {
+            val db = database()
+            try {
+                seedWorkspace(db, owner, provenance, if (provenance == WorkspaceProvenance.CONTEXT_BACKED) "legacy" else null)
+                seedAttachment(db, "existing")
+                val source = source(db)
+                source.linkAttachmentToContext("existing", owner)
+                db.workspaceDao().upsert(listOf(db.workspaceDao().getById(owner)!!.copy(isDeleted = true)))
+                val attachments = db.attachmentDao().getAll()
+                val links = db.workspaceConnectionDao().getAll()
+                val workspace = db.workspaceDao().getById(owner)
+                assertTrue(source.getAttachmentsForContext(owner).first().isEmpty())
+                assertTrue(runCatching { source.requireAttachmentPlacementAuthoring(owner) }.isFailure)
+                assertTrue(runCatching { source.linkAttachmentToContext("existing", owner) }.isFailure)
+                assertEquals(attachments, db.attachmentDao().getAll())
+                assertEquals(links, db.workspaceConnectionDao().getAll())
+                assertEquals(workspace, db.workspaceDao().getById(owner))
+            } finally { db.close() }
+        }
+    }
+
+    @Test fun `existing attachment subscription reacts to owner deletion and restoration`() = runBlocking {
+        val db = database()
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+        try {
+            seedWorkspace(db, "native")
+            seedAttachment(db, "existing")
+            val source = source(db)
+            source.linkAttachmentToContext("existing", "native")
+            val stream = source.getAttachmentsForContext("native").stateIn(scope)
+            assertEquals(listOf("existing"), stream.value.map { it.attachment.id })
+            val owner = db.workspaceDao().getById("native")!!
+            db.workspaceDao().upsert(listOf(owner.copy(isDeleted = true)))
+            kotlinx.coroutines.withTimeout(10_000) { stream.first { it.isEmpty() } }
+            db.workspaceDao().upsert(listOf(owner))
+            kotlinx.coroutines.withTimeout(10_000) { stream.first { it.size == 1 } }
+            assertEquals(listOf("existing"), stream.value.map { it.attachment.id })
+        } finally { scope.coroutineContext[kotlinx.coroutines.Job]?.cancel(); db.close() }
+    }
+
+    @Test fun `deleted owner does not hide the same attachment in another live Workspace`() = runBlocking {
+        val db = database()
+        try {
+            seedWorkspace(db, "native")
+            seedWorkspace(db, "other")
+            seedAttachment(db, "shared")
+            val source = source(db)
+            source.linkAttachmentToContext("shared", "native")
+            source.linkAttachmentToContext("shared", "other")
+            db.workspaceDao().upsert(listOf(db.workspaceDao().getById("native")!!.copy(isDeleted = true)))
+            assertTrue(source.getAttachmentsForContext("native").first().isEmpty())
+            assertEquals(listOf("shared"), source.getAttachmentsForContext("other").first().map { it.attachment.id })
+            assertFalse(db.attachmentDao().getAll().single().isDeleted)
+        } finally { db.close() }
+    }
+
     @Test fun `native Connections content reads also include linked checklist and music note`() = runBlocking {
         val db = database()
         try {

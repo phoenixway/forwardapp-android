@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityClass
 import com.romankozak.forwardappmobile.features.entitybrowser.displayLabel
 import com.romankozak.forwardappmobile.data.hierarchy.container.H1TypedNode
+import com.romankozak.forwardappmobile.data.hierarchy.container.H1StructuralParent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureNodeMenu
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.BigPictureRenameSectionDialog
 
@@ -46,6 +47,8 @@ fun ProjectHierarchyView(
     sourceDeleteTargets: Map<CanonicalEntityRef, BigPictureSourceDeleteTarget> = emptyMap(),
     onDeleteSource: (BigPictureSourceDeleteTarget) -> Unit = {},
     onOpenSemantic: (BigPictureNode) -> Unit = {},
+    onCopy: ((CanonicalEntityRef) -> Unit)? = null,
+    onPasteChildren: ((H1StructuralParent) -> Unit)? = null,
 ) {
     Column(modifier.background(Brush.verticalGradient(listOf(
         MaterialTheme.colorScheme.surface,
@@ -68,6 +71,7 @@ fun ProjectHierarchyView(
                     BigPictureUnitCard(
                         active, onClick = { onOpen(active) }, onOpen = { onOpen(active) },
                         mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
+                        onCopy = onCopy, onPasteChildren = onPasteChildren,
                         focused = true, childCount = state.entries.size,
                         onRenameWorkspace = onRenameWorkspace,
                         onRemoveSubtree = onRemoveSubtree,
@@ -81,6 +85,7 @@ fun ProjectHierarchyView(
                         onRename = onRenameSection,
                         onFocus = { onFocusScope(section.id) },
                         mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
+                        onPasteChildren = onPasteChildren,
                     )
                 }
             }
@@ -112,6 +117,7 @@ fun ProjectHierarchyView(
                                 onRename = onRenameSection,
                                 onFocus = { onFocusScope(section.id) },
                                 mutationEnabled = mutationEnabled, onCut = onCut, onRemove = onRemove,
+                                onPasteChildren = onPasteChildren,
                             )
                         }
                         is BigPictureReadEntry.Occurrence -> {
@@ -124,6 +130,7 @@ fun ProjectHierarchyView(
                                 onOpenSemantic = { onOpenSemantic(node) },
                                 mutationEnabled = mutationEnabled,
                                 onCut = onCut,
+                                onCopy = onCopy, onPasteChildren = onPasteChildren,
                                 onRemove = onRemove,
                                 onRemoveSubtree = onRemoveSubtree,
                                 childCount = childCount,
@@ -148,6 +155,8 @@ private fun BigPictureUnitCard(
     onDeleteSource: (BigPictureSourceDeleteTarget) -> Unit = {},
     onOpenSemantic: () -> Unit = {},
     onRenameWorkspace: ((BigPictureWorkspaceRenameTarget) -> Unit)? = null,
+    onCopy: ((CanonicalEntityRef) -> Unit)? = null,
+    onPasteChildren: ((H1StructuralParent) -> Unit)? = null,
 ) {
     val entity = node.entity
     val tint = when (entity?.ref?.entityClass) {
@@ -189,6 +198,8 @@ private fun BigPictureUnitCard(
                 semanticOpenLabel = if (entity?.ref is CanonicalEntityRef.Aspect) "Відкрити аспект" else "Відкрити орієнтир",
                 sourceDeleteTarget = sourceDeleteTarget,
                 onDeleteSource = onDeleteSource,
+                onCopy = entity?.ref?.let { ref -> onCopy?.let { copy -> { copy(ref) } } },
+                onPasteChildren = onPasteChildren,
             )
         },
     )
@@ -201,6 +212,7 @@ private fun BigPictureSectionCard(
     onCut: (H1TypedNode) -> Unit, onRemove: (H1TypedNode) -> Unit,
     onRename: (H1TypedNode.Container, String) -> Unit,
     focused: Boolean = false,
+    onPasteChildren: ((H1StructuralParent) -> Unit)? = null,
 ) {
     var renaming by rememberSaveable((ref as? H1TypedNode.Container)?.id) { mutableStateOf(false) }
     if (renaming && ref is H1TypedNode.Container) BigPictureRenameSectionDialog(
@@ -216,7 +228,7 @@ private fun BigPictureSectionCard(
         onClick = onFocus,
         actionMenu = {
             if (mutationEnabled && ref != null) BigPictureNodeMenu(ref, true, onCut, onRemove,
-                onRename = { renaming = true })
+                onRename = { renaming = true }, onPasteChildren = onPasteChildren)
         },
     )
 }

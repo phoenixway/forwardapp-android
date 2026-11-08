@@ -1,5 +1,91 @@
 # Entity Library and Big Picture UX Contract
 
+## Navigation clipboard and leaf destinations (2026-11-07)
+
+Navigation cards expose Вставити нащадки when the shared Navigation clipboard
+is nonempty, including leaf occurrences that normally open their source on tap.
+The menu dispatches the exact occurrence/container structural parent; it does
+not focus/open the entity or derive a semantic/Workspace parent relation.
+
+Workspace lower dock -> More (⋮) -> actions sheet exposes Copy/Cut in a
+dedicated Navigation group, through the same transient NavigationClipboard
+singleton used by Navigation. These actions are not in Workspace Properties
+(user placement clarification, 2026-11-08). Icon/title/short-description rows
+distinguish adding another appearance from moving a selected occurrence; existing
+sheet actions remain below. Successful preparation closes the actions sheet
+with confirmation; failed preparation or cancelling the chooser does not.
+Placement follow-up HOST (2026-11-08): NavigationClipboardUiTest 10,
+NavigationClipboardTest 6, WorkspaceOccurrencesTest 8: **24/24 PASS**;
+production/test Kotlin compile prerequisites PASS. Device acceptance pending.
+Copy carries the exact typed
+canonical target and adds another appearance through H1 addAppearance; it never
+clones the source or its subtree and remains reusable after paste. An unplaced
+live Workspace may be copied. Cut requires an exact live occurrence selected
+from a full-path PRIMARY/LINK chooser, even with one appearance, and moves that
+occurrence/subtree through H1 moveNode. No placement means no Cut. Preparing or
+cancelling a clipboard operation performs no structural write. Workspace
+identity fields are not submitted by these actions.
+
+Mutation validation/cycle/target lifecycle remain with the existing H1 writer.
+Failed paste retains the intent; successful Cut clears only that exact clipboard
+token, not a newer command. Missing-occurrence reconciliation only discards Cut,
+never an identity-only Copy. The existing Navigation SavedState Cut restoration
+is preserved; Copy is transient, not durable canonical data. Legacy backlog and
+Context clipboard systems are not promoted into this authority.
+
+Classification: CURRENT V2 H1 placements/containers remain structural authority;
+clipboard is UI intent, not a new persisted hierarchy. Workspace identity,
+semantic relations, bindings, Planning and compatibility hierarchy fields are
+unchanged. Room 206 unchanged. HOST XML **46/46 PASS**: NavigationClipboardTest 6,
+NavigationClipboardUiTest 8, BigPictureMutationViewModelTest 14,
+WorkspaceOccurrencesTest 8, BigPictureSourceDeleteFocusTest 3,
+BigPictureMutationUxRoomTest 7. Production/test Kotlin compile prerequisites
+PASS; physical acceptance pending, no deployment.
+
+## Semantic Editor organization (2026-11-07)
+
+Universal Semantic Editor uses three presentation-only tabs:
+- Основне: existing name draft, semantic type/kind, immediate semantic tags,
+  and the existing Planning entry for Orientation only.
+- Семантика: Aspect parent/children where applicable, Aspect membership and
+  Orientation graph relations through their existing authorities.
+- Workspaces: canonical WorkspaceBinding rows and their existing add/remove/open
+  actions. Creating an embodiment is exposed directly in this tab, using the
+  existing dialog/coordinator, and is no longer duplicated in the top-bar menu.
+
+Visual follow-up groups name editing into a low-tonal section, uses a compact
+themed identity header, and keeps save guidance beside the corresponding input.
+Tags retain their own immediate-save hint. Workspaces distinguishes creating
+the primary embodiment from linking an existing Workspace (Пов’язати). The
+create card is hidden when a live EMBODIES binding already exists and respects
+the existing eligibility/busy rules; transform/kind-change/delete stay in the
+overflow. This changes presentation only, not creation or binding semantics.
+
+Visual follow-up HOST: SemanticEditorTabsUiTest 14/14 (final class rerun),
+SemanticEditorRelationsUiTest 8/8, EmbodyingWorkspaceViewModelTest 6/6,
+SemanticRelationCopyTest 10/10 across focused runs. Kotlin compile prerequisites
+PASS; physical visual acceptance remains pending.
+
+The exact subject title/type and mutation errors remain visible across tabs.
+Save, dirty-Back confirmation, delete, transform and kind-change dialogs retain
+their existing handlers. Switching tabs does not submit or discard the name
+draft. Selected tab and each tab's scroll/saveable presentation state survive
+supported recreation; semantic tag input remains in its existing ViewModel.
+Tab labels can scroll on narrow screens. No new fields, identity, persistence,
+relation authority or schema change; Room remains 206. Physical smoke pending.
+
+Physical follow-up reported tabs not replacing the visible content. The editor
+now uses a single HorizontalPager state for selected tab and page identity;
+tab touch and horizontal swipe both select the actual page. Independent page
+state is retained. Follow-up HOST XML SemanticEditorTabsUiTest **10/10 PASS**,
+including repeated touch transitions, swipe synchronization and restoration;
+production/test Kotlin compile passed as test prerequisites. Device recheck
+is still required; the original symptom was not reproduced in HOST tests.
+
+HOST XML: SemanticEditorTabsUiTest 8, SemanticEditorRelationsUiTest 8,
+SemanticEntityEditorViewModelTest 27, SemanticTagsViewModelTest 4: **47/47 PASS**.
+Production and unit-test Kotlin compile passed as focused-test prerequisites.
+
 ## Workspace source rename from Navigation (2026-10-24)
 
 NAVIGATION_WORKSPACE_RENAME_HOST_20261024
@@ -222,10 +308,26 @@ selection; missing/unavailable records never fall back to another query.
 `saved:` offers the current saved collection. Saved specifications are decoded
 unchanged and re-executed, never materialized as result lists.
 
-Plain text defaults to canonical results; Other results explicitly opens the
-existing mixed operational search. Command/Inbox/Activity modes and input
-prefixes remain intact. No persistence/transport changes, Room 202 -> 202.
-HOST XML 108/108 (11 classes), both separate Kotlin compile gates PASS;
+Plain text now defaults to canonical results plus attachment documents in one
+scroll surface (2026-11-08): NOTE_DOCUMENT, CHECKLIST, MUSIC_NOTE and SCRIPT.
+The attachment section observes SearchRepository's existing title/body matcher
+over one bulk attachment-library Flow with 180 ms debounce; it is not a second
+CanonicalEntityQuery implementation. The Attachments type toggle is respected.
+Operators/saved queries remain canonical-only rather than silently ignoring
+predicates for attachments. Exact attachment editor routes reuse the existing
+GlobalSearchViewModel opener; no raw-ID/title lookup or owner-Workspace fallback
+is introduced for these rows. Canonical and attachment list keys stay separate.
+Other results still explicitly opens the existing mixed operational search
+(including links/history/legacy results). Command/Inbox/Activity modes and input
+prefixes remain intact. No persistence/transport changes; attachment addition
+keeps Room 206 unchanged. Attachment-library reads now exclude attachment
+tombstones and deleted/missing targets for the four admitted document classes.
+Attachment follow-up HOST XML across focused runs: MagicBoxAttachmentSearchTest 7,
+MagicBoxAttachmentLibraryRoomTest 3, MagicBoxAttachmentResultsUiTest 4,
+SearchRepositoryTest 26, MagicBoxCanonicalQueryViewModelTest 4,
+AttachmentsLibraryFilterTest 4: **48/48 PASS**, compile prerequisites/diff check
+PASS. Physical smoke pending; no deployment.
+Original adapter evidence (Room 202 -> 202): HOST XML 108/108 (11 classes), both separate Kotlin compile gates PASS;
 physical smoke pending, no deployment.
 
 Final HOST JUnit XML: **107/107, 17 classes**, zero failures/errors/skips:
@@ -628,6 +730,17 @@ Coverage survives occurrence deletion; it has no independent tombstone.
   not current grouping, and generic Move never resurrects grouping.
 - LEGACY_UNKNOWN: keep conservative pre-coverage completeness rules. Missing
   provenance is not silently interpreted as native.
+
+Root admission uses the typed structural location: an occurrence with live
+membership in a live H1 container is not a root, even if its physical
+`parentPlacementId` is null (a root-level container has no occurrence anchor).
+Moving an already admitted nested LEGACY_UNKNOWN appearance into such a
+container preserves its lineage and needs no manufactured GroupScope. Missing,
+retired or invalid container evidence cannot exempt a true unknown root.
+Mutation, reactive compatibility reads and Restore/full/selective Merge use
+the same distinction. Ingress admits/validates container parent evidence before
+GroupScope completeness in the same transaction; failures roll back all streams.
+This is a location-validation correction, not a lineage-adoption command.
 
 Schema 199 cannot distinguish a new unscoped root from an old incomplete root;
 schema 200 adds only this sidecar, not a typed-node/semantic table. Migration:

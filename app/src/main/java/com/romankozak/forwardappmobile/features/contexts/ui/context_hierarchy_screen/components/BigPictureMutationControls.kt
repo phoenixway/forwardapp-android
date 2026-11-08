@@ -46,7 +46,7 @@ internal fun BigPictureMutationControls(
                 addMenu = false
                 parent?.let { groupDestination = encodeStructuralParent(it); groupDialog = true }
             })
-        if (clipboard != null) DropdownMenuItem(text = { Text("Скасувати переміщення") }, onClick = viewModel::cancelCut)
+        if (clipboard != null) DropdownMenuItem(text = { Text("Очистити буфер Navigation") }, onClick = viewModel::cancelCut)
     }
     if (groupDialog) AlertDialog(
         onDismissRequest = { groupDialog = false },
@@ -83,6 +83,8 @@ internal fun BigPictureNodeMenu(
     onDeleteSource: ((BigPictureSourceDeleteTarget) -> Unit)? = null,
     onOpenSemantic: (() -> Unit)? = null,
     semanticOpenLabel: String = "Відкрити семантичну сутність",
+    onCopy: (() -> Unit)? = null,
+    onPasteChildren: ((H1StructuralParent) -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var removal by remember(node) { mutableStateOf<BigPictureRemovalConfirmation?>(null) }
@@ -101,7 +103,14 @@ internal fun BigPictureNodeMenu(
         onOpenSemantic?.let { open ->
             DropdownMenuItem(text = { Text(semanticOpenLabel) }, onClick = { expanded = false; open() })
         }
+        onCopy?.let { copy ->
+            DropdownMenuItem(text = { Text("Копіювати") }, enabled = enabled, onClick = { expanded = false; copy() })
+        }
         DropdownMenuItem(text = { Text("Вирізати / перемістити") }, enabled = enabled, onClick = { expanded = false; onCut(node) })
+        onPasteChildren?.let { paste ->
+            DropdownMenuItem(text = { Text("Вставити нащадки") }, enabled = enabled,
+                onClick = { expanded = false; paste(H1StructuralParent.Node(node)) })
+        }
         DropdownMenuItem(text = { Text("Прибрати з Navigation") }, enabled = enabled, onClick = {
             expanded = false
             removal = bigPictureRemovalConfirmation(node, hasChildren)

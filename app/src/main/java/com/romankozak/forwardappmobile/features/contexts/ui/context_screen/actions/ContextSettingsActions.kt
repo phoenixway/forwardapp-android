@@ -27,7 +27,7 @@ class ContextSettingsActions(
         mode: ContextViewMode,
     ) {
         if (contextId.isBlank()) return
-        workspacePresentationPreferencesRepository.setDefaultViewMode(
+        workspacePresentationPreferencesRepository.rememberDefaultViewModeIfLive(
             workspaceId = contextId,
             defaultViewModeName = mode.name,
         )

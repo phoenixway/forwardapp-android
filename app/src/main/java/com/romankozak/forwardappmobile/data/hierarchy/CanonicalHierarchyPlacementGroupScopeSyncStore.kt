@@ -61,6 +61,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 requireComplete = true,
                 coverage = coverage,
                 placementIds = incomingPlacementIds,
+                containerMembers = incomingContainerMembers(candidates),
             )
             val localByPlacementId =
                 dao.getAll().associateBy { it.placementId }
@@ -164,6 +165,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
                 relations = orientationDao.getAllOrientationRelations(),
                 requireComplete = true,
                 coverage = coverage,
+                containerMembers = incomingContainerMembers(candidates),
             )
 
             val localByPlacementId =
@@ -223,6 +225,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
         snapshots: List<HierarchyPlacementGroupScopeSnapshot>,
         placements: List<HierarchyPlacement>,
         requireComplete: Boolean,
+        presentation: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot? = bundle.bigPicturePresentation,
     ): List<HierarchyPlacementGroupScopeEntity> {
         require(
             snapshots.map { it.placementId }.toSet().size == snapshots.size,
@@ -231,6 +234,11 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
         }
 
         val decoded = snapshots.map { it.toEntityStrict() }
+        val containerMembers = presentation?.let { snapshot ->
+            com.romankozak.forwardappmobile.data.hierarchy.container.validateBigPicturePresentation(snapshot, placements)
+            val liveContainers = snapshot.containers.filterNot { it.isDeleted }.mapTo(hashSetOf()) { it.id }
+            snapshot.memberships.filter { !it.isDeleted && it.containerId in liveContainers }.mapTo(hashSetOf()) { it.placementId }
+        }.orEmpty()
 
         validateHierarchyPlacementGroupScopes(
             scopes = decoded,
@@ -241,6 +249,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             relations = bundle.orientationRelations.orEmpty(),
             requireComplete = requireComplete,
             coverage = GroupScopeCoverageStore(database).decodeForRestore(bundle, placements, decoded),
+            containerMembers = containerMembers,
         )
 
         return decoded
@@ -293,6 +302,7 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
         requireComplete: Boolean,
         coverage: com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.GroupScopeCoverageSnapshot? = null,
         placementIds: Set<String>? = null,
+        containerMembers: Set<String>? = null,
     ) {
         val orientationDao = database.orientationDao()
 
@@ -308,7 +318,22 @@ class CanonicalHierarchyPlacementGroupScopeSyncStore(
             relations = orientationDao.getAllOrientationRelations(),
             requireComplete = requireComplete,
             coverage = coverage,
+            containerMembers = containerMembers ?: database.bigPicturePresentationDao().liveContainerMemberIds().toSet(),
         )
+    }
+
+    /** A strictly older historical scope may predate an already admitted container cutover.
+     * Its exact local tombstone is evidence, not a guessed scope. Final winners
+     * are still checked against ALL live memberships after version resolution.
+     */
+    private suspend fun incomingContainerMembers(incoming: List<HierarchyPlacementGroupScopeEntity>): Set<String> {
+        val local = dao.getAll().associateBy { it.placementId }
+        val retiredReplay = incoming.filter { remote ->
+            val old = local[remote.placementId]
+            !remote.isDeleted && old != null && old.isDeleted && old.version > remote.version &&
+                old.hierarchyId == remote.hierarchyId && old.createdAt == remote.createdAt
+        }.mapTo(hashSetOf()) { it.placementId }
+        return database.bigPicturePresentationDao().liveContainerMemberIds().toSet() - retiredReplay
     }
 }
 

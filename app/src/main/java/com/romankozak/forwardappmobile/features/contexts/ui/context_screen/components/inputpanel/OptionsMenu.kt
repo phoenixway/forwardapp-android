@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.features.workspace.WorkspaceSurfaceCopy
+import com.romankozak.forwardappmobile.features.workspace.WorkspaceNavigationClipboardActions
 import com.romankozak.forwardappmobile.features.workspace.WORKSPACE_SEMANTIC_BOOTSTRAP_ACTION
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 
@@ -129,7 +131,13 @@ private fun OptionsMenuSheetContent(
     actions: NavPanelActions,
 ) {
     val menuItems = buildMenuItems(state = state, actions = actions)
+    WorkspaceActionsSheetGrid(menuItems) {
+        WorkspaceNavigationClipboardActions(onDismiss = { actions.onMenuExpandedChange(false) })
+    }
+}
 
+@Composable
+internal fun WorkspaceActionsSheetGrid(menuItems: List<MenuItem>, navigationActions: @Composable () -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 100.dp),
         contentPadding = PaddingValues(16.dp),
@@ -140,6 +148,16 @@ private fun OptionsMenuSheetContent(
                 .navigationBarsPadding()
                 .fillMaxWidth(),
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text("Дії Workspace", style = MaterialTheme.typography.titleLarge)
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            navigationActions()
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text("Інші дії", style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         items(menuItems.filter { it.isVisible }) { item ->
             OptionsMenuItem(item)
         }

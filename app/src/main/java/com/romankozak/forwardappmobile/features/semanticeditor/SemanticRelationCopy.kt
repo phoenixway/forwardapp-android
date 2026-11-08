@@ -52,3 +52,25 @@ internal fun WorkspaceBindingType.explanation(): String = when (this) {
 
 internal fun aspectAssociationSentence(type: AspectOrientationRelationType, orientation: String, aspect: String): String =
     "«$orientation» ${if (type == AspectOrientationRelationType.BELONGS_TO) "належить до аспекту" else "стосується аспекту"} «$aspect»"
+
+/** The row already names the related endpoint. Full named sentences remain in creation confirmations. */
+internal fun WorkspaceBindingType.compactCaption(): String = when (this) {
+    WorkspaceBindingType.EMBODIES -> "Втілює цю сутність"
+    WorkspaceBindingType.REALIZES -> "Реалізує цю сутність"
+    WorkspaceBindingType.SUPPORTS -> "Підтримує цю сутність"
+    WorkspaceBindingType.MONITORS -> "Моніторить цю сутність"
+}
+
+internal fun OrientationGraphRelationItem.compactCaption(): String {
+    val outgoing = direction == OrientationRelationEditDirection.OUTGOING
+    return when (relationType) {
+        OrientationRelationType.PART_OF -> if (outgoing) "Містить цей орієнтир" else "Частина цього орієнтира"
+        OrientationRelationType.SUPPORTS -> if (outgoing) "Отримує підтримку від цього орієнтира" else "Підтримує цей орієнтир"
+        OrientationRelationType.REALIZES -> if (outgoing) "Реалізується через цей орієнтир" else "Реалізує цей орієнтир"
+        OrientationRelationType.DEPENDS_ON -> if (outgoing) "Потрібний для цього орієнтира" else "Залежить від цього орієнтира"
+        OrientationRelationType.CONFLICTS_WITH -> "Конфліктує з цим орієнтиром"
+        OrientationRelationType.PRECEDES -> if (outgoing) "Після цього орієнтира" else "Передує цьому орієнтиру"
+        OrientationRelationType.REFINES -> if (outgoing) "Уточнюється через цей орієнтир" else "Уточнює цей орієнтир"
+        OrientationRelationType.DERIVED_FROM -> if (outgoing) "Основа для цього орієнтира" else "Походить від цього орієнтира"
+    }
+}

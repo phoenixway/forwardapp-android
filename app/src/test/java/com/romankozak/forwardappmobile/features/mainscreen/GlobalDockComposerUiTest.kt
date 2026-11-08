@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
@@ -39,6 +40,9 @@ class GlobalDockComposerUiTest {
         every { onNavigateToGlobalSearch } returns { events += "magic" }
         every { onShowCreateActions } returns { events += "global-create" }
         every { onNavigateToEntityLibrary } returns { events += "library" }
+        every { onNavigateToAiChat } returns { events += "ai-chat" }
+        every { onNavigateToAiInsights } returns { events += "ai-insights" }
+        every { onNavigateToAiLifeManagement } returns { events += "ai-life" }
         every { featureToggles } returns mapOf(FeatureFlag.AiChat to true, FeatureFlag.AiLifeManagement to true,
             FeatureFlag.AttachmentsLibrary to true, FeatureFlag.ScriptsLibrary to true)
     }
@@ -53,6 +57,46 @@ class GlobalDockComposerUiTest {
 
     private fun assertEmptyInput() {
         ui.onNode(hasSetTextAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    private fun assertMagicboxLongPressOpensRecents(route: String) {
+        ui.setContent { MaterialTheme { MainScreenDock(route, global, recent) {} } }
+        ui.onNodeWithContentDescription("Magicbox").performTouchInput { longClick() }
+        ui.onNodeWithText("Недавні").assertIsDisplayed()
+        ui.onNodeWithText("Закріплені").assertIsDisplayed()
+        ui.runOnIdle { assertEquals(emptyList<String>(), events) }
+    }
+
+    @Test fun `Magicbox long press opens Recents from Command Deck without search`() {
+        assertMagicboxLongPressOpensRecents(MAIN_SCREEN_DASHBOARD_ROUTE)
+    }
+
+    @Test fun `Magicbox long press opens Recents from Today without search`() {
+        assertMagicboxLongPressOpensRecents(MAIN_SCREEN_TODAY_ROUTE)
+    }
+
+    @Test fun `Magicbox long press opens Recents from Tactics without search`() {
+        assertMagicboxLongPressOpensRecents(MAIN_SCREEN_TACTICS_ROUTE)
+    }
+
+    @Test fun `Magicbox long press opens Recents from Strategic Arc without search`() {
+        assertMagicboxLongPressOpensRecents(MAIN_SCREEN_STRATEGIC_ARC_ROUTE)
+    }
+
+    @Test fun `Magicbox short pointer click still opens search without Recents`() {
+        ui.setContent { MaterialTheme { MainScreenDock(MAIN_SCREEN_TODAY_ROUTE, global, recent) {} } }
+        ui.onNodeWithContentDescription("Magicbox").performTouchInput { click() }
+        ui.onNodeWithText("Недавні").assertDoesNotExist()
+        ui.runOnIdle { assertEquals(listOf("magic"), events) }
+    }
+
+    @Test fun `Magicbox accessible long click exposes Recents action`() {
+        ui.setContent { MaterialTheme { MainScreenDock(MAIN_SCREEN_TODAY_ROUTE, global, recent) {} } }
+        ui.onNodeWithContentDescription("Magicbox").assert(SemanticsMatcher("Named long click") {
+            it.config.getOrNull(SemanticsActions.OnLongClick)?.label == "Відкрити недавні"
+        }).performSemanticsAction(SemanticsActions.OnLongClick) { it() }
+        ui.onNodeWithText("Недавні").assertIsDisplayed()
+        ui.runOnIdle { assertEquals(emptyList<String>(), events) }
     }
 
     @Test fun `all tabs expose the same five dock actions in stable order`() {
@@ -74,14 +118,64 @@ class GlobalDockComposerUiTest {
     @Test fun `global overflow retains gated tools and Library dispatch from Today`() {
         ui.setContent { MaterialTheme { MainScreenDock(MAIN_SCREEN_TODAY_ROUTE, global, recent) {} } }
         ui.onNodeWithContentDescription("Більше дій").performClick()
-        listOf("Недавні", "Context Markers", "Inbox", "AI Life-Management", "AI-Chat", "AI Insights",
-            "Reminders", "Structure presets", "Library", "Attachments", "Scripts", "Import/Export", "About", "Settings")
+        listOf("Недавні", "Inbox", "AI features", "Reminders", "Library", "Attachments", "Scripts", "Import/Export", "About", "Settings")
             .forEach { ui.onNodeWithText(it).assertExists() }
+        listOf("Context Markers", "Structure presets", "AI Life-Management", "AI-Chat", "AI Insights")
+            .forEach { ui.onNodeWithText(it).assertDoesNotExist() }
         ui.onNodeWithText("Library").performScrollTo()
         clickMenu("Library")
         ui.mainClock.advanceTimeBy(1_000)
         ui.runOnIdle { assertEquals(listOf("library"), events) }
     }
+
+    private fun openAiSubmenu() {
+        ui.setContent { MaterialTheme { MainScreenDock(MAIN_SCREEN_TODAY_ROUTE, global, recent) {} } }
+        ui.onNodeWithContentDescription("Більше дій").performClick()
+        ui.mainClock.advanceTimeBy(1_000)
+        clickMenu("AI features")
+        ui.mainClock.advanceTimeBy(1_000)
+    }
+
+    @Test fun `AI submenu groups all enabled tools and returns to More without dispatch`() {
+        openAiSubmenu()
+        listOf("AI Life-Management", "AI-Chat", "AI Insights").forEach { ui.onNodeWithText(it).assertExists() }
+        ui.onNodeWithText("More Options").assertExists()
+        // Match existing global-menu tests: real accessibility action here,
+        // modal geometry and physical pointer targets in device smoke.
+        clickMenu("Назад")
+        ui.mainClock.advanceTimeBy(1_000)
+        ui.onNodeWithText("More Options").assertExists()
+        ui.onNodeWithText("AI-Chat").assertDoesNotExist()
+        ui.runOnIdle { assertEquals(emptyList<String>(), events) }
+    }
+
+    @Test fun `AI submenu preserves existing feature gates`() {
+        every { global.featureToggles } returns emptyMap()
+        openAiSubmenu()
+        ui.onNodeWithText("AI Life-Management").assertDoesNotExist()
+        ui.onNodeWithText("AI-Chat").assertDoesNotExist()
+        ui.onNodeWithText("AI Insights").assertExists()
+    }
+
+    @Test fun `Android Back dismisses AI submenu without dispatching a command`() {
+        openAiSubmenu()
+        androidx.test.espresso.Espresso.pressBack()
+        ui.mainClock.advanceTimeBy(1_000)
+        ui.onNodeWithText("AI-Chat").assertDoesNotExist()
+        ui.runOnIdle { assertEquals(emptyList<String>(), events) }
+    }
+
+    private fun assertAiDispatch(label: String, event: String) {
+        openAiSubmenu()
+        clickMenu(label)
+        ui.mainClock.advanceTimeBy(1_000)
+        ui.runOnIdle { assertEquals(listOf(event), events) }
+        ui.onNodeWithText("AI features").assertDoesNotExist()
+    }
+
+    @Test fun `AI Chat keeps exact navigation and closes submenu`() { assertAiDispatch("AI-Chat", "ai-chat") }
+    @Test fun `AI Insights keeps exact navigation and closes submenu`() { assertAiDispatch("AI Insights", "ai-insights") }
+    @Test fun `AI Life Management keeps exact navigation and closes submenu`() { assertAiDispatch("AI Life-Management", "ai-life") }
 
     @Test fun `route switch closes local modal and restores independent drafts`() {
         var route by mutableStateOf(MAIN_SCREEN_TODAY_ROUTE)

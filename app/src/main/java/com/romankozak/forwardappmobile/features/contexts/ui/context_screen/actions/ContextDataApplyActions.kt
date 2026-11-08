@@ -11,6 +11,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTrace
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 
 private typealias BacklogItemSetter =
     (List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent>) -> Unit
@@ -75,6 +77,9 @@ class ContextDataApplyActions(
             stateManager.updateState { it.copy(isInitialViewResolved = false, currentViewMode = ContextViewMode.DASHBOARD) }
         }
         setListContent(data.items)
+        BacklogAddTrace.targetObserved(incomingId, "list.apply_requested") { placementId, goalId ->
+            data.items.any { it.backlogItem.id == placementId || (goalId != null && (it as? BacklogItemContent.GoalItem)?.goal?.id == goalId) }
+        }
         setAttachmentItems(data.attachmentItems)
         stateManager.updateContext(data)
         logProjectAccess(data)

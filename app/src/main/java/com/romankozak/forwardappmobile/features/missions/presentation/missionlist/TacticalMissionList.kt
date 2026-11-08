@@ -53,6 +53,9 @@ import com.romankozak.forwardappmobile.features.missions.presentation.TACTICAL_M
 import com.romankozak.forwardappmobile.features.missions.presentation.debugMissionIds
 import com.romankozak.forwardappmobile.features.missions.presentation.rememberTacticalOrientationSources
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionOrientationBadge
+import com.romankozak.forwardappmobile.features.missions.presentation.MissionSemanticWorkspaceAction
+import com.romankozak.forwardappmobile.features.missions.presentation.MissionWorkspaceBadge
+import com.romankozak.forwardappmobile.features.missions.presentation.rememberMissionPrimaryNavigation
 import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary
 import com.romankozak.forwardappmobile.features.planning.PlanningOrientationSourceBadge
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
@@ -65,6 +68,7 @@ import com.romankozak.forwardappmobile.ui.components.listitem.unifiedCheckboxCol
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 private data class TacticalMissionCardLookups(
+    val workspace: MissionSemanticWorkspaceAction.Open?,
     val orientationSource: CanonicalEntitySummary?,
     val relatedOrientations: List<CanonicalEntitySummary>,
     val projectNameById: Map<String, String>,
@@ -103,6 +107,7 @@ fun TacticalMissionList(
     modifier: Modifier = Modifier,
 ) {
     val orientationSources = rememberTacticalOrientationSources()
+    val primaryNavigation = rememberMissionPrimaryNavigation()
     val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
     val hapticFeedback = LocalHapticFeedback.current
     val internalMissions =
@@ -195,6 +200,7 @@ fun TacticalMissionList(
                         isDragging = isDragging,
                         lookups =
                             TacticalMissionCardLookups(
+                                workspace = primaryNavigation.targets[mission.id]?.workspace,
                                 orientationSource = orientationSources.byMission[mission.id],
                                 relatedOrientations = orientationSources.relatedByMission[mission.id].orEmpty(),
                                 projectNameById = projectNameById,
@@ -206,7 +212,10 @@ fun TacticalMissionList(
                                 onOpenOrientation = orientationSources.onOpen,
                                 onMissionToggled = { callbacks.onMissionToggled(mission) },
                                 onMissionSelectionToggle = { callbacks.onMissionSelectionToggle(mission) },
-                                onMissionClick = { callbacks.onMissionClick(mission) },
+                                onMissionClick = {
+                                    if (mission.id in primaryNavigation.targets) primaryNavigation.open(mission.id)
+                                    else callbacks.onMissionClick(mission)
+                                },
                                 onMissionLongPress = { callbacks.onMissionLongPress(mission) },
                                 onMissionMoreClick = { callbacks.onMissionMoreClick(mission) },
                                 onLinkedContextClick = callbacks.onLinkedContextClick,
@@ -422,8 +431,9 @@ private fun TacticalMissionContent(
             titleColor = visualState.titleColor,
             onSurface = onSurface,
         )
-        if (statusItems.isNotEmpty() || tags.isNotEmpty() || linkedItems.isNotEmpty() || lookups.orientationSource != null || lookups.relatedOrientations.isNotEmpty()) {
+        if (statusItems.isNotEmpty() || tags.isNotEmpty() || linkedItems.isNotEmpty() || lookups.orientationSource != null || lookups.relatedOrientations.isNotEmpty() || lookups.workspace != null) {
             UnifiedStatusRow(modifier = Modifier.padding(top = 4.dp)) {
+                MissionWorkspaceBadge(lookups.workspace, actions.onMissionClick)
                 lookups.orientationSource?.let { source ->
                     TacticalMissionOrientationBadge(source) { actions.onOpenOrientation(source.ref.id) }
                 }

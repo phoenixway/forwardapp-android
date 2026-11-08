@@ -26,4 +26,20 @@ class AttachmentsLibraryFilterTest {
         assertTrue(AttachmentLibraryFilter.Links.matches(AttachmentLibraryType.LINK))
         assertFalse(AttachmentLibraryFilter.Links.matches(AttachmentLibraryType.NOTE_DOCUMENT))
     }
+
+    @Test
+    fun `music notes filter excludes every other attachment type`() {
+        AttachmentLibraryType.values().forEach { type ->
+            if (type == AttachmentLibraryType.MUSIC_NOTE) {
+                assertTrue(AttachmentLibraryFilter.MusicNotes.matches(type))
+            } else {
+                assertFalse(AttachmentLibraryFilter.MusicNotes.matches(type))
+            }
+        }
+    }
+
+    @Test
+    fun `existing notes filter still includes music notes`() {
+        assertTrue(AttachmentLibraryFilter.Notes.matches(AttachmentLibraryType.MUSIC_NOTE))
+    }
 }

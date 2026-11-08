@@ -1,13 +1,8 @@
 package com.romankozak.forwardappmobile.features.semanticeditor
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -19,22 +14,15 @@ internal fun AspectParentSection(
 ) {
     val enabled = !model.isSaving && !model.isRelationMutationInFlight
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("Батьківський аспект", style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = onChoose, enabled = enabled) {
-                Text(if (model.aspectParentId == null) "Вибрати" else "Змінити")
-            }
-        }
+        RelationSectionHeader("Батьківський аспект", !enabled, onChoose,
+            actionLabel = if (model.aspectParentId == null) "Вибрати" else "Змінити")
         val parentId = model.aspectParentId
-        if (parentId == null) Text("Кореневий Aspect", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (parentId == null) Text("Кореневий аспект", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         else {
-            ListItem(
-                headlineContent = { Text(model.aspectTitles[parentId] ?: "Батьківський Aspect недоступний") },
-                supportingContent = { Text("Цей Aspect є дочірнім") },
-                trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
-                modifier = Modifier.clickable(enabled = enabled && parentId in model.aspectTitles) { onOpen(parentId) },
-            )
+            RelationRow(model.aspectTitles[parentId] ?: "Батьківський аспект недоступний",
+                "Містить цей аспект", enabled, {}, canRemove = false,
+                onOpen = if (parentId in model.aspectTitles) ({ onOpen(parentId) }) else null, showReadOnly = false)
             TextButton(onClick = onMakeRoot, enabled = enabled) { Text("Зробити кореневим") }
         }
     }

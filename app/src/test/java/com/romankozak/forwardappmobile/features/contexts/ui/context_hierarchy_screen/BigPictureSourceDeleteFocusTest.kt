@@ -60,7 +60,8 @@ class BigPictureSourceDeleteFocusTest {
         assertThat(vm.clipboard.value).isNull()
         vm.cut(H1TypedNode.Container("section"))
         vm.discardMissingClipboard(setOf(H1TypedNode.Container("section")))
-        assertThat(vm.clipboard.value).isEqualTo("container:section")
+        assertThat((vm.clipboard.value as com.romankozak.forwardappmobile.features.workspace.NavigationClipboardEntry.Cut).node)
+            .isEqualTo(H1TypedNode.Container("section"))
         verify { writer wasNot Called }
     }
 

@@ -388,6 +388,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workspaceConnectionDao(): WorkspaceConnectionDao
 
     abstract fun workspaceBacklogEntryDao(): WorkspaceBacklogEntryDao
+    abstract fun workspaceBacklogReadDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogReadDao
 
     abstract fun workspaceProblemDao(): com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
 

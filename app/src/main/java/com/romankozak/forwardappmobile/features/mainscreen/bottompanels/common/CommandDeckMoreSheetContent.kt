@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Description
@@ -29,7 +32,13 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,6 +67,7 @@ internal fun MoreBottomSheetContent(
     containerColor: Color,
     onShowRecents: (() -> Unit)? = null,
 ) {
+    var showAiFeatures by remember { mutableStateOf(false) }
     Box(
         modifier =
             Modifier
@@ -73,32 +83,35 @@ internal fun MoreBottomSheetContent(
                 label = if (onShowRecents != null) "Недавні" else "Navigation",
                 onClick = onShowRecents ?: onNavigateToProjectHierarchy,
             )
-            MoreSheetMenuItem(
-                icon = Icons.Outlined.AccountTree,
-                label = "Context Markers",
-                onClick = onShowContextMarkersSheet,
-            )
+            // Context Markers and Structure presets are hidden, not retired.
+            // Their existing callbacks/routes remain available to other consumers.
             MoreSheetMenuItem(
                 icon = Icons.Outlined.MoveToInbox,
                 label = "Inbox",
                 onClick = onNavigateToInbox,
             )
-            MoreSheetAiItems(
-                featureToggles = featureToggles,
-                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                onNavigateToAiChat = onNavigateToAiChat,
-                onNavigateToAiInsights = onNavigateToAiInsights,
-            )
+            Box {
+                MoreSheetMenuItem(
+                    icon = Icons.Outlined.AutoAwesome,
+                    label = "AI features",
+                    onClick = { showAiFeatures = true },
+                    opensSubmenu = true,
+                )
+                DropdownMenu(expanded = showAiFeatures, onDismissRequest = { showAiFeatures = false },
+                    modifier = Modifier.widthIn(min = 240.dp)) {
+                    DropdownMenuItem(text = { Text("Назад") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) },
+                        onClick = { showAiFeatures = false })
+                    MoreSheetAiItems(featureToggles,
+                        onNavigateToAiLifeManagement = { showAiFeatures = false; onNavigateToAiLifeManagement() },
+                        onNavigateToAiChat = { showAiFeatures = false; onNavigateToAiChat() },
+                        onNavigateToAiInsights = { showAiFeatures = false; onNavigateToAiInsights() })
+                }
+            }
             MoreSheetMenuItem(
                 icon = Icons.Outlined.Notifications,
                 label = "Reminders",
                 onClick = onNavigateToReminders,
-            )
-            MoreSheetMenuItem(
-                icon = Icons.Outlined.DashboardCustomize,
-                label = "Structure presets",
-                contentDescription = "Presets",
-                onClick = onNavigateToPresets,
             )
             additionalActions.forEach { action ->
                 MoreSheetMenuItem(
@@ -143,22 +156,22 @@ private fun MoreSheetAiItems(
     onNavigateToAiInsights: () -> Unit,
 ) {
     if (featureToggles[FeatureFlag.AiLifeManagement] == true) {
-        MoreSheetMenuItem(
-            icon = Icons.Outlined.AutoAwesome,
-            label = "AI Life-Management",
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
+            text = { Text("AI Life-Management") },
             onClick = onNavigateToAiLifeManagement,
         )
     }
     if (featureToggles[FeatureFlag.AiChat] == true) {
-        MoreSheetMenuItem(
-            icon = Icons.Outlined.AutoAwesome,
-            label = "AI-Chat",
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
+            text = { Text("AI-Chat") },
             onClick = onNavigateToAiChat,
         )
     }
-    MoreSheetMenuItem(
-        icon = Icons.Outlined.AutoAwesome,
-        label = "AI Insights",
+    DropdownMenuItem(
+        leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
+        text = { Text("AI Insights") },
         onClick = onNavigateToAiInsights,
     )
 }
@@ -199,6 +212,7 @@ private fun MoreSheetMenuItem(
     label: String,
     onClick: () -> Unit,
     contentDescription: String = label,
+    opensSubmenu: Boolean = false,
 ) {
     Row(
         modifier =
@@ -210,6 +224,7 @@ private fun MoreSheetMenuItem(
     ) {
         Icon(icon, contentDescription = contentDescription)
         Spacer(modifier = Modifier.width(16.dp))
-        Text(label)
+        Text(label, modifier = Modifier.weight(1f))
+        if (opensSubmenu) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
     }
 }

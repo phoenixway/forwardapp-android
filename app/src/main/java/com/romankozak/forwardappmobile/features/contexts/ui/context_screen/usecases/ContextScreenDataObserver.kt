@@ -21,6 +21,8 @@ import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentatio
 import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferences
 import com.romankozak.forwardappmobile.data.workspace.WorkspacePresentationPreferencesRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTrace
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -83,10 +85,14 @@ class ContextScreenDataObserver(
                         .observeCanonicalOrNull(contextId)
                         .map { preferences -> preferences ?: WorkspacePresentationPreferences() },
                 ) { args: Array<Any?> ->
-                    mapper.map(
+                    val loaded = BacklogAddTrace.measureWorkspace(contextId, "observer.map") { mapper.map(
                         contextId = contextId,
                         snapshot = ContextScreenDataSnapshot.fromArgs(args),
-                    )
+                    ) }
+                    BacklogAddTrace.targetObserved(contextId, "observer.target_received") { placementId, goalId ->
+                        loaded.items.any { it.backlogItem.id == placementId || (goalId != null && (it as? BacklogItemContent.GoalItem)?.goal?.id == goalId) }
+                    }
+                    loaded
                 }
             }
         }

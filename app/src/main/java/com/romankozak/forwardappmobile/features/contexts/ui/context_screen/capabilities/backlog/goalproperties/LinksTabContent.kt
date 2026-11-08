@@ -44,6 +44,8 @@ fun LinksTabContent(
     onAddObsidianLink: () -> Unit,
     onRemoveLink: (String) -> Unit,
     showContextAction: Boolean = true,
+    onRemoveExactLink: ((RelatedLink) -> Unit)? = null,
+    removalEnabled: Boolean = true,
 ) {
     Column(modifier = Modifier.padding(16.dp).fillMaxSize()) {
         Row(
@@ -105,7 +107,9 @@ fun LinksTabContent(
         } else {
             LazyColumn {
                 items(links) { link ->
-                    LinkItem(link = link, onRemoveClick = { onRemoveLink(link.target) })
+                    LinkItem(link = link, removalEnabled = removalEnabled, onRemoveClick = {
+                        if (onRemoveExactLink != null) onRemoveExactLink(link) else onRemoveLink(link.target)
+                    })
                     HorizontalDivider()
                 }
             }
@@ -117,6 +121,7 @@ fun LinksTabContent(
 private fun LinkItem(
     link: RelatedLink,
     onRemoveClick: () -> Unit,
+    removalEnabled: Boolean = true,
 ) {
     Row(
         modifier =
@@ -142,7 +147,7 @@ private fun LinkItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = onRemoveClick) {
+        IconButton(enabled = removalEnabled, onClick = onRemoveClick) {
             Icon(Icons.Default.Delete, contentDescription = "Remove Link")
         }
     }

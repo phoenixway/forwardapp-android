@@ -6,6 +6,60 @@ Acceptance date: 2026-10-02
 Scope: shared planning identity, participation, lifecycle, transport, and
 domain-extension boundaries for Day, Tactical Cycle, and Strategic Arc.
 
+## Tactical semantic Workspace shortcut (2026-11-01)
+
+A Mission is Planning participation, not a semantic entity. Manual quick input
+creates its canonical INTENT Orientation and MISSION participation; authoring
+from an existing Orientation reuses that identity. The card action menu resolves
+the exact live participation's Orientation, never an arbitrary SOURCE/RELATED
+reference, raw ID or title match. A unique live EMBODIES offers Open Workspace;
+no EMBODIES offers explicit confirmed creation through the existing
+SemanticEmbodyingWorkspaceCoordinator. Missing/ambiguous/unavailable targets
+fail closed. Dialog prefill uses canonical subject title/description/version.
+Creation produces only a new Workspace + canonical binding, not another
+Orientation, Planning participation, Context shell or H1 appearance. The menu
+and dialog reuse the existing commands/navigation; no persistence change.
+
+Tactical list card primary click (including compact execution mode) opens the
+exact own Orientation's unique live EMBODIES Workspace, otherwise its semantic
+editor. An explicit clickable `Workspace · title` badge uses that same resolved
+target. Binding/title/lifecycle changes update both reactively from one bulk
+snapshot; ambiguous/unavailable embodiments fall back to the semantic editor.
+Unresolved/noncanonical Mission owners retain details/menu access without ID
+guessing. Checkbox completion, selection mode, drag handles and menu Properties
+remain separate interactions. SOURCE/RELATED badges keep their own exact targets.
+HOST: `MissionSemanticWorkspaceTest` 13, `MissionWorkspaceActionUiTest` 6,
+`TacticalMissionDaoWorkspaceProjectRoomTest` 8 and
+`Migration170To171TacticalMissionProjectWorkspaceRoomAcceptanceTest` 2 tests
+passed (29 total); ProdDebug production/test Kotlin compilation passed as test
+prerequisites. Room remains 206; device acceptance pending.
+
+## Strategic Arc overview (2026-10-31)
+
+The main Arc list defaults to standalone Quests/Focus participants. A live
+COMPONENT_OF source is omitted from that overview only when its exact live target
+is another admitted participant of the same Strategic scope in the list.
+Other-Arc/cross-horizon parents never hide current-Arc work. Missing or ambiguous
+owner/endpoint projections remain visible rather than guessed from title/kind/ID.
+`Усі учасники` reveals the complete existing inventory with ordinary Part of
+context; no participation, carrier, semantic identity or relation is removed.
+Full Components stay in Planning details; overview cards retain compact counts.
+Removing/retiring the relation returns the participant to the overview reactively.
+The mode is selected in the Arc tab's contextual (blocks) action menu, not an
+inline list row. StrategicArcViewModel/SavedStateHandle share the selection
+between menu and list for the current Arc; this is not a persisted domain flag.
+Exact requested creation/reuse reveal may open the full inventory. The list
+waits for its initial composition frame instead of briefly presenting components
+as standalone. Filtered DnD reorders visible slots in the complete carrier list,
+retaining hidden slots; relation-local component order is unchanged.
+The complete carrier/participation reorder command uses one outer Room
+transaction, including existing nested canonical writes. Cancellation or a late
+write failure rolls back the entire command, including order/version/sync
+metadata; an unchanged order does not create revisions. This is Planning state
+(SEMANTIC_NOT_HIERARCHY), not H1 or semantic parentage. No authority/schema/UI
+cutover is introduced. Focused HOST verification of the 2026-11-05 fix is pending.
+Room remains 206. HOST evidence and physical acceptance are recorded in STATE.
+
 ## Planning Context UX V2 (2026-10-28)
 
 Planning Context is a reusable product surface over exact canonical Orientation

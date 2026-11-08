@@ -26,6 +26,12 @@ class ContextSettingsActionsTargetDeletionTest {
             workspacePresentationPreferencesRepository = presentationPreferences,
         )
 
+    @Test fun `automatic view save uses live-conditional command rather than strict editor mutation`() = runBlocking {
+        actions().persistContextViewMode("deleted", com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode.DASHBOARD)
+        coVerify(exactly = 1) { presentationPreferences.rememberDefaultViewModeIfLive("deleted", "DASHBOARD", any()) }
+        coVerify(exactly = 0) { presentationPreferences.setDefaultViewMode(any(), any(), any()) }
+    }
+
     @Test
     fun `V2 settings deletes live Workspace target without subtree or Context fallback`() = runBlocking {
         coEvery { workspaces.hasLiveWorkspace("target") } returns true

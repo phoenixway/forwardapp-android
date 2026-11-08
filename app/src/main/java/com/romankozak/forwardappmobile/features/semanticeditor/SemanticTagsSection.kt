@@ -26,8 +26,7 @@ internal fun SemanticTagsSection(model: SemanticEntityEditorModel, controller: S
     val editing by controller.editing.collectAsStateWithLifecycle()
     val enabled = !editing.busy && !model.isSaving && !model.isRelationMutationInFlight
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Теги", style = MaterialTheme.typography.titleMedium)
-        Text("Зміни тегів зберігаються одразу.", style = MaterialTheme.typography.bodySmall)
+        RelationSectionHeader("Теги", !enabled, null, tags.size)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             tags.sorted().forEach { tag ->
                 InputChip(selected = true, enabled = enabled, onClick = { controller.remove(tag) }, label = { Text("#$tag") },
@@ -36,7 +35,8 @@ internal fun SemanticTagsSection(model: SemanticEntityEditorModel, controller: S
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(value = editing.input, onValueChange = controller::setInput, enabled = enabled,
-                label = { Text("Новий тег") }, singleLine = true, modifier = Modifier.weight(1f))
+                label = { Text("Новий тег") }, singleLine = true, modifier = Modifier.weight(1f),
+                supportingText = { Text("Теги зберігаються одразу") })
             TextButton(onClick = controller::add, enabled = enabled && editing.input.isNotBlank()) { Text("Додати") }
         }
         editing.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

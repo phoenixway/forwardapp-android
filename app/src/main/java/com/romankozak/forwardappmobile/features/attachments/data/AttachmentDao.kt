@@ -39,7 +39,9 @@ abstract class AttachmentDao {
         SELECT a.*, c.workspaceId AS context_id, c.connectionOrder AS attachment_order
         FROM attachments AS a
         INNER JOIN workspace_connections AS c ON c.attachmentId = a.id
+        INNER JOIN workspaces AS w ON w.id = c.workspaceId
         WHERE c.workspaceId = :workspaceId
+          AND w.isDeleted = 0
           AND c.isDeleted = 0
           AND a.isDeleted = 0
         ORDER BY c.connectionOrder ASC, a.createdAt DESC
@@ -273,6 +275,11 @@ abstract class AttachmentDao {
         LEFT JOIN workspace_connections AS connection ON a.id = connection.attachmentId AND connection.isDeleted = 0
         LEFT JOIN workspaces AS workspace ON connection.workspaceId = workspace.id
         LEFT JOIN contexts AS linked_ctx ON workspace.sourceContextId = linked_ctx.id
+        WHERE a.isDeleted = 0
+          AND (a.attachment_type != 'NOTE_DOCUMENT' OR (n.id IS NOT NULL AND n.isDeleted = 0))
+          AND (a.attachment_type != 'MUSIC_NOTE' OR (mn.id IS NOT NULL AND mn.isDeleted = 0))
+          AND (a.attachment_type != 'CHECKLIST' OR (c.id IS NOT NULL AND c.isDeleted = 0))
+          AND (a.attachment_type != 'SCRIPT' OR (s.id IS NOT NULL AND s.isDeleted = 0))
         GROUP BY a.id
         """,
     )

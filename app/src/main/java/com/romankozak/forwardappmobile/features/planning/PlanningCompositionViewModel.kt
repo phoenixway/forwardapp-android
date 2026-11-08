@@ -25,7 +25,10 @@ class PlanningCompositionViewModel @Inject constructor(
 ) : ViewModel() {
     val error = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
+    private val readReady = MutableStateFlow(false)
+    val isReady = readReady.asStateFlow()
     val projection = reads.projection.catch { error.value = it.message; emit(PlanningCommitmentCompositionProjection(emptyList(), emptyList())) }
+        .onEach { readReady.value = true }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlanningCommitmentCompositionProjection(emptyList(), emptyList()))
     val embodiments = combine(catalog.observeCatalog(), orientationDao.observeWorkspaceBindings()) { entities, bindings ->
         com.romankozak.forwardappmobile.features.entitybrowser.resolveOperationalEmbodiments(bindings, entities)

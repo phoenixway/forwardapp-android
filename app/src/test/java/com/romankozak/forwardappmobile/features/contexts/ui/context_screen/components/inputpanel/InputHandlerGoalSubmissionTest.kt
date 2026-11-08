@@ -8,10 +8,13 @@ import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.GoalWithReminderOutcome
 import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
+import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import io.mockk.coEvery
+import io.mockk.Called
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import java.util.Calendar
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +37,24 @@ import org.robolectric.RobolectricTestRunner
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class InputHandlerGoalSubmissionTest {
+    @Test
+    fun `plain Goal reaches persistence with real parser even when NER is unavailable`() = runBlocking {
+        val manager = mockk<NerManager>()
+        val h = harness(ReminderParser(manager))
+        try {
+            coEvery { h.goals.addGoalToContext("Перевірити документи", "workspace-1", false) } returns "plain-backlog"
+            h.start("Перевірити документи")
+            // Watchdog, not a host wall-clock benchmark: cold Robolectric/MockK
+            // class loading can exceed two seconds. The parser test checks zero
+            // virtual-time waiting; the assertion below proves NER is never used.
+            assertThat(withTimeout(10_000) { h.listener.added.await() }).isEqualTo("plain-backlog")
+            assertThat(h.listener.text.text).isEmpty()
+            verify { manager wasNot Called }
+            coVerify(exactly = 1) { h.goals.addGoalToContext("Перевірити документи", "workspace-1", false) }
+            coVerify(exactly = 0) { h.goals.addGoalWithReminder(any(), any(), any()) }
+        } finally { h.scope.cancel() }
+    }
+
     @Test
     fun `completed negative preview is reused instead of parsing again on Add`() = runBlocking {
         val h = harness()
@@ -309,15 +330,15 @@ class InputHandlerGoalSubmissionTest {
         }
     }
 
-    private fun harness(): Harness {
+    private fun harness(parserOverride: ReminderParser? = null): Harness {
         val goals = mockk<GoalRepository>()
-        val parser = mockk<ReminderParser>()
+        val parser = parserOverride ?: mockk<ReminderParser>()
         val listener = RecordingListener()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val workspace = MutableStateFlow("workspace-1")
         val failure = CompletableDeferred<String>()
 
-        coEvery { parser.parseWithTimeout(any(), any()) } coAnswers {
+        if (parserOverride == null) coEvery { parser.parseWithTimeout(any(), any()) } coAnswers {
             ReminderParseResult(
                 originalText = firstArg(),
                 dateTimeEntities = emptyList(),

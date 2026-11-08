@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.sameReferenceAs
+import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.LinksTabContent
@@ -76,7 +79,10 @@ fun DayFocusItemEditorSheet(
     onDismiss: () -> Unit,
     onConfirm: (String, String?, List<RelatedLink>, DayFocusType, DayFocusRecurrenceIntent, Int?) -> Unit,
     onCreateDocumentForPicker: suspend (NewDocumentDraft) -> String?,
+    onRemoveSavedRelatedLink: (suspend (RelatedLink) -> Unit)? = null,
 ) {
+    val linkRemoval = remember(existingItem?.id) { DayFocusLinkRemoval() }
+    val linkScope = rememberCoroutineScope()
     var title by remember(existingItem?.id) { mutableStateOf(existingItem?.title.orEmpty()) }
     var notes by remember(existingItem?.id) { mutableStateOf(existingItem?.notes.orEmpty()) }
     var selectedType by remember(existingItem?.id, initialType) { mutableStateOf(existingItem?.type ?: initialType) }
@@ -286,6 +292,12 @@ fun DayFocusItemEditorSheet(
                                 com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind.DAY_FOCUS, item.id),
                         )
                     }
+                    if (onRemoveSavedRelatedLink != null) Text(
+                        "Кошик одразу прибирає посилання лише з цього фокуса. Інші зміни — після «Зберегти».",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    linkRemoval.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp)) }
                     LinksTabContent(
                         links = links,
                         onAddProjectLink = {
@@ -308,6 +320,14 @@ fun DayFocusItemEditorSheet(
                             links = links.filterNot { link -> relatedLinkIdentity(link) == identity || link.target == identity }
                         },
                         showContextAction = false,
+                        removalEnabled = !linkRemoval.busy,
+                        onRemoveExactLink = { link ->
+                            linkScope.launch {
+                                linkRemoval.remove(link, onRemoveSavedRelatedLink) { removed ->
+                                    links = links.filterNot { it.sameReferenceAs(removed) }
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -339,7 +359,7 @@ fun DayFocusItemEditorSheet(
                             currentBudgetPercent,
                         )
                     },
-                    enabled = title.isNotBlank() && isBudgetValid,
+                    enabled = title.isNotBlank() && isBudgetValid && !linkRemoval.busy,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Зберегти")

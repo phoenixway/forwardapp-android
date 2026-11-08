@@ -51,12 +51,7 @@ import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategi
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAdapter
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
-import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementGroupScopeSyncStore
-import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementLinkedAppearanceSyncStore
-import com.romankozak.forwardappmobile.data.hierarchy.CanonicalHierarchyPlacementSyncStore
-import com.romankozak.forwardappmobile.data.hierarchy.container.BigPicturePresentationRepository
 import com.romankozak.forwardappmobile.data.hierarchy.container.requireSelectiveBigPictureDependencyClosure
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.BigPicturePresentationSnapshot
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspaceMaterializer
@@ -152,14 +147,6 @@ class MergeLocalDataSourceImpl
             CanonicalTacticalPlanningScopeExtensionSyncStore(db)
         private val canonicalStrategicPlanningScopeExtensionSyncStore =
             CanonicalStrategicPlanningScopeExtensionSyncStore(db)
-        private val canonicalHierarchyPlacementSyncStore =
-            CanonicalHierarchyPlacementSyncStore(db)
-        private val canonicalHierarchyPlacementGroupScopeSyncStore =
-            CanonicalHierarchyPlacementGroupScopeSyncStore(db)
-        private val bigPicturePresentationRepository =
-            BigPicturePresentationRepository(db)
-        private val canonicalHierarchyPlacementLinkedAppearanceSyncStore =
-            CanonicalHierarchyPlacementLinkedAppearanceSyncStore(db)
 
         override suspend fun getGoals(): List<Goal> = goalDao.getAll()
 
@@ -761,50 +748,7 @@ class MergeLocalDataSourceImpl
                 canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
                 canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
                 requireCanonicalNotePlacementClosure(db)
-                require(bundle.groupScopeCoverage == null ||
-                    (bundle.hierarchyPlacements != null && bundle.hierarchyPlacementGroupScopes != null)) {
-                    "GroupScope coverage requires the canonical H1 and GroupScope streams"
-                }
-                canonicalHierarchyPlacementSyncStore.mergeIncoming(bundle.hierarchyPlacements)
-                val incomingHierarchyPlacementIds =
-                    bundle.hierarchyPlacements
-                        .orEmpty()
-                        .mapTo(linkedSetOf()) { it.id }
-                if (selectiveHierarchyDelta) {
-                    canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncomingSelective(
-                        incoming = bundle.hierarchyPlacementGroupScopes,
-                        incomingPlacementIds = incomingHierarchyPlacementIds,
-                        coverage = bundle.groupScopeCoverage,
-                    )
-                    canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncomingSelective(
-                        incoming = bundle.hierarchyPlacementLinkedAppearances,
-                        incomingPlacementIds = incomingHierarchyPlacementIds,
-                    )
-                } else {
-                    canonicalHierarchyPlacementGroupScopeSyncStore.mergeIncoming(
-                        bundle.hierarchyPlacementGroupScopes,
-                        coverage = bundle.groupScopeCoverage,
-                        incomingPlacementIds = incomingHierarchyPlacementIds,
-                    )
-                    canonicalHierarchyPlacementLinkedAppearanceSyncStore.mergeIncoming(
-                        bundle.hierarchyPlacementLinkedAppearances,
-                    )
-                }
-                // Validate against the final merged H1, including when the sender
-                // predates generic presentation persistence. An empty incoming
-                // stream validates local state without deleting it.
-                bigPicturePresentationRepository.merge(
-                    bundle.bigPicturePresentation ?: BigPicturePresentationSnapshot()
-                )
-                com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover(db).materialize(
-                    if (selectiveHierarchyDelta) bundle.hierarchyPlacementGroupScopes.orEmpty()
-                        .mapNotNullTo(hashSetOf()) { it.groupSubjectId } else null,
-                )
-                canonicalHierarchyPlacementSyncStore.requireCurrentHierarchyValid()
-                // Both structural streams have now been admitted. Validate
-                // their combined typed graph in the SAME outer transaction.
-                bigPicturePresentationRepository.requireCurrentUnifiedStructuralGraphValid()
-                com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(db).validateCurrent()
+                admitCanonicalHierarchyStreams(db, bundle, selectiveHierarchyDelta)
                 },
                 afterRefresh = {
                     // Exact reserved System Contexts are never projected as

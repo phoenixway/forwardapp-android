@@ -36,6 +36,7 @@ internal fun TodayFocusDialogsHost(
         is DayFocusDialogMode.Edit ->
             DayFocusItemEditorSheet(
                 existingItem = dialogMode.item,
+                onRemoveSavedRelatedLink = { link -> dayFocusesViewModel.removeSavedRelatedLink(dialogMode.item.id, link) },
                 initialType = dialogMode.item.type,
                 availableContexts = dayFocusesUiState.availableContexts,
                 availableAttachments = dayFocusesUiState.availableAttachments,

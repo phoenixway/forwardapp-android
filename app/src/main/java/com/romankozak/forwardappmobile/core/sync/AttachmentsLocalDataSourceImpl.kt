@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentsBack
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
@@ -198,7 +199,9 @@ class AttachmentsLocalDataSourceImpl
 
         override fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>> =
             flow {
-                val systemWorkspaceId = canonicalAttachmentWorkspaceId(contextId)
+                // Reads must survive stale navigation to a deleted owner. The DAO
+                // excludes non-live owners reactively; authoring stays strict.
+                val systemWorkspaceId = canonicalAttachmentWorkspace(contextId)?.id
                 emitAll(
                     if (systemWorkspaceId != null) {
                         attachmentDao.getAttachmentsForCanonicalWorkspace(systemWorkspaceId)
@@ -298,12 +301,14 @@ class AttachmentsLocalDataSourceImpl
             return attachmentDao.findAttachmentByRole(contextId, roleCode)
         }
 
-        /**
-         * Returns a direct canonical placement owner for an exact promoted
-         * System identity, or null for every ordinary compatibility caller.
-         * Invalid System ownership never falls back to sourceContextId routing.
-         */
         private suspend fun canonicalAttachmentWorkspaceId(ownerId: String): String? {
+            val workspace = canonicalAttachmentWorkspace(ownerId) ?: return null
+            require(!workspace.isDeleted) { "Canonical attachment owner $ownerId is deleted" }
+            return workspace.id
+        }
+
+        /** Resolves provenance only. Reads enforce liveness in SQL; writes use the strict wrapper above. */
+        private suspend fun canonicalAttachmentWorkspace(ownerId: String): WorkspaceEntity? {
             if (!SystemContexts.isSystem(ContextId(ownerId))) {
                 val workspace = workspaceDao.getById(ownerId) ?: return null
                 // The operational surface passes canonical Workspace identity, not its source Context.
@@ -311,15 +316,11 @@ class AttachmentsLocalDataSourceImpl
                 if (workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name) {
                     require(!workspace.sourceContextId.isNullOrBlank()) { "Context-backed attachment owner has no provenance" }
                 } else require(workspace.isCanonicalWorkspaceOwner()) { "Unsupported canonical attachment owner provenance" }
-                require(!workspace.isDeleted) { "Canonical attachment owner $ownerId is deleted" }
-                return workspace.id
+                return workspace
             }
 
             val workspace = requireNotNull(workspaceDao.getById(ownerId)) {
                 "Canonical System attachment owner $ownerId is missing"
-            }
-            require(!workspace.isDeleted) {
-                "Canonical System attachment owner $ownerId is deleted"
             }
             require(workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name) {
                 "Canonical System attachment owner $ownerId has invalid provenance"
@@ -327,7 +328,7 @@ class AttachmentsLocalDataSourceImpl
             require(workspace.sourceContextId == null) {
                 "Canonical System attachment owner $ownerId has a legacy Context source"
             }
-            return workspace.id
+            return workspace
         }
 
         private suspend fun insertContextBackedAttachmentLink(

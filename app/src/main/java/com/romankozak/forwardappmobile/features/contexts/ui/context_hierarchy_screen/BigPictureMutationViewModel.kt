@@ -13,7 +13,10 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import com.romankozak.forwardappmobile.features.workspace.NavigationClipboard
+import com.romankozak.forwardappmobile.features.workspace.NavigationClipboardEntry
 
 data class BigPictureMutationState(val busy: Boolean = false, val message: String? = null)
 
@@ -21,10 +24,22 @@ data class BigPictureMutationState(val busy: Boolean = false, val message: Strin
 class BigPictureMutationViewModel @Inject constructor(
     private val writer: H1StructuralMutationCoordinator,
     private val savedState: SavedStateHandle,
+    private val sharedClipboard: NavigationClipboard = NavigationClipboard(),
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(BigPictureMutationState())
     val state = mutableState.asStateFlow()
-    val clipboard = savedState.getStateFlow<String?>("bigPictureCut", null)
+    val clipboard = sharedClipboard.entry
+
+    init {
+        if (clipboard.value == null) savedState.get<String>("bigPictureCut")?.let { encoded ->
+            runCatching { decodeStructuralNode(encoded) }.getOrNull()?.let(sharedClipboard::cut)
+        }
+        viewModelScope.launch {
+            clipboard.collect { entry ->
+                savedState["bigPictureCut"] = (entry as? NavigationClipboardEntry.Cut)?.node?.let(::encodeStructuralNode)
+            }
+        }
+    }
 
     fun pickerRequest() = CanonicalEntityPickerRequest(CanonicalEntityClass.entries.toSet())
 
@@ -61,23 +76,35 @@ class BigPictureMutationViewModel @Inject constructor(
 
     fun cut(node: H1TypedNode) {
         if (state.value.busy) return
+        sharedClipboard.cut(node)
         savedState["bigPictureCut"] = encodeStructuralNode(node)
         mutableState.value = state.value.copy(message = "Вирізано. Перейдіть до місця призначення та вставте.")
     }
 
-    fun cancelCut() { if (!state.value.busy) savedState["bigPictureCut"] = null }
+    fun copy(target: CanonicalEntityRef) {
+        if (state.value.busy) return
+        sharedClipboard.copy(target)
+        savedState["bigPictureCut"] = null
+        mutableState.value = state.value.copy(message = "Скопійовано. Вставлення створить нову появу цієї ж сутності.")
+    }
+
+    fun cancelCut() { if (!state.value.busy) { sharedClipboard.clear(); savedState["bigPictureCut"] = null } }
 
     fun discardMissingClipboard(liveNodes: Set<H1TypedNode>) {
-        val encoded = clipboard.value ?: return
-        val node = runCatching { decodeStructuralNode(encoded) }.getOrNull()
-        if (node !in liveNodes) savedState["bigPictureCut"] = null
+        val entry = clipboard.value as? NavigationClipboardEntry.Cut ?: return
+        if (entry.node !in liveNodes) sharedClipboard.clearIf(entry)
     }
 
     fun paste(destination: H1StructuralParent) {
         val source = clipboard.value ?: return
         mutate {
-            writer.moveNode(decodeStructuralNode(source), destination)
-            savedState["bigPictureCut"] = null
+            when (source) {
+                is NavigationClipboardEntry.Cut -> {
+                    writer.moveNode(source.node, destination)
+                    sharedClipboard.clearIf(source)
+                }
+                is NavigationClipboardEntry.Copy -> writer.addAppearance(source.target.toBigPictureTarget(), destination)
+            }
         }
     }
 
@@ -86,7 +113,7 @@ class BigPictureMutationViewModel @Inject constructor(
             is H1TypedNode.Occurrence -> writer.removeOccurrence(PlacementId(node.id))
             is H1TypedNode.Container -> writer.deleteContainer(node.id)
         }
-        if (clipboard.value == encodeStructuralNode(node)) savedState["bigPictureCut"] = null
+        (clipboard.value as? NavigationClipboardEntry.Cut)?.takeIf { it.node == node }?.let(sharedClipboard::clearIf)
     }
 
     fun reorder(parent: H1StructuralParent, children: List<H1TypedNode>) = mutate {
@@ -99,8 +126,9 @@ class BigPictureMutationViewModel @Inject constructor(
 
     fun removeSubtree(node: H1TypedNode.Occurrence) = mutate {
         val retired = writer.removeOccurrenceSubtree(PlacementId(node.id))
-        val cut = clipboard.value?.let { runCatching { decodeStructuralNode(it) }.getOrNull() }
-        if (cut is H1TypedNode.Occurrence && retired.any { it.value == cut.id }) savedState["bigPictureCut"] = null
+        val entry = clipboard.value as? NavigationClipboardEntry.Cut
+        val cut = entry?.node
+        if (cut is H1TypedNode.Occurrence && retired.any { it.value == cut.id }) sharedClipboard.clearIf(entry)
         // The existing live-identity observer also discards any retired container clipboard.
     }
 

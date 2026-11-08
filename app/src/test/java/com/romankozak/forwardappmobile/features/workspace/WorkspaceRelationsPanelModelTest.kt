@@ -43,15 +43,15 @@ class WorkspaceRelationsPanelModelTest {
         val workspace = row("WORKSPACE", "same", listOf("SUPPORTS", "MONITORS"))
         val projection = WorkspaceRelationsProjection("workspace", listOf(source), EmbodiedAspectRelations("source", "Domain", listOf(orientation, workspace)))
         assertThat(projection.relationshipPanel().groups.flatMap { it.rows }).containsExactly(orientation, workspace)
-        assertThat(orientation.panelRelationLabel()).isEqualTo("← belongs to · relevant to")
-        assertThat(workspace.panelRelationLabel()).isEqualTo("← supports · monitors")
+        assertThat(orientation.panelRelationLabel()).isEqualTo("Належить до цього аспекту · Стосується цього аспекту")
+        assertThat(workspace.panelRelationLabel()).isEqualTo("Підтримує цей аспект · Моніторить цей аспект")
     }
     @Test fun `unavailable Planning row survives as non-navigable without fake destination`() {
         val planning = WorkspaceRelationItem(WorkspaceRelationFamily.PLANNING, "TACTICAL_MISSION", "mission", "Mission", listOf("SOURCE"),
             WorkspaceRelationDirection.ENTITY_TO_WORKSPACE, null, "Mission")
         val rows = WorkspaceRelationsProjection("workspace", listOf(planning)).relationshipPanel().groups.flatMap { it.rows }
         assertThat(rows).containsExactly(planning); assertThat(rows.single().navigation).isNull()
-        assertThat(rows.single().panelRelationLabel()).isEqualTo("← source")
+        assertThat(rows.single().panelRelationLabel()).isEqualTo("Створено на основі цього простору")
     }
 
     @Test fun `Orientation relations explain both directions relative to exact source title`() {
@@ -90,5 +90,29 @@ class WorkspaceRelationsPanelModelTest {
         assertThat(relation.panelRelationLabel("Meaning")).isEqualTo("FUTURE_KIND")
         assertThat(relation.navigation).isEqualTo(NavTarget.SemanticEntityEditor("id"))
         assertThat(relation.kinds).containsExactly("FUTURE_KIND")
+    }
+
+    @Test fun `Aspect taxonomy explains parent and child without arrows`() {
+        val child = row("ASPECT", "child", listOf("PARENT_ASPECT"))
+        assertThat(child.panelRelationLabel()).isEqualTo("Дочірній аспект")
+        assertThat(child.copy(direction = WorkspaceRelationDirection.ASPECT_TO_ENTITY).panelRelationLabel())
+            .isEqualTo("Батьківський аспект")
+    }
+
+    @Test fun `direct Workspace bindings name Workspace as source not semantic target`() {
+        val labels = mapOf("EMBODIES" to "втілює", "REALIZES" to "реалізує",
+            "SUPPORTS" to "підтримує", "MONITORS" to "моніторить")
+        labels.forEach { (kind, verb) ->
+            assertThat(row("ORIENTATION", "semantic", listOf(kind), WorkspaceRelationDirection.WORKSPACE_TO_ENTITY)
+                .panelRelationLabel()).isEqualTo("Цей простір $verb цю сутність")
+        }
+    }
+
+    @Test fun `Planning source and related captions distinguish Aspect from Workspace context`() {
+        val planning = row("DAY_TASK", "task", listOf("SOURCE", "RELATED"))
+            .copy(family = WorkspaceRelationFamily.PLANNING)
+        assertThat(planning.panelRelationLabel()).isEqualTo("Створено на основі цього аспекту · Пов’язано з цим аспектом")
+        assertThat(planning.copy(direction = WorkspaceRelationDirection.ENTITY_TO_WORKSPACE).panelRelationLabel())
+            .isEqualTo("Створено на основі цього простору · Пов’язано з цим простором")
     }
 }

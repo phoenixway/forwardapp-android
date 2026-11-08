@@ -5,21 +5,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -45,7 +40,6 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.entitypicker.CANONICAL_ENTITY_PICKER_RESULT_KEY
 import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
-import com.romankozak.forwardappmobile.features.semantic.displayLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +127,8 @@ fun SemanticEntityEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Семантична сутність") },
+                title = { Text("Редактор сутності",
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = ::requestBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -142,7 +137,6 @@ fun SemanticEntityEditorScreen(
                 actions = {
                     loaded?.model?.let { model ->
                         EmbodyingWorkspaceAction(model, workspaceState,
-                            onOpen = { workspaceCreation.open(model) },
                             onDelete = (deletion::request).takeIf { deleteState.target?.subjectId == model.id },
                             deleteLabel = "Видалити ${deleteState.target?.classLabel ?: "сутність"}…",
                             blocked = deleteState.busy || conversionState.busy || kindState.busy,
@@ -166,7 +160,7 @@ fun SemanticEntityEditorScreen(
             SemanticEntityEditorUiState.Loading -> LoadingContent(padding)
             is SemanticEntityEditorUiState.Unavailable -> UnavailableContent(current.message, padding)
             is SemanticEntityEditorUiState.Loaded ->
-                EditorContent(
+                SemanticEditorContent(
                     model = if (deleteState.busy || conversionState.busy || kindState.busy) current.model.copy(isSaving = true, isRelationMutationInFlight = true) else current.model,
                     padding = padding,
                     onNameChange = viewModel::setName,
@@ -180,6 +174,8 @@ fun SemanticEntityEditorScreen(
                     onRemoveWorkspace = viewModel::removeWorkspaceBinding,
                     onOpenWorkspace = { binding -> navController.navigate(NavTargetRouter.routeOf(binding.destination())) },
                     onRemoveOrientation = viewModel::removeOrientationRelation,
+                    onCreateWorkspace = { workspaceCreation.open(current.model) },
+                    workspaceCreationBusy = workspaceState.busy || deleteState.busy || conversionState.busy || kindState.busy,
                 )
         }
     }
@@ -236,77 +232,4 @@ private fun UnavailableContent(message: String, padding: PaddingValues) {
         Text(message, style = MaterialTheme.typography.bodyLarge)
     }
 }
-
-@Composable
-private fun EditorContent(
-    model: SemanticEntityEditorModel,
-    padding: PaddingValues,
-    onNameChange: (String) -> Unit,
-    onOpenPlanning: () -> Unit,
-    onAddSemantic: () -> Unit,
-    onChooseAspectParent: () -> Unit,
-    onMakeAspectRoot: () -> Unit,
-    onOpenSemantic: (String) -> Unit,
-    onRemoveAspect: (String) -> Unit,
-    onAddWorkspace: () -> Unit,
-    onRemoveWorkspace: (String) -> Unit,
-    onOpenWorkspace: (WorkspaceBindingItem) -> Unit,
-    onRemoveOrientation: (String, Long) -> Unit,
-) {
-    Column(
-        modifier =
-            Modifier.fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-    ) {
-        SemanticIdentitySection(model, onNameChange)
-        SemanticTagsSection(model)
-        if (model.entityClass == SemanticEntityClass.ORIENTATION) {
-            OrientationTypeSection(model)
-            com.romankozak.forwardappmobile.features.planning.SemanticPlanningEntry(
-                com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef.Orientation(model.id), onOpenPlanning)
-        }
-        HorizontalDivider()
-        if (model.entityClass == SemanticEntityClass.ASPECT) {
-            AspectParentSection(model, onChooseAspectParent, onMakeAspectRoot, onOpenSemantic)
-            AspectChildrenSection(model, onOpenSemantic)
-        }
-        SemanticAssociationsSection(model, onAddSemantic, onRemoveAspect, onRemoveOrientation, onOpenSemantic)
-        WorkspaceBindingsSection(model, onAddWorkspace, onRemoveWorkspace, onOpenWorkspace)
-        model.errorMessage?.let { error ->
-            Text(error, color = MaterialTheme.colorScheme.error)
-        }
-    }
-}
-
-@Composable
-private fun SemanticIdentitySection(model: SemanticEntityEditorModel, onNameChange: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedTextField(
-            value = model.name,
-            onValueChange = onNameChange,
-            label = { Text("Назва") },
-            singleLine = true,
-            enabled = !model.isSaving,
-            isError = model.name.isBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text("Сутність: ${model.entityClass.displayLabel()}", style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun OrientationTypeSection(model: SemanticEntityEditorModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Тип орієнтира", style = MaterialTheme.typography.labelLarge)
-        Text(
-            model.orientationKind?.displayLabel().orEmpty(),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Text("Тип незмінний після створення", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
 

@@ -395,21 +395,12 @@ class ContextScreenViewModel
             )
         val uiEventFlow = _uiEventFlow.asSharedFlow()
         private val currentWeekKey: String = currentIsoWeekKey()
-        val tacticalBacklogItemIds: StateFlow<Set<String>> =
-            missionRepository
-                .observeBacklogMissionIdsForWeek(currentWeekKey)
-                .map { ids -> ids.toSet() }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
-        val tacticalBacklogMissionStreamIds: StateFlow<Map<String, String>> =
-            missionRepository
-                .observeBacklogMissionsForWeek(currentWeekKey)
-                .map { missions ->
-                    missions.mapNotNull { mission ->
-                        val backlogItemId = mission.sourceBacklogItemId ?: return@mapNotNull null
-                        backlogItemId to (mission.missionStreamId ?: GENERAL_MISSION_STREAM_ID)
-                    }.toMap()
-                }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+        private val backlogTacticalProjection =
+            com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.WorkspaceBacklogTacticalProjection(
+                missionRepository.observeBacklogMissionsForWeek(currentWeekKey), viewModelScope,
+            )
+        val tacticalBacklogItemIds = backlogTacticalProjection.itemIds
+        val tacticalBacklogMissionStreamIds = backlogTacticalProjection.streamIds
         val missionStreams: StateFlow<List<MissionStream>> =
             missionStreamRepository
                 .observeActiveStreams()

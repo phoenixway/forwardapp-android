@@ -42,6 +42,7 @@ fun BacklogListScreen(
     actions: BacklogListActions,
     modifier: Modifier = Modifier,
 ) {
+    BacklogAddVisibilityTrace(state.listState)
     val goalWorkspaces: BacklogGoalWorkspaceViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val canonicalLinks by goalWorkspaces.links.collectAsStateWithLifecycle()
     val planning = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()

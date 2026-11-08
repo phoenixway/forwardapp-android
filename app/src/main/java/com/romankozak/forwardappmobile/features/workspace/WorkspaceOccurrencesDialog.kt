@@ -21,9 +21,19 @@ fun WorkspaceOccurrencesDialog(
     viewModel: WorkspaceOccurrencesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    WorkspaceOccurrencePickerDialog(state, "Появи у Navigation", onDismiss) { onOpen(it.destination) }
+}
+
+@Composable
+internal fun WorkspaceOccurrencePickerDialog(
+    state: WorkspaceOccurrencesState,
+    title: String,
+    onDismiss: () -> Unit,
+    onChoose: (WorkspaceOccurrence) -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Появи у Navigation") },
+        title = { Text(title) },
         text = {
             when {
                 state.loading -> LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -34,7 +44,7 @@ fun WorkspaceOccurrencesDialog(
                         ListItem(
                             headlineContent = { Text(occurrence.path.joinToString(" › ")) },
                             supportingContent = { Text(if (occurrence.kind == PlacementKind.PRIMARY) "Основна поява" else "LINK · додаткова поява") },
-                            modifier = Modifier.fillMaxWidth().clickable { onOpen(occurrence.destination) },
+                            modifier = Modifier.fillMaxWidth().clickable { onChoose(occurrence) },
                         )
                     }
                 }

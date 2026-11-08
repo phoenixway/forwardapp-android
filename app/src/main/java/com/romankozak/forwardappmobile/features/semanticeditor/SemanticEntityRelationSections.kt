@@ -8,14 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -40,20 +34,21 @@ internal fun AspectAssociationsSection(
     onRemove: (String) -> Unit,
     onOpen: (String) -> Unit = {},
 ) {
-    RelationSectionHeader("Аспекти", model.isRelationMutationInFlight, onAdd)
-    if (model.aspectAssociations.isEmpty()) {
-        Text("Немає зв’язків", style = MaterialTheme.typography.bodyMedium)
-    } else {
-        model.aspectAssociations.forEach { association ->
-            RelationRow(
-                title = association.title,
-                subtitle =
-                    aspectAssociationSentence(association.relationType, model.name, association.title) +
-                        if (association.isPrimary) " · основний" else "",
-                enabled = !model.isRelationMutationInFlight,
-                onRemove = { onRemove(association.refId) },
-                onOpen = { onOpen(association.aspectId) },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        RelationSectionHeader("Аспекти", model.isRelationMutationInFlight || model.isSaving, onAdd, model.aspectAssociations.size)
+        if (model.aspectAssociations.isEmpty()) {
+            Text("Немає зв’язків", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            model.aspectAssociations.forEach { association ->
+                RelationRow(
+                    title = association.title,
+                    subtitle = (if (association.relationType == AspectOrientationRelationType.BELONGS_TO)
+                        "Класифікує цей орієнтир" else "Стосується цього орієнтира") + if (association.isPrimary) " · основний" else "",
+                    enabled = !model.isRelationMutationInFlight && !model.isSaving,
+                    onRemove = { onRemove(association.refId) },
+                    onOpen = { onOpen(association.aspectId) },
+                )
+            }
         }
     }
 }
@@ -64,19 +59,23 @@ internal fun WorkspaceBindingsSection(
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
     onOpen: (WorkspaceBindingItem) -> Unit,
+    addLabel: String = "Додати",
 ) {
-    RelationSectionHeader("Робочі простори", model.isRelationMutationInFlight, onAdd)
-    if (model.workspaceBindings.isEmpty()) {
-        Text("Немає зв’язків", style = MaterialTheme.typography.bodyMedium)
-    } else {
-        model.workspaceBindings.forEach { binding ->
-            RelationRow(
-                title = binding.title,
-                subtitle = workspaceBindingSentence(binding.bindingType, binding.title, model.name) + if (binding.isPrimary) " · основний робочий простір" else "",
-                enabled = !model.isRelationMutationInFlight,
-                onRemove = { onRemove(binding.bindingId) },
-                onOpen = { onOpen(binding) },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        RelationSectionHeader("Робочі простори", model.isRelationMutationInFlight || model.isSaving, onAdd, model.workspaceBindings.size,
+            actionLabel = addLabel)
+        if (model.workspaceBindings.isEmpty()) {
+            Text("Немає зв’язків", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            model.workspaceBindings.forEach { binding ->
+                RelationRow(
+                    title = binding.title,
+                    subtitle = binding.bindingType.compactCaption() + if (binding.isPrimary) " · основний" else "",
+                    enabled = !model.isRelationMutationInFlight && !model.isSaving,
+                    onRemove = { onRemove(binding.bindingId) },
+                    onOpen = { onOpen(binding) },
+                )
+            }
         }
     }
 }
@@ -88,64 +87,23 @@ internal fun OrientationGraphRelationsSection(
     onRemove: (String, Long) -> Unit,
     onOpen: (String) -> Unit = {},
 ) {
-    RelationSectionHeader("Зв’язки між орієнтирами", model.isRelationMutationInFlight, onAdd)
-    if (model.orientationRelations.isEmpty()) {
-        Text("Немає зв’язків", style = MaterialTheme.typography.bodyMedium)
-    } else {
-        model.orientationRelations.forEach { relation ->
-            val subtitle =
-                orientationRelationSentence(relation.relationType, model.name, relation.title, relation.direction) +
-                    if (relation.isEditable) "" else " · лише перегляд"
-            RelationRow(
-                title = relation.title,
-                subtitle = subtitle,
-                enabled = !model.isRelationMutationInFlight,
-                canRemove = relation.isEditable,
-                onRemove = { onRemove(relation.relationId, relation.version) },
-                onOpen = { onOpen(relation.otherOrientationId) },
-            )
-        }
-    }
-}
-
-@Composable
-internal fun RelationSectionHeader(title: String, inFlight: Boolean, onAdd: (() -> Unit)?) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        if (onAdd != null) TextButton(onClick = onAdd, enabled = !inFlight) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Text("Додати")
-        }
-    }
-}
-
-@Composable
-internal fun RelationRow(
-    title: String,
-    subtitle: String,
-    enabled: Boolean,
-    onRemove: () -> Unit,
-    canRemove: Boolean = true,
-    onOpen: (() -> Unit)? = null,
-) {
-    ListItem(
-        modifier = if (onOpen != null) Modifier.clickable(enabled = enabled, onClick = onOpen) else Modifier,
-        headlineContent = { Text(title) },
-        supportingContent = { Text(subtitle) },
-        trailingContent = {
-            if (canRemove) {
-                IconButton(onClick = onRemove, enabled = enabled) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Видалити зв’язок")
-                }
-            } else {
-                Text("Лише перегляд", style = MaterialTheme.typography.labelSmall)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        RelationSectionHeader("Зв’язки між орієнтирами", model.isRelationMutationInFlight || model.isSaving, onAdd, model.orientationRelations.size)
+        if (model.orientationRelations.isEmpty()) {
+            Text("Немає зв’язків", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            model.orientationRelations.forEach { relation ->
+                RelationRow(
+                    title = relation.title,
+                    subtitle = relation.compactCaption(),
+                    enabled = !model.isRelationMutationInFlight && !model.isSaving,
+                    canRemove = relation.isEditable,
+                    onRemove = { onRemove(relation.relationId, relation.version) },
+                    onOpen = { onOpen(relation.otherOrientationId) },
+                )
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable

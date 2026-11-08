@@ -85,6 +85,8 @@ class SnapshotRestoreLocalDataSourceImpl
                     snapshots = hierarchySnapshots,
                 )
 
+            // GroupScope completeness uses the same incoming typed parent evidence.
+            val presentationSnapshot = bundle.bigPicturePresentation ?: presentationRepository.snapshot()
             val groupScopeSnapshots =
                 bundle.hierarchyPlacementGroupScopes ?: groupScopeStore.loadAll()
             val decodedGroupScopes =
@@ -93,6 +95,7 @@ class SnapshotRestoreLocalDataSourceImpl
                     snapshots = groupScopeSnapshots,
                     placements = decodedHierarchy,
                     requireComplete = bundle.hierarchyPlacementGroupScopes != null,
+                    presentation = presentationSnapshot,
                 )
             val coverageStore = com.romankozak.forwardappmobile.data.hierarchy.GroupScopeCoverageStore(database)
             val decodedCoverage = coverageStore.decodeForRestore(bundle, decodedHierarchy, decodedGroupScopes)
@@ -107,8 +110,6 @@ class SnapshotRestoreLocalDataSourceImpl
 
             // Preserve local presentation for historical backups that lack this stream.
             // Validate against the incoming H1 before destructive table clearing.
-            val presentationSnapshot =
-                bundle.bigPicturePresentation ?: presentationRepository.snapshot()
             validateBigPicturePresentation(presentationSnapshot, decodedHierarchy)
             // Fail before destructive clear when the combined restored
             // H1 + presentation graph is not structurally admissible.
@@ -202,12 +203,12 @@ class SnapshotRestoreLocalDataSourceImpl
                 strategicExtensionStore.restoreExactDecoded(decodedStrategicExtensions)
                 hierarchyStore.restoreExactDecoded(decodedHierarchy)
                 coverageStore.restoreExact(decodedCoverage)
+                presentationRepository.restoreExact(presentationSnapshot)
                 groupScopeStore.restoreExactDecoded(
                     scopes = decodedGroupScopes,
                     requireComplete = bundle.hierarchyPlacementGroupScopes != null,
                 )
                 linkedAppearanceStore.restoreExactDecoded(decodedLinkedAppearances)
-                presentationRepository.restoreExact(presentationSnapshot)
                 com.romankozak.forwardappmobile.data.hierarchy.container.HistoricalGroupContainerCutover(database).materialize()
                 coverageStore.validateCurrent()
                 canonicalScoringAuthorityActivator.ensureActivated()

@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -266,9 +268,16 @@ class CanonicalStrategicPlanningAdapter
         }
 
         suspend fun reorder(quests: List<ArcQuestEntity>) {
-            quests.forEachIndexed { index, quest ->
-                val current = requireNotNull(getById(quest.id)) { "ArcQuest ${quest.id} does not exist" }
-                if (current.order != index.toLong()) updateQuest(current.copy(order = index.toLong()))
+            val ordered = quests.toList()
+            // Nested canonical/carrier writes must commit or roll back as one command,
+            // including when a newer drag cancels this reorder in the ViewModel.
+            database.withTransaction {
+                ordered.forEachIndexed { index, quest ->
+                    currentCoroutineContext().ensureActive()
+                    val current = requireNotNull(getById(quest.id)) { "ArcQuest ${quest.id} does not exist" }
+                    if (current.order != index.toLong()) updateQuest(current.copy(order = index.toLong()))
+                }
+                currentCoroutineContext().ensureActive()
             }
         }
 

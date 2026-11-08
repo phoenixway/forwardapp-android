@@ -5,6 +5,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SemanticRelationCopyTest {
+    @Test fun `compact rows retain direction without repeating either title`() {
+        OrientationRelationType.entries.forEach { kind ->
+            val row = OrientationGraphRelationItem("edge", "other", "Selected", kind, OrientationRelationEditDirection.OUTGOING, 1)
+            val incoming = row.copy(direction = OrientationRelationEditDirection.INCOMING)
+            assertFalse(row.compactCaption().contains("Selected"))
+            assertTrue(row.compactCaption().isNotBlank())
+            if (kind != OrientationRelationType.CONFLICTS_WITH) assertNotEquals(row.compactCaption(), incoming.compactCaption())
+            else assertEquals(row.compactCaption(), incoming.compactCaption())
+        }
+    }
+
+    @Test fun `compact Workspace captions preserve all binding meanings`() {
+        assertEquals("Втілює цю сутність", WorkspaceBindingType.EMBODIES.compactCaption())
+        assertEquals("Реалізує цю сутність", WorkspaceBindingType.REALIZES.compactCaption())
+        assertEquals("Підтримує цю сутність", WorkspaceBindingType.SUPPORTS.compactCaption())
+        assertEquals("Моніторить цю сутність", WorkspaceBindingType.MONITORS.compactCaption())
+    }
     @Test fun `outgoing sentence reads from current to selected`() {
         assertEquals("«Лікування» підтримує «Ліки»", orientationRelationSentence(OrientationRelationType.SUPPORTS, "Лікування", "Ліки"))
     }

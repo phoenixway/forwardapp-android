@@ -123,6 +123,7 @@ internal fun validateHierarchyPlacementGroupScopes(
                 .filter {
                     !it.isDeleted &&
                         it.parentPlacementId == null &&
+                        it.id.value !in containerMembers &&
                         it.target.type == HierarchyTargetType.MANAGED_SUBJECT &&
                         (coverage == null || modes[it.id.value] == "LEGACY_UNKNOWN")
                 }

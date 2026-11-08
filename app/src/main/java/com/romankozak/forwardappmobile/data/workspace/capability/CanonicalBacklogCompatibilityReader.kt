@@ -8,9 +8,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Leg
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.diagnostics.BacklogAddTrace
 import com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,28 +34,17 @@ class CanonicalBacklogCompatibilityReader
         private val database: AppDatabase,
     ) {
         fun observeItemsForContext(contextId: String): Flow<List<BacklogItem>> =
-            combine(
-                database.workspaceBacklogEntryDao().observeLive(contextId),
-                database.backlogGoalAssociationLinkDao().observeForContext(contextId),
-                database.orientationDao().observeLegacyMappings(),
-                database.workspaceDao().observeAll(),
-            ) { _, _, _, _ ->
-                // These Room flows are invalidation signals, not a coherent
-                // cross-table snapshot. Their emissions may arrive separately
-                // after one committed transaction.
-                Unit
-            }.map {
+            database.invalidationTracker.createFlow(
+                "workspace_backlog_entries", "backlog_goal_association_links",
+                "legacy_subject_mappings", "workspaces",
+            ).conflate().map {
+                // One statement joins the same authorities coherently, using
+                // the reader connection rather than queueing a writer transaction.
                 readItemsForContextSnapshot(contextId)
-            }
+            }.distinctUntilChanged()
 
         suspend fun getDirectItemsForContext(contextId: String): List<BacklogItem> =
-            database.withTransaction {
-                val support = snapshotSupport()
-                database.workspaceBacklogEntryDao()
-                    .getLive(contextId)
-                    .map { entry -> entry.toCompatibilityItem(support) }
-                    .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
-            }
+            database.workspaceBacklogReadDao().getRows(contextId, includeDerived = false).map { it.toCompatibilityItem() }
 
         suspend fun getItemsForContext(contextId: String): List<BacklogItem> =
             readItemsForContextSnapshot(contextId)
@@ -81,19 +72,12 @@ class CanonicalBacklogCompatibilityReader
         private suspend fun readItemsForContextSnapshot(
             contextId: String,
         ): List<BacklogItem> =
-            database.withTransaction {
-                val support = snapshotSupport()
-                val explicit =
-                    database.workspaceBacklogEntryDao()
-                        .getLive(contextId)
-                        .map { entry -> entry.toCompatibilityItem(support) }
-                val derived =
-                    database.backlogGoalAssociationLinkDao()
-                        .getForContext(contextId)
-                        .map(BacklogGoalAssociationLink::toCompatibilityItem)
-
-                (explicit + derived)
-                    .sortedWith(compareBy<BacklogItem> { it.order }.thenBy { it.id })
+            BacklogAddTrace.measureWorkspace(contextId, "backlog.snapshot") {
+                database.workspaceBacklogReadDao().getRows(contextId, includeDerived = true).map { it.toCompatibilityItem() }
+            }.also { items ->
+                BacklogAddTrace.targetObserved(contextId, "backlog.target_received") { placementId, goalId ->
+                    items.any { it.id == placementId || (goalId != null && it.itemType == BacklogItemTypeValues.GOAL && it.entityId == goalId) }
+                }
             }
 
         private suspend fun snapshotSupport(): ProjectionSupport =

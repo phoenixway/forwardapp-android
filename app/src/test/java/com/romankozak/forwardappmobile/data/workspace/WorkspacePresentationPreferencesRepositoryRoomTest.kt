@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceP
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,6 +19,45 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class WorkspacePresentationPreferencesRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test fun `automatic view remembering skips missing and deleted owners without changing existing preferences`() = runBlocking {
+        val db = database()
+        try {
+            val repository = WorkspacePresentationPreferencesRepository(db, db.workspaceDao(), db.workspacePresentationPreferencesDao())
+            assertFalse(repository.rememberDefaultViewModeIfLive("missing", "DASHBOARD", 10))
+            assertNull(db.workspacePresentationPreferencesDao().getRaw("missing"))
+            val owner = WorkspaceEntity(id = "workspace", nameOverride = "Workspace", descriptionOverride = null,
+                roleCode = null, createdAt = 1, updatedAt = 1, syncedAt = null, isDeleted = false,
+                version = 1, provenance = WorkspaceProvenance.STANDALONE.name, sourceContextId = null)
+            db.workspaceDao().upsert(listOf(owner))
+            assertTrue(repository.rememberDefaultViewModeIfLive(owner.id, "BACKLOG", 10))
+            val before = db.workspacePresentationPreferencesDao().getRaw(owner.id)
+            db.workspaceDao().upsert(listOf(owner.copy(isDeleted = true, version = 2)))
+            assertFalse(repository.rememberDefaultViewModeIfLive(owner.id, "DASHBOARD", 20))
+            assertEquals(before, db.workspacePresentationPreferencesDao().getRaw(owner.id))
+            assertTrue(db.workspaceDao().getById(owner.id)!!.isDeleted)
+            assertTrue(runCatching { repository.setDefaultViewMode(owner.id, "DASHBOARD", 30) }.isFailure)
+            assertEquals(before, db.workspacePresentationPreferencesDao().getRaw(owner.id))
+            assertNull(db.contextDao().getContextById(owner.id))
+        } finally { db.close() }
+    }
+
+    @Test fun `automatic view remembering on live owner preserves normal versioned preference behavior`() = runBlocking {
+        val db = database()
+        try {
+            val repository = WorkspacePresentationPreferencesRepository(db, db.workspaceDao(), db.workspacePresentationPreferencesDao())
+            db.workspaceDao().upsert(listOf(WorkspaceEntity(id = "live", nameOverride = "Live", descriptionOverride = null,
+                roleCode = null, createdAt = 1, updatedAt = 1, syncedAt = null, isDeleted = false,
+                version = 1, provenance = WorkspaceProvenance.CANONICAL_ONLY.name, sourceContextId = null)))
+            assertTrue(repository.rememberDefaultViewModeIfLive("live", "DASHBOARD", 10))
+            assertTrue(repository.rememberDefaultViewModeIfLive("live", "BACKLOG", 20))
+            val row = db.workspacePresentationPreferencesDao().getRaw("live")!!
+            assertEquals("BACKLOG", row.defaultViewModeName)
+            assertEquals(2L, row.version)
+            assertNull(row.syncedAt)
+            assertNull(db.contextDao().getContextById("live"))
+        } finally { db.close() }
+    }
 
     @Test
     fun `shell-free Workspace owns presentation preferences without creating Context`() = runBlocking {

@@ -22,6 +22,7 @@ fun StrategicArcBottomPanel(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val showAllParticipants by viewModel.showAllParticipants.collectAsStateWithLifecycle()
     var inputValue by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
     var showBeaconPicker by remember { mutableStateOf(false) }
@@ -46,6 +47,9 @@ fun StrategicArcBottomPanel(
         onSelectTab = viewModel::selectTab,
         onShowContextPicker = { showContextPicker = true },
         onClearInput = { inputValue = TextFieldValue("") },
+        showAllParticipants = showAllParticipants,
+        onShowAllParticipantsChange = viewModel::setShowAllParticipants,
+        arcKey = uiState.currentArcKey,
         additionalActions = strategicArcMenuActions(
             ready = !uiState.isLoading && uiState.error == null,
             hasPrevious = uiState.previousArcKey != null,

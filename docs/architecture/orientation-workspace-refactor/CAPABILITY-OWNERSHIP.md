@@ -144,6 +144,22 @@ runtime placement authority is `WorkspaceConnection`. `AttachmentEntity`
 remains a separate reusable content/reference owner, so canonical unlink and
 capability lifecycle cannot delete shared Attachment content.
 
+2026-11-06 deleted-owner read hardening: resolving an existing canonical owner
+for observation is separate from permission to author placements. Connections
+reads join live Workspace state and return empty for tombstoned owners, including
+stale badge destinations; owner-state changes invalidate the query reactively.
+Authoring retains strict live-owner checks. No legacy fallback/resurrection or
+content deletion is introduced. Room 206 unchanged; focused owner-routing Room
+class 17/17 HOST PASS, device badge acceptance pending.
+
+Day Focus Workspace badges must enter the canonical Workspace destination's
+availability gate, not bypass it via context_detail. Automatic view remembering
+may race owner deletion: its live check and preference write are transactional,
+and unavailable owners produce no write. Strict explicit preference mutations
+remain strict. Stored stale references are not retargeted by title or raw-ID
+heuristics; a same-title replacement is a distinct identity. Follow-up focused
+HOST 22/22 PASS (routing/destination/preferences/actions); Room 206 unchanged.
+
 WORKSPACE_CONNECTIONS_PICKER_REPAIR_HOST_20261024 closes an Android runtime
 adapter gap in that existing cutover. Attachment APIs now admit live canonical
 Workspace IDs for ordinary CANONICAL_ONLY/STANDALONE and valid CONTEXT_BACKED
@@ -168,6 +184,22 @@ non-authoritative projections. V3.8b physically removes local `list_items` and
 `backlog_orders` at schema 194. Historical payload decoding and migration SQL
 remain, but runtime commands, readers, and live transport cannot restore their
 authority.
+
+Android ordinary Backlog list/direct reads join explicit placements, live
+CUT_OVER GOAL mapping evidence, Workspace endpoint state and the separate
+hashtag cache in one SQL statement (`WorkspaceBacklogReadDao`). This replaces
+the multi-query `withTransaction` read for these paths, without admitting
+independently collected table frames or waiting in Room's writer transaction
+queue. DTO identity/order/version/provenance remain unchanged. Unknown kinds,
+missing/deleted Workspace targets and missing CUT_OVER GOAL mappings fail
+closed; existing UNIQUE(subjectId) proves mapping cardinality. Other content
+liveness keeps its existing policy. ID-based mixed
+lookup retains its existing transaction; no hierarchy authority is inferred.
+For new Goal creation only, an empty set of hashtag copies needs no follow-up
+visibility command because the initial canonical placement is already live.
+Existing-Goal edits still apply the full auto-hide/restore policy, including
+restoration after removing the last hashtag. No mutation/transport/schema
+authority changes; Room 206 unchanged.
 
 Other capability content not explicitly described above as canonical remains on
 its recorded legacy or partial ownership boundary.

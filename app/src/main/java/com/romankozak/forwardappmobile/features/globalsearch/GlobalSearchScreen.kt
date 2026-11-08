@@ -503,7 +503,7 @@ fun MagicBoxScreen(
                                     showLegacyResults = true
                                     submittedQuery = uiState.query
                                     viewModel.onSubmitSearch()
-                                })
+                                }, attachmentsEnabled = GlobalSearchType.Attachments in selectedTypes)
                             } else when (currentMode) {
                                 OmniboxMode.DataSearch -> {
                                     when {
