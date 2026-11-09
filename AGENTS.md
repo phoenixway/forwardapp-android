@@ -35,6 +35,22 @@ Before substantial tasks and major phase transitions, proactively advise the use
 - Run targeted tests or compilation only when allowed by the current task and materially useful.
 - Do not repeat build/test passes when a higher-level check already proves the required property.
 
+## Long-running Builds and Tests
+
+Minimize model token consumption during authorized Gradle builds and tests. Build Ownership and Token-efficient Testing rules still apply.
+
+- Run builds and tests as long-running terminal processes.
+- Never poll build or test progress at short intervals.
+- Prefer blocking waits with the maximum practical tool-supported timeout, within applicable communication and tool limits.
+- Redirect full Gradle output to a log file.
+- Do not stream routine Gradle progress into model context.
+- Wait for process completion before inspecting results.
+- On success, report only the build or test result and artifact or report path, when applicable.
+- On failure, extract relevant errors and their context.
+- Read the full log only when necessary for diagnosis.
+- Never restart a running build or test merely because it is slow.
+- Preserve Gradle incremental build state and caches.
+
 ## Code File Size
 
 - New UI components/hooks: prefer <=300 lines.

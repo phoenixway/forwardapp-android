@@ -259,10 +259,10 @@ fun RecentProjectEntrySnapshot.toEntity(): RecentItem = RecentItem(
     isPinned = false
 )
 
-fun RecentItem.toSnapshot(): RecentProjectEntrySnapshot = RecentProjectEntrySnapshot(
-    contextId = this.target,
-    timestamp = this.lastAccessed
-)
+fun RecentItem.toSnapshot(): RecentProjectEntrySnapshot {
+    require(type == RecentItemType.PROJECT) { "Project recent transport cannot encode $type" }
+    return RecentProjectEntrySnapshot(contextId = target, timestamp = lastAccessed)
+}
 
 fun Reminder.toSnapshot(): ReminderSnapshot = ReminderSnapshot(id, entityId, entityType, reminderTime, status, creationTime, snoozeUntil, updatedAt ?: creationTime, isDeleted, version)
 fun ReminderSnapshot.toEntity(): Reminder = Reminder(

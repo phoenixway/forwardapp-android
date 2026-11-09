@@ -497,6 +497,10 @@ class InputHandler(
             RecentItemType.OBSIDIAN_LINK -> {
                 resultListener.createObsidianNote(item.target)
             }
+            RecentItemType.SEMANTIC_ENTITY, RecentItemType.SCRIPT -> {
+                resultListener.requestNavigation(com.romankozak.forwardappmobile.core.navigation.NavTargetRouter.routeOf(
+                    requireNotNull(com.romankozak.forwardappmobile.features.recent.recentEntityDestination(item))))
+            }
         }
         onDismissRecentLists()
     }

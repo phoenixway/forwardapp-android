@@ -1244,6 +1244,10 @@ class ContextHierarchyScreenViewModel
                             ),
                         )
                     }
+                    RecentItemType.SEMANTIC_ENTITY, RecentItemType.SCRIPT -> {
+                        _uiEventChannel.send(ProjectUiEvent.Navigate(requireNotNull(
+                            com.romankozak.forwardappmobile.features.recent.recentEntityDestination(item))))
+                    }
                     RecentItemType.OBSIDIAN_LINK -> {
                         val link =
                             RelatedLink(

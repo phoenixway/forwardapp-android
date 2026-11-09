@@ -235,6 +235,8 @@ private fun ItemTypeIcon(
                 RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
                 RecentItemType.MUSIC_NOTE -> Icons.Outlined.MusicNote
                 RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+                RecentItemType.SEMANTIC_ENTITY -> Icons.Outlined.Link
+                RecentItemType.SCRIPT -> Icons.AutoMirrored.Outlined.Note
             },
         contentDescription = null,
         modifier = Modifier.size(36.dp),
@@ -279,17 +281,21 @@ private fun getColorsForType(type: RecentItemType): Color {
         RecentItemType.CHECKLIST -> MaterialTheme.colorScheme.tertiaryContainer
         RecentItemType.MUSIC_NOTE -> MaterialTheme.colorScheme.secondaryContainer
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
+        RecentItemType.SEMANTIC_ENTITY -> MaterialTheme.colorScheme.primary
+        RecentItemType.SCRIPT -> MaterialTheme.colorScheme.secondary
     }
 }
 
 private fun fallbackRecentItemTitle(item: RecentItem): String =
     when (item.type) {
-        RecentItemType.PROJECT -> "Контекст"
+        RecentItemType.PROJECT -> "Workspace"
         RecentItemType.NOTE -> "Нотатка"
         RecentItemType.NOTE_DOCUMENT -> "Документ"
         RecentItemType.CHECKLIST -> "Чекліст"
         RecentItemType.MUSIC_NOTE -> "Музичні ноти"
         RecentItemType.OBSIDIAN_LINK -> item.target.ifBlank { "Посилання" }
+        RecentItemType.SEMANTIC_ENTITY -> "Семантична сутність"
+        RecentItemType.SCRIPT -> "Скрипт"
     }
 
 private fun contrastRatio(

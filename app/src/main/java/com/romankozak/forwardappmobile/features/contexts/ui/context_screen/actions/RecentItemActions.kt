@@ -44,6 +44,8 @@ class RecentItemActions(
             RecentItemType.NOTE_DOCUMENT -> Result.Navigate(NavTarget.NoteDocument(id = item.target))
             RecentItemType.CHECKLIST -> Result.Navigate(NavTarget.Checklist(id = item.target))
             RecentItemType.MUSIC_NOTE -> Result.Navigate(NavTarget.MusicNote(id = item.target))
+            RecentItemType.SEMANTIC_ENTITY, RecentItemType.SCRIPT ->
+                Result.Navigate(requireNotNull(com.romankozak.forwardappmobile.features.recent.recentEntityDestination(item)))
             RecentItemType.OBSIDIAN_LINK -> {
                 val address = runCatching { ObsidianNoteAddress.parse(item.target) }.getOrNull()
                     ?: return Result.ShowMessage("Некоректна адреса Obsidian нотатки")

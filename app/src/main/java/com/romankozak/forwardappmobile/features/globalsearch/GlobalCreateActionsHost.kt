@@ -29,6 +29,8 @@ import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import kotlinx.coroutines.launch
 
+enum class GlobalCreateRequest { WORKSPACE, DOCUMENT, REMINDER }
+
 @Composable
 fun GlobalCreateActionsHost(
     showCreateSheet: Boolean,
@@ -39,6 +41,8 @@ fun GlobalCreateActionsHost(
     onSemanticEntityCreated: (String) -> Unit,
     onCreateReminder: (Long) -> Unit,
     snackbarHostState: SnackbarHostState,
+    request: GlobalCreateRequest? = null,
+    onRequestConsumed: () -> Unit = {},
     semanticEntityCreationViewModel: SemanticEntityCreationViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -49,6 +53,16 @@ fun GlobalCreateActionsHost(
     var showCreateReminderDialog by remember { mutableStateOf(false) }
     var showSemanticEntityDialog by remember { mutableStateOf(false) }
     val semanticEntityState by semanticEntityCreationViewModel.uiState.collectAsStateWithLifecycle()
+
+    androidx.compose.runtime.LaunchedEffect(request) {
+        when (request) {
+            GlobalCreateRequest.WORKSPACE -> { newContextName = ""; showCreateContextDialog = true }
+            GlobalCreateRequest.DOCUMENT -> showDocumentCreateActionsDialog = true
+            GlobalCreateRequest.REMINDER -> showCreateReminderDialog = true
+            null -> return@LaunchedEffect
+        }
+        onRequestConsumed()
+    }
 
     androidx.compose.runtime.LaunchedEffect(semanticEntityCreationViewModel) {
         semanticEntityCreationViewModel.events.collect { event ->

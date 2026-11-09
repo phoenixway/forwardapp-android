@@ -21,6 +21,16 @@ class RecentItemsRepository
     ) {
         fun getRecentItems(limit: Int = 20): Flow<List<RecentItem>> = recentItemDao.getRecentItems(limit)
 
+        /** New identity namespaces cannot overwrite a same-UUID Workspace/document recent. */
+        suspend fun logEntityAccess(type: RecentItemType, target: String, displayName: String) {
+            require(type == RecentItemType.SEMANTIC_ENTITY || type == RecentItemType.SCRIPT)
+            require(target.isNotBlank())
+            val id = "${type.name}:$target"
+            val previous = recentItemDao.getRecentItemById(id)
+            recentItemDao.logAccess(RecentItem(id, type, System.currentTimeMillis(), displayName, target,
+                isPinned = previous?.isPinned == true))
+        }
+
         fun getRecentItemsForContextFlow(contextId: String): Flow<List<RecentItem>> = recentItemDao.getRecentItemsForContext(contextId)
 
         suspend fun logProjectAccess(

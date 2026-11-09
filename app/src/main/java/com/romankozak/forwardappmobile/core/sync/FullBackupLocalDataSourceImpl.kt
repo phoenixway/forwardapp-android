@@ -610,7 +610,9 @@ class FullBackupLocalDataSourceImpl
                 systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
                 lifeSystemStates = lifeSystemStateDao.getAllSync().map { it.toSnapshot() },
                 dayManagementRuntimeState = dayManagementRuntimeRepository.exportSnapshot(),
-                recentProjectEntries = recentItemDao.getAllSync().map { it.toSnapshot() },
+                recentProjectEntries = recentItemDao.getAllSync()
+                    .filter { it.type == com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType.PROJECT }
+                    .map { it.toSnapshot() },
                 linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
                 // Configuration
                 contextRoleProfiles = structurePresetDao.getAllSync().map { it.toSnapshot() },

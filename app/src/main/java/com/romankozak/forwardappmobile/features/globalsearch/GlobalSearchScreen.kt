@@ -15,7 +15,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
@@ -49,16 +47,12 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.bottomPanelColors
-import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
-import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
-import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
-import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
-import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -100,9 +94,7 @@ fun MagicBoxScreen(
     var showCreateSheet by remember { mutableStateOf(false) }
     var showCreateContextDialog by remember { mutableStateOf(false) }
     var showDocumentCreateActionsDialog by remember { mutableStateOf(false) }
-    var pendingDocumentCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
-    var showCreateReminderDialog by remember { mutableStateOf(false) }
-    var newContextName by remember { mutableStateOf("") }
+    var showEntityRecents by rememberSaveable { mutableStateOf(false) }
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
@@ -112,13 +104,16 @@ fun MagicBoxScreen(
     val currentModePrefs = uiState.modeDisplayPrefs[currentMode]
     val hasQuery = uiState.query.isNotBlank()
     var showLegacyResults by remember(uiState.query) { mutableStateOf(false) }
-    val showCanonicalResults = currentMode == OmniboxMode.DataSearch && hasQuery &&
+    val showCanonicalResults = !showEntityRecents && currentMode == OmniboxMode.DataSearch && hasQuery &&
         (!showLegacyResults || hasCanonicalQueryOperators(uiState.query))
 
     val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
     val submitWithKeyboardHide: () -> Unit = {
         submittedQuery = uiState.query.takeIf { it.isNotBlank() }
-        if (showCanonicalResults) viewModel.rememberCanonicalQuery() else viewModel.onSubmitSearch(submitCommandIndex)
+        if (showCanonicalResults || (showEntityRecents && currentMode == OmniboxMode.DataSearch)) {
+            viewModel.rememberCanonicalQuery()
+        } else viewModel.onSubmitSearch(submitCommandIndex)
+        showEntityRecents = false
         keyboardController?.hide()
     }
 
@@ -161,9 +156,9 @@ fun MagicBoxScreen(
         }
     val hasVisibleResults = !uiState.isLoading && resultCount > 0
     val hasSubmittedCurrentQuery = hasQuery && submittedQuery == uiState.query
-    val showSearchHistoryHint = shouldShowSearchHistoryHint(currentMode, uiState.query, uiState.searchHistory)
+    val showSearchHistoryHint = !showEntityRecents && shouldShowSearchHistoryHint(currentMode, uiState.query, uiState.searchHistory)
     val showCommandHistoryHint =
-        currentMode == OmniboxMode.Command &&
+        !showEntityRecents && currentMode == OmniboxMode.Command &&
             !hasQuery &&
             uiState.recentCommands.isNotEmpty()
     val hasResultContent by remember(
@@ -313,119 +308,23 @@ fun MagicBoxScreen(
             onDismiss = { showSortSheet = false },
         )
     }
-    if (showCreateSheet) {
-        CreateFromSearchBottomSheet(
-            onCreateContext = {
-                showCreateSheet = false
-                newContextName = ""
-                showCreateContextDialog = true
-            },
-            onCreateDocument = {
-                showCreateSheet = false
-                showDocumentCreateActionsDialog = true
-            },
-            onCreateReminder = {
-                showCreateSheet = false
-                showCreateReminderDialog = true
-            },
-            onDismiss = { showCreateSheet = false },
-        )
-    }
-    if (showDocumentCreateActionsDialog) {
-        ConnectionsCreateActionsDialog(
-            onDismiss = { showDocumentCreateActionsDialog = false },
-            onActionSelected = { type ->
-                showDocumentCreateActionsDialog = false
-                when (type) {
-                    CreateConnectionType.CONTEXT -> {
-                        newContextName = ""
-                        showCreateContextDialog = true
-                    }
-                    CreateConnectionType.SCRIPT -> {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Скрипт створюється з ConnectionsPanel",
-                                duration = SnackbarDuration.Short,
-                            )
-                        }
-                    }
-                    else -> pendingDocumentCreateAction = type.toGlobalPickerCreateAction()
-                }
-            },
-        )
-    }
-    pendingDocumentCreateAction?.let { action ->
-        LinkedTargetsPickerDialog(
-            contextOptions = emptyList(),
-            attachmentOptions = emptyList(),
-            preselectedContextIds = emptySet(),
-            preselectedAttachmentIds = emptySet(),
-            initialTab = LinkPickerTab.ATTACHMENTS,
-            allowedTabs = setOf(LinkPickerTab.ATTACHMENTS),
-            initialCreateAction = action,
-            onDismiss = { pendingDocumentCreateAction = null },
-            onContextSelected = {},
-            onAttachmentSelected = {
-                pendingDocumentCreateAction = null
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Документ створено",
-                        duration = SnackbarDuration.Short,
-                    )
-                }
-            },
-            onCreateDocument = { draft -> viewModel.createAttachmentFromGlobalSearch(draft) },
-        )
-    }
-    if (showCreateReminderDialog) {
-        ReminderPropertiesDialog(
-            onDismiss = { showCreateReminderDialog = false },
-            onSetReminder = { timestamp ->
-                viewModel.createReminder(timestamp)
-                showCreateReminderDialog = false
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Нагадування додано",
-                        duration = SnackbarDuration.Short,
-                    )
-                }
-            },
-            currentReminders = emptyList(),
-        )
-    }
-    if (showCreateContextDialog) {
-        AlertDialog(
-            onDismissRequest = { showCreateContextDialog = false },
-            title = { Text("Новий контекст") },
-            text = {
-                OutlinedTextField(
-                    value = newContextName,
-                    onValueChange = { newContextName = it },
-                    label = { Text("Назва") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = newContextName.isNotBlank(),
-                    onClick = {
-                        val contextName = newContextName
-                        showCreateContextDialog = false
-                        newContextName = ""
-                        viewModel.createContext(contextName)
-                    },
-                ) {
-                    Text("Створити")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateContextDialog = false }) {
-                    Text("Скасувати")
-                }
-            },
-        )
-    }
+    GlobalCreateActionsHost(
+        showCreateSheet = showCreateSheet,
+        onDismissCreateSheet = { showCreateSheet = false },
+        onCreateContext = viewModel::createContext,
+        onCreateDocument = viewModel::createAttachmentFromGlobalSearch,
+        onCreateCanonicalNote = { navController.navigate(com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes.LEGACY_NOTE_CREATE) },
+        onSemanticEntityCreated = { id -> navController.navigate(com.romankozak.forwardappmobile.core.navigation.NavTargetRouter.routeOf(
+            com.romankozak.forwardappmobile.core.navigation.NavTarget.SemanticEntityEditor(id))) },
+        onCreateReminder = viewModel::createReminder,
+        snackbarHostState = snackbarHostState,
+        request = when {
+            showCreateContextDialog -> GlobalCreateRequest.WORKSPACE
+            showDocumentCreateActionsDialog -> GlobalCreateRequest.DOCUMENT
+            else -> null
+        },
+        onRequestConsumed = { showCreateContextDialog = false; showDocumentCreateActionsDialog = false },
+    )
     if (showSearchSettingsSheet) {
         SearchPreferencesBottomSheet(
             currentMode = currentMode,
@@ -481,7 +380,7 @@ fun MagicBoxScreen(
                 .padding(paddingValues)
                 .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
         ) {
-            if (hasResultContent || showCanonicalResults) {
+            if (hasResultContent || showCanonicalResults || showEntityRecents) {
                 // ── Content area ──────────────────────────────────────────────
                 Surface(
                     modifier = Modifier
@@ -498,7 +397,10 @@ fun MagicBoxScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            if (showCanonicalResults) {
+                            if (showEntityRecents) {
+                                com.romankozak.forwardappmobile.features.recent.RecentEntitiesContent(
+                                    onOpen = { navController.navigate(com.romankozak.forwardappmobile.core.navigation.NavTargetRouter.routeOf(it)) })
+                            } else if (showCanonicalResults) {
                                 MagicBoxCanonicalResults(uiState.query, navController, onLegacyResults = {
                                     showLegacyResults = true
                                     submittedQuery = uiState.query
@@ -527,7 +429,6 @@ fun MagicBoxScreen(
                                                         onStartActivity = viewModel::startActivityFromCurrentQuery,
                                                         onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
                                                         onCreateContext = {
-                                                            newContextName = ""
                                                             showCreateContextDialog = true
                                                         },
                                                         onCreateDocument = { showDocumentCreateActionsDialog = true },
@@ -654,7 +555,7 @@ fun MagicBoxScreen(
                 MagicBoxActionStrip(
                     modifier = Modifier.fillMaxWidth(),
                     palette = modePalette,
-                    hasVisibleResults = hasVisibleResults && !showCanonicalResults,
+                    hasVisibleResults = hasVisibleResults && !showCanonicalResults && !showEntityRecents,
                     resultCount = resultCount,
                     quickNavigationAction =
                         when (currentMode) {
@@ -685,22 +586,22 @@ fun MagicBoxScreen(
                     currentMode = currentMode,
                     modePalette = modePalette,
                     onShowCreate = { showCreateSheet = true },
+                    onShowRecents = { showEntityRecents = true; keyboardController?.hide() },
+                    recentsSelected = showEntityRecents,
                     onSetMode = {
+                        showEntityRecents = false
                         submittedQuery = null
                         viewModel.setMode(it)
                     },
-                    onCycleMode = {
-                        submittedQuery = null
-                        viewModel.cycleMode(it)
-                    },
                     onQueryChange = {
+                        showEntityRecents = false
                         submittedQuery = null
                         viewModel.onQueryChange(it)
                     },
                     onClearQuery = { viewModel.onQueryChange("") },
                     onSubmit = submitWithKeyboardHide,
                     onKeyDown = { keyEvent ->
-                        if (showCanonicalResults) false else handleOmniboxKeyEvent(
+                        if (showCanonicalResults || showEntityRecents) false else handleOmniboxKeyEvent(
                             keyEvent = keyEvent,
                             currentMode = currentMode,
                             uiState = uiState,
@@ -841,8 +742,9 @@ private fun CompactOmnibox(
     currentMode: OmniboxMode,
     modePalette: OmniboxModePalette,
     onShowCreate: () -> Unit,
+    onShowRecents: () -> Unit,
+    recentsSelected: Boolean,
     onSetMode: (OmniboxMode) -> Unit,
-    onCycleMode: (Boolean) -> Unit,
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
     onSubmit: () -> Unit,
@@ -960,8 +862,9 @@ private fun CompactOmnibox(
                     currentMode = currentMode,
                     palette = modePalette,
                     onShowCreate = onShowCreate,
+                    onShowRecents = onShowRecents,
+                    recentsSelected = recentsSelected,
                     onSetMode = onSetMode,
-                    onCycleMode = onCycleMode,
                 )
             }
         }
@@ -969,60 +872,7 @@ private fun CompactOmnibox(
 }
 
 @Composable
-private fun ModeIconDock(
-    currentMode: OmniboxMode,
-    palette: OmniboxModePalette,
-    onShowCreate: () -> Unit,
-    onSetMode: (OmniboxMode) -> Unit,
-    onCycleMode: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .pointerInput(currentMode) {
-                var totalDrag = 0f
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
-                    onDragEnd = {
-                        when {
-                            totalDrag > 36f -> onCycleMode(false)
-                            totalDrag < -36f -> onCycleMode(true)
-                        }
-                        totalDrag = 0f
-                    },
-                )
-            },
-        shape = RoundedCornerShape(16.dp),
-        color = palette.panelChrome.copy(alpha = 0.92f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.panelOutline.copy(alpha = 0.08f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OmniboxMode.entries.forEach { mode ->
-                ModeIconButton(
-                    mode = mode,
-                    selected = mode == currentMode,
-                    palette = palette,
-                    onClick = { onSetMode(mode) },
-                )
-            }
-            ModeDockActionButton(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Створити",
-                selected = false,
-                palette = palette,
-                onClick = onShowCreate,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ModeIconButton(
+internal fun ModeIconButton(
     mode: OmniboxMode,
     selected: Boolean,
     palette: OmniboxModePalette,
@@ -1038,7 +888,7 @@ private fun ModeIconButton(
 }
 
 @Composable
-private fun ModeDockActionButton(
+internal fun ModeDockActionButton(
     imageVector: ImageVector,
     contentDescription: String,
     selected: Boolean,
@@ -1053,7 +903,7 @@ private fun ModeDockActionButton(
         if (selected) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(42.dp),
+        modifier = Modifier.size(48.dp).semantics { this.selected = selected },
         shape = RoundedCornerShape(14.dp),
         color = containerColor,
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
@@ -1182,17 +1032,6 @@ private fun modeTitle(mode: OmniboxMode): String =
         OmniboxMode.AddActivityEvent -> "Add tracker event"
     }
 
-private fun CreateConnectionType.toGlobalPickerCreateAction(): PickerCreateAction =
-    when (this) {
-        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
-        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
-        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
-        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
-        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
-        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
-        CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
-    }
-
 private enum class OmniboxSelectionArea { None, Command, Data }
 
 private fun placeholderForMode(mode: OmniboxMode): String =
@@ -1245,7 +1084,7 @@ internal fun commandTitle(commandId: OmniboxCommandId): String =
         OmniboxCommandId.OpenStructurePresets -> "Presets"
     }
 
-private data class OmniboxModePalette(
+internal data class OmniboxModePalette(
     val searchSurface: androidx.compose.ui.graphics.Color,
     val contentSurface: androidx.compose.ui.graphics.Color,
     val screenBottomTint: androidx.compose.ui.graphics.Color,
@@ -1260,7 +1099,7 @@ private data class OmniboxModePalette(
 )
 
 @Composable
-private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
+internal fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
     val scheme = MaterialTheme.colorScheme
     val bottomColors = bottomPanelColors()
     val accent = modeAccentColor(mode)

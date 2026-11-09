@@ -14,12 +14,19 @@ class ScriptRepository
     constructor(
         private val scriptDao: ScriptDao,
         private val attachmentRepository: com.romankozak.forwardappmobile.sync.AttachmentsRepository, // Updated type
+        private val recentItemsRepository: RecentItemsRepository,
     ) {
         fun getAllScripts(): Flow<List<ScriptEntity>> = scriptDao.getAllFlow()
 
         fun getScriptsForContext(contextId: String): Flow<List<ScriptEntity>> = scriptDao.getForContext(contextId)
 
-        suspend fun getScriptById(id: String): ScriptEntity? = scriptDao.getById(id)
+        suspend fun getScriptById(id: String): ScriptEntity? = scriptDao.getById(id)?.also { script ->
+            if (!script.isDeleted) try {
+                recentItemsRepository.logEntityAccess(
+                    com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType.SCRIPT, script.id, script.name)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (_: Exception) { /* History failure must not make the script unavailable. */ }
+        }
 
         suspend fun createScript(
             name: String,

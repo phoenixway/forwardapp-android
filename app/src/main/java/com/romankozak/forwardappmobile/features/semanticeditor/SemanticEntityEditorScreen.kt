@@ -124,6 +124,9 @@ fun SemanticEntityEditorScreen(
         navController.navigate(NavTargetRouter.routeOf(NavTarget.CanonicalEntityPicker(request)))
     }
 
+    loaded?.model?.let { model ->
+        com.romankozak.forwardappmobile.features.recent.RecordRecentSemanticAccess(model.id, model.persistedName)
+    }
     Scaffold(
         topBar = {
             TopAppBar(

@@ -282,6 +282,8 @@ private fun NavGraphBuilder.mainGraph(
                     RecentItemType.MUSIC_NOTE ->
                         navigationManager.navigate(target = NavTarget.MusicNote(id = item.target))
 
+                    RecentItemType.SEMANTIC_ENTITY, RecentItemType.SCRIPT -> navigationManager.navigate(
+                        target = requireNotNull(com.romankozak.forwardappmobile.features.recent.recentEntityDestination(item)))
                     RecentItemType.OBSIDIAN_LINK -> {
                         // Поки що просто лог або нічого
                         Log.d("RecentItemNav", "Obsidian link clicked: ${item.target}")

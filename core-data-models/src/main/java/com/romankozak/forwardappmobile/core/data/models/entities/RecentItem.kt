@@ -11,6 +11,8 @@ enum class RecentItemType {
     OBSIDIAN_LINK,
     CHECKLIST,
     MUSIC_NOTE,
+    SEMANTIC_ENTITY,
+    SCRIPT,
 }
 
 @Entity(tableName = "recent_items")
