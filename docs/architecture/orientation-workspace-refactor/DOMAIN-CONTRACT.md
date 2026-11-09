@@ -1028,6 +1028,16 @@ disables mutation and preserves raw data; it is never defaulted destructively.
 
 ## 8. Assessment history
 
+Android persistence boundary (2026-11-09): immutable assessment JSON uses stable
+canonical keys, never R8-renamed JVM field names. The decoder explicitly constructs
+all required AxisAssessment values and rejects missing/invalid required axes or
+origins within the existing INVALID_ASSESSMENT_JSON read diagnostic boundary.
+Only the established v1 -> v2 neutral defaults (effort/cost/risk/evaluationState)
+remain permitted. Release shrinker rules preserve assessment/provenance field
+and enum names for existing Gson writers. Reads never rewrite revision bytes or
+reconstruct a malformed revision from current materialized columns. This is a
+serialization/read-safety fix, not a new authority, schema or lifecycle change.
+
 Declared assessment and effective assessment are different projections.
 
 Each accepted assessment mutation creates an immutable revision containing:

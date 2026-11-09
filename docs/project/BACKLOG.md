@@ -1,5 +1,20 @@
 # ForwardApp Backlog
 
+## Connections command error containment when capability is absent
+
+Status: OBSERVED / NON-BLOCKING for assessment NPE fix (2026-11-09).
+Priority: UNSET. Estimate: small (0.5–2 h).
+
+Device crash buffer has a distinct ForwardApp crash at 15:51:05: an uncaught
+IllegalArgumentException (CONNECTIONS capability does not exist) from
+CanonicalCapabilityInstanceStore.requireActiveInstance ->
+CanonicalConnectionsRepository.requireActive -> createLinkAttachment.
+Exact initiating UI path is not established from that truncated asynchronous
+stack. Inspect the caller/availability gate and contain rejection as a visible
+command error. Do not silently activate capabilities, manufacture owners or
+weaken repository authoring admission. This is separate from the confirmed
+release JSON/R8 crash at 19:33 and has not been fixed/physically verified here.
+
 ## Strategic Arc reorder cancellation / atomicity
 
 Status: IMPLEMENTED / HOST VERIFICATION PENDING (2026-11-05).

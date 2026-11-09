@@ -1,5 +1,28 @@
 # ForwardApp Project State
 
+## 2026-11-09 - Release assessment JSON startup crash
+
+Device crash buffer showed repeated ForwardApp NPE at 19:33:01/05. Read-only APK
+inspection identified obfuscated lk.f as AxisAssessment and dj.g's failing
+dereference as canonical product current-assessment/revision matching. Gson
+reflection had allowed null mandatory assessment axes after JVM fields were
+renamed by R8. This is distinct from the earlier Connections capability failure.
+
+Canonical JSON decoding now constructs validated non-null axis objects from
+stable keys rather than Gson field reflection. Existing v1 neutral defaults are
+preserved; malformed mandatory state fails within INVALID_ASSESSMENT_JSON rather
+than escaping as an NPE. Five focused keep rules protect assessment/provenance
+DTOs and origin/evaluation enums for existing release Gson writers. No revisions
+or device DB data were rewritten; Room 206 unchanged; no hierarchy authority
+change. Device diagnostics copied APK code only, not application database/WAL.
+
+HOST across focused runs **19/19 PASS / 4 classes**: OrientationAssessmentJsonTest 7,
+OrientationAssessmentReadSafetyRoomTest 2, CanonicalProductReadRoomSourceTest 4,
+CanonicalProductReadRepositoryTest 6. Existing repository tests now use Robolectric
+for their Android StartupTrace/SystemClock dependency. Production/test Kotlin
+compile prerequisites and git diff --check PASS. No deployment or minified
+release smoke claimed; user acceptance with the rebuilt app is pending.
+
 ## 2026-11-08 - Attachments in ordinary MagicBox results
 
 Plain DataSearch no longer hides attachment documents behind Other results.

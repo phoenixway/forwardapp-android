@@ -23,6 +23,14 @@
 # Keep all data model classes used by Room from being obfuscated.
 -keep class com.romankozak.forwardappmobile.data.database.models.** { *; }
 
+# Immutable assessment JSON is durable canonical data, not a build-local JVM format.
+# Writers use Gson reflection: preserve these exact field/enum names across release builds.
+-keep class com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationAssessment { *; }
+-keep class com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment { *; }
+-keep class com.romankozak.forwardappmobile.shared.core.models.orientation.ValueProvenance { *; }
+-keep class com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin { *; }
+-keep class com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState { *; }
+
 # Hilt / Dagger generated code (aggregators, components, sentinels).
 -keep class dagger.hilt.internal.aggregatedroot.codegen.** { *; }
 -keep class dagger.hilt.internal.processedrootsentinel.codegen.** { *; }

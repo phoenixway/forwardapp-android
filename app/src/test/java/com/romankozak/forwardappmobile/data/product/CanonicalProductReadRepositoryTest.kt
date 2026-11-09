@@ -289,6 +289,7 @@ class CanonicalProductReadRoomSourceTest {
     }
 }
 
+@RunWith(RobolectricTestRunner::class)
 class CanonicalProductReadRepositoryTest {
     @Test
     fun `same Orientation in Day Tactical Strategic stays one product identity with current scopes`() =

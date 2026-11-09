@@ -1,5 +1,15 @@
 # Next
 
+## Release assessment crash: rebuilt-app acceptance
+
+After user rebuild/update, cold-open ForwardApp, open MagicBox and Planning,
+then open an existing Orientation with assessment history. Confirm no recurrence
+of the 2026-11-09 19:33 AxisAssessment NPE. A minified release should retain the
+canonical assessment field/enum names; the HOST runner does not execute R8.
+Malformed immutable evidence must report integrity failure, never be reset or
+rewritten. HOST 19/19 PASS across focused runs; Room 206 unchanged. No automatic
+deployment/data repair. Separate 15:51 Connections crash is recorded in Backlog.
+
 ## MagicBox attachments: physical smoke
 
 After user-run `make exp-arm64-cycle`, open MagicBox from the main dock. With

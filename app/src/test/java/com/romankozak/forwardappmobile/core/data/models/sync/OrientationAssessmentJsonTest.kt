@@ -1,12 +1,16 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueProvenance
 import com.romankozak.forwardappmobile.shared.core.models.orientation.AxisAssessment
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationAssessment
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class OrientationAssessmentJsonTest {
@@ -70,6 +74,40 @@ class OrientationAssessmentJsonTest {
             valueCode = value,
             origin = ValueOrigin.EXPLICIT,
         )
+
+    @Test fun `canonical read is independent of reflected field naming used by minified writers`() {
+        val json = gson.toJson(assessment())
+        val renamedFields = GsonBuilder().setFieldNamingStrategy { "renamed_${it.name}" }.create()
+        assertEquals(assessment(), decodeOrientationAssessmentJson(renamedFields, json))
+    }
+
+    @Test fun `missing mandatory axis is rejected inside decoder instead of leaking a null axis`() {
+        val root = JsonParser.parseString(gson.toJson(assessment())).asJsonObject
+        root.remove("importance")
+        assertThrows(IllegalArgumentException::class.java) { decodeOrientationAssessmentJson(gson, root.toString()) }
+    }
+
+    @Test fun `explicit null axis invalid origin and non-string value fail closed`() {
+        listOf("null", "{\"valueCode\":\"HIGH\"}", "{\"origin\":\"UNKNOWN\"}", "{\"origin\":\"EXPLICIT\",\"valueCode\":7}").forEach { axis ->
+            val root = JsonParser.parseString(gson.toJson(assessment())).asJsonObject
+            root.add("importance", JsonParser.parseString(axis))
+            assertThrows(IllegalArgumentException::class.java) { decodeOrientationAssessmentJson(gson, root.toString()) }
+        }
+    }
+
+    @Test fun `provenance and future value codes survive exact read without defaulting`() {
+        val value = assessment().copy(importance = AxisAssessment("FUTURE_CODE", ValueOrigin.DERIVED,
+            ValueProvenance("IMPORT", "source", "importance", "original")))
+        assertEquals(value, decodeOrientationAssessmentJson(gson, gson.toJson(value)))
+    }
+
+    @Test fun `unrecognized obfuscated JSON cannot masquerade as a valid assessment`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            decodeOrientationAssessmentJson(gson, "{\"a\":{\"a\":\"HIGH\",\"b\":\"EXPLICIT\"}}")
+        }
+    }
+
+    private fun assessment() = OrientationAssessment(axis("HIGH"), axis("MEDIUM"), unset(), unset(), unset(), unset(), unset(), unset())
 
     private fun unset() =
         AxisAssessment(
