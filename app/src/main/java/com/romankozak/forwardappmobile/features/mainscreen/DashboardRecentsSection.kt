@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -14,6 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,14 +45,14 @@ internal fun DashboardRecentsSection(
     var expanded by remember {
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(RECENTS_EXPANDED_KEY, defaultValue = true))
     }
-    var showSheet by remember { mutableStateOf(false) }
+    var showSheet by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
-    val configuration = LocalConfiguration.current
-    val itemLimit = if (configuration.screenWidthDp >= 600) 6 else 4
+    val itemLimit = 4
 
     Column {
         DashboardSectionHeader(
-            title = "Recents",
+            title = stringResource(R.string.deck_recent),
+            action = { TextButton(onClick = { showSheet = true }) { Text(stringResource(R.string.deck_all)) } },
             isExpanded = expanded,
             onClick = {
                 expanded = !expanded
@@ -58,7 +62,7 @@ internal fun DashboardRecentsSection(
         if (expanded) {
             if (recentItems.isEmpty()) {
                 Text(
-                    "Історія порожня.",
+                    stringResource(R.string.deck_empty_recent),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -66,24 +70,23 @@ internal fun DashboardRecentsSection(
                 recentItems.distinctBy { it.type to it.target }.take(itemLimit).forEach { item ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable { onItemClick(item) }
-                            .padding(horizontal = 4.dp, vertical = 14.dp),
+                            .heightIn(min = 52.dp).padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Outlined.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = item.displayName.ifBlank { item.target },
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
+                        Icon(Icons.Outlined.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                TextButton(onClick = { showSheet = true }, modifier = Modifier.align(Alignment.End)) {
-                    Text("More")
-                }
+
             }
         }
     }

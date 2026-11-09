@@ -15,6 +15,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.background
 
 @Composable
 fun BottomPanelIconButton(
@@ -26,25 +29,29 @@ fun BottomPanelIconButton(
     iconSize: Dp = BottomPanelTokens.ActionIconSize,
     onLongClick: (() -> Unit)? = null,
     onLongClickLabel: String? = null,
+    selected: Boolean = false,
 ) {
     val colors = bottomPanelColors()
     if (onLongClick != null) {
-        Box(modifier.size(buttonSize).clip(CircleShape).combinedClickable(
+        Box(modifier.size(buttonSize).clip(CircleShape)
+            .background(if (selected) colors.selectedActionContainer else Color.Transparent)
+            .semantics { this.selected = selected }.combinedClickable(
             role = Role.Button,
             onClick = onClick,
             onLongClick = onLongClick,
             onLongClickLabel = onLongClickLabel,
         ), contentAlignment = Alignment.Center) {
-            Icon(imageVector, contentDescription, Modifier.size(iconSize), tint = colors.action)
+            Icon(imageVector, contentDescription, Modifier.size(iconSize), tint = if (selected) colors.selectedActionContent else colors.action)
         }
         return
     }
     IconButton(
         onClick = onClick,
-        modifier = modifier.size(buttonSize),
+        modifier = modifier.size(buttonSize).semantics { this.selected = selected },
         colors =
             IconButtonDefaults.iconButtonColors(
-                contentColor = colors.action,
+                containerColor = if (selected) colors.selectedActionContainer else Color.Transparent,
+                contentColor = if (selected) colors.selectedActionContent else colors.action,
             ),
     ) {
         Icon(

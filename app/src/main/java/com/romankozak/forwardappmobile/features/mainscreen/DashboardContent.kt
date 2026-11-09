@@ -35,6 +35,8 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -64,7 +66,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 private const val DASHBOARD_INSIGHTS_LIMIT = 3
 private const val FOCUS_CARD_BACKGROUND_ALPHA = 0.35f
 private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
-private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 420
+private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 168
 private const val FOCUS_CONTEXTS_EXPANDED_KEY = "dashboard_focus_contexts_expanded"
 private const val AI_INSIGHTS_EXPANDED_KEY = "dashboard_ai_insights_expanded"
 private const val LIFE_MANAGEMENT_STATUS_EXPANDED_KEY = "dashboard_life_management_status_expanded"
@@ -77,7 +79,7 @@ fun DashboardContent(
     sessionModeState: SessionModeState = SessionModeState(),
     latestSessionReason: String? = null,
     onSessionModeSelected: (SessionMode) -> Unit = {},
-    isSessionModeCardExpanded: Boolean = true,
+    isSessionModeCardExpanded: Boolean = false,
     onSessionModeCardExpandedChange: (Boolean) -> Unit = {},
     onOpenSessionContext: (String) -> Unit = {},
     aiInsightsViewModel: AiInsightsViewModel = hiltViewModel(),
@@ -119,13 +121,13 @@ private fun AnimatedCommandDeck(
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY))
     }
     var focusContextsExpanded by remember {
-        mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY))
+        mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY, defaultValue = true))
     }
     var lifeManagementStatusExpanded by remember {
         mutableStateOf(
             commandDeckViewModel.isCategoryExpanded(
                 LIFE_MANAGEMENT_STATUS_EXPANDED_KEY,
-                defaultValue = true,
+                defaultValue = false,
             ),
         )
     }
@@ -139,12 +141,12 @@ private fun AnimatedCommandDeck(
                     shape = RoundedCornerShape(0.dp),
                 )
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(
             modifier = Modifier.padding(bottom = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SessionModeDashboard(
                 state = sessionModeState,
@@ -155,22 +157,6 @@ private fun AnimatedCommandDeck(
                 onOpenModeContext = { contextId ->
                     commandDeckViewModel.openSystemContext(contextId, onOpenSessionContext)
                 },
-            )
-
-            LifeManagementStatusPanelSection(
-                isExpanded = lifeManagementStatusExpanded,
-                onToggleExpanded = {
-                    lifeManagementStatusExpanded = !lifeManagementStatusExpanded
-                    commandDeckViewModel.setCategoryExpanded(
-                        LIFE_MANAGEMENT_STATUS_EXPANDED_KEY,
-                        lifeManagementStatusExpanded,
-                    )
-                },
-            )
-
-            DashboardRecentsSection(
-                onItemClick = onNavigateToRecentItem,
-                commandDeckViewModel = commandDeckViewModel,
             )
 
             DashboardFocusContextsSection(
@@ -184,6 +170,22 @@ private fun AnimatedCommandDeck(
                 },
                 onOpenFocusedContext = onOpenFocusedContext,
                 focusContextsViewModel = focusContextsViewModel,
+            )
+
+            DashboardRecentsSection(
+                onItemClick = onNavigateToRecentItem,
+                commandDeckViewModel = commandDeckViewModel,
+            )
+
+            LifeManagementStatusPanelSection(
+                isExpanded = lifeManagementStatusExpanded,
+                onToggleExpanded = {
+                    lifeManagementStatusExpanded = !lifeManagementStatusExpanded
+                    commandDeckViewModel.setCategoryExpanded(
+                        LIFE_MANAGEMENT_STATUS_EXPANDED_KEY,
+                        lifeManagementStatusExpanded,
+                    )
+                },
             )
 
             DashboardAiInsightsSection(
@@ -211,13 +213,7 @@ private fun DashboardFocusContextsSection(
     val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
 
     DashboardSectionHeader(
-        title = "Focus Contexts",
-        subtitle =
-            if (isExpanded) {
-                if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних"
-            } else {
-                "Згорнуто"
-            },
+        title = stringResource(R.string.deck_focus),
         isExpanded = isExpanded,
         onClick = onToggleExpanded,
     )
@@ -226,11 +222,8 @@ private fun DashboardFocusContextsSection(
     }
 
     if (focusedContexts.isEmpty()) {
-        MetricCard(
-            title = "Немає фокус-контекстів",
-            value = "Додай контексти у фокус",
-            subtitle = "через меню в ієрархії або з екрана контексту",
-        )
+        Text(stringResource(R.string.deck_empty_focus), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
@@ -312,7 +305,7 @@ private fun FocusContextsReorderableList(
     LazyColumn(
         state = lazyListState,
         modifier = Modifier.heightIn(max = FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         items(internalItems, key = { it.contextId }) { focusedContext ->
             ReorderableItem(reorderableState, key = focusedContext.contextId) {
@@ -324,7 +317,7 @@ private fun FocusContextsReorderableList(
                     dragHandleModifier =
                         with(this@ReorderableItem) {
                             Modifier
-                                .size(34.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .longPressDraggableHandle(
                                     onDragStarted = {
@@ -357,7 +350,7 @@ private fun FocusContextCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -380,17 +373,18 @@ private fun FocusContextCard(
                 }
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.heightIn(min = 20.dp),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(onClick = onStartTracking) {
-                    Icon(Icons.Outlined.PlayCircle, contentDescription = "Start tracking")
+                    Icon(Icons.Outlined.PlayCircle, contentDescription = stringResource(R.string.deck_track))
                 }
                 FilledTonalIconButton(onClick = onDefocus) {
-                    Icon(Icons.Outlined.VisibilityOff, contentDescription = "Зняти фокус")
+                    Icon(Icons.Outlined.VisibilityOff, contentDescription = stringResource(R.string.deck_unfocus))
                 }
             }
         }

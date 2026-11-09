@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -62,6 +64,8 @@ fun BottomPanelGlobalRail(
         BottomPanelIconButton(
             imageVector = if (journalFirst) Icons.AutoMirrored.Outlined.MenuBook else Icons.Outlined.AccountTree,
             contentDescription = if (journalFirst) "Показати журнал життя" else "Navigation",
+            buttonSize = 48.dp,
+            iconSize = 24.dp,
             onClick = if (journalFirst) actions.onNavigateToTracker else actions.onNavigateToProjectHierarchy,
         )
     }
@@ -69,11 +73,16 @@ fun BottomPanelGlobalRail(
         BottomPanelIconButton(
             imageVector = if (journalFirst) Icons.Outlined.AccountTree else Icons.AutoMirrored.Outlined.MenuBook,
             contentDescription = if (journalFirst) "Navigation" else "Показати журнал життя",
+            buttonSize = 48.dp,
+            iconSize = 24.dp,
             onClick = if (journalFirst) actions.onNavigateToProjectHierarchy else actions.onNavigateToTracker,
         )
     }
     BottomPanelIconButton(
         imageVector = Icons.Outlined.AutoAwesome,
+        buttonSize = 48.dp,
+        iconSize = 24.dp,
+        selected = showRecentSheet,
         contentDescription = "Magicbox",
         onClick = actions.onNavigateToGlobalSearch,
         onLongClick = if (mode == BottomPanelGlobalRailMode.FULL) ({ showRecentSheet = true }) else null,
@@ -81,10 +90,13 @@ fun BottomPanelGlobalRail(
     )
     BottomPanelIconButton(
         imageVector = Icons.Default.Add,
+        buttonSize = 48.dp,
+        iconSize = 24.dp,
         contentDescription = "Створити",
         onClick = actions.onShowCreateActions,
     )
     BottomPanelMoreActionButton(
+        modifier = Modifier.size(48.dp),
         actions = actions,
         additionalActions = additionalActions,
         onShowRecents = if (mode == BottomPanelGlobalRailMode.FULL) ({ showRecentSheet = true }) else null,

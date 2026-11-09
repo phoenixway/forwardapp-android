@@ -81,6 +81,7 @@ fun CommandDeckMoreActionButton(
         modifier = modifier,
         colors =
             IconButtonDefaults.iconButtonColors(
+                containerColor = if (showMoreBottomSheet || showImportExportSheet) bottomPanelColors().selectedActionContainer else androidx.compose.ui.graphics.Color.Transparent,
                 contentColor = bottomPanelColors().action,
             ),
     ) {

@@ -9,4 +9,23 @@
     <string name="picker_documents">Документи</string>
     <string name="picker_context_name_label">Назва контексту</string>
     <string name="picker_context_name_placeholder">Введіть назву контексту</string>
+    <string name="deck_session">Режим сесії</string>
+    <string name="deck_unset">Не вибрано</string>
+    <string name="deck_choose">Вибрати</string>
+    <string name="deck_change">Змінити</string>
+    <string name="deck_focus">Фокус-контексти</string>
+    <string name="deck_recent">Недавні</string>
+    <string name="deck_all">Усі</string>
+    <string name="deck_empty_recent">Ще немає недавніх об’єктів</string>
+    <string name="deck_empty_focus">Додайте контексти у фокус через ієрархію або екран контексту</string>
+    <string name="deck_levels_ok">Усі рівні в нормі</string>
+    <string name="deck_levels_loading">Завантаження стану рівнів</string>
+    <string name="deck_levels_problem">Заблоковано: %1$d · Дефектних: %2$d</string>
+    <string name="deck_levels">Стан рівнів</string>
+    <string name="deck_details">Деталі</string>
+    <string name="deck_collapse">Згорнути</string>
+    <string name="deck_expand">Розгорнути</string>
+    <string name="deck_track">Почати трекінг</string>
+    <string name="deck_unfocus">Зняти фокус</string>
+    <string name="deck_character">Персонаж</string>
 </resources>

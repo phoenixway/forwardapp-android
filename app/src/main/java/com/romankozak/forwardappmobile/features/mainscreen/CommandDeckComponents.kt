@@ -30,6 +30,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -60,14 +65,14 @@ private const val TAB_SELECTED_BORDER_DP = 1.4f
 private const val TAB_DEFAULT_BORDER_DP = 0.8f
 private const val TAB_SELECTED_BORDER_ALPHA = 0.9f
 private const val TAB_DEFAULT_BORDER_ALPHA = 0.45f
-private const val TAB_SHAPE_DP = 26
+private const val TAB_SHAPE_DP = 16
 private const val TAB_HORIZONTAL_PADDING_DP = 10
-private const val TAB_VERTICAL_PADDING_DP = 6
+private const val TAB_VERTICAL_PADDING_DP = 2
 private const val TAB_SPECIAL_FONT_SIZE_SP = 22
 private const val TAB_DEFAULT_FONT_SIZE_SP = 18
 private const val STRATEGY_SYMBOL_FONT_SCALE = 0.93f
 private const val TODAY_ICON_SIZE_SCALE = 0.93f
-private const val TAB_SPECIAL_CIRCLE_SIZE_DP = 32
+private const val TAB_SPECIAL_CIRCLE_SIZE_DP = 28
 private const val TAB_DEFAULT_CIRCLE_SIZE_DP = 28
 private const val TAB_SYMBOL_Y_OFFSET_DP = -2
 private const val TAB_SELECTED_SPACER_DP = 6
@@ -186,7 +191,9 @@ fun CommandDeckTabItem(
                         ),
                     shape = RoundedCornerShape(TAB_SHAPE_DP.dp),
                 )
-                .clickable { onClick() }
+                .semantics { selected = isSelected; contentDescription = tab.title }
+                .heightIn(min = 48.dp)
+                .clickable(role = Role.Tab) { onClick() }
                 .padding(
                     horizontal = TAB_HORIZONTAL_PADDING_DP.dp,
                     vertical = TAB_VERTICAL_PADDING_DP.dp,

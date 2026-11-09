@@ -133,7 +133,7 @@ class CommandDeckViewModel
             sharedPreferences.edit().putBoolean(categoryTitle, isExpanded).apply()
         }
 
-        fun isSessionModeCardExpanded(): Boolean = sharedPreferences.getBoolean(SESSION_MODE_CARD_EXPANDED_KEY, true)
+        fun isSessionModeCardExpanded(): Boolean = sharedPreferences.getBoolean(SESSION_MODE_CARD_EXPANDED_KEY, false)
 
         fun setSessionModeCardExpanded(isExpanded: Boolean) {
             sharedPreferences.edit().putBoolean(SESSION_MODE_CARD_EXPANDED_KEY, isExpanded).apply()

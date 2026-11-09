@@ -144,4 +144,23 @@
     <string name="settings_permission_battery_desc">Allow reminders to work in background</string>
     <string name="settings_permission_granted">Granted</string>
     <string name="settings_permission_grant_action">Grant</string>
+    <string name="deck_session">Session mode</string>
+    <string name="deck_unset">Not selected</string>
+    <string name="deck_choose">Choose</string>
+    <string name="deck_change">Change</string>
+    <string name="deck_focus">Focus contexts</string>
+    <string name="deck_recent">Recents</string>
+    <string name="deck_all">All</string>
+    <string name="deck_empty_recent">No recent items yet</string>
+    <string name="deck_empty_focus">Add contexts to focus from the hierarchy or context screen</string>
+    <string name="deck_levels_ok">All levels are healthy</string>
+    <string name="deck_levels_loading">Loading level status</string>
+    <string name="deck_levels_problem">Blocked: %1$d · Defected: %2$d</string>
+    <string name="deck_levels">Level status</string>
+    <string name="deck_details">Details</string>
+    <string name="deck_collapse">Collapse</string>
+    <string name="deck_expand">Expand</string>
+    <string name="deck_track">Start tracking</string>
+    <string name="deck_unfocus">Remove focus</string>
+    <string name="deck_character">Character</string>
 </resources>

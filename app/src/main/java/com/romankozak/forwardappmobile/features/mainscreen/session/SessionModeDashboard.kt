@@ -26,6 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -64,7 +66,7 @@ fun SessionModeDashboard(
 ) {
     val currentMode = state.mode
     val isDarkTheme = isSystemInDarkTheme()
-    var modeMenuExpanded by remember { mutableStateOf(false) }
+    var modeMenuExpanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val activeDuration =
         remember(state.startedAt) {
             state.startedAt?.let(::formatElapsedDuration)
@@ -117,102 +119,35 @@ private fun SessionModeCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (isExpanded) 16.dp else 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!isExpanded) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Session Mode · ${currentMode.title}",
-                        modifier = Modifier.weight(1f).clickable { onModeMenuExpandedChange(true) },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.deck_session), style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (currentMode == SessionMode.UNSET) stringResource(R.string.deck_unset) else currentMode.title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    IconButton(onClick = { onExpandedChange(true) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.KeyboardArrowDown,
-                            contentDescription = "Розгорнути Session Mode",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = "Session Mode",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = accentColor.copy(alpha = if (isDarkTheme) 0.22f else 0.14f),
-                            modifier = Modifier.clickable { onModeMenuExpandedChange(true) },
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    text = currentMode.title,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Icon(
-                                    imageVector = Icons.Outlined.SwapVert,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        activeDuration?.let {
-                            Text(
-                                text = "Активний вже $it",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = accentColor,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                    IconButton(onClick = { onExpandedChange(!isExpanded) }) {
-                        Icon(
-                            imageVector =
-                                if (isExpanded) {
-                                    Icons.Outlined.KeyboardArrowUp
-                                } else {
-                                    Icons.Outlined.KeyboardArrowDown
-                                },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                androidx.compose.material3.TextButton(onClick = { onModeMenuExpandedChange(true) }) {
+                    Text(stringResource(if (currentMode == SessionMode.UNSET) R.string.deck_choose else R.string.deck_change))
+                }
+                IconButton(onClick = { onExpandedChange(!isExpanded) }) {
+                    Icon(if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.deck_details),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                DropdownMenu(expanded = modeMenuExpanded, onDismissRequest = { onModeMenuExpandedChange(false) }) {
+                    SessionMode.entries.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(if (mode == SessionMode.UNSET) stringResource(R.string.deck_unset) else mode.title) },
+                            onClick = { onModeSelected(mode) },
                         )
                     }
                 }
             }
-            DropdownMenu(
-                expanded = modeMenuExpanded,
-                onDismissRequest = { onModeMenuExpandedChange(false) },
-            ) {
-                SessionMode.entries.forEach { mode ->
-                    DropdownMenuItem(
-                        text = { Text(mode.title) },
-                        onClick = { onModeSelected(mode) },
-                    )
-                }
-            }
-
-            if (!isExpanded) {
-                return@Column
+            if (!isExpanded) return@Column
+            activeDuration?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             latestSessionReason?.let { reason ->
