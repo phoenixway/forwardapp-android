@@ -2,6 +2,29 @@
 
 Authoritative engineering rules for the ForwardApp repository. Use `docs/README.md` to determine canonical documentation for each subject.
 
+## Session Startup: Host Platform and Screenshots
+
+At the start of each session, before choosing platform-specific commands or paths:
+
+- Detect the actual execution host using available environment evidence: `uname -s`, Android properties via `getprop ro.build.version.release` when available, and Termux paths or environment variables such as `PREFIX` and `ANDROID_ROOT`.
+- Do not infer the host platform from the repository name or `uname` alone: Android can report Linux, and a shell/container on the Android device can report GNU/Linux.
+- When Android/Termux evidence is present, treat the Android device as the local development host. Check local shared-storage access before assuming a separate device or requiring ADB.
+- On other hosts, use that host's available paths and tools; do not assume Android screenshot directories exist.
+
+For UI screenshots on the local Android host, check both directories:
+
+- `/sdcard/DCIM/Screenshots/`
+- `/sdcard/Pictures/Screenshots/`
+
+When asked to inspect the latest screenshot:
+
+1. Find the newest image by modification time across both accessible directories, not by filename or directory order.
+2. Open that image with the image viewing tool.
+3. Analyze the actual visual state before drawing conclusions or proposing UI changes.
+4. Do not modify the screenshot.
+
+If a directory is missing, continue with the other. If neither is accessible or no images are found, report the specific limitation rather than guessing the screen contents.
+
 ## Mandatory Architecture Bootstrap
 
 Before architecture, persistence, migration, hierarchy,

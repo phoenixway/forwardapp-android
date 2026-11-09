@@ -125,9 +125,9 @@ private fun SessionModeCard(
                     Text(
                         text = "Session Mode · ${currentMode.title}",
                         modifier = Modifier.weight(1f).clickable { onModeMenuExpandedChange(true) },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = accentColor,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

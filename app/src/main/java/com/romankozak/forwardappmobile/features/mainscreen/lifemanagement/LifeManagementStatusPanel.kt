@@ -2,6 +2,8 @@
 
 package com.romankozak.forwardappmobile.features.mainscreen.lifemanagement
 
+import com.romankozak.forwardappmobile.features.mainscreen.DashboardSectionHeader
+
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -107,7 +109,7 @@ fun LifeManagementStatusPanelSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        LifeManagementSectionHeader(
+        DashboardSectionHeader(
             title = "Level Status",
             subtitle =
                 if (isExpanded) {
@@ -142,49 +144,6 @@ fun LifeManagementStatusPanelSection(
                 editingLevel = null
             },
         )
-    }
-}
-
-@Composable
-private fun LifeManagementSectionHeader(
-    title: String,
-    subtitle: String,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = LifeManagementHeaderAlpha),
-            ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.padding(end = 12.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            androidx.compose.material3.Icon(
-                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

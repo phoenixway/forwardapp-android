@@ -47,26 +47,14 @@ internal fun DashboardRecentsSection(
     val itemLimit = if (configuration.screenWidthDp >= 600) 6 else 4
 
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable {
+        DashboardSectionHeader(
+            title = "Recents",
+            isExpanded = expanded,
+            onClick = {
                 expanded = !expanded
                 commandDeckViewModel.setCategoryExpanded(RECENTS_EXPANDED_KEY, expanded)
-            }.padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Recents",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-            )
-            Icon(
-                imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = if (expanded) "Згорнути Recents" else "Розгорнути Recents",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+            },
+        )
         if (expanded) {
             if (recentItems.isEmpty()) {
                 Text(

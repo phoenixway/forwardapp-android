@@ -210,7 +210,7 @@ private fun DashboardFocusContextsSection(
 ) {
     val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
 
-    SectionHeader(
+    DashboardSectionHeader(
         title = "Focus Contexts",
         subtitle =
             if (isExpanded) {
@@ -258,7 +258,7 @@ private fun DashboardAiInsightsSection(
                 .take(DASHBOARD_INSIGHTS_LIMIT)
         }
 
-    SectionHeader(
+    DashboardSectionHeader(
         title = "AI Insights",
         subtitle = if (isExpanded) "Останні інсайти" else "Згорнуто",
         isExpanded = isExpanded,
@@ -284,46 +284,6 @@ private fun DashboardAiInsightsSection(
             value = "Поки що немає аналітики",
             subtitle = "AI ще не згенерував інсайти",
         )
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.padding(end = 12.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
