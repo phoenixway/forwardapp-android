@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,6 +72,7 @@ private const val LIFE_MANAGEMENT_STATUS_EXPANDED_KEY = "dashboard_life_manageme
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
+    onNavigateToRecentItem: (RecentItem) -> Unit = {},
     onOpenFocusedContext: (String) -> Unit = {},
     sessionModeState: SessionModeState = SessionModeState(),
     latestSessionReason: String? = null,
@@ -84,6 +86,7 @@ fun DashboardContent(
 ) {
     AnimatedCommandDeck(
         modifier = modifier,
+        onNavigateToRecentItem = onNavigateToRecentItem,
         onOpenFocusedContext = onOpenFocusedContext,
         sessionModeState = sessionModeState,
         latestSessionReason = latestSessionReason,
@@ -100,6 +103,7 @@ fun DashboardContent(
 @Composable
 private fun AnimatedCommandDeck(
     modifier: Modifier = Modifier,
+    onNavigateToRecentItem: (RecentItem) -> Unit,
     onOpenFocusedContext: (String) -> Unit,
     sessionModeState: SessionModeState,
     latestSessionReason: String?,
@@ -162,6 +166,11 @@ private fun AnimatedCommandDeck(
                         lifeManagementStatusExpanded,
                     )
                 },
+            )
+
+            DashboardRecentsSection(
+                onItemClick = onNavigateToRecentItem,
+                commandDeckViewModel = commandDeckViewModel,
             )
 
             DashboardFocusContextsSection(
