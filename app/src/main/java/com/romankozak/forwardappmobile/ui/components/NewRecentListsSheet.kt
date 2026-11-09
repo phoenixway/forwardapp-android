@@ -166,7 +166,7 @@ private fun RecentItemsGrid(
 }
 
 @Composable
-internal fun RecentItemCard(
+private fun RecentItemCard(
     item: RecentItem,
     onClick: () -> Unit,
     onPinClick: () -> Unit,
