@@ -1,24 +1,25 @@
 # Command Deck V2.1 — another presentation variant
 
-Current central composition (2026-11-10):
+Current central composition (2026-11-10): one accordion surface with four compact
+headers in order: Session mode, Levels, AI Insights, Recents. A header expands its
+content immediately below and collapses the previous section; tapping it again
+collapses it. The selected section survives rotation and the existing UI
+preferences are updated together so reopening the screen restores one section.
+When no preferences exist, Recents is expanded.
 
-1. One neutral rounded status card with three 50 dp minimum rows: Session mode,
-   Levels and AI Insights, separated by dividers. Session opens the existing enum picker and
-   passes the selected mode to the existing callback. Levels opens the existing
-   status details/editor in a scrollable dialog using its existing ViewModel.
-2. Recents: purple history icon, 18 sp medium heading, All action, independent
-   collapse control; up to four recent objects in a shared lightweight surface.
-   Each row is 48 dp at standard text scale. The divider overlays the row boundary
-   and adds no height. `heightIn(min = 48.dp)` permits expansion for large text.
-AI Insights opens its existing content/actions in a scrollable dialog from the
-third row under Levels, using the same icon/text/chevron styling as Levels.
+Session content reuses the mode component with its summary hidden and compact
+mode chips. Reason/context actions remain available. Levels reuses the existing
+inline details/editor with its duplicate summary hidden. AI Insights keeps its
+existing content and mark-read/swipe actions inline. Recents keeps its 48 dp rows,
+All sheet, ordering, object identities, and callbacks. The four headers share
+font, icon, spacing and chevron styling; session/level summaries remain visible.
+No mode picker or Levels/AI summary dialog is required to expand the accordion.
 
 Focus Contexts is absent from the default composition. Set the presentation-only
 `COMMAND_DECK_SHOW_FOCUS_CONTEXTS` constant to true to restore it. The component,
 ViewModel, repositories, ordering/actions and saved expansion preference remain.
 No database or business-rule changes. Old session expansion parameters remain in
-DashboardContent's contract for compatibility; the new status card has a stable
-layout and uses saveable state for its open picker/details.
+DashboardContent's contract for compatibility; the accordion uses saveable state for its expanded section.
 
 Levels uses the existing BLOCKED/DEFECTED values and ready palette. It displays
 loading until data arrives, then green OK or actual problem counts. English and
@@ -37,7 +38,9 @@ unchanged by V2.1. SHA-256 comparison of 56 protected source files passed.
 - English/Ukrainian XML parses; resource names are unique.
 - Focus visibility checked against the disabled presentation constant and the
   conditional Compose call; disabled sections emit no layout spacer.
-- Added `CommandDeckV21UiTest`: both status rows in light/dark themes; unset and
+- Added `CommandDeckAccordionUiTest` for mutually exclusive expansion, mode
+  selection, collapse and state restoration (not executed in Termux).
+- Added `CommandDeckV21UiTest` for the previous status-card presentation: both status rows in light/dark themes; unset and
   selected mode; blocked/defected counts; details action; four 48 dp rows; clicked
   object identity; All sheet; empty state and collapse/expand.
 - Attempted targeted tests and experimental debug assembly offline in Termux:

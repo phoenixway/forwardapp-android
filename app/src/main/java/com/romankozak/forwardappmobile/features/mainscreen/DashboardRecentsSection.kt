@@ -46,6 +46,9 @@ internal fun DashboardRecentsSection(
     onItemClick: (RecentItem) -> Unit,
     commandDeckViewModel: CommandDeckViewModel,
     recentViewModel: RecentViewModel = hiltViewModel(),
+    expandedOverride: Boolean? = null,
+    onToggleOverride: (() -> Unit)? = null,
+    header: (@Composable (Boolean, () -> Unit, () -> Unit) -> Unit)? = null,
 ) {
     var expanded by remember {
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(RECENTS_EXPANDED_KEY, defaultValue = true))
@@ -53,18 +56,24 @@ internal fun DashboardRecentsSection(
     var showSheet by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
     val itemLimit = 4
+    val isExpanded = expandedOverride ?: expanded
+    val toggle = onToggleOverride ?: {
+        expanded = !expanded
+        commandDeckViewModel.setCategoryExpanded(RECENTS_EXPANDED_KEY, expanded)
+    }
 
     Column {
-        DashboardSectionHeader(
-            title = stringResource(R.string.deck_recent),
-            action = { TextButton(onClick = { showSheet = true }) { Text(stringResource(R.string.deck_all)) } },
-            isExpanded = expanded,
-            onClick = {
-                expanded = !expanded
-                commandDeckViewModel.setCategoryExpanded(RECENTS_EXPANDED_KEY, expanded)
-            },
-        )
-        if (expanded) {
+        if (header != null) {
+            header(isExpanded, toggle) { showSheet = true }
+        } else {
+            DashboardSectionHeader(
+                title = stringResource(R.string.deck_recent),
+                action = { TextButton(onClick = { showSheet = true }) { Text(stringResource(R.string.deck_all)) } },
+                isExpanded = isExpanded,
+                onClick = toggle,
+            )
+        }
+        if (isExpanded) {
             if (recentItems.isEmpty()) {
                 Text(
                     stringResource(R.string.deck_empty_recent),

@@ -104,6 +104,7 @@ fun LifeManagementStatusPanelSection(
     onToggleExpanded: () -> Unit,
     onSave: (LifeManagementLevelStatusUpdate) -> Unit,
     modifier: Modifier = Modifier,
+    showSummary: Boolean = true,
 ) {
     var editingLevel by remember { mutableStateOf<LifeManagementLevelStatus?>(null) }
 
@@ -114,35 +115,37 @@ fun LifeManagementStatusPanelSection(
         val blocked = statuses.count { it.generalStatus == GeneralStatus.BLOCKED }
         val defected = statuses.count { it.generalStatus == GeneralStatus.DEFECTED }
         val hasProblems = blocked + defected > 0
-        Card(
-            onClick = onToggleExpanded,
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = if (hasProblems)
-                MaterialTheme.colorScheme.errorContainer else androidx.compose.ui.graphics.Color.Transparent),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (hasProblems) "!" else "✓",
-                    color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 12.dp),
-                )
-                Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+        if (showSummary) {
+            Card(
+                onClick = onToggleExpanded,
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = if (hasProblems)
+                    MaterialTheme.colorScheme.errorContainer else androidx.compose.ui.graphics.Color.Transparent),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(if (hasProblems) R.string.deck_levels else if (statuses.isEmpty())
-                            R.string.deck_levels_loading else R.string.deck_levels_ok),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                        text = if (hasProblems) "!" else "✓",
                         color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 12.dp),
                     )
-                    if (hasProblems) Text(stringResource(R.string.deck_levels_problem, blocked, defected),
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                }
-                androidx.compose.material3.IconButton(onClick = onToggleExpanded) {
-                    androidx.compose.material3.Icon(
-                        if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.deck_details),
-                        tint = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                        Text(
+                            text = stringResource(if (hasProblems) R.string.deck_levels else if (statuses.isEmpty())
+                                R.string.deck_levels_loading else R.string.deck_levels_ok),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                            color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (hasProblems) Text(stringResource(R.string.deck_levels_problem, blocked, defected),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                    androidx.compose.material3.IconButton(onClick = onToggleExpanded) {
+                        androidx.compose.material3.Icon(
+                            if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.deck_details),
+                            tint = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

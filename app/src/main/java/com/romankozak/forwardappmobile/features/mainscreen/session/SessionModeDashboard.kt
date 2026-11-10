@@ -63,6 +63,7 @@ fun SessionModeDashboard(
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onOpenModeContext: (String) -> Unit,
+    showHeader: Boolean = true,
 ) {
     val currentMode = state.mode
     val isDarkTheme = isSystemInDarkTheme()
@@ -76,6 +77,7 @@ fun SessionModeDashboard(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SessionModeCard(
+            showHeader = showHeader,
             currentMode = currentMode,
             latestSessionReason = latestSessionReason,
             activeDuration = activeDuration,
@@ -94,6 +96,7 @@ fun SessionModeDashboard(
 
 @Composable
 private fun SessionModeCard(
+    showHeader: Boolean,
     currentMode: SessionMode,
     latestSessionReason: String?,
     activeDuration: String?,
@@ -119,28 +122,40 @@ private fun SessionModeCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (isExpanded) 16.dp else 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.deck_session), style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(if (currentMode == SessionMode.UNSET) stringResource(R.string.deck_unset) else currentMode.title,
-                        style = MaterialTheme.typography.titleMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (showHeader) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.deck_session), style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (currentMode == SessionMode.UNSET) stringResource(R.string.deck_unset) else currentMode.title,
+                            style = MaterialTheme.typography.titleMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    androidx.compose.material3.TextButton(onClick = { onModeMenuExpandedChange(true) }) {
+                        Text(stringResource(if (currentMode == SessionMode.UNSET) R.string.deck_choose else R.string.deck_change))
+                    }
+                    IconButton(onClick = { onExpandedChange(!isExpanded) }) {
+                        Icon(if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.deck_details),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    DropdownMenu(expanded = modeMenuExpanded, onDismissRequest = { onModeMenuExpandedChange(false) }) {
+                        SessionMode.entries.forEach { mode ->
+                            DropdownMenuItem(
+                                text = { Text(if (mode == SessionMode.UNSET) stringResource(R.string.deck_unset) else mode.title) },
+                                onClick = { onModeSelected(mode) },
+                            )
+                        }
+                    }
                 }
-                androidx.compose.material3.TextButton(onClick = { onModeMenuExpandedChange(true) }) {
-                    Text(stringResource(if (currentMode == SessionMode.UNSET) R.string.deck_choose else R.string.deck_change))
-                }
-                IconButton(onClick = { onExpandedChange(!isExpanded) }) {
-                    Icon(if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.deck_details),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                DropdownMenu(expanded = modeMenuExpanded, onDismissRequest = { onModeMenuExpandedChange(false) }) {
+            } else {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     SessionMode.entries.forEach { mode ->
-                        DropdownMenuItem(
-                            text = { Text(if (mode == SessionMode.UNSET) stringResource(R.string.deck_unset) else mode.title) },
+                        androidx.compose.material3.FilterChip(
+                            selected = currentMode == mode,
                             onClick = { onModeSelected(mode) },
+                            label = { Text(if (mode == SessionMode.UNSET) stringResource(R.string.deck_mode_unset) else mode.title) },
                         )
                     }
                 }

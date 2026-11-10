@@ -66,7 +66,6 @@ private const val FOCUS_CARD_BACKGROUND_ALPHA = 0.35f
 private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
 private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 168
 private const val FOCUS_CONTEXTS_EXPANDED_KEY = "dashboard_focus_contexts_expanded"
-private const val AI_INSIGHTS_EXPANDED_KEY = "dashboard_ai_insights_expanded"
 
 @Composable
 fun DashboardContent(
@@ -114,30 +113,8 @@ private fun AnimatedCommandDeck(
     focusContextsViewModel: FocusContextsViewModel,
     commandDeckViewModel: CommandDeckViewModel,
 ) {
-    var aiInsightsExpanded by remember {
-        mutableStateOf(commandDeckViewModel.isCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY))
-    }
     var focusContextsExpanded by remember {
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY, defaultValue = true))
-    }
-
-    if (aiInsightsExpanded) {
-        val closeInsights = {
-            aiInsightsExpanded = false
-            commandDeckViewModel.setCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY, false)
-        }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = closeInsights,
-            title = { Text(stringResource(R.string.deck_ai_insights)) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DashboardAiInsightsContent(aiInsightsViewModel)
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = closeInsights) { Text(stringResource(R.string.deck_close)) }
-            },
-        )
     }
 
     Column(
@@ -156,13 +133,14 @@ private fun AnimatedCommandDeck(
             modifier = Modifier.padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            CommandDeckStatusCard(
+            CommandDeckAccordion(
                 session = sessionModeState,
+                latestSessionReason = latestSessionReason,
                 onModeSelected = onSessionModeSelected,
-                onOpenInsights = {
-                    aiInsightsExpanded = true
-                    commandDeckViewModel.setCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY, true)
-                },
+                onOpenModeContext = { contextId -> commandDeckViewModel.openSystemContext(contextId, onOpenSessionContext) },
+                commandDeckViewModel = commandDeckViewModel,
+                onRecentItemClick = onNavigateToRecentItem,
+                insightsContent = { DashboardAiInsightsContent(aiInsightsViewModel) },
             )
 
             if (COMMAND_DECK_SHOW_FOCUS_CONTEXTS) {
@@ -179,13 +157,6 @@ private fun AnimatedCommandDeck(
                     focusContextsViewModel = focusContextsViewModel,
                 )
             }
-
-            DashboardRecentsSection(
-                onItemClick = onNavigateToRecentItem,
-                commandDeckViewModel = commandDeckViewModel,
-            )
-
-
         }
     }
 }
