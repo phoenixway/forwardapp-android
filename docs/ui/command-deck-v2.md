@@ -12,7 +12,9 @@ mode chips. Reason/context actions remain available. Levels reuses the existing
 inline details/editor with its duplicate summary hidden. AI Insights keeps its
 existing content and mark-read/swipe actions inline. Recents keeps its 48 dp rows,
 All sheet, ordering, object identities, and callbacks. The four headers share
-font, icon, spacing and chevron styling; session/level summaries remain visible.
+a tinted header background, 15 sp semibold type, icons and chevrons. The open
+header has a stronger tint and a slim accent; content stays on a neutral surface
+with internal padding; session/level summaries remain visible.
 No mode picker or Levels/AI summary dialog is required to expand the accordion.
 
 Focus Contexts is absent from the default composition. Set the presentation-only

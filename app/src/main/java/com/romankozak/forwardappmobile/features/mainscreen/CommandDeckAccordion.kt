@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -80,7 +87,7 @@ internal fun CommandDeckAccordion(
     }
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+        color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column {
@@ -146,6 +153,7 @@ internal fun CommandDeckAccordion(
                 recentViewModel = recentViewModel,
                 commandDeckViewModel = commandDeckViewModel,
                 expandedOverride = expanded == RECENTS,
+                contentModifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                 onToggleOverride = { toggle(RECENTS) },
                 header = { isExpanded, onToggle, onShowAll ->
                     AccordionHeader(
@@ -175,15 +183,27 @@ internal fun AccordionHeader(
     summary: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
+    val primary = MaterialTheme.colorScheme.primary
+    val headerColor = MaterialTheme.colorScheme.primaryContainer
+        .copy(alpha = if (expanded) 0.70f else 0.40f)
+        .compositeOver(MaterialTheme.colorScheme.surface)
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)
+        modifier = Modifier.fillMaxWidth().background(headerColor)
+            .drawBehind {
+                if (expanded) drawLine(primary,
+                    start = Offset(2.dp.toPx(), 12.dp.toPx()),
+                    end = Offset(2.dp.toPx(), size.height - 12.dp.toPx()),
+                    strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+            }
+            .clickable(role = Role.Button, onClick = onClick)
             .heightIn(min = 50.dp).padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, null, Modifier.size(20.dp), tint = if (expanded) primary else MaterialTheme.colorScheme.onSurfaceVariant)
         Text(title, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.SansSerif))
+            style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.SansSerif,
+                fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
         // Keep long problem summaries from squeezing the section title off screen.
         if (summary != null) Row(Modifier.widthIn(max = 130.dp), horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically) { summary() }

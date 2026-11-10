@@ -47,6 +47,7 @@ internal fun DashboardRecentsSection(
     commandDeckViewModel: CommandDeckViewModel,
     recentViewModel: RecentViewModel = hiltViewModel(),
     expandedOverride: Boolean? = null,
+    contentModifier: Modifier = Modifier,
     onToggleOverride: (() -> Unit)? = null,
     header: (@Composable (Boolean, () -> Unit, () -> Unit) -> Unit)? = null,
 ) {
@@ -74,52 +75,54 @@ internal fun DashboardRecentsSection(
             )
         }
         if (isExpanded) {
-            if (recentItems.isEmpty()) {
-                Text(
-                    stringResource(R.string.deck_empty_recent),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                val visibleItems = recentItems.distinctBy { it.type to it.target }.take(itemLimit)
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
-                ) {
-                    Column {
-                        visibleItems.forEachIndexed { index, item ->
-                            Box(Modifier.fillMaxWidth().clickable { onItemClick(item) }
-                                .testTag("deck-recent-${item.id}")) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(Icons.Outlined.History, null, Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(
-                                        text = item.displayName.ifBlank { item.target },
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                if (index < visibleItems.lastIndex) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.align(Alignment.BottomCenter).padding(start = 42.dp, end = 12.dp),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                    )
+            Column(contentModifier) {
+                if (recentItems.isEmpty()) {
+                    Text(
+                        stringResource(R.string.deck_empty_recent),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    val visibleItems = recentItems.distinctBy { it.type to it.target }.take(itemLimit)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
+                    ) {
+                        Column {
+                            visibleItems.forEachIndexed { index, item ->
+                                Box(Modifier.fillMaxWidth().clickable { onItemClick(item) }
+                                    .testTag("deck-recent-${item.id}")) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(Icons.Outlined.History, null, Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = item.displayName.ifBlank { item.target },
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (index < visibleItems.lastIndex) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 42.dp, end = 12.dp),
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
+                }
             }
         }
     }
