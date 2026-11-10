@@ -13,6 +13,61 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class AttachmentDao {
+    /** Read-only inverse links. Workspace relations use canonical owners; legacy beacon ids
+     * are resolved only through an explicit live CUT_OVER mapping, never by title/id guessing. */
+    @Query("""
+        WITH checklist_attachments AS (
+            SELECT a.id FROM attachments a JOIN checklists k ON k.id = a.entity_id
+            WHERE a.attachment_type = 'CHECKLIST' AND a.entity_id = :checklistId
+              AND a.isDeleted = 0 AND k.isDeleted = 0
+        )
+        SELECT DISTINCT 'WORKSPACE' AS kind, w.id AS ownerId,
+            COALESCE(NULLIF(w.nameOverride, ''), w.id) AS title,
+            'WORKSPACE' AS destinationKind, w.id AS destinationId
+        FROM workspace_connections c
+        JOIN checklist_attachments a ON a.id = c.attachmentId
+        JOIN workspaces w ON w.id = c.workspaceId AND w.isDeleted = 0
+        JOIN workspace_capability_instances cap ON cap.id = c.capabilityInstanceId
+            AND cap.workspaceId = w.id AND cap.isDeleted = 0
+        WHERE c.isDeleted = 0
+        UNION
+        SELECT DISTINCT 'PROBLEM', p.id, p.title, 'WORKSPACE', w.id
+        FROM workspace_problem_attachment_refs r
+        JOIN checklist_attachments a ON a.id = r.attachmentId
+        JOIN workspace_problems p ON p.id = r.problemId AND p.isDeleted = 0
+        JOIN workspaces w ON w.id = p.workspaceId AND w.isDeleted = 0
+        JOIN workspace_capability_instances cap ON cap.id = p.capabilityInstanceId
+            AND cap.workspaceId = w.id AND cap.isDeleted = 0
+        WHERE r.isDeleted = 0
+        UNION
+        SELECT DISTINCT 'MISSION', CAST(m.id AS TEXT), m.title,
+            CASE WHEN pc.id IS NULL THEN 'TACTICS' ELSE 'PARTICIPATION' END,
+            COALESCE(pc.id, CAST(m.id AS TEXT))
+        FROM tactical_mission_attachment_cross_ref r
+        JOIN checklist_attachments a ON a.id = r.attachmentId
+        JOIN tactical_missions m ON m.id = r.missionId AND m.is_deleted = 0
+        LEFT JOIN planning_commitments pc ON pc.id = (
+            SELECT candidate.id FROM planning_commitments candidate
+            JOIN planning_scopes scope ON scope.id = candidate.scopeId AND scope.isDeleted = 0
+                AND scope.kind = 'TACTICAL_CYCLE'
+            JOIN managed_subjects subject ON subject.id = candidate.orientationId AND subject.isDeleted = 0
+            WHERE candidate.provenanceSourceType = 'TACTICAL_MISSION'
+                AND candidate.provenanceSourceId = CAST(m.id AS TEXT)
+                AND candidate.role = 'MISSION' AND candidate.isDeleted = 0
+            ORDER BY candidate.updatedAt DESC, candidate.id LIMIT 1
+        )
+        UNION
+        SELECT DISTINCT 'BEACON', b.id, subject.title, 'SEMANTIC', subject.id
+        FROM main_beacon_attachment_cross_ref r
+        JOIN checklist_attachments a ON a.id = r.attachment_id
+        JOIN main_beacons b ON b.id = r.beacon_id
+        JOIN legacy_subject_mappings mapping ON mapping.sourceType = 'MAIN_BEACON'
+            AND mapping.sourceId = b.id AND mapping.isDeleted = 0 AND mapping.state = 'CUT_OVER'
+        JOIN managed_subjects subject ON subject.id = mapping.subjectId AND subject.isDeleted = 0
+        ORDER BY kind, title COLLATE NOCASE, ownerId
+    """)
+    abstract fun observeChecklistUsages(checklistId: String): Flow<List<ChecklistUsageRow>>
+
     @Transaction
     @Query(
         """
@@ -315,3 +370,12 @@ abstract class AttachmentDao {
         insertContextAttachmentLinks(links)
     }
 }
+
+/** Transient read projection, not a persisted ownership model. */
+data class ChecklistUsageRow(
+    val kind: String,
+    val ownerId: String,
+    val title: String,
+    val destinationKind: String,
+    val destinationId: String,
+)

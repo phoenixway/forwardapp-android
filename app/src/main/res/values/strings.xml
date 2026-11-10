@@ -178,4 +178,12 @@
     <string name="checklist_item_copied">Item copied</string>
     <string name="checklist_item_cut">Item marked for moving. Paste it into the destination checklist.</string>
     <string name="checklist_item_missing">Item is no longer available</string>
+    <string name="checklist_usages">Where used</string>
+    <string name="checklist_usages_empty">No explicit references to this checklist</string>
+    <string name="checklist_usages_error">Could not load references. Close and try again.</string>
+    <string name="checklist_usage_workspace">Workspace · Connections</string>
+    <string name="checklist_usage_problem">Key problem · opens its Workspace</string>
+    <string name="checklist_usage_beacon">Main beacon</string>
+    <string name="checklist_usage_mission">Tactical mission · planning participation</string>
+    <string name="checklist_usage_legacy_mission">Tactical mission · opens Tactics</string>
 </resources>

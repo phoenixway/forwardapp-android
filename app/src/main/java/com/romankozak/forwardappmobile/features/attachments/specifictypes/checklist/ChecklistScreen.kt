@@ -186,6 +186,7 @@ fun ChecklistScreen(
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
+    var showUsages by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showAttachmentPicker by remember { mutableStateOf(false) }
     var showContextPicker by remember { mutableStateOf(false) }
 
@@ -207,6 +208,16 @@ fun ChecklistScreen(
             onAddContextLink = { showContextPicker = true },
             onMessage = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
         )
+    }
+
+    if (showUsages) {
+        uiState.checklistId?.let { id ->
+            ChecklistUsagesDialog(
+                checklistId = id,
+                onDismiss = { showUsages = false },
+                onOpen = { target -> navigationManager.navigateOrFallback(navController, target, recordInHistory = true) },
+            )
+        }
     }
 
     if (showAttachmentPicker) {
@@ -236,6 +247,7 @@ fun ChecklistScreen(
     Scaffold(
         topBar = {
             ChecklistTopBar(
+                onShowUsages = { showUsages = true },
                 title = uiState.title,
                 onTitleChange = viewModel::onTitleChange,
                 onBack = { navController.popBackStack() },
@@ -690,208 +702,6 @@ private fun ChecklistSearchBottomBar(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ChecklistTopBar(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    onBack: () -> Unit,
-    showCheckboxes: Boolean,
-    onToggleCheckboxes: () -> Unit,
-    onClearCompleted: () -> Unit,
-    onExportMarkdown: () -> Unit,
-    onImportFromClipboard: () -> Unit,
-    onSelectAll: () -> Unit,
-    onMarkAllCompleted: () -> Unit,
-    onMarkAllIncomplete: () -> Unit,
-    isSelectionMode: Boolean,
-    selectedCount: Int,
-    canPasteChecklistItems: Boolean,
-    onToggleSelectionMode: () -> Unit,
-    onClearSelection: () -> Unit,
-    onSelectAllForSelection: () -> Unit,
-    onCopySelected: () -> Unit,
-    onCutSelected: () -> Unit,
-    onPasteChecklistItems: () -> Unit,
-    onSearchInList: () -> Unit,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    TopAppBar(
-        title = {
-            OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(text = stringResource(R.string.checklist_title_placeholder)) },
-                singleLine = true,
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                    ),
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                )
-            }
-        },
-        actions = {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "More options",
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Search in list") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.Search, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onSearchInList()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text =
-                                if (showCheckboxes) {
-                                    "Hide checkboxes"
-                                } else {
-                                    "Show checkboxes"
-                                },
-                        )
-                    },
-                    leadingIcon = {
-                        val icon =
-                            if (showCheckboxes) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank
-                        Icon(imageVector = icon, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onToggleCheckboxes()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Clear completed") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Outlined.DeleteSweep, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onClearCompleted()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Copy as Markdown") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onExportMarkdown()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Import from clipboard") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onImportFromClipboard()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Select all") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
-                    onClick = {
-                        menuExpanded = false
-                        onSelectAll()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Mark all done") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) },
-                    onClick = {
-                        menuExpanded = false
-                        onMarkAllCompleted()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Mark all not done") },
-                    leadingIcon = { Icon(imageVector = Icons.Outlined.CheckBoxOutlineBlank, contentDescription = null) },
-                    onClick = {
-                        menuExpanded = false
-                        onMarkAllIncomplete()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (isSelectionMode) "Exit multi-select" else "Multi-select mode") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
-                    onClick = {
-                        menuExpanded = false
-                        onToggleSelectionMode()
-                    },
-                )
-                if (isSelectionMode) {
-                    DropdownMenuItem(
-                        text = { Text("Select all items") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onSelectAllForSelection()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Copy selected ($selectedCount)") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onCopySelected()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Cut selected ($selectedCount)") },
-                        leadingIcon = { Icon(imageVector = Icons.Outlined.ContentCut, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onCutSelected()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Clear selection") },
-                        leadingIcon = { Icon(imageVector = Icons.Outlined.DeleteSweep, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onClearSelection()
-                        },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Paste checklist items") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.ContentPaste, contentDescription = null) },
-                    onClick = {
-                        menuExpanded = false
-                        onPasteChecklistItems()
-                    },
-                    enabled = canPasteChecklistItems,
-                )
-            }
-        },
-    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)

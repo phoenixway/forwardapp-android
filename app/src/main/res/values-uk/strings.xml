@@ -43,4 +43,12 @@
     <string name="checklist_item_copied">Запис скопійовано</string>
     <string name="checklist_item_cut">Запис позначено для перенесення. Вставте його в потрібний чекліст.</string>
     <string name="checklist_item_missing">Запис більше недоступний</string>
+    <string name="checklist_usages">Де використовується</string>
+    <string name="checklist_usages_empty">Явних прив’язок до цього чекліста немає</string>
+    <string name="checklist_usages_error">Не вдалося завантажити прив’язки. Закрийте вікно й спробуйте знову.</string>
+    <string name="checklist_usage_workspace">Робочий простір · Connections</string>
+    <string name="checklist_usage_problem">Ключова проблема · відкрити її робочий простір</string>
+    <string name="checklist_usage_beacon">Головний маяк</string>
+    <string name="checklist_usage_mission">Тактична місія · участь у плануванні</string>
+    <string name="checklist_usage_legacy_mission">Тактична місія · відкрити розділ тактики</string>
 </resources>
