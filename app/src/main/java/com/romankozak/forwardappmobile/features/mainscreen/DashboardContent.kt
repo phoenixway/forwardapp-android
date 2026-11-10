@@ -214,6 +214,7 @@ private fun DashboardFocusContextsSection(
 
     DashboardSectionHeader(
         title = stringResource(R.string.deck_focus),
+        emphasis = DashboardHeaderEmphasis.Focus,
         isExpanded = isExpanded,
         onClick = onToggleExpanded,
     )
@@ -253,7 +254,8 @@ private fun DashboardAiInsightsSection(
 
     DashboardSectionHeader(
         title = "AI Insights",
-        subtitle = if (isExpanded) "Останні інсайти" else "Згорнуто",
+        emphasis = DashboardHeaderEmphasis.Supporting,
+        subtitle = if (isExpanded) "Останні інсайти" else null,
         isExpanded = isExpanded,
         onClick = onToggleExpanded,
     )

@@ -33,8 +33,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.res.stringResource
-import com.romankozak.forwardappmobile.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,13 +46,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
@@ -267,26 +262,45 @@ fun MainScreenLayout(
         val showBadge =
             isDebugBuild ||
                 com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
-        Row(
-            modifier = headerModifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Forward", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        val layout =
+            CommandDeckHeaderPreset(
+                onClick = {},
+                onRightClick = { onNavigateToCharacter() },
+                titleTrailingContent = titleStateBadge,
+                rightContent = {
                     if (showBadge) {
-                        Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
-                            Text(if (isDebugBuild) "Debug" else "Experimental", style = MaterialTheme.typography.labelSmall)
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        ) {
+                            Text(
+                                text =
+                                    if (isDebugBuild) {
+                                        "Debug"
+                                    } else {
+                                        "Experimental"
+                                    },
+                                style = MaterialTheme.typography.labelSmall,
+                            )
                         }
                     }
-                }
-                Text("Command Deck", fontSize = 24.sp, color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            }
-            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) { titleStateBadge() }
-            androidx.compose.material3.IconButton(onClick = onNavigateToCharacter) {
-                androidx.compose.material3.Icon(Icons.Outlined.Person, contentDescription = stringResource(R.string.deck_character),
-                    tint = MaterialTheme.colorScheme.primary)
+                },
+            )
+        Box(
+            modifier =
+                headerModifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                        .then(CommandDeckBackgroundModifier())
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                layout.Content()
             }
         }
     }

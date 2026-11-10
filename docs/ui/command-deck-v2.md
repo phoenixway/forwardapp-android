@@ -1,9 +1,19 @@
 # Command Deck V2
 
-Implemented 2026-11-09. Presentation-only redesign: compact brand/header and tab
-rail; Session Mode; Focus Contexts; Recents; Level Status; existing AI Insights.
+Implemented 2026-11-09. Presentation-only redesign: compact tab rail; Session Mode; Focus Contexts; Recents; Level Status; existing AI Insights.
 The persistent global dock keeps its five callbacks and long-press Recents action.
 Character navigation and the user-awareness badge remain available in the header.
+
+2026-11-10: restored the original Forward / Score your goals! gradient card at
+the user’s request. It reuses CommandDeckHeaderPreset and
+CommandDeckBackgroundModifier, whose colors follow MaterialTheme in light/dark
+themes. The remaining V2 section layout is retained.
+
+Section emphasis: Focus Contexts has a purple tinted header and focus icon;
+Recents has an unframed 18 sp header; healthy Level Status is an unframed muted
+service row, while problems retain their error container; AI Insights uses a
+muted 14 sp header without a collapsed subtitle. Expansion and navigation are
+unchanged. All colors follow MaterialTheme.
 
 Focus rows retain opening, tracking, unfocusing and drag ordering. Their viewport
 is limited to 168 dp and scrolls independently so a long focus list does not push

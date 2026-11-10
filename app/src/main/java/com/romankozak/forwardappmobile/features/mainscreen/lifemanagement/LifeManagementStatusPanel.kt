@@ -118,14 +118,14 @@ fun LifeManagementStatusPanelSection(
             onClick = onToggleExpanded,
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = if (hasProblems)
-                MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+                MaterialTheme.colorScheme.errorContainer else androidx.compose.ui.graphics.Color.Transparent),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = if (hasProblems) "!" else "✓",
-                    color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary,
+                    color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 12.dp),
                 )
                 Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
@@ -133,7 +133,7 @@ fun LifeManagementStatusPanelSection(
                         text = stringResource(if (hasProblems) R.string.deck_levels else if (statuses.isEmpty())
                             R.string.deck_levels_loading else R.string.deck_levels_ok),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
-                        color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
+                        color = if (hasProblems) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (hasProblems) Text(stringResource(R.string.deck_levels_problem, blocked, defected),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)

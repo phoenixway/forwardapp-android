@@ -2,6 +2,9 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -16,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+internal enum class DashboardHeaderEmphasis { Focus, Access, Supporting }
+
 @Composable
 internal fun DashboardSectionHeader(
     title: String,
@@ -23,24 +28,38 @@ internal fun DashboardSectionHeader(
     isExpanded: Boolean,
     onClick: () -> Unit,
     action: (@Composable () -> Unit)? = null,
+    emphasis: DashboardHeaderEmphasis = DashboardHeaderEmphasis.Access,
 ) {
+    val isFocus = emphasis == DashboardHeaderEmphasis.Focus
+    val isSupporting = emphasis == DashboardHeaderEmphasis.Supporting
+    val foreground = if (isSupporting) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isFocus) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else Color.Transparent,
+            contentColor = foreground,
+        ),
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 0.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isFocus) 12.dp else 0.dp, vertical = 0.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (isFocus) {
+                Icon(Icons.Outlined.CenterFocusStrong, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp).size(22.dp))
+            }
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = if (isFocus) 20.sp else if (isSupporting) 14.sp else 18.sp,
+                        fontFamily = if (isFocus) MaterialTheme.typography.titleMedium.fontFamily else FontFamily.SansSerif,
+                    ),
+                    fontWeight = if (isFocus) FontWeight.SemiBold else FontWeight.Medium,
+                    color = foreground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
