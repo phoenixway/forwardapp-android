@@ -34,14 +34,14 @@ internal fun DashboardSectionHeader(
 ) {
     val isFocus = emphasis == DashboardHeaderEmphasis.Focus
     val isSupporting = emphasis == DashboardHeaderEmphasis.Supporting
-    val foreground = MaterialTheme.colorScheme.onSurface
+    val foreground = if (isSupporting) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 isFocus -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                isSupporting -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+                isSupporting -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.10f)
                 else -> Color.Transparent
             },
             contentColor = foreground,
@@ -61,16 +61,16 @@ internal fun DashboardSectionHeader(
                 },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 10.dp).size(22.dp),
+                modifier = Modifier.padding(end = 8.dp).size(if (isFocus) 22.dp else 18.dp),
             )
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = if (isSupporting) 20.sp else if (isFocus) 20.sp else 22.sp,
+                        fontSize = if (isSupporting) 16.sp else if (isFocus) 20.sp else 18.sp,
                         fontFamily = if (isFocus) MaterialTheme.typography.titleMedium.fontFamily else FontFamily.SansSerif,
                     ),
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = if (isFocus) FontWeight.SemiBold else FontWeight.Medium,
                     color = foreground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
