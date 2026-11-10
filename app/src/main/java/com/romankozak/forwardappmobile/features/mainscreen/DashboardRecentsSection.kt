@@ -8,6 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,6 +50,8 @@ internal fun DashboardRecentsSection(
     commandDeckViewModel: CommandDeckViewModel,
     recentViewModel: RecentViewModel = hiltViewModel(),
     expandedOverride: Boolean? = null,
+    modifier: Modifier = Modifier,
+    fillAvailableSpace: Boolean = false,
     contentModifier: Modifier = Modifier,
     onToggleOverride: (() -> Unit)? = null,
     header: (@Composable (Boolean, () -> Unit, () -> Unit) -> Unit)? = null,
@@ -56,6 +61,7 @@ internal fun DashboardRecentsSection(
     }
     var showSheet by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
     val itemLimit = 4
     val isExpanded = expandedOverride ?: expanded
     val toggle = onToggleOverride ?: {
@@ -63,7 +69,7 @@ internal fun DashboardRecentsSection(
         commandDeckViewModel.setCategoryExpanded(RECENTS_EXPANDED_KEY, expanded)
     }
 
-    Column {
+    Column(modifier) {
         if (header != null) {
             header(isExpanded, toggle) { showSheet = true }
         } else {
@@ -75,7 +81,7 @@ internal fun DashboardRecentsSection(
             )
         }
         if (isExpanded) {
-            Column(contentModifier) {
+            Column(if (fillAvailableSpace) contentModifier.weight(1f, fill = false) else contentModifier) {
                 if (recentItems.isEmpty()) {
                     Text(
                         stringResource(R.string.deck_empty_recent),
@@ -83,40 +89,23 @@ internal fun DashboardRecentsSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    val visibleItems = recentItems.distinctBy { it.type to it.target }.take(itemLimit)
+                    val orderedItems = recentItems.distinctBy { it.type to it.target }
+                    val visibleItems = if (fillAvailableSpace) orderedItems else orderedItems.take(itemLimit)
                     Surface(
+                        modifier = if (fillAvailableSpace) Modifier.weight(1f, fill = false) else Modifier,
                         shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
                     ) {
-                        Column {
-                            visibleItems.forEachIndexed { index, item ->
-                                Box(Modifier.fillMaxWidth().clickable { onItemClick(item) }
-                                    .testTag("deck-recent-${item.id}")) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Icon(Icons.Outlined.History, null, Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(
-                                            text = item.displayName.ifBlank { item.target },
-                                            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    if (index < visibleItems.lastIndex) {
-                                        HorizontalDivider(
-                                            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 42.dp, end = 12.dp),
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                        )
-                                    }
+                        if (fillAvailableSpace) {
+                            LazyColumn(state = listState, modifier = Modifier.testTag("deck-recents-list")) {
+                                itemsIndexed(visibleItems, key = { _, item -> item.id }) { index, item ->
+                                    RecentItemRow(item, index < visibleItems.lastIndex, onItemClick)
+                                }
+                            }
+                        } else {
+                            Column {
+                                visibleItems.forEachIndexed { index, item ->
+                                    RecentItemRow(item, index < visibleItems.lastIndex, onItemClick)
                                 }
                             }
                         }
@@ -136,4 +125,25 @@ internal fun DashboardRecentsSection(
         },
         onPinClick = recentViewModel::onPinClick,
     )
+}
+
+@Composable
+private fun RecentItemRow(item: RecentItem, showDivider: Boolean, onItemClick: (RecentItem) -> Unit) {
+    Box(Modifier.fillMaxWidth().clickable { onItemClick(item) }.testTag("deck-recent-${item.id}")) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.History, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(item.displayName.ifBlank { item.target },
+                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Icon(Icons.Outlined.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (showDivider) HorizontalDivider(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 42.dp, end = 12.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+    }
 }

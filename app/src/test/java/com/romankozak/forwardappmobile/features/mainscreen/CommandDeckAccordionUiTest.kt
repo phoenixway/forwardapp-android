@@ -1,6 +1,11 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.*
@@ -51,6 +56,7 @@ class CommandDeckAccordionUiTest {
             }
         }
         ui.onNodeWithText("Recent object").assertIsDisplayed()
+        ui.onNodeWithTag("deck-recents-list").assertHeightIsEqualTo(48.dp)
         ui.onNodeWithText("Session mode").performClick()
         ui.onNodeWithText("Recent object").assertDoesNotExist()
         ui.onNodeWithText("EXECUTION").performClick()
@@ -66,4 +72,37 @@ class CommandDeckAccordionUiTest {
         ui.onNodeWithText("Recents").performClick()
         ui.onNodeWithText("Recent object").assertDoesNotExist()
     }
+    @Test fun longRecentsFillRemainingViewportAndScrollToTheOriginalObject() {
+        val entries = (1..30).map {
+            RecentItem("id-$it", RecentItemType.PROJECT, 100L - it, "Recent $it", "target-$it")
+        }
+        val recent = mockk<RecentViewModel>(relaxed = true) {
+            every { recentItems } returns MutableStateFlow(entries)
+        }
+        val levels = mockk<LifeManagementStatusPanelViewModel>(relaxed = true) {
+            every { statuses } returns MutableStateFlow(emptyList())
+        }
+        val deck = mockk<CommandDeckViewModel>(relaxed = true) {
+            every { isCategoryExpanded(any(), any()) } answers { secondArg<Boolean>() }
+        }
+        var opened: RecentItem? = null
+        ui.setContent {
+            MaterialTheme {
+                Box(Modifier.width(360.dp).height(600.dp)) {
+                    CommandDeckAccordion(
+                        session = SessionModeState(), latestSessionReason = null,
+                        onModeSelected = {}, onOpenModeContext = {}, commandDeckViewModel = deck,
+                        onRecentItemClick = { opened = it }, insightsContent = {},
+                        levelsViewModel = levels, recentViewModel = recent,
+                    )
+                }
+            }
+        }
+        ui.onNodeWithTag("deck-recents-list").assertHeightIsAtLeast(350.dp)
+        ui.onNodeWithTag("deck-recent-id-6").assertIsDisplayed()
+        ui.onNodeWithTag("deck-recents-list").performScrollToIndex(29)
+        ui.onNodeWithText("Recent 30").performClick()
+        assertEquals(entries.last(), opened)
+    }
+
 }

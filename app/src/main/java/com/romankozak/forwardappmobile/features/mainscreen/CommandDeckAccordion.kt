@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -55,6 +58,7 @@ internal fun CommandDeckAccordion(
     commandDeckViewModel: CommandDeckViewModel,
     onRecentItemClick: (RecentItem) -> Unit,
     insightsContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     levelsViewModel: LifeManagementStatusPanelViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -85,86 +89,92 @@ internal fun CommandDeckAccordion(
         healthy -> if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) ReadyDarkContentColor else ReadyLightContentColor
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column {
-            AccordionHeader(
-                icon = Icons.Outlined.SwapVert,
-                title = stringResource(R.string.deck_session),
-                expanded = expanded == SESSION,
-                onClick = { toggle(SESSION) },
-                summary = {
-                    Text(if (session.mode == SessionMode.UNSET) stringResource(R.string.deck_mode_unset) else session.mode.title,
-                        color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                },
-            )
-            if (expanded == SESSION) {
-                SessionModeDashboard(
-                    state = session,
-                    latestSessionReason = latestSessionReason,
-                    onModeSelected = onModeSelected,
-                    isExpanded = true,
-                    onExpandedChange = {},
-                    onOpenModeContext = onOpenModeContext,
-                    showHeader = false,
+    BoxWithConstraints(modifier) {
+        // Small/landscape viewports retain a scrollable accordion rather than squeezing headers.
+        val fillRecents = expanded == RECENTS && maxHeight >= 260.dp * LocalDensity.current.fontScale.coerceAtLeast(1f) && constraints.hasBoundedHeight
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(if (fillRecents) Modifier else Modifier.verticalScroll(rememberScrollState())) {
+                AccordionHeader(
+                    icon = Icons.Outlined.SwapVert,
+                    title = stringResource(R.string.deck_session),
+                    expanded = expanded == SESSION,
+                    onClick = { toggle(SESSION) },
+                    summary = {
+                        Text(if (session.mode == SessionMode.UNSET) stringResource(R.string.deck_mode_unset) else session.mode.title,
+                            color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                    },
                 )
-            }
-            AccordionDivider()
-            AccordionHeader(
-                icon = Icons.Outlined.Layers,
-                title = stringResource(R.string.deck_levels_short),
-                expanded = expanded == LEVELS,
-                onClick = { toggle(LEVELS) },
-                summary = {
-                    if (healthy) Icon(Icons.Outlined.CheckCircle, null, Modifier.size(16.dp), tint = levelColor)
-                    Text(when {
-                        blocked + defected > 0 -> stringResource(R.string.deck_levels_problem, blocked, defected)
-                        healthy -> stringResource(R.string.deck_ok)
-                        else -> stringResource(R.string.deck_loading)
-                    }, color = levelColor, style = MaterialTheme.typography.labelMedium)
-                },
-            )
-            if (expanded == LEVELS) {
-                LifeManagementStatusPanelSection(
-                    statuses = statuses,
-                    isExpanded = true,
-                    onToggleExpanded = {},
-                    onSave = levelsViewModel::save,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    showSummary = false,
-                )
-            }
-            AccordionDivider()
-            AccordionHeader(
-                icon = Icons.Outlined.AutoAwesome,
-                title = stringResource(R.string.deck_ai_insights),
-                expanded = expanded == INSIGHTS,
-                onClick = { toggle(INSIGHTS) },
-            )
-            if (expanded == INSIGHTS) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { insightsContent() }
-            }
-            AccordionDivider()
-            DashboardRecentsSection(
-                onItemClick = onRecentItemClick,
-                recentViewModel = recentViewModel,
-                commandDeckViewModel = commandDeckViewModel,
-                expandedOverride = expanded == RECENTS,
-                contentModifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                onToggleOverride = { toggle(RECENTS) },
-                header = { isExpanded, onToggle, onShowAll ->
-                    AccordionHeader(
-                        icon = Icons.Outlined.History,
-                        title = stringResource(R.string.deck_recent),
-                        expanded = isExpanded,
-                        onClick = onToggle,
-                        action = { TextButton(onClick = onShowAll) { Text(stringResource(R.string.deck_all)) } },
+                if (expanded == SESSION) {
+                    SessionModeDashboard(
+                        state = session,
+                        latestSessionReason = latestSessionReason,
+                        onModeSelected = onModeSelected,
+                        isExpanded = true,
+                        onExpandedChange = {},
+                        onOpenModeContext = onOpenModeContext,
+                        showHeader = false,
                     )
-                },
-            )
+                }
+                AccordionDivider()
+                AccordionHeader(
+                    icon = Icons.Outlined.Layers,
+                    title = stringResource(R.string.deck_levels_short),
+                    expanded = expanded == LEVELS,
+                    onClick = { toggle(LEVELS) },
+                    summary = {
+                        if (healthy) Icon(Icons.Outlined.CheckCircle, null, Modifier.size(16.dp), tint = levelColor)
+                        Text(when {
+                            blocked + defected > 0 -> stringResource(R.string.deck_levels_problem, blocked, defected)
+                            healthy -> stringResource(R.string.deck_ok)
+                            else -> stringResource(R.string.deck_loading)
+                        }, color = levelColor, style = MaterialTheme.typography.labelMedium)
+                    },
+                )
+                if (expanded == LEVELS) {
+                    LifeManagementStatusPanelSection(
+                        statuses = statuses,
+                        isExpanded = true,
+                        onToggleExpanded = {},
+                        onSave = levelsViewModel::save,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        showSummary = false,
+                    )
+                }
+                AccordionDivider()
+                AccordionHeader(
+                    icon = Icons.Outlined.AutoAwesome,
+                    title = stringResource(R.string.deck_ai_insights),
+                    expanded = expanded == INSIGHTS,
+                    onClick = { toggle(INSIGHTS) },
+                )
+                if (expanded == INSIGHTS) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { insightsContent() }
+                }
+                AccordionDivider()
+                DashboardRecentsSection(
+                    modifier = if (fillRecents) Modifier.weight(1f, fill = false) else Modifier,
+                    fillAvailableSpace = fillRecents,
+                    onItemClick = onRecentItemClick,
+                    recentViewModel = recentViewModel,
+                    commandDeckViewModel = commandDeckViewModel,
+                    expandedOverride = expanded == RECENTS,
+                    contentModifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                    onToggleOverride = { toggle(RECENTS) },
+                    header = { isExpanded, onToggle, onShowAll ->
+                        AccordionHeader(
+                            icon = Icons.Outlined.History,
+                            title = stringResource(R.string.deck_recent),
+                            expanded = isExpanded,
+                            onClick = onToggle,
+                            action = { TextButton(onClick = onShowAll) { Text(stringResource(R.string.deck_all)) } },
+                        )
+                    },
+                )
+            }
         }
     }
 }

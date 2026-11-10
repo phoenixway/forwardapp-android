@@ -125,7 +125,6 @@ private fun AnimatedCommandDeck(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(0.dp),
                 )
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp).padding(top = 12.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
@@ -134,6 +133,7 @@ private fun AnimatedCommandDeck(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             CommandDeckAccordion(
+                modifier = Modifier.weight(1f, fill = false),
                 session = sessionModeState,
                 latestSessionReason = latestSessionReason,
                 onModeSelected = onSessionModeSelected,

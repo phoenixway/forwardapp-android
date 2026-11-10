@@ -11,7 +11,11 @@ Session content reuses the mode component with its summary hidden and compact
 mode chips. Reason/context actions remain available. Levels reuses the existing
 inline details/editor with its duplicate summary hidden. AI Insights keeps its
 existing content and mark-read/swipe actions inline. Recents keeps its 48 dp rows,
-All sheet, ordering, object identities, and callbacks. The four headers share
+All sheet, ordering, object identities, and callbacks. When expanded, its lazy
+list uses the remaining bounded viewport and can show more than four entries.
+Short lists wrap their content; long lists scroll. Very short/landscape viewports
+fall back to the scrollable accordion and compact preview to keep all headers
+reachable. The fallback threshold also accounts for font scale. The four headers share
 a tinted header background, 15 sp semibold type, icons and chevrons. The open
 header has a stronger tint and a slim accent; content stays on a neutral surface
 with internal padding; session/level summaries remain visible.
@@ -41,7 +45,8 @@ unchanged by V2.1. SHA-256 comparison of 56 protected source files passed.
 - Focus visibility checked against the disabled presentation constant and the
   conditional Compose call; disabled sections emit no layout spacer.
 - Added `CommandDeckAccordionUiTest` for mutually exclusive expansion, mode
-  selection, collapse and state restoration (not executed in Termux).
+  selection, collapse, state restoration, short-list sizing and long-list viewport
+  fill/scroll/click identity (not executed in Termux).
 - Added `CommandDeckV21UiTest` for the previous status-card presentation: both status rows in light/dark themes; unset and
   selected mode; blocked/defected counts; details action; four 48 dp rows; clicked
   object identity; All sheet; empty state and collapse/expand.
