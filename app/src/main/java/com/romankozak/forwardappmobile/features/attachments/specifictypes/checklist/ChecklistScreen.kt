@@ -198,56 +198,15 @@ fun ChecklistScreen(
     }
 
     if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheet = false },
+        ChecklistItemActionsSheet(
+            itemId = selectedItem?.id,
+            viewModel = viewModel,
             sheetState = sheetState,
-        ) {
-            Column {
-                ListItem(
-                    headlineContent = { Text("Delete") },
-                    leadingContent = {
-                        Icon(
-                            Icons.Outlined.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    },
-                    modifier =
-                        Modifier.clickable {
-                            showBottomSheet = false
-                            selectedItem?.let { viewModel.onDeleteItem(it.id) }
-                        },
-                )
-                ListItem(
-                    headlineContent = { Text("Додати посилання на вкладення") },
-                    leadingContent = {
-                        Icon(
-                            Icons.Default.AttachFile,
-                            contentDescription = "Вкладення",
-                        )
-                    },
-                    modifier =
-                        Modifier.clickable {
-                            showBottomSheet = false
-                            showAttachmentPicker = true
-                        },
-                )
-                ListItem(
-                    headlineContent = { Text("Додати посилання на контекст") },
-                    leadingContent = {
-                        Icon(
-                            Icons.Default.AccountTree,
-                            contentDescription = "Контекст",
-                        )
-                    },
-                    modifier =
-                        Modifier.clickable {
-                            showBottomSheet = false
-                            showContextPicker = true
-                        },
-                )
-            }
-        }
+            onDismiss = { showBottomSheet = false },
+            onAddAttachmentLink = { showAttachmentPicker = true },
+            onAddContextLink = { showContextPicker = true },
+            onMessage = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
+        )
     }
 
     if (showAttachmentPicker) {

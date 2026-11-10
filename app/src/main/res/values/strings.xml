@@ -169,4 +169,13 @@
     <string name="deck_loading">Loading…</string>
     <string name="deck_close">Close</string>
     <string name="deck_ai_insights">AI Insights</string>
+    <string name="checklist_item_cut_action">Cut</string>
+    <string name="checklist_item_copy_action">Copy</string>
+    <string name="checklist_item_paste_action">Paste</string>
+    <string name="checklist_item_delete_action">Delete</string>
+    <string name="checklist_item_attachment_link">Add attachment link</string>
+    <string name="checklist_item_context_link">Add context link</string>
+    <string name="checklist_item_copied">Item copied</string>
+    <string name="checklist_item_cut">Item marked for moving. Paste it into the destination checklist.</string>
+    <string name="checklist_item_missing">Item is no longer available</string>
 </resources>

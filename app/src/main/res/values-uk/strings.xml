@@ -34,4 +34,13 @@
     <string name="deck_loading">Завантаження…</string>
     <string name="deck_close">Закрити</string>
     <string name="deck_ai_insights">Інсайти ШІ</string>
+    <string name="checklist_item_cut_action">Вирізати</string>
+    <string name="checklist_item_copy_action">Копіювати</string>
+    <string name="checklist_item_paste_action">Вставити</string>
+    <string name="checklist_item_delete_action">Видалити</string>
+    <string name="checklist_item_attachment_link">Додати посилання на вкладення</string>
+    <string name="checklist_item_context_link">Додати посилання на контекст</string>
+    <string name="checklist_item_copied">Запис скопійовано</string>
+    <string name="checklist_item_cut">Запис позначено для перенесення. Вставте його в потрібний чекліст.</string>
+    <string name="checklist_item_missing">Запис більше недоступний</string>
 </resources>
