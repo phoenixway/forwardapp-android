@@ -198,7 +198,7 @@ private fun RecentItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                ItemTypeIcon(
+                RecentItemTypeIcon(
                     type = item.type,
                     tint = colors.typeIconColor,
                 )
@@ -222,9 +222,10 @@ private fun RecentItemCard(
 }
 
 @Composable
-private fun ItemTypeIcon(
+internal fun RecentItemTypeIcon(
     type: RecentItemType,
     tint: Color,
+    modifier: Modifier = Modifier.size(36.dp),
 ) {
     Icon(
         imageVector =
@@ -239,7 +240,7 @@ private fun ItemTypeIcon(
                 RecentItemType.SCRIPT -> Icons.AutoMirrored.Outlined.Note
             },
         contentDescription = null,
-        modifier = Modifier.size(36.dp),
+        modifier = modifier,
         tint = tint,
     )
 }

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Icon
@@ -40,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
+import com.romankozak.forwardappmobile.ui.components.RecentItemTypeIcon
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 
 private const val RECENTS_EXPANDED_KEY = "dashboard_recents_expanded"
@@ -135,7 +135,7 @@ private fun RecentItemRow(item: RecentItem, showDivider: Boolean, onItemClick: (
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.History, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            RecentItemTypeIcon(type = item.type, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(item.displayName.ifBlank { item.target },
                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
                 color = MaterialTheme.colorScheme.onSurface,
