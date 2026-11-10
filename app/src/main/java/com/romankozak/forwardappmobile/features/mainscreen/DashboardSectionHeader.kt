@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -32,33 +34,43 @@ internal fun DashboardSectionHeader(
 ) {
     val isFocus = emphasis == DashboardHeaderEmphasis.Focus
     val isSupporting = emphasis == DashboardHeaderEmphasis.Supporting
-    val foreground = if (isSupporting) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    val foreground = MaterialTheme.colorScheme.onSurface
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isFocus) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else Color.Transparent,
+            containerColor = when {
+                isFocus -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                isSupporting -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+                else -> Color.Transparent
+            },
             contentColor = foreground,
         ),
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isFocus) 12.dp else 0.dp, vertical = 0.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isFocus || isSupporting) 12.dp else 0.dp, vertical = 0.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (isFocus) {
-                Icon(Icons.Outlined.CenterFocusStrong, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp).size(22.dp))
-            }
+            Icon(
+                imageVector = when {
+                    isFocus -> Icons.Outlined.CenterFocusStrong
+                    isSupporting -> Icons.Outlined.AutoAwesome
+                    else -> Icons.Outlined.History
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 10.dp).size(22.dp),
+            )
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = if (isFocus) 20.sp else if (isSupporting) 14.sp else 18.sp,
+                        fontSize = if (isSupporting) 20.sp else if (isFocus) 20.sp else 22.sp,
                         fontFamily = if (isFocus) MaterialTheme.typography.titleMedium.fontFamily else FontFamily.SansSerif,
                     ),
-                    fontWeight = if (isFocus) FontWeight.SemiBold else FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = foreground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

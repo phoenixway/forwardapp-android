@@ -163,4 +163,10 @@
     <string name="deck_track">Start tracking</string>
     <string name="deck_unfocus">Remove focus</string>
     <string name="deck_character">Character</string>
+    <string name="deck_mode_unset">Unset</string>
+    <string name="deck_levels_short">Levels</string>
+    <string name="deck_ok">OK</string>
+    <string name="deck_loading">Loading…</string>
+    <string name="deck_close">Close</string>
+    <string name="deck_ai_insights">AI Insights</string>
 </resources>

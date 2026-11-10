@@ -28,4 +28,10 @@
     <string name="deck_track">Почати трекінг</string>
     <string name="deck_unfocus">Зняти фокус</string>
     <string name="deck_character">Персонаж</string>
+    <string name="deck_mode_unset">Не вибрано</string>
+    <string name="deck_levels_short">Рівні</string>
+    <string name="deck_ok">OK</string>
+    <string name="deck_loading">Завантаження…</string>
+    <string name="deck_close">Закрити</string>
+    <string name="deck_ai_insights">Інсайти ШІ</string>
 </resources>

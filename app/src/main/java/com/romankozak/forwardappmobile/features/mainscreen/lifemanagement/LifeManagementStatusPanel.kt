@@ -72,9 +72,9 @@ private const val FallbackLightContainerAlpha = 0.05f
 private const val FallbackLightBorderAlpha = 0.12f
 
 private val ReadyDarkContainerColor = Color(0xFF23462D)
-private val ReadyDarkContentColor = Color(0xFFB8E6C4)
+internal val ReadyDarkContentColor = Color(0xFFB8E6C4)
 private val ReadyLightContainerColor = Color(0xFFDDF1E3)
-private val ReadyLightContentColor = Color(0xFF215A31)
+internal val ReadyLightContentColor = Color(0xFF215A31)
 private val ConditionalDarkContainerColor = Color(0xFF4B3B12)
 private val ConditionalDarkContentColor = Color(0xFFFFDF8A)
 private val ConditionalLightContainerColor = Color(0xFFFFEDBF)
