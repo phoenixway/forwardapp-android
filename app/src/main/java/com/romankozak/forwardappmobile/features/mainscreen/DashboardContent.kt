@@ -121,6 +121,25 @@ private fun AnimatedCommandDeck(
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY, defaultValue = true))
     }
 
+    if (aiInsightsExpanded) {
+        val closeInsights = {
+            aiInsightsExpanded = false
+            commandDeckViewModel.setCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY, false)
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = closeInsights,
+            title = { Text(stringResource(R.string.deck_ai_insights)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DashboardAiInsightsContent(aiInsightsViewModel)
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = closeInsights) { Text(stringResource(R.string.deck_close)) }
+            },
+        )
+    }
+
     Column(
         modifier =
             modifier
@@ -140,6 +159,10 @@ private fun AnimatedCommandDeck(
             CommandDeckStatusCard(
                 session = sessionModeState,
                 onModeSelected = onSessionModeSelected,
+                onOpenInsights = {
+                    aiInsightsExpanded = true
+                    commandDeckViewModel.setCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY, true)
+                },
             )
 
             if (COMMAND_DECK_SHOW_FOCUS_CONTEXTS) {
@@ -162,17 +185,7 @@ private fun AnimatedCommandDeck(
                 commandDeckViewModel = commandDeckViewModel,
             )
 
-            DashboardAiInsightsSection(
-                isExpanded = aiInsightsExpanded,
-                onToggleExpanded = {
-                    aiInsightsExpanded = !aiInsightsExpanded
-                    commandDeckViewModel.setCategoryExpanded(
-                        AI_INSIGHTS_EXPANDED_KEY,
-                        aiInsightsExpanded,
-                    )
-                },
-                aiInsightsViewModel = aiInsightsViewModel,
-            )
+
         }
     }
 }
@@ -212,9 +225,7 @@ private fun DashboardFocusContextsSection(
 }
 
 @Composable
-private fun DashboardAiInsightsSection(
-    isExpanded: Boolean,
-    onToggleExpanded: () -> Unit,
+private fun DashboardAiInsightsContent(
     aiInsightsViewModel: AiInsightsViewModel,
 ) {
     var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
@@ -225,17 +236,6 @@ private fun DashboardAiInsightsSection(
                 .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
                 .take(DASHBOARD_INSIGHTS_LIMIT)
         }
-
-    DashboardSectionHeader(
-        title = stringResource(R.string.deck_ai_insights),
-        emphasis = DashboardHeaderEmphasis.Supporting,
-        subtitle = null,
-        isExpanded = isExpanded,
-        onClick = onToggleExpanded,
-    )
-    if (!isExpanded) {
-        return
-    }
 
     if (latestInsights.isNotEmpty()) {
         latestInsights.forEach { insight ->

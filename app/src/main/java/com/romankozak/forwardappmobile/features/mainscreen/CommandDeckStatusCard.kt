@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Layers
@@ -38,11 +39,12 @@ internal const val COMMAND_DECK_SHOW_FOCUS_CONTEXTS = false
 internal fun CommandDeckStatusCard(
     session: SessionModeState,
     onModeSelected: (SessionMode) -> Unit,
+    onOpenInsights: () -> Unit,
     viewModel: LifeManagementStatusPanelViewModel = hiltViewModel(),
 ) {
     val statuses by viewModel.statuses.collectAsStateWithLifecycle()
     var showLevels by rememberSaveable { mutableStateOf(false) }
-    CommandDeckStatusCardContent(session, statuses, onModeSelected, { showLevels = true })
+    CommandDeckStatusCardContent(session, statuses, onModeSelected, { showLevels = true }, onOpenInsights)
     if (showLevels) {
         AlertDialog(
             onDismissRequest = { showLevels = false },
@@ -70,6 +72,7 @@ internal fun CommandDeckStatusCardContent(
     statuses: List<LifeManagementLevelStatus>,
     onModeSelected: (SessionMode) -> Unit,
     onOpenLevels: () -> Unit,
+    onOpenInsights: (() -> Unit)? = null,
 ) {
     var showModes by rememberSaveable { mutableStateOf(false) }
     val blocked = statuses.count { it.generalStatus == GeneralStatus.BLOCKED }
@@ -125,6 +128,18 @@ internal fun CommandDeckStatusCardContent(
                 onClick = onOpenLevels,
                 modifier = Modifier.testTag("deck-levels-row"),
             )
+            onOpenInsights?.let { openInsights ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                StatusRow(
+                    icon = Icons.Outlined.AutoAwesome,
+                    label = stringResource(R.string.deck_ai_insights),
+                    value = "",
+                    valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = openInsights,
+                    modifier = Modifier.testTag("deck-insights-row"),
+                )
+            }
+
         }
     }
 }

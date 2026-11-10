@@ -40,10 +40,11 @@ class CommandDeckV21UiTest {
         val session = mutableStateOf(SessionModeState())
         val levels = mutableStateOf(listOf(level(GeneralStatus.READY)))
         var openedLevels = 0
+        var openedInsights = 0
         ui.setContent {
             MaterialTheme(colorScheme = if (dark.value) darkColorScheme() else lightColorScheme()) {
                 CommandDeckStatusCardContent(session.value, levels.value,
-                    { session.value = SessionModeState(it) }, { openedLevels++ })
+                    { session.value = SessionModeState(it) }, { openedLevels++ }, { openedInsights++ })
             }
         }
         ui.onNodeWithText("Unset").assertIsDisplayed()
@@ -53,6 +54,8 @@ class CommandDeckV21UiTest {
         assertEquals(SessionMode.EXECUTION, session.value.mode)
         ui.onNodeWithTag("deck-levels-row").performClick()
         assertEquals(1, openedLevels)
+        ui.onNodeWithTag("deck-insights-row").assertHeightIsEqualTo(50.dp).performClick()
+        assertEquals(1, openedInsights)
         ui.runOnIdle { dark.value = true; levels.value = listOf(level(GeneralStatus.BLOCKED)) }
         ui.onNodeWithText("Blocked: 1 · Defected: 0").assertIsDisplayed()
         ui.onNodeWithTag("deck-session-row").assertExists()

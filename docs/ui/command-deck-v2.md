@@ -2,16 +2,16 @@
 
 Current central composition (2026-11-10):
 
-1. One neutral rounded status card with two 50 dp minimum rows: Session mode and
-   Levels, separated by a divider. Session opens the existing enum picker and
+1. One neutral rounded status card with three 50 dp minimum rows: Session mode,
+   Levels and AI Insights, separated by dividers. Session opens the existing enum picker and
    passes the selected mode to the existing callback. Levels opens the existing
    status details/editor in a scrollable dialog using its existing ViewModel.
 2. Recents: purple history icon, 18 sp medium heading, All action, independent
    collapse control; up to four recent objects in a shared lightweight surface.
    Each row is 48 dp at standard text scale. The divider overlays the row boundary
    and adds no height. `heightIn(min = 48.dp)` permits expansion for large text.
-3. AI Insights: 16 sp medium heading, sparkles, subtle purple tint, collapse
-   control, and the existing insight content/actions.
+AI Insights opens its existing content/actions in a scrollable dialog from the
+third row under Levels, using the same icon/text/chevron styling as Levels.
 
 Focus Contexts is absent from the default composition. Set the presentation-only
 `COMMAND_DECK_SHOW_FOCUS_CONTEXTS` constant to true to restore it. The component,
