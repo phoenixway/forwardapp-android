@@ -106,12 +106,10 @@ class GlobalSearchViewModel
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         companion object {
-            private const val SEARCH_HISTORY_KEY = "global_search_history"
             private const val COMMAND_HISTORY_KEY = "global_command_history"
             private const val COMMAND_USAGE_KEY = "global_command_usage"
             private const val DATA_USAGE_KEY = "global_data_usage"
             private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
-            private const val MAX_SEARCH_HISTORY = 12
             private const val MAX_COMMAND_HISTORY = 12
             private const val MAX_USAGE_ITEMS = 200
             private const val SEARCH_CANDIDATES_CACHE_TTL_MS = 15_000L
@@ -242,6 +240,7 @@ class GlobalSearchViewModel
         private val initialQuery: String =
             runCatching { URLDecoder.decode(initialQueryRaw, "UTF-8") }.getOrDefault(initialQueryRaw)
         private val _uiState = MutableStateFlow(GlobalSearchUiState())
+        private val searchHistory = MagicBoxSearchHistory(_uiState, savedStateHandle, settingsRepository, viewModelScope)
         val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
         private var allSearchCandidatesCache: List<GlobalSearchResultItem>? = null
         private var allSearchCandidatesCacheUpdatedAt: Long = 0L
@@ -258,7 +257,7 @@ class GlobalSearchViewModel
                 )
 
         init {
-            val history = savedStateHandle.get<List<String>>(SEARCH_HISTORY_KEY) ?: emptyList()
+            val history = savedStateHandle.get<List<String>>(MagicBoxSearchHistory.SAVED_STATE_KEY) ?: emptyList()
             val recentCommands =
                 (savedStateHandle.get<List<String>>(COMMAND_HISTORY_KEY) ?: emptyList())
                     .mapNotNull { name -> runCatching { OmniboxCommandId.valueOf(name) }.getOrNull() }
@@ -291,26 +290,18 @@ class GlobalSearchViewModel
                 }
             }
             viewModelScope.launch {
-                combine(
-                    settingsRepository.globalSearchModeDisplayPrefsFlow,
-                    combine(
-                        OmniboxMode.entries.map { mode ->
-                            settingsRepository.globalSearchRecentInputsFlow(mode)
-                        },
-                    ) { inputLists ->
-                        OmniboxMode.entries.zip(inputLists.toList()).toMap()
-                    },
-                ) { prefs, recentInputs ->
-                    prefs to recentInputs
-                }.collect { (prefs, recentInputs) ->
-                    _uiState.update {
-                        it.copy(
-                            modeDisplayPrefs = prefs,
-                            recentModeInputs = recentInputs,
-                            searchHistory = recentInputs[OmniboxMode.DataSearch].orEmpty(),
-                        )
-                    }
+                settingsRepository.globalSearchModeDisplayPrefsFlow.collect { prefs ->
+                    _uiState.update { it.copy(modeDisplayPrefs = prefs) }
                 }
+            }
+            viewModelScope.launch {
+                combine(
+                    OmniboxMode.entries.map { mode ->
+                        settingsRepository.globalSearchRecentInputsFlow(mode)
+                    },
+                ) { inputLists ->
+                    OmniboxMode.entries.zip(inputLists.toList()).toMap()
+                }.collect(searchHistory::applyStoredRecentInputs)
             }
         }
 
@@ -332,6 +323,7 @@ class GlobalSearchViewModel
         }
 
         fun onQueryChange(value: String) {
+            searchHistory.rememberBeforeClearing(value)
             val (prefixedMode, strippedQuery) = parseModePrefix(value)
             if (prefixedMode != null && prefixedMode != _uiState.value.mode) {
                 setMode(prefixedMode)
@@ -639,23 +631,9 @@ class GlobalSearchViewModel
             performSearch(query)
         }
 
-        fun removeSearchHistoryEntry(query: String) {
-            if (query.isBlank()) return
-            val updated = _uiState.value.searchHistory.filterNot { it.equals(query, ignoreCase = true) }
-            _uiState.update { it.copy(searchHistory = updated) }
-            savedStateHandle[SEARCH_HISTORY_KEY] = updated
-            viewModelScope.launch {
-                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, updated)
-            }
-        }
+        fun removeSearchHistoryEntry(query: String) = searchHistory.remove(query)
 
-        fun clearSearchHistory() {
-            _uiState.update { it.copy(searchHistory = emptyList()) }
-            savedStateHandle[SEARCH_HISTORY_KEY] = emptyList<String>()
-            viewModelScope.launch {
-                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, emptyList())
-            }
-        }
+        fun clearSearchHistory() = searchHistory.clear()
 
         fun toggleCurrentModePreview() {
             val mode = _uiState.value.mode
@@ -1241,7 +1219,7 @@ class GlobalSearchViewModel
             val normalized = value.trim()
             if (normalized.isBlank()) return
             val current = _uiState.value.recentModeInputs[mode].orEmpty()
-            val updated = (listOf(normalized) + current.filterNot { it.equals(normalized, ignoreCase = true) }).take(MAX_SEARCH_HISTORY)
+            val updated = (listOf(normalized) + current.filterNot { it.equals(normalized, ignoreCase = true) }).take(MagicBoxSearchHistory.MAX_ENTRIES)
             _uiState.update { it.copy(recentModeInputs = it.recentModeInputs + (mode to updated)) }
             viewModelScope.launch {
                 settingsRepository.saveGlobalSearchRecentInputs(mode, updated)
@@ -1259,20 +1237,7 @@ class GlobalSearchViewModel
             usage.putAll(top)
         }
 
-        private fun addSearchQueryToHistory(rawQuery: String) {
-            val query = rawQuery.trim()
-            if (query.isBlank()) return
-
-            val currentHistory = _uiState.value.searchHistory
-            val withoutCurrent = currentHistory.filterNot { it.equals(query, ignoreCase = true) }
-            val updated = (listOf(query) + withoutCurrent).take(MAX_SEARCH_HISTORY)
-
-            _uiState.update { it.copy(searchHistory = updated) }
-            savedStateHandle[SEARCH_HISTORY_KEY] = updated
-            viewModelScope.launch {
-                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, updated)
-            }
-        }
+        private fun addSearchQueryToHistory(rawQuery: String) = searchHistory.remember(rawQuery)
 
         fun navigateToProjectForResult(
             projectId: String,

@@ -45,12 +45,11 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_configuratio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetEditorScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.StructurePresetsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.HierarchyProjectNavigation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ProjectSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ProjectsScreen
+import com.romankozak.forwardappmobile.features.workspace.LegacyWorkspaceDestinationScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.GoalSettingsScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.EditTaskScreen
@@ -243,32 +242,11 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToRecentItem = { item: RecentItem ->
                 when (item.type) {
                     RecentItemType.PROJECT ->
-                        when (
-                            val projectNavigation =
-                                goalListViewModel.resolveProjectNavigation(item.target)
-                        ) {
-                            is HierarchyProjectNavigation.ContextDetail ->
-                                navigationManager.navigate(
-                                    target =
-                                        NavTarget.ContextDetail(
-                                            contextId = projectNavigation.projectId,
-                                        ),
-                                    recordInHistory = true,
-                                    historyTitle = projectNavigation.title,
-                                )
-
-                            is HierarchyProjectNavigation.HierarchyRead ->
-                                navigationManager.navigate(
-                                    target =
-                                        NavTarget.ContextHierarchy(
-                                            projectIdToReveal = projectNavigation.projectId,
-                                        ),
-                                    recordInHistory = true,
-                                    historyTitle = projectNavigation.title,
-                                )
-
-                            null -> Unit
-                        }
+                        navigationManager.navigate(
+                            target = requireNotNull(com.romankozak.forwardappmobile.features.recent.recentEntityDestination(item)),
+                            recordInHistory = true,
+                            historyTitle = item.displayName,
+                        )
 
                     RecentItemType.NOTE ->
                         navigationManager.navigate(target = NavTarget.LegacyNote(noteId = item.target))
@@ -390,7 +368,7 @@ private fun NavGraphBuilder.mainGraph(
         // FIX: Extract the 'listId' argument from the route and assign it to a variable.
         val projectId = backStackEntry.arguments?.getString("listId")
 
-        ProjectsScreen(
+        LegacyWorkspaceDestinationScreen(
             navController = navController,
             viewModel = viewModel,
             projectId = projectId, // Now 'projectId' is a resolved reference.

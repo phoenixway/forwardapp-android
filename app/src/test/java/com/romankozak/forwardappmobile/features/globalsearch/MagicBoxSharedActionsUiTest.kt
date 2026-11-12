@@ -55,7 +55,7 @@ class MagicBoxSharedActionsUiTest {
         ui.runOnIdle { assertThat(creates).isEqualTo(0); assertThat(consumed).isEqualTo(1) }
     }
 
-    @Test fun `scrollable dock puts Recents immediately after search and retains create at far end`() {
+    @Test fun `scrollable dock orders search Recents create before other modes`() {
         var creates = 0
         var recents = false
         var modeChanges = 0
@@ -67,7 +67,13 @@ class MagicBoxSharedActionsUiTest {
         } }
         val search = ui.onNodeWithContentDescription("Пошук даних").fetchSemanticsNode().boundsInRoot
         val recent = ui.onNodeWithContentDescription("Недавні").fetchSemanticsNode().boundsInRoot
-        ui.runOnIdle { assertThat(recent.left).isGreaterThan(search.left) }
+        val create = ui.onNodeWithContentDescription("Створити").fetchSemanticsNode().boundsInRoot
+        val command = ui.onNodeWithContentDescription("Команди").fetchSemanticsNode().boundsInRoot
+        ui.runOnIdle {
+            assertThat(recent.left).isGreaterThan(search.left)
+            assertThat(create.left).isGreaterThan(recent.left)
+            assertThat(command.left).isGreaterThan(create.left)
+        }
         ui.onNodeWithContentDescription("Недавні").performClick()
         ui.onNodeWithTag("dock").performTouchInput { swipeLeft() }
         ui.onNodeWithContentDescription("Створити").performScrollTo().performClick()

@@ -26,7 +26,7 @@ DEVICE_FLAG = $(if $(strip $(DEVICE_ID)),-s "$(strip $(DEVICE_ID))")
 # --- Цілі (Targets) ---
 
 .PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp exp-arm64-cycle build-exp-arm64 install-exp-arm64 check-release-signing check-exp-signature-match backup quality-report quality-strict quality-unit
-.PHONY: check-device install-prod
+.PHONY: check-device install-prod _exp-arm64-cycle
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -62,7 +62,10 @@ debug-cycle: install-debug start-debug
 ## Зібрати, встановити та запустити EXPERIMENTAL RELEASE (expRelease)
 exp-cycle: install-exp start-exp
 ## Швидкий EXPERIMENTAL цикл: expLocal + ARM64 only + base package
-exp-arm64-cycle: check-release-signing check-exp-signature-match install-exp-arm64 start-exp
+exp-arm64-cycle:
+	+@sh tools/notify-command "ForwardApp: exp ARM64" $(MAKE) --no-print-directory _exp-arm64-cycle
+
+_exp-arm64-cycle: check-release-signing check-exp-signature-match install-exp-arm64 start-exp
 
 
 # ============== RELEASE ЦИКЛ ==============
@@ -394,6 +397,7 @@ help:
 	@echo "---"
 	@echo "  make debug-cycle    - (Найчастіша команда) Зібрати, встановити та запустити DEBUG версію."
 	@echo "  make exp-arm64-cycle - Швидкий exp цикл: expLocal, тільки ARM64, пакет без .debug."
+	@echo "  Після exp-arm64-cycle: системне сповіщення про результат; FORWARDAPP_NOTIFY=0 вимикає його."
 	@echo "  make check-exp-signature-match - Порівняти підпис локального keystore з APK на пристрої."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
 	@echo "  make install        - Зібрати та встановити production release без запуску."

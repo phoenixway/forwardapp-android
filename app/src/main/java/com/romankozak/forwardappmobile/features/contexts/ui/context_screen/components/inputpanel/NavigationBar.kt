@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.BottomSheetDefaults
@@ -69,9 +68,6 @@ internal fun NavigationBar(
                 contentDescription = "Search everywhere",
                 tint = contentColor.copy(alpha = 0.8f),
             )
-        }
-        IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(34.dp)) {
-            Icon(Icons.Outlined.History, null, tint = contentColor.copy(alpha = 0.8f))
         }
         IconButton(onClick = actions.onShowCurrentContextInHierarchyFocus, modifier = Modifier.size(34.dp)) {
             Icon(Icons.Outlined.MyLocation, "Показати появи у Navigation", tint = contentColor.copy(alpha = 0.8f))

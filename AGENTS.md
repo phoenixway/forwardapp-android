@@ -7,6 +7,7 @@ Authoritative engineering rules for the ForwardApp repository. Use `docs/README.
 At the start of each session, before choosing platform-specific commands or paths:
 
 - Detect the actual execution host using available environment evidence: `uname -s`, Android properties via `getprop ro.build.version.release` when available, and Termux paths or environment variables such as `PREFIX` and `ANDROID_ROOT`.
+- On a non-Android Linux host, read `/etc/os-release` to identify the distribution; `ID=fedora` enables the Fedora live-validation workflow below.
 - Do not infer the host platform from the repository name or `uname` alone: Android can report Linux, and a shell/container on the Android device can report GNU/Linux.
 - When Android/Termux evidence is present, treat the Android device as the local development host. Check local shared-storage access before assuming a separate device or requiring ADB.
 - On other hosts, use that host's available paths and tools; do not assume Android screenshot directories exist.
@@ -52,18 +53,37 @@ Before substantial tasks and major phase transitions, proactively advise the use
 
 ## Build Ownership
 
-- Do not run full project builds unless explicitly requested by the user.
-- The user normally compiles the project and reports errors.
+- On Fedora (`ID=fedora`, without Android/Termux host evidence), agents may build, install and launch the app when live validation is materially useful for the current request. This is standing user authorization; no separate build/deployment confirmation is needed.
+- On other hosts, do not run full project builds unless explicitly requested by the user; the user normally compiles and reports errors.
 - Lightweight static checks such as `rg`, `sed`, `awk`, `wc`, and `git diff --check` are allowed.
 - Run targeted tests or compilation only when allowed by the current task and materially useful.
 - Do not repeat build/test passes when a higher-level check already proves the required property.
+
+### Fedora live validation
+
+- Before an appropriate live build, run `memory-guardian clean` to reclaim memory from idle Gradle daemons left by earlier or parallel work. Preserve active builds, incremental state and caches; do not replace this command with indiscriminate process killing or `gradle clean`.
+- Use `make exp-arm64-cycle` to build the ARM64 `expLocal` APK, update the existing app and launch it. Keep the target's signing checks and data-preserving installation behavior.
+- `make exp-arm64-cycle` sends a local desktop notification on success or failure through `tools/notify-command` (`notify-send` with a 5-second timeout). It works independently of chat while the command is running and the desktop notification service is accessible; notification failures must not change the command result. Set `FORWARDAPP_NOTIFY=0` to disable it. Other long commands may use `sh tools/notify-command '<label>' <command> [args...]`.
+- With one available ADB device, omit `DEVICE_ID`; the Makefile already supports automatic selection. An explicit `DEVICE_ID` overrides `ANDROID_SERIAL`. With multiple devices, use a known intended serial; otherwise ask which device to use. Do not hardcode ephemeral Wi-Fi/mDNS serials in project rules.
+- Typical single-device workflow:
+
+  ```sh
+  memory-guardian clean
+  make exp-arm64-cycle
+  ```
+
+- When selection is needed, use `make exp-arm64-cycle DEVICE_ID='<serial>'`. If the device is unavailable or unauthorized, report that limitation; successful host tests/builds alone do not establish physical UI acceptance.
+- Validate the behavior relevant to the request on the device when practical, and distinguish build/install success from actual live-test results.
 
 ## Long-running Builds and Tests
 
 Minimize model token consumption during authorized Gradle builds and tests. Build Ownership and Token-efficient Testing rules still apply.
 
 - Run builds and tests as long-running terminal processes.
+- Keep an agent-started build/install task active until the command finishes and report its actual result before sending the final answer, unless the user explicitly requests a background handoff or cancellation. Do not promise an automatic future chat message after ending the turn; the desktop notification is the independent completion signal.
 - Never poll build or test progress at short intervals.
+- Keep routine waiting outside model turns: use one completion wait or an orchestration script that awaits the terminal process until it exits. If the terminal tool limits each wait, repeat those waits inside the script instead of asking the model to poll again.
+- Do not repeatedly resume a yielded wait with 1–10 second timeouts. Use the longest practical wait, and return only completion status and the relevant final log excerpt; keep required user updates concise.
 - Prefer blocking waits with the maximum practical tool-supported timeout, within applicable communication and tool limits.
 - Redirect full Gradle output to a log file.
 - Do not stream routine Gradle progress into model context.

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceSemanticBootstrapCoordinator
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceSemanticBootstrapRequest
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
 import com.romankozak.forwardappmobile.features.semantic.creatableOrientationKinds
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
@@ -38,8 +40,28 @@ data class WorkspaceSemanticBootstrapState(
 class WorkspaceSemanticBootstrapViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val coordinator: WorkspaceSemanticBootstrapCoordinator,
+    private val workspaces: WorkspaceDao,
 ) : ViewModel() {
-    private val workspaceId = savedState.get<String>("workspaceId").orEmpty()
+    private var workspaceId = savedState.get<String>("workspaceId").orEmpty()
+    private val _legacyWorkspace = MutableStateFlow<WorkspaceEntity?>(null)
+    val legacyWorkspace = _legacyWorkspace.asStateFlow()
+
+    init {
+        if (!savedState.contains("workspaceId")) {
+            val contextId = savedState.get<String>("listId").orEmpty()
+            if (contextId.isNotBlank()) viewModelScope.launch {
+                val workspace = try {
+                    workspaces.getContextBackedForContextId(contextId)?.takeUnless { it.isDeleted }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                }
+                workspaceId = workspace?.id.orEmpty()
+                _legacyWorkspace.value = workspace
+            }
+        }
+    }
     // Commands are never restored/replayed. If process death interrupted confirmation,
     // require explicit inspection of Properties before starting a new creation action.
     private val _state = MutableStateFlow(WorkspaceSemanticBootstrapState(

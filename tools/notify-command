@@ -1,0 +1,42 @@
+#!/bin/sh
+# Run a command and report its result to the local desktop independently of chat.
+set -u
+
+if [ "$#" -lt 2 ]; then
+    echo "Usage: sh tools/notify-command <label> <command> [args...]" >&2
+    exit 2
+fi
+
+label=$1
+shift
+status=0
+"$@" || status=$?
+
+# Recursive make executes recipes containing $(MAKE) even under -n.
+# GNU make puts normalized short flags first in MAKEFLAGS.
+short_flags=${MAKEFLAGS-}
+short_flags=${short_flags%% *}
+case "$short_flags" in
+    --*) ;;
+    *n*|*q*|*t*) exit "$status" ;;
+esac
+
+if [ "${FORWARDAPP_NOTIFY:-1}" = 0 ]; then
+    exit "$status"
+fi
+
+if command -v notify-send >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
+    if [ "$status" -eq 0 ]; then
+        urgency=normal
+        message="Завершено успішно."
+    else
+        urgency=critical
+        message="Помилка. Код завершення: $status. Подробиці — у терміналі або логу команди."
+    fi
+    # A missing desktop bus or stalled notification service must not block the command.
+    if ! timeout 5s notify-send --app-name=ForwardApp --urgency="$urgency" -- "$label" "$message"; then
+        echo "ForwardApp: не вдалося показати системне сповіщення." >&2
+    fi
+fi
+
+exit "$status"
