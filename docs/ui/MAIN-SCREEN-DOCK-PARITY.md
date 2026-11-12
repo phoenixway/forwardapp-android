@@ -5,6 +5,13 @@ Source baseline: a4d01169e, intentionally dirty tree, 2026-10-26.
 Classification: SEMANTIC_NOT_HIERARCHY presentation only. No persisted/domain
 authority or Room change. Existing UI analysis is reference, not a new contract.
 
+## 2026-11-12 - Strategic Arc month navigation
+
+The month chip below the Arc tabs contains Previous, month/year, and Next in one
+surface. Previous is disabled when no earlier visible arc exists. Both arrows
+use the existing StrategicArcViewModel navigation callbacks. The contextual
+tools sheet no longer contains a Period section or month navigation actions.
+
 ## 2026-10-31 - Strategic Arc contextual sheet readability
 
 Only the Arc tab uses the grouped tools sheet; Today/Tactics/global More keep
@@ -15,7 +22,7 @@ enabled/selected rules. Unknown future action IDs remain visible in Other action
 | --- | --- |
 | quests / artifact | Перегляд: selected view chips |
 | arc-overview / arc-all-participants | Склад списку: Квести / фокуси vs Усі учасники, radio selection and scope-limited component explanation; QUESTS only |
-| arc-previous / arc-next | Період: current month/year and adjacent navigation buttons |
+| arc-previous / arc-next | Superseded 2026-11-12: moved to the month chip below the tabs |
 | quest-source / arc-beacon / arc-group | Додати до арки: primary canonical-source action plus existing distinct catalog actions |
 | quest-clear | Same creation section: Очистити чернетку; explicitly only input text, never saved Quests |
 | arc-open-artifact / arc-links | Інструменти арки: existing note editor and attached-material actions, not the view selector or semantic relations |

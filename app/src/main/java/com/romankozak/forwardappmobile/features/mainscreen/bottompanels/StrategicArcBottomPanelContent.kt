@@ -30,7 +30,6 @@ internal fun StrategicArcBottomPanelContent(
     additionalActions: List<ContextualAction> = emptyList(),
     showAllParticipants: Boolean = false,
     onShowAllParticipantsChange: ((Boolean) -> Unit)? = null,
-    arcKey: String? = null,
 ) {
     val overviewActions = if (selectedTab == StrategicArcTab.QUESTS && onShowAllParticipantsChange != null)
         strategicArcOverviewActions(showAllParticipants, onShowAllParticipantsChange) else emptyList()
@@ -44,7 +43,7 @@ internal fun StrategicArcBottomPanelContent(
                 trailingContent = {
                     ContextualActionsButton(
                         "Стратегічна арка · Квести", actions,
-                        sheetContent = { onSelected -> StrategicArcToolsSheet(actions, arcKey, onSelected) },
+                        sheetContent = { onSelected -> StrategicArcToolsSheet(actions, onSelected) },
                     )
                 },
             )
@@ -57,7 +56,7 @@ internal fun StrategicArcBottomPanelContent(
                     style = MaterialTheme.typography.labelMedium)
                 ContextualActionsButton(
                     "Стратегічна арка · Артефакт", actions,
-                    sheetContent = { onSelected -> StrategicArcToolsSheet(actions, arcKey, onSelected) },
+                    sheetContent = { onSelected -> StrategicArcToolsSheet(actions, onSelected) },
                 )
             }
         }

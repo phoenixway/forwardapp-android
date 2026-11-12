@@ -15,16 +15,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.ContextualAction
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.ContextualActionItems
-import com.romankozak.forwardappmobile.features.mainscreen.formatStrategicArcMonth
 
-internal enum class ArcToolGroup { VIEW, CONTENT, PERIOD, CREATE, TOOLS, EXTRA }
+internal enum class ArcToolGroup { VIEW, CONTENT, CREATE, TOOLS, EXTRA }
 
 /** Disposition of existing actions only. Unknown future actions remain available. */
 internal fun groupArcTools(actions: List<ContextualAction>): Map<ArcToolGroup, List<ContextualAction>> {
     val ids = linkedMapOf(
         ArcToolGroup.VIEW to listOf("quests", "artifact"),
         ArcToolGroup.CONTENT to listOf("arc-overview", "arc-all-participants"),
-        ArcToolGroup.PERIOD to listOf("arc-previous", "arc-next"),
         ArcToolGroup.CREATE to listOf("quest-source", "arc-beacon", "arc-group", "quest-clear"),
         ArcToolGroup.TOOLS to listOf("arc-open-artifact", "arc-links"),
     )
@@ -34,7 +32,7 @@ internal fun groupArcTools(actions: List<ContextualAction>): Map<ArcToolGroup, L
 }
 
 @Composable
-internal fun StrategicArcToolsSheet(actions: List<ContextualAction>, arcKey: String?, onSelected: (ContextualAction) -> Unit) {
+internal fun StrategicArcToolsSheet(actions: List<ContextualAction>, onSelected: (ContextualAction) -> Unit) {
     val groups = groupArcTools(actions)
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)
         .navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -64,23 +62,6 @@ internal fun StrategicArcToolsSheet(actions: List<ContextualAction>, arcKey: Str
                                 Text(if (action.id == "arc-overview") "Лише самостійні, без компонентів" else "З компонентами цієї арки",
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                        }
-                    }
-                }
-            }
-        }
-        groups.getValue(ArcToolGroup.PERIOD).takeIf { it.isNotEmpty() }?.let { navigation ->
-            ToolSection("Період") {
-                arcKey?.takeIf { it.isNotBlank() }?.let {
-                    Text(formatStrategicArcMonth(it), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    navigation.forEach { action ->
-                        OutlinedButton(onClick = { onSelected(action) }, enabled = action.enabled, modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)) {
-                            Icon(action.icon, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(action.label, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

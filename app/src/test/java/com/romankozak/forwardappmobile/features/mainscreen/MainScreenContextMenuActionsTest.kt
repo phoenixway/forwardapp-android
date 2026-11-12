@@ -6,30 +6,29 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MainScreenContextMenuActionsTest {
-    @Test fun `all former Arc FAB commands retain distinct callbacks`() {
+    @Test fun `Arc menu commands retain distinct callbacks without month navigation`() {
         val events = mutableListOf<String>()
-        val actions = strategicArcMenuActions(true, true,
-            { events += "previous" }, { events += "next" }, { events += "beacon" },
+        val actions = strategicArcMenuActions(true,
+            { events += "beacon" },
             { events += "group" }, { events += "artifact" }, { events += "links" })
         actions.forEach { it.invokeIfEnabled() }
-        assertEquals(listOf("previous", "next", "beacon", "group", "artifact", "links"), events)
+        assertEquals(listOf("beacon", "group", "artifact", "links"), events)
     }
 
-    @Test fun `Arc loading error and absent previous month fail closed`() {
+    @Test fun `Arc loading error disables menu commands`() {
         var count = 0
-        strategicArcMenuActions(false, true, { count++ }, { count++ }, { count++ }, { count++ }, { count++ }, { count++ })
+        strategicArcMenuActions(false, { count++ }, { count++ }, { count++ }, { count++ })
             .forEach { assertFalse(it.enabled); it.invokeIfEnabled() }
         assertEquals(0, count)
-        val actions = strategicArcMenuActions(true, false, {}, {}, {}, {}, {}, {})
-        assertFalse(actions.single { it.id == "arc-previous" }.enabled)
-        assertTrue(actions.filterNot { it.id == "arc-previous" }.all { it.enabled })
+        val actions = strategicArcMenuActions(true, {}, {}, {}, {})
+        assertTrue(actions.all { it.enabled })
     }
 
     @Test fun `unified Arc menu contains source exactly once alongside all former FAB actions`() {
         val actions = strategicComposerActions(StrategicArcTab.QUESTS, false, {}, {}, {}) +
-            strategicArcMenuActions(true, true, {}, {}, {}, {}, {}, {})
-        assertEquals(10, actions.size)
-        assertEquals(10, actions.map { it.id }.toSet().size)
+            strategicArcMenuActions(true, {}, {}, {}, {})
+        assertEquals(8, actions.size)
+        assertEquals(8, actions.map { it.id }.toSet().size)
         assertEquals(1, actions.count { it.id == "quest-source" })
     }
 
