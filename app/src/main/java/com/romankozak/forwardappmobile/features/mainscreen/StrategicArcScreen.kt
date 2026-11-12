@@ -90,7 +90,7 @@ fun StrategicArcScreen(
     var carryQuest by remember { mutableStateOf<ArcQuestEntity?>(null) }
     carryQuest?.let { quest ->
         com.romankozak.forwardappmobile.features.planning.StrategicCompositionCarryDialog(
-            quest.id, quest.title, onDismiss = { carryQuest = null }, onCarried = viewModel::revealCarriedQuest)
+            quest.id, quest.title, onDismiss = { carryQuest = null }, onCarried = viewModel::onQuestCarried)
     }
     carryMessage?.let { message ->
         AlertDialog(
