@@ -23,6 +23,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -260,6 +265,9 @@ fun StrategicArcScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 StrategicArcMonthHeader(
                     arcKey = uiState.currentArcKey,
+                    hasPrevious = uiState.previousArcKey != null,
+                    onPrevious = viewModel::navigateToPreviousArcMonth,
+                    onNext = viewModel::navigateToNextArcMonth,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 )
                 when (selectedTab) {
@@ -445,8 +453,11 @@ fun StrategicArcScreen(
 }
 
 @Composable
-private fun StrategicArcMonthHeader(
+internal fun StrategicArcMonthHeader(
     arcKey: String,
+    hasPrevious: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isCurrent = arcKey == YearMonth.now().toString()
@@ -482,24 +493,18 @@ private fun StrategicArcMonthHeader(
                 ),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Arc",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
-                )
+                IconButton(onClick = onPrevious, enabled = hasPrevious) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Попередня арка")
+                }
                 Text(
                     text = formatStrategicArcMonth(arcKey),
                     style = MaterialTheme.typography.labelLarge,
                 )
-                if (isCurrent) {
-                    Text(
-                        text = "current",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
+                IconButton(onClick = onNext) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Наступна арка")
                 }
             }
         }

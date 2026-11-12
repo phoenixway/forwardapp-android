@@ -49,12 +49,8 @@ fun StrategicArcBottomPanel(
         onClearInput = { inputValue = TextFieldValue("") },
         showAllParticipants = showAllParticipants,
         onShowAllParticipantsChange = viewModel::setShowAllParticipants,
-        arcKey = uiState.currentArcKey,
         additionalActions = strategicArcMenuActions(
             ready = !uiState.isLoading && uiState.error == null,
-            hasPrevious = uiState.previousArcKey != null,
-            onPrevious = viewModel::navigateToPreviousArcMonth,
-            onNext = viewModel::navigateToNextArcMonth,
             onBeacon = { showBeaconPicker = true },
             onGroup = { showGroupPicker = true },
             onArtifact = { viewModel.openOrCreateArcArtifact(onOpenArtifact) },

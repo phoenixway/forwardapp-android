@@ -245,7 +245,7 @@ private fun BacklogListContent(
                         onMoreClick = { onShowItemActions(item) },
                         onCheckedChange = { isChecked -> actions.onCheckedChange(item, isChecked) },
                         onRelatedLinkClick = actions.onRelatedLinkClick,
-                        showCheckbox = state.showCheckboxes,
+                        showCheckbox = item is BacklogItemContent.GoalItem || state.showCheckboxes,
                         isSelected = isSelected,
                         isTacticalPriority = actions.isTacticalPriority(item),
                         tacticalPriorityStreamTitle = state.tacticalPriorityStreamTitleByItemId[item.backlogItem.id],

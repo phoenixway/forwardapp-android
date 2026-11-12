@@ -319,19 +319,17 @@ class GlobalDockComposerUiTest {
     @Test fun `unified Arc menu exposes former FAB commands and preserves availability`() {
         ui.setContent { MaterialTheme {
             StrategicArcBottomPanelContent(StrategicArcTab.QUESTS, TextFieldValue(""), {}, {}, {},
-                { events += "source" }, {}, additionalActions = strategicArcMenuActions(true, false,
-                    { events += "previous" }, { events += "next" }, { events += "beacon" },
+                { events += "source" }, {}, additionalActions = strategicArcMenuActions(true,
+                    { events += "beacon" },
                     { events += "group" }, { events += "artifact" }, { events += "links" }))
         } }
         ui.onNodeWithContentDescription("Дії: Стратегічна арка · Квести").performClick()
-        ui.onNodeWithText("Попередня арка").assertIsNotEnabled()
-        listOf("Наступна арка", "Орієнтир як ArcQuest", "Група орієнтирів як ArcQuest", "Відкрити артефакт", "Показати зв’язки")
+        ui.onNodeWithText("Попередня арка").assertDoesNotExist()
+        ui.onNodeWithText("Наступна арка").assertDoesNotExist()
+        listOf("Орієнтир як ArcQuest", "Група орієнтирів як ArcQuest", "Відкрити артефакт", "Показати зв’язки")
             .forEach { ui.onNodeWithText(it).assertExists() }
-        clickMenu("Наступна арка")
-        ui.runOnIdle { assertEquals(listOf("next"), events) }
-        ui.onNodeWithContentDescription("Дії: Стратегічна арка · Квести").performClick()
         clickMenu("Група орієнтирів як ArcQuest")
-        ui.runOnIdle { assertEquals(listOf("next", "group"), events) }
+        ui.runOnIdle { assertEquals(listOf("group"), events) }
     }
 
     @Test fun `Today calendar opens from local menu cancel is inert and confirm delegates selected date`() {
