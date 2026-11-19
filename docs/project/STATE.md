@@ -1,5 +1,59 @@
 # ForwardApp Project State
 
+## 2026-11-12 - MagicBox live search history
+
+Nonblank DataSearch queries are automatically recorded after 4 seconds without
+a query/mode change. Continued typing restarts the timer; blank input or another
+mode cancels it. Clearing a nonblank DataSearch query records the completed live
+search immediately before resetting the input; explicit submission also records
+immediately. MagicBoxSearchHistory
+owns the existing search-history updates and keeps searchHistory/recentModeInputs
+consistent. Pending local edits survive stale DataStore emissions until their
+exact write is observed; display-preference emissions no longer overwrite history.
+Existing preference keys, ordering, deduplication and 12-entry limit are preserved.
+No schema, sync or hierarchy-authority changes.
+
+HOST: MagicBoxSearchHistoryPersistenceTest **6/6 PASS**, including real DataStore
+and fresh ViewModel/SavedState restoration; MagicBoxSearchHistoryLiveQueryTest
+**3/3 PASS** checks the exact 4-second boundary, restart and cancellation without
+wall-clock delays. The live-clear loss and stale-snapshot
+overwrite were reproduced before their respective fixes. Earlier IME-only tests
+did not cover these defects. Physical acceptance after user rebuild is pending.
+
+## 2026-11-11 - Semantic creation from Workspace opened through Recents
+
+Device follow-up identified the remaining root cause: the reported `fam` is a
+live CANONICAL_ONLY Workspace with a live EMBODIES binding to a live Orientation.
+The first compatibility fixes below admitted only CONTEXT_BACKED owners and did
+not cover this case. Command Deck Recents PROJECT clicks now use the existing
+recentEntityDestination -> NavTarget.Workspace mapping, matching the canonical
+RecentEntities surface, instead of consulting the hierarchy projection and opening
+ContextDetail. Canonical Workspace admission now owns the complete destination,
+including semantic reads and bootstrap actions. Missing/deleted identities use the
+existing canonical Unavailable state. Scoped device diagnosis was read-only; the
+user-authorized temporary DB/WAL/SHM copies were deleted after inspection.
+HOST XML **14/14 PASS**: RecentEntitiesTest 4 and
+WorkspaceDestinationViewModelTest 10, zero errors/failures/skips. Production/test
+Kotlin compilation passed as test prerequisites; diff check PASS. Physical
+acceptance of the corrected Command Deck click remains pending.
+
+The earlier bounded ContextDetail compatibility adapter remains available. That route now
+hosts the existing Workspace semantic bootstrap dialog rather than omitting its
+More-sheet action. Read-only admission requires the exact live CONTEXT_BACKED
+Workspace via getContextBackedForContextId; Context identity alone is insufficient.
+Prefill uses Workspace scalars only, and explicit confirmation reuses the existing
+transactional canonical creation/binding command. H1, Planning, Context persistence
+and Room schema remain unchanged. Follow-up inspection found that the Semantics
+capability also ignored legacy listId and silently skipped all relation reads.
+WorkspaceRelationsViewModel now admits that route through the exact live canonical
+CONTEXT_BACKED owner and observes the existing capability/relation repositories.
+No bindings are created or rewritten by opening the screen. Focused ViewModel
+regressions cover legacy admission, missing/deleted owners and canonical argument
+precedence. HOST XML **17/17 PASS**: WorkspaceRelationsViewModelTest 5 and
+WorkspaceSemanticBootstrapViewModelTest 12, with zero errors/failures/skips.
+Production/test Kotlin compilation passed as focused-test prerequisites;
+static diff check PASS. Physical acceptance remains pending.
+
 ## 2026-11-09 - Release assessment JSON startup crash
 
 Device crash buffer showed repeated ForwardApp NPE at 19:33:01/05. Read-only APK

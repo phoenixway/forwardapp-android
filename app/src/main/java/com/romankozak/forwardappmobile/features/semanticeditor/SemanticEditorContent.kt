@@ -11,13 +11,12 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
-import com.romankozak.forwardappmobile.features.planning.SemanticPlanningEntry
+import com.romankozak.forwardappmobile.features.planning.OrientationPlanningContent
 import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
 import kotlinx.coroutines.launch
 
 internal enum class SemanticEditorTab(val title: String) {
-    MAIN("Основне"), SEMANTICS("Семантика"), WORKSPACES("Workspaces")
+    MAIN("Основне"), SEMANTICS("Семантика"), WORKSPACES("Workspaces"), PLANNING("Planning")
 }
 
 @Composable
@@ -25,7 +24,6 @@ internal fun SemanticEditorContent(
     model: SemanticEntityEditorModel,
     padding: PaddingValues,
     onNameChange: (String) -> Unit,
-    onOpenPlanning: () -> Unit,
     onAddSemantic: () -> Unit,
     onChooseAspectParent: () -> Unit,
     onMakeAspectRoot: () -> Unit,
@@ -38,6 +36,7 @@ internal fun SemanticEditorContent(
     onCreateWorkspace: () -> Unit = {},
     workspaceCreationBusy: Boolean = false,
     tags: @Composable () -> Unit = { SemanticTagsSection(model) },
+    planning: @Composable () -> Unit = { OrientationPlanningContent(model.id) },
 ) {
     SemanticEditorTabs(model, Modifier.padding(padding)) { tab ->
         when (tab) {
@@ -55,11 +54,6 @@ internal fun SemanticEditorContent(
                     )
                 }
                 tags()
-                if (model.entityClass == SemanticEntityClass.ORIENTATION) {
-                    SemanticEditorGroup("Участь у плануванні") {
-                        SemanticPlanningEntry(CanonicalEntityRef.Orientation(model.id), onOpenPlanning)
-                    }
-                }
             }
             SemanticEditorTab.SEMANTICS -> {
                 SemanticEditorHint("Класифікація та зв’язки", "Прибирання зв’язку не видаляє жодну із сутностей.")
@@ -70,6 +64,7 @@ internal fun SemanticEditorContent(
                 }
                 SemanticAssociationsSection(model, onAddSemantic, onRemoveAspect, onRemoveOrientation, onOpenSemantic)
             }
+            SemanticEditorTab.PLANNING -> planning()
             SemanticEditorTab.WORKSPACES -> {
                 SemanticWorkspaceCreationCard(model, workspaceCreationBusy, onCreateWorkspace)
                 WorkspaceBindingsSection(model, onAddWorkspace, onRemoveWorkspace, onOpenWorkspace,
@@ -88,17 +83,20 @@ internal fun SemanticEditorTabs(
     content: @Composable ColumnScope.(SemanticEditorTab) -> Unit,
 ) {
     key(model.id) {
-        val pager = rememberPagerState { SemanticEditorTab.entries.size }
+        val tabs = SemanticEditorTab.entries.filter {
+            it != SemanticEditorTab.PLANNING || model.entityClass == SemanticEntityClass.ORIENTATION
+        }
+        val pager = rememberPagerState { tabs.size }
         val scope = rememberCoroutineScope()
         val pages = rememberSaveableStateHolder()
         val focus = LocalFocusManager.current
         Column(modifier.fillMaxSize()) {
             SemanticEditorIdentityHeader(model)
             ScrollableTabRow(selectedTabIndex = pager.currentPage, edgePadding = 0.dp) {
-                SemanticEditorTab.entries.forEach { item ->
-                    Tab(selected = item.ordinal == pager.currentPage, onClick = {
+                tabs.forEachIndexed { index, item ->
+                    Tab(selected = index == pager.currentPage, onClick = {
                         focus.clearFocus()
-                        scope.launch { pager.scrollToPage(item.ordinal) }
+                        scope.launch { pager.scrollToPage(index) }
                     },
                         text = { Text(item.title, style = MaterialTheme.typography.labelLarge, maxLines = 1) })
                 }
@@ -108,10 +106,12 @@ internal fun SemanticEditorTabs(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
             HorizontalPager(state = pager, modifier = Modifier.weight(1f).fillMaxWidth(),
-                key = { SemanticEditorTab.entries[it].name }) { page ->
-                val pageTab = SemanticEditorTab.entries[page]
+                key = { tabs[it].name }) { page ->
+                val pageTab = tabs[page]
                 pages.SaveableStateProvider(pageTab.name) {
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                    val pageModifier = if (pageTab == SemanticEditorTab.PLANNING) Modifier.fillMaxSize()
+                    else Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+                    Column(pageModifier,
                         verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         content(pageTab)
                     }

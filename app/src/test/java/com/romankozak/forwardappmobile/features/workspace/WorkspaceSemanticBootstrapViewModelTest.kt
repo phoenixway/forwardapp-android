@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceSemanticBootstrapCoordinator
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.features.semantic.SemanticEntityClass
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
@@ -26,6 +28,9 @@ import org.junit.Test
 class WorkspaceSemanticBootstrapViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val coordinator = mockk<WorkspaceSemanticBootstrapCoordinator>()
+    private val workspaces = mockk<WorkspaceDao> {
+        coEvery { getContextBackedForContextId(any()) } returns null
+    }
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun cleanup() { Dispatchers.resetMain() }
 
@@ -147,15 +152,39 @@ class WorkspaceSemanticBootstrapViewModelTest {
         coVerify(exactly = 0) { coordinator.createAndBind(any()) }
     }
 
-    @Test fun `missing canonical Workspace key cannot fall back to Context id`() {
+    @Test fun `legacy route without an exact canonical Workspace cannot create`() {
         val vm = model(SavedStateHandle(mapOf("listId" to "legacy")))
         vm.open("Legacy", null)
         assertThat(vm.state.value.open).isFalse()
         coVerify(exactly = 0) { coordinator.createAndBind(any()) }
     }
 
+    @Test fun `legacy Recents route admits existing canonical Workspace without creating on open`() {
+        val owner = mockk<WorkspaceEntity> {
+            io.mockk.every { id } returns "legacy"
+            io.mockk.every { isDeleted } returns false
+        }
+        coEvery { workspaces.getContextBackedForContextId("legacy") } returns owner
+        val vm = model(SavedStateHandle(mapOf("listId" to "legacy")))
+        assertThat(vm.legacyWorkspace.value).isSameInstanceAs(owner)
+        vm.open("Canonical name", "Canonical description")
+        assertThat(vm.state.value.open).isTrue()
+        assertThat(vm.state.value.title).isEqualTo("Canonical name")
+        coVerify(exactly = 0) { coordinator.createAndBind(any()) }
+    }
+
+    @Test fun `deleted canonical Workspace is not admitted through legacy route`() {
+        val owner = mockk<WorkspaceEntity> { io.mockk.every { isDeleted } returns true }
+        coEvery { workspaces.getContextBackedForContextId("legacy") } returns owner
+        val vm = model(SavedStateHandle(mapOf("listId" to "legacy")))
+        vm.open("Legacy", null)
+        assertThat(vm.legacyWorkspace.value).isNull()
+        assertThat(vm.state.value.open).isFalse()
+        coVerify(exactly = 0) { coordinator.createAndBind(any()) }
+    }
+
     private fun model(saved: SavedStateHandle = SavedStateHandle(mapOf("workspaceId" to "workspace"))) =
-        WorkspaceSemanticBootstrapViewModel(saved, coordinator)
+        WorkspaceSemanticBootstrapViewModel(saved, coordinator, workspaces)
 
     private fun prepared(saved: SavedStateHandle = SavedStateHandle(mapOf("workspaceId" to "workspace"))) = model(saved).apply {
         open("Workspace title", "Description")

@@ -34,9 +34,9 @@ internal fun ModeIconDock(
                     palette = palette, onClick = { onSetMode(mode) })
                 if (mode == OmniboxMode.DataSearch) {
                     ModeDockActionButton(Icons.Default.History, "Недавні", recentsSelected, palette, onShowRecents)
+                    ModeDockActionButton(Icons.Default.Add, "Створити", false, palette, onShowCreate)
                 }
             }
-            ModeDockActionButton(Icons.Default.Add, "Створити", false, palette, onShowCreate)
         }
     }
 }

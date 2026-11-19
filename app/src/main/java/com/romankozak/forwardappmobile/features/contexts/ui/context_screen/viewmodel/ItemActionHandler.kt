@@ -221,21 +221,24 @@ class ItemActionHandler
             goal: Goal,
             isChecked: Boolean,
         ) {
+            changeGoalStatus(
+                goal,
+                if (isChecked) GoalStatusValues.DONE
+                else if (GoalStatusValues.isTerminal(goal.goalStatus)) GoalStatusValues.ACTIVE
+                else GoalStatusValues.normalize(goal.goalStatus),
+            )
+        }
+
+        fun changeGoalStatus(goal: Goal, status: String) {
+            val normalizedStatus = GoalStatusValues.normalize(status)
             scope.launch {
-                val updatedGoal =
+                goalRepository.updateGoal(
                     goal.copy(
-                        completed = isChecked,
-                        goalStatus =
-                            if (isChecked) {
-                                GoalStatusValues.DONE
-                            } else if (GoalStatusValues.isTerminal(goal.goalStatus)) {
-                                GoalStatusValues.ACTIVE
-                            } else {
-                                GoalStatusValues.normalize(goal.goalStatus)
-                            },
+                        completed = GoalStatusValues.isTerminal(normalizedStatus),
+                        goalStatus = normalizedStatus,
                         updatedAt = System.currentTimeMillis(),
-                    )
-                goalRepository.updateGoal(updatedGoal)
+                    ),
+                )
                 delay(100)
                 resultListener.forceRefresh()
             }

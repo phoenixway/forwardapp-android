@@ -18,6 +18,19 @@ import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrientationPlanningScreen(orientationId: String, onBack: () -> Unit, model: PlanningCompositionViewModel = hiltViewModel()) {
+    Scaffold(topBar = { TopAppBar(title = { Text("Planning") }, navigationIcon = {
+        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") }
+    }) }) { padding ->
+        OrientationPlanningContent(orientationId, Modifier.padding(padding), model)
+    }
+}
+
+@Composable
+fun OrientationPlanningContent(
+    orientationId: String,
+    modifier: Modifier = Modifier,
+    model: PlanningCompositionViewModel = hiltViewModel(),
+) {
     val frame by model.projection.collectAsStateWithLifecycle()
     val busy by model.busy.collectAsStateWithLifecycle()
     val error by model.error.collectAsStateWithLifecycle()
@@ -25,42 +38,38 @@ fun OrientationPlanningScreen(orientationId: String, onBack: () -> Unit, model: 
     var adding by rememberSaveable { mutableStateOf(false) }
     var expanded by rememberSaveable(orientationId) { mutableStateOf<String?>(null) }
     val participants = frame.forOrientation(orientationId)
-    Scaffold(topBar = { TopAppBar(title = { Text("Planning") }, navigationIcon = {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") }
-    }) }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (entity == null) item { Text("Orientation недоступний або завантажується") }
-            else {
-                item {
-                    Text(entity.title, style = MaterialTheme.typography.headlineSmall)
-                    Text(entity.orientationKind?.name.orEmpty(), style = MaterialTheme.typography.labelMedium)
-                }
-                if (participants.isEmpty()) item { Text("Not currently planned", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                listOf(PlanningScopeKind.STRATEGIC_ARC, PlanningScopeKind.TACTICAL_CYCLE, PlanningScopeKind.DAY).forEach { horizon ->
-                    val items = participants.filter { it.scope.kind == horizon }
-                    if (items.isNotEmpty()) {
-                        item { Text(horizon.horizonLabel(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
-                        items(items, key = { it.commitment.id.value }) { participant ->
-                            OutlinedCard(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp)) {
-                                    PlanningCompositionRow(participant, { model.open(participant) })
-                                    TextButton(onClick = {
-                                        expanded = participant.commitment.id.value.takeUnless { it == expanded }
-                                    }) { Text(if (expanded == participant.commitment.id.value) "Hide planning details" else "Part of / Components") }
-                                    if (expanded == participant.commitment.id.value) {
-                                        PlanningParticipationActions(participant, model)
-                                        PlanningCompositionContent(participant, frame, model)
-                                    }
+    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (entity == null) item { Text("Orientation недоступний або завантажується") }
+        else {
+            item {
+                Text(entity.title, style = MaterialTheme.typography.headlineSmall)
+                Text(entity.orientationKind?.name.orEmpty(), style = MaterialTheme.typography.labelMedium)
+            }
+            if (participants.isEmpty()) item { Text("Not currently planned", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            listOf(PlanningScopeKind.STRATEGIC_ARC, PlanningScopeKind.TACTICAL_CYCLE, PlanningScopeKind.DAY).forEach { horizon ->
+                val items = participants.filter { it.scope.kind == horizon }
+                if (items.isNotEmpty()) {
+                    item { Text(horizon.horizonLabel(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
+                    items(items, key = { it.commitment.id.value }) { participant ->
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                PlanningCompositionRow(participant, { model.open(participant) })
+                                TextButton(onClick = {
+                                    expanded = participant.commitment.id.value.takeUnless { it == expanded }
+                                }) { Text(if (expanded == participant.commitment.id.value) "Hide planning details" else "Part of / Components") }
+                                if (expanded == participant.commitment.id.value) {
+                                    PlanningParticipationActions(participant, model)
+                                    PlanningCompositionContent(participant, frame, model)
                                 }
                             }
                         }
                     }
                 }
-                item { TextButton(enabled = !busy, onClick = { adding = true }) { Text("Add to planning") } }
             }
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) } }
+            item { TextButton(enabled = !busy, onClick = { adding = true }) { Text("Add to planning") } }
         }
+        error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) } }
     }
     if (adding && entity != null) AddOrientationToPlanningDialog({ adding = false }) { horizon ->
         adding = false

@@ -1,5 +1,42 @@
 # Next
 
+## MagicBox history: verify clear and restart
+
+After updating, type a new global query and leave it unchanged for 4 seconds:
+it must be recorded without Send. Continued typing must restart that timer.
+Clear the field without submitting: the query must immediately lead Останні запити,
+including when cleared before 4 seconds.
+Repeat with Enter and the search button, then several distinct queries in quick
+succession. Close/reopen MagicBox and restart the app: the same history must remain.
+HOST persistence/stale-snapshot regressions 6/6 and live-query timer tests 3/3 PASS;
+physical acceptance pending. User requested installation without agent UI smoke.
+
+## Recents Workspace semantic creation: verification
+
+Device evidence confirms `fam` retains its Orientation and EMBODIES binding.
+It is CANONICAL_ONLY, which the earlier legacy-route compatibility fixes did not
+admit. The Command Deck PROJECT click now opens canonical Workspace directly.
+Verify after rebuild from main screen -> Deck -> Recents -> fam, not an already
+open old ContextDetail back-stack entry. Semantics must show the existing fam
+Orientation and More must expose semantic creation. No data repair is required
+by the inspected binding state; physical acceptance remains pending.
+HOST route/destination tests: 14/14 PASS, with production/test Kotlin compilation
+and diff check PASS. This is separate from the earlier 17 compatibility tests.
+
+After user rebuild, open a Workspace from main screen -> Command Deck -> Recents.
+Lower dock -> More must include Створити семантичну сутність, including when
+Semantics is empty. For an already bound Workspace, open Semantics through Recents
+and verify the same existing links as through canonical Workspace navigation;
+the legacy route previously skipped relation reads due to absent workspaceId.
+Verify canonical Workspace title/description prefill, cancel
+without writes, then explicitly select class/kind/binding and confirm on a
+disposable Workspace. The exact new entity editor must open, and the binding
+must appear on return. WorkspaceSemanticBootstrapViewModelTest has added legacy
+route admission/deleted-owner regressions; WorkspaceRelationsViewModelTest covers
+existing relation visibility and exact-owner admission. HOST XML 17/17 PASS across
+both classes; production/test Kotlin compilation and static diff check PASS.
+No deployment or live-data repair performed.
+
 ## Release assessment crash: rebuilt-app acceptance
 
 After user rebuild/update, cold-open ForwardApp, open MagicBox and Planning,

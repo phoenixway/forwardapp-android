@@ -112,10 +112,7 @@ class StrategicArcViewModel
         fun dismissCarryMessage() { _carryMessage.value = null }
         private var carryInProgress = false
 
-        fun revealCarriedQuest(result: com.romankozak.forwardappmobile.data.planning.strategic.StrategicQuestCarryForwardResult) {
-            currentArcKey.value = result.quest.arcKey
-            _selectedTab.value = StrategicArcTab.QUESTS
-            _pendingCreatedQuestId.value = result.quest.id
+        fun onQuestCarried(result: com.romankozak.forwardappmobile.data.planning.strategic.StrategicQuestCarryForwardResult) {
             if (!result.created) _carryMessage.value = "Квест уже є в поточній арці"
         }
 
@@ -125,7 +122,7 @@ class StrategicArcViewModel
             viewModelScope.launch {
                 try {
                     val result = arcQuestRepository.carryQuest(quest.id, YearMonth.now().toString())
-                    revealCarriedQuest(result)
+                    onQuestCarried(result)
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
                 } catch (error: Exception) {

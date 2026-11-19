@@ -113,6 +113,11 @@ fun GoalDetailContent(
                         onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                         onTagClick = viewModel::onTagClicked,
                         onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
+                        onGoalStatusChange = { item, status ->
+                            if (item is BacklogItemContent.GoalItem) {
+                                viewModel.itemActionHandler.changeGoalStatus(item.goal, status)
+                            }
+                        },
                         onCheckedChange = { item, isChecked ->
                             when (item) {
                                 is BacklogItemContent.GoalItem ->

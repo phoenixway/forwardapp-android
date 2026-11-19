@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.semanticeditor
 
 import android.app.Application
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,17 +35,27 @@ class SemanticEditorTabsUiTest {
     private fun Editor(model: SemanticEntityEditorModel, onName: (String) -> Unit = {}, onPlanning: () -> Unit = {},
                        onSemantic: () -> Unit = {}, onWorkspace: () -> Unit = {},
                        onCreate: () -> Unit = {}, creationBusy: Boolean = false) {
-        SemanticEditorContent(model, PaddingValues(), onName, onPlanning, onSemantic, {}, {}, {}, {},
+        SemanticEditorContent(model, PaddingValues(), onName, onSemantic, {}, {}, {}, {},
             onWorkspace, {}, {}, { _, _ -> }, onCreateWorkspace = onCreate,
-            workspaceCreationBusy = creationBusy, tags = { Text("Теги тест") })
+            workspaceCreationBusy = creationBusy, tags = { Text("Теги тест") }, planning = {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item { Text("Участь у плануванні") }
+                    item { TextButton(onClick = onPlanning) { Text("Add to planning") } }
+                }
+            })
     }
 
-    @Test fun `main has identity tags and Orientation planning without relation clutter`() {
+    @Test fun `Planning tab embeds participation separately from main and preserves actions`() {
         var planning = 0
         ui.setContent { MaterialTheme { Editor(model(), onPlanning = { planning++ }) } }
         ui.onNodeWithText("Назва").assertIsDisplayed()
         ui.onNodeWithText("Теги тест").assertIsDisplayed()
-        ui.onNodeWithText("Planning").performScrollTo().assertIsDisplayed().performClick()
+        ui.onNodeWithText("Участь у плануванні").assertDoesNotExist()
+        ui.onNodeWithText("Planning").performClick()
+        ui.onNodeWithText("Planning").assertIsSelected()
+        ui.onNodeWithText("Участь у плануванні").assertIsDisplayed()
+        ui.onNodeWithText("Add to planning").performClick()
+        ui.onNodeWithText("Назва").assertDoesNotExist()
         ui.onNodeWithText("Додати семантичну сутність").assertDoesNotExist()
         ui.runOnIdle { assertEquals(1, planning) }
     }
@@ -79,7 +92,7 @@ class SemanticEditorTabsUiTest {
             Editor(current, onName = { current = current.copy(name = it) })
         } }
         ui.onNode(hasSetTextAction()).performTextReplacement("Новий зміст")
-        ui.onNodeWithText("Семантика").performClick()
+        ui.onNodeWithText("Planning").performClick()
         ui.onNodeWithText("Основне").performClick()
         ui.onNode(hasSetTextAction()).assertTextContains("Новий зміст")
     }
@@ -102,7 +115,7 @@ class SemanticEditorTabsUiTest {
 
     @Test fun `mutation errors stay visible on every tab`() {
         ui.setContent { MaterialTheme { Editor(model().copy(errorMessage = "Не вдалося зберегти")) } }
-        listOf("Основне", "Семантика", "Workspaces").forEach {
+        listOf("Основне", "Семантика", "Workspaces", "Planning").forEach {
             ui.onNodeWithText(it).performClick()
             ui.onNodeWithText("Не вдалося зберегти").assertIsDisplayed()
         }

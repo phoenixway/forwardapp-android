@@ -86,6 +86,7 @@ fun BacklogItem(
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
+    onGoalStatusChange: (String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
@@ -116,8 +117,8 @@ fun BacklogItem(
                 onLongClick = onLongClick,
                 onMoreClick = onMoreClick,
                 onCheckedChange = onCheckedChange,
+                onGoalStatusChange = onGoalStatusChange,
                 onRelatedLinkClick = onRelatedLinkClick,
-                showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 isTacticalPriority = isTacticalPriority,
                 tacticalPriorityStreamTitle = tacticalPriorityStreamTitle,
@@ -168,8 +169,8 @@ private fun InternalGoalItem(
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
+    onGoalStatusChange: (String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
-    showCheckbox: Boolean,
     isSelected: Boolean,
     isTacticalPriority: Boolean,
     tacticalPriorityStreamTitle: String?,
@@ -265,7 +266,7 @@ private fun InternalGoalItem(
                                         ),
                                 ),
                         )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(start = if (isInlineEditing) 16.dp else 8.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
                 } else if (isTacticalPriority) {
                     Modifier
                         .background(
@@ -280,7 +281,7 @@ private fun InternalGoalItem(
                                 ),
                         )
                         .background(color = tacticalColors.border.copy(alpha = 0.06f))
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(start = if (isInlineEditing) 16.dp else 8.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
                 } else if (isInWork) {
                     Modifier
                         .background(
@@ -297,23 +298,17 @@ private fun InternalGoalItem(
                         .background(
                             color = inWorkColors.border.copy(alpha = 0.08f),
                         )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(start = if (isInlineEditing) 16.dp else 8.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
                 } else {
                     Modifier
                         .background(Color.Transparent)
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(start = if (isInlineEditing) 16.dp else 8.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
                 },
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showCheckbox) {
-                    Checkbox(
-                        checked = goal.completed,
-                        onCheckedChange = onCheckedChange,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                if (!isInlineEditing) {
+                    GoalStatusButton(goal.goalStatus, goal.completed, onCheckedChange, onGoalStatusChange)
                 }
-
                 Column(modifier = Modifier.weight(1f)) {
                     if (isInlineEditing) {
                         Row(
