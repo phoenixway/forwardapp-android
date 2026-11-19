@@ -3,11 +3,9 @@ package com.romankozak.forwardappmobile.features.attachments.specifictypes.check
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -25,48 +23,28 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
-import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -76,7 +54,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -90,25 +67,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -117,9 +84,7 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -146,6 +111,7 @@ fun ChecklistScreen(
     viewModel: ChecklistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val canPasteChecklistItems by viewModel.canPasteChecklistItems.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val reorderState =
         rememberReorderableLazyListState(listState) { from, to ->
@@ -286,7 +252,7 @@ fun ChecklistScreen(
                 onMarkAllIncomplete = viewModel::onMarkAllIncomplete,
                 isSelectionMode = uiState.isSelectionMode,
                 selectedCount = uiState.selectedItemIds.size,
-                canPasteChecklistItems = viewModel.canPasteChecklistItemsFromEntityClipboard(),
+                canPasteChecklistItems = canPasteChecklistItems,
                 onToggleSelectionMode = viewModel::toggleSelectionMode,
                 onClearSelection = viewModel::onClearSelection,
                 onSelectAllForSelection = viewModel::onSelectAllForSelectionMode,
@@ -319,7 +285,7 @@ fun ChecklistScreen(
         floatingActionButton = {
             if (!uiState.isLoading && uiState.errorMessage == null) {
                 FloatingActionButton(
-                    onClick = { viewModel.onAddItem(uiState.items.lastOrNull()?.id) },
+                    onClick = viewModel::onAddItem,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -393,7 +359,6 @@ fun ChecklistScreen(
                     listState = listState,
                     onContentChange = viewModel::onItemContentChange,
                     onCheckedChange = viewModel::onToggleItemChecked,
-                    onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
                     onRequestFocus = viewModel::onRequestItemFocus,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
@@ -479,7 +444,6 @@ private fun ChecklistContent(
     listState: LazyListState,
     onContentChange: (String, String) -> Unit,
     onCheckedChange: (String, Boolean) -> Unit,
-    onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
     onRequestFocus: (String) -> Unit,
     onWikiLinkClick: (String) -> Unit,
@@ -581,7 +545,6 @@ private fun ChecklistContent(
                             onFocusConsumed = onFocusConsumed,
                             onContentChange = { onContentChange(item.id, it) },
                             onCheckedChange = { onCheckedChange(item.id, it) },
-                            onAddBelow = { onAddBelow(item.id) },
                             onRequestFocus = { onRequestFocus(item.id) },
                             onWikiLinkClick = onWikiLinkClick,
                             onShowItemActions = { onShowItemActions(item) },
@@ -704,281 +667,6 @@ private fun ChecklistSearchBottomBar(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ChecklistItemRow(
-    item: ChecklistItemUiModel,
-    reorderableScope: ReorderableCollectionItemScope,
-    showCheckbox: Boolean,
-    isDragging: Boolean,
-    shouldRequestFocus: Boolean,
-    onFocusConsumed: () -> Unit,
-    onContentChange: (String) -> Unit,
-    onCheckedChange: (Boolean) -> Unit,
-    onAddBelow: () -> Unit,
-    onRequestFocus: () -> Unit,
-    onWikiLinkClick: (String) -> Unit,
-    onShowItemActions: (ChecklistItemUiModel) -> Unit,
-    isSelectionMode: Boolean,
-    isSelected: Boolean,
-    onToggleSelected: () -> Unit,
-    onLongPress: () -> Unit,
-) {
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    var hasInputFocus by remember(item.id) { mutableStateOf(false) }
-    var wasFocusedAtLeastOnce by remember(item.id) { mutableStateOf(false) }
-
-    val hapticFeedback = LocalHapticFeedback.current
-
-    LaunchedEffect(shouldRequestFocus) {
-        if (shouldRequestFocus) {
-            hasInputFocus = true
-            wasFocusedAtLeastOnce = false
-            onFocusConsumed()
-        }
-    }
-
-    LaunchedEffect(hasInputFocus) {
-        if (hasInputFocus) {
-            delay(1)
-            runCatching { focusRequester.requestFocus() }
-        }
-    }
-
-    Surface(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = {
-                        if (isSelectionMode) onToggleSelected()
-                    },
-                    onLongClick = onLongPress,
-                ),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = if (isDragging) 4.dp else 1.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            if (isSelectionMode) {
-                IconToggleButton(
-                    checked = isSelected,
-                    onCheckedChange = { onToggleSelected() },
-                    modifier = Modifier.padding(top = 16.dp).size(32.dp),
-                ) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                        contentDescription = "Select item",
-                    )
-                }
-            }
-
-            if (showCheckbox) {
-                IconToggleButton(
-                    checked = item.isChecked,
-                    onCheckedChange = { if (!isSelectionMode) onCheckedChange(it) },
-                    modifier = Modifier.padding(top = 16.dp).size(32.dp),
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color =
-                            if (item.isChecked) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                Color.Transparent
-                            },
-                        border =
-                            if (!item.isChecked) {
-                                BorderStroke(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                )
-                            } else {
-                                null
-                            },
-                        modifier = Modifier.size(18.dp),
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            if (item.isChecked) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = "Checkbox",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(1.dp))
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                if (isSelectionMode) {
-                    ChecklistReadOnlyText(
-                        text = item.content.ifBlank { stringResource(R.string.checklist_item_placeholder) },
-                        onWikiLinkClick = onWikiLinkClick,
-                        onPlainTextClick = { onToggleSelected() },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    )
-                } else if (hasInputFocus) {
-                    OutlinedTextField(
-                        value = item.content,
-                        onValueChange = onContentChange,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { state ->
-                                    if (state.isFocused) {
-                                        wasFocusedAtLeastOnce = true
-                                        hasInputFocus = true
-                                    } else if (wasFocusedAtLeastOnce) {
-                                        hasInputFocus = false
-                                    }
-                                }
-                                .onKeyEvent { event ->
-                                    if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-                                        onAddBelow()
-                                        true
-                                    } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-                                        focusManager.clearFocus()
-                                        false
-                                    } else {
-                                        false
-                                    }
-                                },
-                        placeholder = {
-                            Text(
-                                text = stringResource(R.string.checklist_item_placeholder),
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        },
-                        minLines = 1,
-                        maxLines = 10,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                disabledBorderColor = Color.Transparent,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                            ),
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                    )
-                } else if (item.content.isBlank()) {
-                    Text(
-                        text = stringResource(R.string.checklist_item_placeholder),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onRequestFocus()
-                                }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                    )
-                } else {
-                    ChecklistReadOnlyText(
-                        text = item.content,
-                        onWikiLinkClick = onWikiLinkClick,
-                        onPlainTextClick = {
-                            onRequestFocus()
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = { onShowItemActions(item) },
-                modifier =
-                    with(reorderableScope) {
-                        Modifier
-                            .draggableHandle()
-                            .padding(top = 16.dp)
-                            .size(40.dp)
-                    },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChecklistReadOnlyText(
-    text: String,
-    onWikiLinkClick: (String) -> Unit,
-    onPlainTextClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    val accentColor = MaterialTheme.colorScheme.primary
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
-
-    val annotatedText =
-        remember(text, accentColor, textColor) {
-            buildAnnotatedString {
-                var cursor = 0
-                for (match in wikiLinkRegex.findAll(text)) {
-                    if (match.range.first > cursor) {
-                        withStyle(SpanStyle(color = textColor)) {
-                            append(text.substring(cursor, match.range.first))
-                        }
-                    }
-                    val linkValue = match.groupValues[1]
-                    val start = length
-                    append(extractChecklistWikiDisplay(linkValue))
-                    val end = length
-                    addStyle(
-                        style = SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
-                        start = start,
-                        end = end,
-                    )
-                    addStringAnnotation(
-                        tag = "wikilink",
-                        annotation = linkValue,
-                        start = start,
-                        end = end,
-                    )
-                    cursor = match.range.last + 1
-                }
-                if (cursor < text.length) {
-                    withStyle(SpanStyle(color = textColor)) {
-                        append(text.substring(cursor))
-                    }
-                }
-            }
-        }
-
-    ClickableText(
-        text = annotatedText,
-        modifier = modifier,
-        style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
-        onClick = { offset ->
-            val link = annotatedText.getStringAnnotations("wikilink", offset, offset).firstOrNull()
-            if (link != null) onWikiLinkClick(link.item) else onPlainTextClick()
-        },
-    )
-}
-
 @Composable
 private fun ChecklistLinkPickerDialog(
     title: String,
@@ -1035,7 +723,7 @@ private fun ChecklistLinkPickerDialog(
     )
 }
 
-private fun extractChecklistWikiDisplay(raw: String): String {
+internal fun extractChecklistWikiDisplay(raw: String): String {
     val trimmed = raw.trim()
     val parts = trimmed.split("|", limit = 2)
     if (parts.size == 2 && parts[1].isNotBlank()) return parts[1]

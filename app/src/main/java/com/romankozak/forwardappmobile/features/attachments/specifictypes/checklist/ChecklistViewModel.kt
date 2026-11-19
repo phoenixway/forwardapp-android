@@ -80,6 +80,14 @@ class ChecklistViewModel
 
         private val _uiState = MutableStateFlow(ChecklistUiState())
         val uiState: StateFlow<ChecklistUiState> = _uiState.asStateFlow()
+        val canPasteChecklistItems: StateFlow<Boolean> =
+            entityClipboardService.payload
+                .map(::hasPasteableChecklistItems)
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.Eagerly,
+                    hasPasteableChecklistItems(entityClipboardService.payload.value),
+                )
 
         private val itemsById = MutableStateFlow<Map<String, ChecklistItemEntity>>(emptyMap())
         private val currentChecklist = MutableStateFlow<ChecklistEntity?>(null)
@@ -248,43 +256,12 @@ class ChecklistViewModel
             }
         }
 
-        fun onAddItem(afterItemId: String?) {
+        fun onAddItem() {
             val checklistId = checklistIdState.value ?: return
             val currentItems = _uiState.value.items
 
-            val existingBlankItem =
-                currentItems.firstOrNull { it.content.isBlank() }
-            if (existingBlankItem != null) {
-                _uiState.update { it.copy(pendingFocusItemId = existingBlankItem.id) }
-                return
-            }
-
-            val insertIndex =
-                when {
-                    afterItemId == null -> currentItems.size
-                    else ->
-                        currentItems.indexOfFirst { it.id == afterItemId }.let {
-                                index ->
-                            if (index == -1) currentItems.size else index + 1
-                        }
-                }
-
-            val itemsToShift =
-                if (currentItems.isEmpty() || insertIndex >= currentItems.size) {
-                    emptyList()
-                } else {
-                    currentItems
-                        .subList(insertIndex, currentItems.size)
-                        .mapNotNull { uiItem ->
-                            itemsById.value[uiItem.id]?.copy(itemOrder = uiItem.order + 1)
-                        }
-                }
-
             viewModelScope.launch {
-                if (itemsToShift.isNotEmpty()) {
-                    checklistRepository.updateItems(itemsToShift)
-                }
-                val newItemOrder = insertIndex.toLong()
+                val newItemOrder = (currentItems.maxOfOrNull { it.order } ?: -1L) + 1L
                 val newItemId = checklistRepository.addItem(checklistId, order = newItemOrder)
                 _uiState.update { it.copy(pendingFocusItemId = newItemId) }
             }
@@ -383,16 +360,7 @@ class ChecklistViewModel
         }
 
         fun canPasteChecklistItemsFromEntityClipboard(): Boolean {
-            val payload = entityClipboardService.payload.value ?: return false
-            return payload.entities.any {
-                it is ClipboardEntityRef.ChecklistItem ||
-                    it is ClipboardEntityRef.BacklogGoal ||
-                    it is ClipboardEntityRef.BacklogItem ||
-                    it is ClipboardEntityRef.DirectionItem ||
-                    it is ClipboardEntityRef.BacklogContextLink ||
-                    it is ClipboardEntityRef.DayTask ||
-                    it is ClipboardEntityRef.TacticalMission
-            }
+            return hasPasteableChecklistItems(entityClipboardService.payload.value)
         }
 
         fun pasteChecklistItemsFromEntityClipboard(onResult: (String) -> Unit) {

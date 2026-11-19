@@ -87,6 +87,14 @@ internal fun ChecklistTopBar(
             }
         },
         actions = {
+            if (canPasteChecklistItems) {
+                IconButton(onClick = onPasteChecklistItems) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = stringResource(R.string.checklist_item_paste_action),
+                    )
+                }
+            }
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
