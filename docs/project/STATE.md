@@ -9,15 +9,19 @@ wire generation 3, and matching mapping/history validation. Quest bridge,
 Strategic/Tactical resolvers, Orientation bootstrap and historical startup repair
 recognize the new valid state. New quests still start as QUEST; unsupported old
 format-3 facts are not reinterpreted. No Room schema or H1 authority change.
-Static diff checks have passed; build, automated tests and physical acceptance
-remain pending under the user's no-build preference.
+Static diff checks passed. Focused CI checks passed on `dev`: shared kind
+contract `44725422333`, sync conversion transport `44725422244`, and app
+Quest bridge Room `44748323301` (including app production Kotlin compilation).
+The first app run `44725422365` stopped at a nullable diagnostic compile error;
+`ed5ff306` corrected it before the successful retry. No APK build or physical
+conversion acceptance is claimed.
 
 ## 2026-11-20 - Mapped Quest kind startup repair
 
 Device database inspection through a same-package signed `expLocal` build found
 the exact cause for all three affected MANUAL ArcQuests: each has one local,
-unsynced `formatVersion=3` QUEST -> DIRECTION conversion fact. Current code and
-transport support only conversion formats 1/2; the mapped Quest kind change also
+unsynced `formatVersion=3` QUEST -> DIRECTION conversion fact. Code and transport
+at the time supported only conversion formats 1/2; the mapped Quest kind change also
 violates its Quest/Planning authority. None of the three targets has a Direction
 entry. All three facts and result assessment revisions are unsynced; the result
 revisions and current assessments remain valid for QUEST. A verified private

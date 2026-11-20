@@ -2,8 +2,8 @@
 
 ## Manual Quest -> Direction acceptance
 
-Run focused shared, sync and Room tests for the new format-4 mapped ArcQuest
-conversion, then compile through the user's normal build workflow. On device,
+Focused shared, sync and Room CI tests passed; APK build remains under the
+user's normal workflow. On device,
 open Strategic planning and inspect the three formerly repaired ArcQuests;
 they should remain in their arcs with their existing Planning participation.
 Convert one manual quest to DIRECTION and confirm its exact ID, arc row,
