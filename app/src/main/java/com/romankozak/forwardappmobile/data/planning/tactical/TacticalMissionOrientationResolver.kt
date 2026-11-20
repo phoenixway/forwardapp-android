@@ -471,7 +471,7 @@ private class TacticalMissionOrientationSnapshotResolver(
             return failure(
                 TacticalMissionOrientationResolutionCode.INVALID_ORIENTATION_TARGET,
                 sourceId,
-                "Canonical target $orientationId kind ${orientation.kind} is not ${requiredKind.name}",
+                "Canonical target $orientationId kind ${orientation.kind} is not in ${allowedKinds?.map { it.name } ?: listOfNotNull(requiredKind?.name)}",
             )
         }
         if (!allowDeleted && subject.isDeleted) {
