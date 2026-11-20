@@ -19,6 +19,7 @@ on:
         options:
           - app-prod
           - app-exp
+          - sync
           - shared-core-domain
           - shared-core-data-models
       filters:
@@ -140,5 +141,7 @@ jobs:
             shared-core-domain/build/test-results/
             shared-core-data-models/build/reports/tests/
             shared-core-data-models/build/test-results/
+            sync/build/reports/tests/
+            sync/build/test-results/
           if-no-files-found: ignore
           retention-days: 7
