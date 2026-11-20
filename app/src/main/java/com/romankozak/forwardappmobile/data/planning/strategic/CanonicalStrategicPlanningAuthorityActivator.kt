@@ -297,7 +297,7 @@ class CanonicalStrategicPlanningAuthorityActivator
         private fun requireActivatable(plan: StrategicPlanningMapping) {
             require(plan.integrityFailures.isEmpty()) {
                 "Strategic planning activation has integrity failures: " +
-                    plan.integrityFailures.joinToString { "${it.arcQuestId}:${it.code}" }
+                    plan.integrityFailures.joinToString { "${it.arcQuestId}:${it.code} (${it.detail})" }
             }
             require(plan.participants.size == plan.commitments.size + plan.deferred.size) {
                 "Strategic participant eligibility accounting is incomplete"

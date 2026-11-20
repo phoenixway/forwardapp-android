@@ -290,7 +290,11 @@ private fun resolveDirectOrientation(
     val subject = snapshot.subjects.singleOrNull { it.id == id }
     val orientation = snapshot.orientations.singleOrNull { it.subjectId == id }
     if (subject?.subjectType != ManagedSubjectType.ORIENTATION.name || orientation == null) {
-        return StrategicTargetResolution.Failure(StrategicParticipantIntegrityCode.INVALID_ORIENTATION_TARGET, "Invalid typed Orientation source")
+        return StrategicTargetResolution.Failure(
+            StrategicParticipantIntegrityCode.INVALID_ORIENTATION_TARGET,
+            "Orientation source $id: subjectType=${subject?.subjectType ?: "missing"}, " +
+                "orientationKind=${orientation?.kind ?: "missing"}",
+        )
     }
     if (!quest.isDeleted && subject.isDeleted) {
         return StrategicTargetResolution.Failure(StrategicParticipantIntegrityCode.TOMBSTONED_ORIENTATION_TARGET, "Deleted Orientation source")
@@ -426,7 +430,8 @@ private fun resolveMappedTarget(
     ) {
         return StrategicTargetResolution.Failure(
             StrategicParticipantIntegrityCode.INVALID_ORIENTATION_TARGET,
-            "Canonical target ${mapping.subjectId} has invalid semantic kind",
+            "Canonical target ${mapping.subjectId}: subjectType=${subject.subjectType}, " +
+                "orientationKind=${orientation.kind}, requiredKind=${requiredKind?.name ?: "any"}",
         )
     }
     if (!quest.isDeleted && subject.isDeleted) {
