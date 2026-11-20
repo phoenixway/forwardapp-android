@@ -2,20 +2,18 @@
 
 ## Mapped Quest startup repair: device acceptance
 
-The first physical retry failed because one mapped Quest has additional
-dependencies. After the user rebuilds and installs the detailed diagnostic,
-read the crash buffer through local Shizuku `rish` and classify every reported
-mapping, conversion fact and Direction entry before changing persistence.
-Do not bypass immutable conversion or Direction-entry target rules to make
-startup pass. The production package is not debuggable; `run-as` cannot inspect
-its database from this host.
+The first physical retry failed because the three mapped Quests carry unsupported
+local format-3 QUEST -> DIRECTION conversion facts. The exact live DB, WAL and
+SHM now have a verified private pre-repair backup inside the app sandbox. Run
+the focused `HistoricalMappedQuestKindRepairRoomTest` remotely, then build and
+install the corrected signed `expLocal` without clearing data. Cold-start and
+verify Strategic activation plus preserved ArcQuest IDs, assessment revisions,
+current assessments and Planning references. Inspect logcat if any blocker
+remains. The repair must not retire synced facts, other conversion formats or
+Direction entries.
 
-Rebuild with Java 17 and cold-start the app on the affected device. The three
-mapped ArcQuests should retain their IDs, text, Arc membership and Planning
-participation, while their canonical kind becomes QUEST and startup completes.
 Then revisit the quest-to-direction action; mapped ArcQuests must not offer an
-unsupported direct kind change. Focused Room tests are present but could not run
-on this host because Gradle cannot find Java 17.
+unsupported direct kind change.
 
 ## MagicBox history: verify clear and restart
 

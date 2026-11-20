@@ -13,6 +13,14 @@ interface ManagedSubjectConversionDao {
     suspend fun getChangedSince(since: Long): List<ManagedSubjectConversionEntity>
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(row: ManagedSubjectConversionEntity)
+    /** One-off rollback of an unsupported, never-synced mapped QUEST -> DIRECTION fact. */
+    @Query("""
+        DELETE FROM managed_subject_conversions
+        WHERE id = :id AND formatVersion = 3 AND syncedAt IS NULL
+          AND fromType = 'ORIENTATION' AND toType = 'ORIENTATION'
+          AND fromOrientationKind = 'QUEST' AND targetOrientationKind = 'DIRECTION'
+    """)
+    suspend fun deleteUnsupportedUnsyncedQuestDirectionFact(id: String): Int
     @Query("UPDATE managed_subject_conversions SET syncedAt=:at WHERE id=:id AND version=:version AND syncedAt IS NULL")
     suspend fun acknowledge(id: String, version: Long, at: Long): Int
     @Query("DELETE FROM managed_subject_conversions")
