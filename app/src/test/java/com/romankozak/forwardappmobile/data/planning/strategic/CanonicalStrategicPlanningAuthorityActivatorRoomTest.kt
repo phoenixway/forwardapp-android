@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceT
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.LegacySubjectUuid
@@ -65,6 +66,92 @@ class CanonicalStrategicPlanningAuthorityActivatorRoomTest {
             assertEquals(1, db.strategicPlanningScopeExtensionDao().getAll().size)
             assertEquals(1, db.planningDao().getAllCommitments().count { it.role == "FOCUS" })
             assertEquals(100L, requireNotNull(db.strategicPlanningAuthorityStateDao().get()).activatedAt)
+        }
+    }
+
+    @Test
+    fun `startup restores unsupported Direction kind on mapped manual Quest before activation`() = runBlocking {
+        withDatabase { db ->
+            val quest = seedManualQuest(db)
+            val subjectId = manualSubjectId(quest.id)
+            val orientation = requireNotNull(db.orientationDao().getOrientation(subjectId))
+            db.orientationDao().upsertOrientations(listOf(orientation.copy(kind = OrientationKind.DIRECTION.name)))
+            val before = requireNotNull(db.orientationDao().getManagedSubject(subjectId))
+
+            val first = activator(db).ensureActivated(now = 100L)
+            val second = activator(db).ensureActivated(now = 200L)
+
+            assertTrue(first.performed)
+            assertFalse(second.performed)
+            assertEquals(OrientationKind.QUEST.name, db.orientationDao().getOrientation(subjectId)?.kind)
+            assertEquals(before.id, db.orientationDao().getManagedSubject(subjectId)?.id)
+            assertTrue(requireNotNull(db.orientationDao().getManagedSubject(subjectId)).version >= before.version + 1L)
+            assertEquals(quest, db.arcQuestDao().getById(quest.id))
+            assertEquals(subjectId, db.planningDao().getAllCommitments().single().orientationId)
+        }
+    }
+
+    @Test
+    fun `pre-bootstrap repair restores mapped Quest kind once without activating Strategic planning`() = runBlocking {
+        withDatabase { db ->
+            val quest = seedManualQuest(db)
+            val subjectId = manualSubjectId(quest.id)
+            val dao = db.orientationDao()
+            dao.upsertOrientations(listOf(requireNotNull(dao.getOrientation(subjectId)).copy(kind = OrientationKind.DIRECTION.name)))
+            val before = requireNotNull(dao.getManagedSubject(subjectId))
+
+            assertEquals(1, activator(db).repairHistoricalQuestKindCorruption(now = 100L))
+            assertEquals(0, activator(db).repairHistoricalQuestKindCorruption(now = 200L))
+            assertEquals(OrientationKind.QUEST.name, dao.getOrientation(subjectId)?.kind)
+            assertEquals(before.version + 1L, dao.getManagedSubject(subjectId)?.version)
+            assertNull(db.strategicPlanningAuthorityStateDao().get())
+        }
+    }
+
+    @Test
+    fun `startup does not rewrite mapped Direction without exact CUT_OVER provenance`() = runBlocking {
+        withDatabase { db ->
+            val quest = seedManualQuest(db)
+            val subjectId = manualSubjectId(quest.id)
+            val dao = db.orientationDao()
+            dao.upsertOrientations(listOf(requireNotNull(dao.getOrientation(subjectId)).copy(kind = OrientationKind.DIRECTION.name)))
+            val mapping = dao.getAllLegacyMappings().single()
+            dao.upsertLegacyMappings(listOf(mapping.copy(state = LegacySubjectMappingState.MATERIALIZED.name)))
+
+            assertFailsActivation { activator(db).ensureActivated(now = 100L) }
+
+            assertEquals(OrientationKind.DIRECTION.name, dao.getOrientation(subjectId)?.kind)
+            assertInactiveAndEmpty(db)
+        }
+    }
+
+    @Test
+    fun `startup does not rewrite mapped Direction with historical Direction placement`() = runBlocking {
+        withDatabase { db ->
+            val quest = seedManualQuest(db)
+            val subjectId = manualSubjectId(quest.id)
+            val dao = db.orientationDao()
+            dao.upsertOrientations(listOf(requireNotNull(dao.getOrientation(subjectId)).copy(kind = OrientationKind.DIRECTION.name)))
+            db.workspaceDirectionEntryDao().upsert(listOf(WorkspaceDirectionEntryEntity(
+                id = "direction-entry",
+                workspaceId = "workspace",
+                capabilityInstanceId = "direction-capability",
+                orientationId = subjectId,
+                targetWorkspaceId = null,
+                labelOverride = null,
+                entryOrder = 0L,
+                provenance = "CANONICAL_ONLY",
+                createdAt = 1L,
+                updatedAt = 1L,
+                syncedAt = null,
+                isDeleted = true,
+                version = 1L,
+            )))
+
+            assertFailsActivation { activator(db).ensureActivated(now = 100L) }
+
+            assertEquals(OrientationKind.DIRECTION.name, dao.getOrientation(subjectId)?.kind)
+            assertInactiveAndEmpty(db)
         }
     }
 

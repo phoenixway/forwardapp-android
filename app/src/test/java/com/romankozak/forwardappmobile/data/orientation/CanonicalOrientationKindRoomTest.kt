@@ -59,6 +59,26 @@ class CanonicalOrientationKindRoomTest {
         }
     }
 
+    @Test fun `canonical save rejects a kind change for a legacy mapped orientation`() = runBlocking<Unit> {
+        SemanticDeletionRoomFixture().use { f ->
+            val id = f.orientation()
+            f.dao.upsertLegacyMappings(listOf(LegacySubjectMappingEntity(id, "CONTEXT", "old", id, 1, "ADOPTED", 1, 1, null, false, 1)))
+            val before = f.rows()
+            val subject = f.orientations.getOrientationSemantics(id)!!.subject
+            val assessment = initialOrientationAssessment(OrientationKind.MILESTONE)
+            val result = runCatching {
+                f.orientations.saveOrientation(
+                    subject.copy(version = subject.version + 1),
+                    OrientationNode(id, OrientationKind.MILESTONE, null, ValueOrigin.UNSET, assessment),
+                    OrientationAssessmentRevision("changed-kind", 11, 11, null, false, 1, id, 11, 11,
+                        AssessmentRevisionSource.USER, null, assessment),
+                )
+            }
+            assertThat(result.isFailure).isTrue()
+            assertThat(f.rows()).isEqualTo(before)
+        }
+    }
+
     @Test fun `native kind changes preserve exact identity workspaces tags relations appearances and terminal lifecycle`() = runBlocking<Unit> {
         SemanticDeletionRoomFixture().use { f ->
             val id = f.orientation(); f.workspace()

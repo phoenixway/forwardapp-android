@@ -119,6 +119,14 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 )
             }
 
+            val repairedQuestKinds =
+                StartupTrace.measure("Application.historicalMappedQuestKindRepair") {
+                    canonicalStrategicPlanningAuthorityActivator.repairHistoricalQuestKindCorruption()
+                }
+            if (repairedQuestKinds > 0) {
+                Timber.w("Restored QUEST kind for %d mapped manual ArcQuest target(s)", repairedQuestKinds)
+            }
+
             val orientationReport =
                 StartupTrace.measure("Application.orientationBootstrap") {
                     canonicalOrientationBootstrapper.ensureBootstrapped()

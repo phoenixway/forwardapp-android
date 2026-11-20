@@ -44,6 +44,10 @@ class CanonicalStrategicPlanningAuthorityActivator
         private val questOrientationBridge: QuestOrientationBridge,
         private val tacticalPlanningAuthorityActivator: CanonicalTacticalPlanningAuthorityActivator,
     ) {
+        /** Repairs the exact historical MANUAL Quest kind mismatch before Orientation bootstrap. */
+        suspend fun repairHistoricalQuestKindCorruption(now: Long = System.currentTimeMillis()): Int =
+            database.withTransaction { repairHistoricalMappedQuestKinds(database, now) }
+
         suspend fun admitCanonicalIngress(
             now: Long = System.currentTimeMillis(),
         ): StrategicPlanningActivationReport =
@@ -69,6 +73,7 @@ class CanonicalStrategicPlanningAuthorityActivator
 
         suspend fun ensureActivated(now: Long = System.currentTimeMillis()): StrategicPlanningActivationReport =
             database.withTransaction {
+                repairHistoricalMappedQuestKinds(database, now)
                 val markerDao = database.strategicPlanningAuthorityStateDao()
                 markerDao.get()?.let { marker ->
                     require(marker.version == CURRENT_VERSION) {

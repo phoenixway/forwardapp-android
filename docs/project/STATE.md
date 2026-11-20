@@ -1,5 +1,19 @@
 # ForwardApp Project State
 
+## 2026-11-20 - Mapped Quest kind startup repair
+
+Three device screenshots showed MANUAL ArcQuest mappings whose canonical
+Orientation kind had been changed from QUEST to DIRECTION. Strategic activation
+rejects these because the Quest bridge and Planning participation require QUEST.
+Startup now restores QUEST only for exact CUT_OVER mappings with deterministic
+subject identity and no conversion history or Direction placement. The repair
+runs transactionally before Orientation bootstrap, preserves the subject and
+ArcQuest identities, and bumps the canonical subject version for sync. Any
+ambiguous case still fails integrity validation. The canonical Orientation save
+boundary also rejects kind changes on mapped subjects. Room schema and hierarchy
+authority are unchanged. Focused tests were added; local execution is blocked by
+the missing Java 17 toolchain. Physical acceptance after user rebuild is pending.
+
 ## 2026-11-12 - MagicBox live search history
 
 Nonblank DataSearch queries are automatically recorded after 4 seconds without

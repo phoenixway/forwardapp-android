@@ -100,6 +100,13 @@ class CanonicalOrientationRepository
                 "Orientation assessment violates DOMAIN-CONTRACT v1"
             }
             database.withTransaction {
+                val previousKind = dao.getOrientation(subject.id)?.kind
+                require(
+                    previousKind == null || previousKind == orientation.kind.name ||
+                        dao.getAllLegacyMappings().none { it.subjectId == subject.id },
+                ) {
+                    "Mapped Orientation kind cannot change through canonical save"
+                }
                 dao.upsertManagedSubjects(listOf(subject.toEntity()))
                 dao.upsertOrientations(listOf(orientation.toEntity()))
                 dao.upsertAssessmentRevisions(listOf(revision.toEntity(gson)))

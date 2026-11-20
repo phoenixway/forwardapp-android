@@ -1,5 +1,14 @@
 # Next
 
+## Mapped Quest startup repair: device acceptance
+
+Rebuild with Java 17 and cold-start the app on the affected device. The three
+mapped ArcQuests should retain their IDs, text, Arc membership and Planning
+participation, while their canonical kind becomes QUEST and startup completes.
+Then revisit the quest-to-direction action; mapped ArcQuests must not offer an
+unsupported direct kind change. Focused Room tests are present but could not run
+on this host because Gradle cannot find Java 17.
+
 ## MagicBox history: verify clear and restart
 
 After updating, type a new global query and leave it unchanged for 4 seconds:
