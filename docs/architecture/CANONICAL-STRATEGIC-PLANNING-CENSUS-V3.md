@@ -83,12 +83,17 @@ planning role.
 | Source | Semantic target | Expected kind | Eligibility | Deferred | Integrity failure |
 |---|---|---|---|---|---|
 | MANUAL | live CUT_OVER `ARC_QUEST` mapping target | `QUEST` or proven `DIRECTION` | resolved target | none after QUEST cutover | missing/divergent/non-CUT_OVER/incomplete/tombstoned-live target |
+| ORIENTATION | exact existing live Orientation | any current canonical kind | resolved target | none | missing/wrong-type/tombstoned target |
 | CONTEXT | CUT_OVER `CONTEXT` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |
 | BEACON | CUT_OVER `MAIN_BEACON` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |
 | BEACON_GROUP | CUT_OVER `MAIN_BEACON_GROUP` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |
 | MISSION | `TacticalMissionOrientationResolver` result | current canonical kind | resolved target | typed mission adoption prerequisite | missing mission, broken/cyclic/conflicting source |
 
-Source-backed rows reuse semantic identity and never create QUEST shadows.
+ORIENTATION and specialized legacy-source rows reuse semantic identity and never
+create QUEST shadows.
+The existing entity picker admits an Orientation of any canonical kind as an
+ORIENTATION source. Selecting an Aspect or Workspace follows its separate
+source-reference path and creates a normal QUEST target.
 Live ArcQuest rows cannot target tombstoned Orientations. Deleted rows may
 retain a historical tombstoned commitment without resurrecting semantics.
 

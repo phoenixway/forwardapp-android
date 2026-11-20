@@ -78,7 +78,7 @@ internal fun strategicComposerActions(
     onClearInput: () -> Unit,
 ) = listOf(
     ContextualAction(
-        "quest-source", "Створити Quest на основі сутності", Icons.Default.Add, onClick = onShowContextPicker,
+        "quest-source", "Додати сутність як квест арки", Icons.Default.Add, onClick = onShowContextPicker,
     ),
     ContextualAction(
         "quest-clear", "Очистити ArcQuest", Icons.Outlined.Close, enabled = hasDraft, onClick = onClearInput,
