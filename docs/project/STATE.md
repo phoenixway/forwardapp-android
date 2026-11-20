@@ -2,6 +2,15 @@
 
 ## 2026-11-20 - Mapped Quest kind startup repair
 
+Physical retry at 07:31 failed on mapped ArcQuest
+`b1093aa7-6efc-48bd-9795-d3841707a789`: the bounded repair found another
+dependency and correctly left the transaction untouched. The installed app is
+non-debuggable, so Shizuku shell cannot read its private database with `run-as`.
+Shizuku `rish` does provide shell logcat access from this PRoot host. A follow-up
+diagnostic now reports exact blockers for every affected mapped Quest in one
+startup failure; it has not yet been installed or physically verified. No
+conflicting persisted row has been rewritten.
+
 Three device screenshots showed MANUAL ArcQuest mappings whose canonical
 Orientation kind had been changed from QUEST to DIRECTION. Strategic activation
 rejects these because the Quest bridge and Planning participation require QUEST.

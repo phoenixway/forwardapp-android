@@ -59,6 +59,12 @@ Before substantial tasks and major phase transitions, proactively advise the use
 - Run targeted tests or compilation only when allowed by the current task and materially useful.
 - Do not repeat build/test passes when a higher-level check already proves the required property.
 
+### Termux unit tests through GitHub Actions
+
+- On an Android/Termux host, run Gradle JVM unit tests through the manual filtered job in `.github/workflows/run_unit_tests.yml` by default, using `tools/gh_test.sh` instead of local `tools/agent-test`. Run the smallest relevant method or class first; the normal push/PR matrix remains separate.
+- Dispatch and await it with `./tools/gh_test.sh <target> '<filter[,filter...]>'`. The supported targets and filter syntax are shown by `./tools/gh_test.sh --help`. A blank filter runs the selected target's full test task only when that scope is justified.
+- GitHub Actions tests the pushed commit, so commit and push the intended changes before dispatch. Never present a run on an older remote commit as validation of local edits. If the remote run is unavailable, report that limitation and continue with local static checks; do not claim the tests passed.
+
 ### Fedora live validation
 
 - Before an appropriate live build, run `memory-guardian clean` to reclaim memory from idle Gradle daemons left by earlier or parallel work. Preserve active builds, incremental state and caches; do not replace this command with indiscriminate process killing or `gradle clean`.

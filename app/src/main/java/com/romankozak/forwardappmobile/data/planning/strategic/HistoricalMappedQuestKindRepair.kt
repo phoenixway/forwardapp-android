@@ -23,28 +23,47 @@ internal suspend fun repairHistoricalMappedQuestKinds(database: AppDatabase, now
     if (candidates.isEmpty()) return 0
 
     val subjects = orientationDao.getAllManagedSubjects().associateBy { it.id }
-    val conversions = database.managedSubjectConversionDao().getAll().mapTo(hashSetOf()) { it.subjectId }
-    val directionOwners = database.workspaceDirectionEntryDao().getAll().mapNotNullTo(hashSetOf()) { it.orientationId }
-    var repaired = 0
+    val conversions = database.managedSubjectConversionDao().getAll().groupBy { it.subjectId }
+    val directionOwners = database.workspaceDirectionEntryDao().getAll().filter { it.orientationId != null }.groupBy { it.orientationId }
+    val unsafe = mutableListOf<String>()
 
     candidates.forEach { mapping ->
         val quest = requireNotNull(quests[mapping.sourceId])
-        val orientation = requireNotNull(orientations[mapping.subjectId])
-
         val subject = requireNotNull(subjects[mapping.subjectId]) {
             "Mapped Quest ${quest.id} has no canonical subject"
         }
-        require(mapping.state == LegacySubjectMappingState.CUT_OVER.name &&
-            mapping.subjectId == LegacySubjectUuid.resolve(LegacySubjectRef(LegacyOrientationSourceType.ARC_QUEST, quest.id)) &&
-            mappings.count { it.subjectId == mapping.subjectId } == 1 &&
-            subject.subjectType == ManagedSubjectType.ORIENTATION.name &&
-            subject.isDeleted == quest.isDeleted && mapping.isDeleted == quest.isDeleted &&
-            mapping.subjectId !in conversions && mapping.subjectId !in directionOwners &&
-            subject.version < Long.MAX_VALUE && subject.updatedAt < Long.MAX_VALUE
-        ) {
-            "Mapped Quest ${quest.id} has additional Direction or conversion dependencies; automatic kind repair is unsafe"
+        val blockers = buildList {
+            if (mapping.state != LegacySubjectMappingState.CUT_OVER.name) add("mappingState=${mapping.state}")
+            if (mapping.subjectId != LegacySubjectUuid.resolve(LegacySubjectRef(LegacyOrientationSourceType.ARC_QUEST, quest.id))) {
+                add("nonDeterministicSubjectId")
+            }
+            if (mappings.count { it.subjectId == mapping.subjectId } != 1) add("multipleMappings")
+            if (subject.subjectType != ManagedSubjectType.ORIENTATION.name) add("subjectType=${subject.subjectType}")
+            if (subject.isDeleted != quest.isDeleted) add("subjectDeletionMismatch")
+            if (mapping.isDeleted != quest.isDeleted) add("mappingDeletionMismatch")
+            conversions[mapping.subjectId]?.let { facts ->
+                add("conversionHistory=${facts.joinToString("|") { fact ->
+                    "${fact.id}:${fact.fromType}/${fact.fromOrientationKind}->${fact.toType}/${fact.targetOrientationKind}"
+                }}")
+            }
+            directionOwners[mapping.subjectId]?.let { entries ->
+                add("directionEntries=${entries.joinToString("|") { entry ->
+                    "${entry.id}:${entry.provenance}:deleted=${entry.isDeleted}:version=${entry.version}"
+                }}")
+            }
+            if (subject.version == Long.MAX_VALUE || subject.updatedAt == Long.MAX_VALUE) add("subjectVersionOverflow")
         }
+        if (blockers.isNotEmpty()) {
+            unsafe += "${quest.id}[${blockers.joinToString()}]"
+        }
+    }
+    require(unsafe.isEmpty()) {
+        "Mapped Quest kind repair requires review: ${unsafe.joinToString("; ")}"
+    }
 
+    candidates.forEach { mapping ->
+        val subject = requireNotNull(subjects[mapping.subjectId])
+        val orientation = requireNotNull(orientations[mapping.subjectId])
         orientationDao.upsertOrientations(listOf(orientation.copy(kind = OrientationKind.QUEST.name)))
         orientationDao.upsertManagedSubjects(
             listOf(subject.copy(
@@ -53,7 +72,6 @@ internal suspend fun repairHistoricalMappedQuestKinds(database: AppDatabase, now
                 version = subject.version + 1L,
             )),
         )
-        repaired++
     }
-    return repaired
+    return candidates.size
 }

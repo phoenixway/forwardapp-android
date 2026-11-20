@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 [--plan] {app-prod|app-exp|shared-core-domain|shared-core-data-models} [comma-separated Gradle test filters]" >&2
+}
+
+plan=false
+if [[ "${1:-}" == "--plan" ]]; then
+  plan=true
+  shift
+fi
+if (($# < 1 || $# > 2)); then
+  usage
+  exit 2
+fi
+
+case "$1" in
+  app-prod) task=:app:testProdDebugUnitTest ;;
+  app-exp) task=:app:testExpDebugUnitTest ;;
+  shared-core-domain) task=:shared-core-domain:jvmTest ;;
+  shared-core-data-models) task=:shared-core-data-models:jvmTest ;;
+  *) usage; exit 2 ;;
+esac
+
+filters="${2:-}"
+command=(./gradlew "$task" --console=plain --warning-mode=none)
+if [[ -n "$filters" ]]; then
+  if [[ "$filters" == ,* || "$filters" == *, || "$filters" == *,,* || "$filters" == *$'\n'* ]]; then
+    echo "Test filters must be nonempty comma-separated Gradle --tests patterns on one line" >&2
+    exit 2
+  fi
+  IFS=',' read -r -a patterns <<< "$filters"
+  for pattern in "${patterns[@]}"; do
+    pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+    pattern="${pattern%"${pattern##*[![:space:]]}"}"
+    if [[ -z "$pattern" ]]; then
+      echo "Empty test filter" >&2
+      exit 2
+    fi
+    command+=(--tests "$pattern")
+  done
+fi
+
+if "$plan"; then
+  printf '%q ' "${command[@]}"
+  printf '\n'
+else
+  exec "${command[@]}"
+fi

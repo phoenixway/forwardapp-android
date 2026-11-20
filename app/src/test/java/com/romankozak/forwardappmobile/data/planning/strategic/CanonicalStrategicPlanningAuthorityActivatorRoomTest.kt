@@ -118,7 +118,8 @@ class CanonicalStrategicPlanningAuthorityActivatorRoomTest {
             val mapping = dao.getAllLegacyMappings().single()
             dao.upsertLegacyMappings(listOf(mapping.copy(state = LegacySubjectMappingState.MATERIALIZED.name)))
 
-            assertFailsActivation { activator(db).ensureActivated(now = 100L) }
+            val failure = runCatching { activator(db).ensureActivated(now = 100L) }.exceptionOrNull()
+            assertTrue(failure?.message?.contains("mappingState=MATERIALIZED") == true)
 
             assertEquals(OrientationKind.DIRECTION.name, dao.getOrientation(subjectId)?.kind)
             assertInactiveAndEmpty(db)
@@ -148,7 +149,8 @@ class CanonicalStrategicPlanningAuthorityActivatorRoomTest {
                 version = 1L,
             )))
 
-            assertFailsActivation { activator(db).ensureActivated(now = 100L) }
+            val failure = runCatching { activator(db).ensureActivated(now = 100L) }.exceptionOrNull()
+            assertTrue(failure?.message?.contains("directionEntries") == true)
 
             assertEquals(OrientationKind.DIRECTION.name, dao.getOrientation(subjectId)?.kind)
             assertInactiveAndEmpty(db)

@@ -1,15 +1,39 @@
 name: Run Unit Tests
+run-name: ${{ inputs.request_id || github.workflow }}
+
+permissions:
+  contents: read
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
-  workflow_dispatch: # Дозволяє запускати тести вручну через 'gh workflow run'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Test task'
+        required: true
+        default: app-prod
+        type: choice
+        options:
+          - app-prod
+          - app-exp
+          - shared-core-domain
+          - shared-core-data-models
+      filters:
+        description: 'Comma-separated Gradle --tests patterns; blank runs the selected task'
+        required: false
+        type: string
+      request_id:
+        description: 'Optional run label for CLI tracking'
+        required: false
+        type: string
 
 jobs:
   quality:
     name: Quality Gates
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -39,6 +63,7 @@ jobs:
 
   test:
     name: Run JVM Unit Tests (${{ matrix.flavor }})
+    if: github.event_name != 'workflow_dispatch'
     needs: quality
     runs-on: ubuntu-latest
     strategy:
@@ -81,3 +106,39 @@ jobs:
         run: |
           echo "Unit tests failed. You can check the detailed HTML report in the artifacts."
           echo "Use 'gh run view --log-failed ${{ github.run_id }}' to see why it failed."
+
+  filtered-test:
+    name: Filtered JVM Unit Tests (${{ inputs.target }})
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Run selected tests
+        run: bash tools/run-filtered-unit-tests "$TEST_TARGET" "$TEST_FILTERS"
+        env:
+          TEST_TARGET: ${{ inputs.target }}
+          TEST_FILTERS: ${{ inputs.filters }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: filtered-tests-${{ inputs.target }}-${{ github.run_id }}
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            shared-core-domain/build/reports/tests/
+            shared-core-domain/build/test-results/
+            shared-core-data-models/build/reports/tests/
+            shared-core-data-models/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

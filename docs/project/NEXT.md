@@ -2,6 +2,14 @@
 
 ## Mapped Quest startup repair: device acceptance
 
+The first physical retry failed because one mapped Quest has additional
+dependencies. After the user rebuilds and installs the detailed diagnostic,
+read the crash buffer through local Shizuku `rish` and classify every reported
+mapping, conversion fact and Direction entry before changing persistence.
+Do not bypass immutable conversion or Direction-entry target rules to make
+startup pass. The production package is not debuggable; `run-as` cannot inspect
+its database from this host.
+
 Rebuild with Java 17 and cold-start the app on the affected device. The three
 mapped ArcQuests should retain their IDs, text, Arc membership and Planning
 participation, while their canonical kind becomes QUEST and startup completes.
