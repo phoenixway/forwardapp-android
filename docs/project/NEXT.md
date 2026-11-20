@@ -1,19 +1,13 @@
 # Next
 
-## Mapped Quest startup repair: device acceptance
+## Mapped Quest repair: user-facing smoke
 
-The first physical retry failed because the three mapped Quests carry unsupported
-local format-3 QUEST -> DIRECTION conversion facts. The exact live DB, WAL and
-SHM now have a verified private pre-repair backup inside the app sandbox. Run
-the focused `HistoricalMappedQuestKindRepairRoomTest` remotely, then build and
-install the corrected signed `expLocal` without clearing data. Cold-start and
-verify Strategic activation plus preserved ArcQuest IDs, assessment revisions,
-current assessments and Planning references. Inspect logcat if any blocker
-remains. The repair must not retire synced facts, other conversion formats or
-Direction entries.
-
-Then revisit the quest-to-direction action; mapped ArcQuests must not offer an
-unsupported direct kind change.
+The two cold starts and exact persisted-state comparison passed on device.
+Open Strategic planning and inspect the three formerly affected ArcQuests;
+they should remain in their arcs with their existing Planning participation.
+The kind-change action must not offer direct QUEST -> DIRECTION for mapped
+ArcQuests. The verified pre-repair DB/WAL/SHM copy remains privately in
+`files/repair-backups/quest-kind-20261120-a1861132/` for rollback evidence.
 
 ## MagicBox history: verify clear and restart
 

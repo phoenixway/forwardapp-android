@@ -14,16 +14,23 @@ pre-repair copy of DB/WAL/SHM is at
 A bounded startup correction now preflights exact provenance, versions, current
 assessment and complete revision closure, retires only the unsupported unsynced
 fact, restores QUEST, and preserves all assessment revisions/current values,
-ArcQuest identities and Planning references. It is not yet built or physically
-verified; other conversion histories and Direction placements still fail closed.
-Room schema and hierarchy authority are unchanged.
+ArcQuest identities and Planning references. Focused CI Room test passed on
+`dev` (`44687390840`); signed `expLocal` build `44715088592` installed over the
+same package without clearing data. Both physical cold starts succeeded. After
+the first, all three targets were QUEST, all three unsupported facts were gone,
+and Strategic authority marker was present. Read-only before/after SQLite
+comparison confirmed exact preservation of ArcQuest rows, mappings, current and
+historical assessments, Direction entries, and all pre-existing Planning rows;
+each ManagedSubject retained its identity/scalars with version +1. Both copies
+passed `PRAGMA quick_check`. Other conversion histories and Direction placements
+still fail closed. Room schema and hierarchy authority are unchanged.
 
 The earlier no-history repair failed on device at 07:31 because the facts above
 were present; its transaction left data untouched. Shizuku `rish` then installed
 the same-package signed `expLocal` without clearing data, enabling read-only
 `run-as` inspection. The canonical Orientation save boundary already rejects
-future kind changes on mapped subjects. Focused tests require the remote Java 17
-runner; physical acceptance of the corrected repair is pending.
+future kind changes on mapped subjects. User-facing Strategic screen inspection
+remains pending; startup and persisted-state acceptance are complete.
 
 ## 2026-11-12 - MagicBox live search history
 
