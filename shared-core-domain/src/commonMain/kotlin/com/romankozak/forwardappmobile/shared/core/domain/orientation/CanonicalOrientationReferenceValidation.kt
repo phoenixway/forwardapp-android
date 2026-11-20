@@ -44,6 +44,7 @@ data class CanonicalAssessmentRevisionReference(
 data class CanonicalLegacyMappingReference(
     val id: String,
     val subjectId: String,
+    val sourceType: String? = null,
 )
 
 @JsExport
@@ -103,7 +104,10 @@ fun validateCanonicalOrientationReferences(
                 require(graph.revisions.singleOrNull { it.id == revisionId }?.orientationId == id) { "Missing historical revision closure" }
                 require(historicalKinds.put(revisionId, historicalKind) == null)
             }
-            require(id !in aspectIds && graph.mappings.none { it.subjectId == id })
+            val mappings = graph.mappings.filter { it.subjectId == id }
+            require(id !in aspectIds && (mappings.isEmpty() ||
+                (facts.size == 1 && facts.single().formatVersion == 4 &&
+                    mappings.size == 1 && mappings.single().sourceType == "ARC_QUEST")))
         }
         graph.subjectConversions.filter { it.fromType == "ASPECT" }.mapTo(hashSetOf()) { it.subjectId }
     }.getOrElse {
@@ -154,6 +158,13 @@ fun validateCanonicalOrientationReferences(
     }
     if (!graph.mappings.all { it.subjectId in subjects }) {
         violations += invalid("MAPPING_SUBJECT", "Every legacy mapping must reference a ManagedSubject in the payload.")
+    }
+    if (graph.mappings.any { mapping ->
+            mapping.sourceType == "ARC_QUEST" &&
+                graph.orientations.singleOrNull { it.subjectId == mapping.subjectId }?.kind == OrientationKind.DIRECTION &&
+                graph.subjectConversions.none { it.subjectId == mapping.subjectId && it.formatVersion == 4 }
+        }) {
+        violations += invalid("MAPPED_QUEST_KIND", "A mapped ArcQuest Direction requires canonical conversion evidence.")
     }
     if (validateOrientationRelations(orientationIds, graph.relations).isNotEmpty()) {
         violations += invalid("ORIENTATION_RELATIONS", "Orientation relations violate DOMAIN-CONTRACT v1.")
@@ -209,7 +220,7 @@ fun validateCanonicalOrientationReferencesWire(rawGraph: String): Array<String> 
         revisions = root.rows("orientationAssessmentRevisions").map {
             CanonicalAssessmentRevisionReference(it.string("id"), it.string("orientationId"), it.obj("assessment").assessment())
         },
-        mappings = root.rows("legacySubjectMappings").map { CanonicalLegacyMappingReference(it.string("id"), it.string("subjectId")) },
+        mappings = root.rows("legacySubjectMappings").map { CanonicalLegacyMappingReference(it.string("id"), it.string("subjectId"), it.string("sourceType")) },
         relations = root.rows("orientationRelations").map {
             OrientationRelation(it.string("id"), it.long("createdAt"), it.long("updatedAt"), it.nullableLong("syncedAt"), it.boolean("isDeleted"), it.long("version"), it.string("fromOrientationId"), it.string("toOrientationId"), OrientationRelationType.valueOf(it.string("relationType")), it.nullableLong("order") ?: it.nullableLong("relationOrder"))
         },

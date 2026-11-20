@@ -20,7 +20,8 @@ import javax.inject.Singleton
 /**
  * Semantic authority boundary for MANUAL ArcQuest compatibility rows.
  *
- * Canonical QUEST owns semantic identity, title, description and liveness.
+ * Canonical Orientation owns semantic identity, title, description and liveness.
+ * Manual quests begin as QUEST and may explicitly become DIRECTION while the carrier remains.
  * ArcQuest keeps Strategic placement/order/status and source-link metadata.
  * Source-backed ArcQuest rows continue to reference an existing source
  * Orientation and never manufacture a duplicate QUEST.
@@ -137,8 +138,12 @@ class QuestOrientationBridge
             require(orientations.size == 1) {
                 "CUT_OVER ArcQuest ${desired.id} must have exactly one canonical Orientation"
             }
-            require(orientations.single().kind == OrientationKind.QUEST.name) {
-                "CUT_OVER ArcQuest ${desired.id} canonical kind is not QUEST"
+            require(orientations.single().kind == OrientationKind.QUEST.name ||
+                (orientations.single().kind == OrientationKind.DIRECTION.name &&
+                    orientationDao.getSubjectConversions().any {
+                        it.subjectId == mapping.subjectId && it.formatVersion == 4
+                    })) {
+                "CUT_OVER ArcQuest ${desired.id} has unsupported canonical kind"
             }
 
             val commonChanged =
@@ -312,8 +317,8 @@ internal fun projectCanonicalArcQuests(
             "CUT_OVER ArcQuest ${quest.id} target is not an Orientation"
         }
 
-        require(orientationsById[mapping.subjectId]?.kind == OrientationKind.QUEST.name) {
-            "CUT_OVER ArcQuest ${quest.id} canonical kind is not QUEST"
+        require(orientationsById[mapping.subjectId]?.kind in setOf(OrientationKind.QUEST.name, OrientationKind.DIRECTION.name)) {
+            "CUT_OVER ArcQuest ${quest.id} has unsupported canonical kind"
         }
 
         quest.copy(

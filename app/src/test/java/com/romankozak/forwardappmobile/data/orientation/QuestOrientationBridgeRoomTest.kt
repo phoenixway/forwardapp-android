@@ -35,6 +35,32 @@ class QuestOrientationBridgeRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun `manual quest remains in its arc with the same semantic identity after becoming a Direction`() = runBlocking {
+        withDatabase { database ->
+            val arcRepository = repository(database)
+            val quest = manualQuest(id = "quest-direction")
+            arcRepository.addQuest(quest)
+            val mapping = mapping(database, quest.id)
+            val before = database.planningDao().getAllCommitments()
+            val command = CanonicalOrientationKindCoordinator(database,
+                CanonicalOrientationRepository(database, database.orientationDao()))
+            val plan = command.preview(mapping.subjectId)
+            assertEquals(quest.id, plan.mappedArcQuestId)
+            command.transform(plan, OrientationKind.DIRECTION, 100L)
+
+            assertEquals(OrientationKind.DIRECTION.name, database.orientationDao().getOrientation(mapping.subjectId)?.kind)
+            assertEquals(mapping, mapping(database, quest.id))
+            assertEquals(before, database.planningDao().getAllCommitments())
+            assertEquals(quest.id, arcRepository.getById(quest.id)?.id)
+            assertTrue(bootstrapper(database).ensureBootstrapped().issues.isEmpty())
+            assertEquals(quest.id, repository(database).getById(quest.id)?.id)
+            assertEquals(4, database.managedSubjectConversionDao().getAll().single().formatVersion)
+            assertFalse(command.canOffer(mapping.subjectId))
+
+        }
+    }
+
+    @Test
     fun `bootstrap promotes manual ArcQuest shadow in place and is idempotent`() = runBlocking {
         withDatabase { database ->
             val quest = manualQuest()

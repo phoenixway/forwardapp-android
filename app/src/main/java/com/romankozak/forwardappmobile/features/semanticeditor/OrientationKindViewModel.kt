@@ -39,7 +39,9 @@ class OrientationKindViewModel @Inject constructor(saved: SavedStateHandle, priv
         }
     }
     fun select(kind: OrientationKind) {
-        if (state.value.open && !state.value.busy && kind in SUBJECT_CONVERSION_TARGET_KINDS && kind != state.value.plan?.kind)
+        val plan = state.value.plan
+        if (state.value.open && !state.value.busy && plan != null &&
+            kind in (if (plan.mappedArcQuestId != null) setOf(OrientationKind.DIRECTION) else SUBJECT_CONVERSION_TARGET_KINDS) && kind != plan.kind)
             mutable.value = state.value.copy(target = kind)
     }
     fun cancel() { if (!state.value.busy) mutable.value = OrientationKindState(eligible = state.value.eligible) }

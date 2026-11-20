@@ -23,17 +23,18 @@ internal suspend fun repairHistoricalMappedQuestKinds(database: AppDatabase, now
     val quests = database.arcQuestDao().getAllSync().associateBy { it.id }
     val mappings = orientationDao.getAllLegacyMappings()
     val orientations = orientationDao.getAllOrientations().associateBy { it.subjectId }
+    val conversions = database.managedSubjectConversionDao().getAll().groupBy { it.subjectId }
     val candidates = mappings.filter { mapping ->
         mapping.sourceType == LegacyOrientationSourceType.ARC_QUEST.name &&
             quests[mapping.sourceId]?.sourceType == ArcQuestSourceType.MANUAL.name &&
-            orientations[mapping.subjectId]?.kind == OrientationKind.DIRECTION.name
+            orientations[mapping.subjectId]?.kind == OrientationKind.DIRECTION.name &&
+            conversions[mapping.subjectId].orEmpty().none { it.formatVersion == 4 }
     }
     if (candidates.isEmpty()) return 0
 
     val subjects = orientationDao.getAllManagedSubjects().associateBy { it.id }
     val currents = orientationDao.getAllAssessments().associateBy { it.orientationId }
     val revisions = orientationDao.getAllAssessmentRevisions().groupBy { it.orientationId }
-    val conversions = database.managedSubjectConversionDao().getAll().groupBy { it.subjectId }
     val directionOwners = database.workspaceDirectionEntryDao().getAll().filter { it.orientationId != null }.groupBy { it.orientationId }
     val unsafe = mutableListOf<String>()
     val factsToRetire = mutableMapOf<String, String>()

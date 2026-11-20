@@ -1,5 +1,21 @@
 # ForwardApp Decisions
 
+## 2026-11-20 - ArcQuest participation survives semantic Quest to Direction conversion
+
+A MANUAL ArcQuest remains the same operational carrier in its arc, with the same
+deterministic semantic Orientation ID and the same Strategic/Tactical Planning
+participation, when its Orientation changes from QUEST to DIRECTION. The carrier
+role is independent of OrientationKind. New manual quests still start as QUEST.
+The only newly admitted mapped conversion is QUEST -> DIRECTION, with an immutable
+format-4 conversion fact and conversion wire generation 3. An ARC_QUEST mapping is
+allowed with that fact only; all other mapped conversions remain blocked. Historical
+unsupported format-3 facts remain invalid and retain their bounded repair path.
+Direction capability entries are not created by the semantic conversion. Existing
+Workspace Direction entries block this command. H1 placement and other semantic
+relationships retain their current owners. This is a Canonical V1 semantic and
+Planning boundary change, classified SEMANTIC_NOT_HIERARCHY; no V2 hierarchy
+authority changes.
+
 ## 2026-10-28 - Orientation Planning Context and canonical promotion
 
 Planning is a reusable product surface over canonical Orientation participation

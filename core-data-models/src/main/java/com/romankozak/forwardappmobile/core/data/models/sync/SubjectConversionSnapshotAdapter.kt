@@ -21,7 +21,11 @@ class SubjectConversionSnapshotAdapter : TypeAdapterFactory {
                 val tree = delegate.toJsonTree(value).asJsonObject
                 if ((value as SnapshotBundle).managedSubjectConversions.orEmpty().isNotEmpty()) {
                     tree.add("canonicalSnapshotBaseVersion", tree.get("snapshotVersion"))
-                    tree.addProperty("snapshotVersion", if (value.managedSubjectConversions.orEmpty().any { it.formatVersion == 2 }) KIND_GENERATION else GENERATION)
+                    tree.addProperty("snapshotVersion", when {
+                        value.managedSubjectConversions.orEmpty().any { it.formatVersion == 4 } -> MAPPED_QUEST_GENERATION
+                        value.managedSubjectConversions.orEmpty().any { it.formatVersion == 2 } -> KIND_GENERATION
+                        else -> GENERATION
+                    })
                 }
                 trees.write(out, tree)
             }
@@ -33,9 +37,10 @@ class SubjectConversionSnapshotAdapter : TypeAdapterFactory {
                 val version = root.get("snapshotVersion") ?: root.get("version")
                 val marker = version?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
                 val facts = root.get("managedSubjectConversions")
-                if (marker == GENERATION || marker == KIND_GENERATION) {
+                if (marker == GENERATION || marker == KIND_GENERATION || marker == MAPPED_QUEST_GENERATION) {
                     require(facts != null && facts.isJsonArray) { "Conversion generation requires explicit history" }
-                    if (marker == GENERATION) require(facts.asJsonArray.none { it.asJsonObject.get("formatVersion")?.asInt == 2 }) { "Kind changes require conversion generation 2" }
+                    if (marker == GENERATION) require(facts.asJsonArray.none { it.asJsonObject.get("formatVersion")?.asInt in setOf(2, 4) }) { "Kind changes require newer conversion generation" }
+                    if (marker == KIND_GENERATION) require(facts.asJsonArray.none { it.asJsonObject.get("formatVersion")?.asInt == 4 }) { "Mapped Quest changes require conversion generation 3" }
                     val base = requireNotNull(root.get("canonicalSnapshotBaseVersion")) { "Missing base snapshot version" }
                     require(base.isJsonPrimitive && base.asJsonPrimitive.isNumber && base.asString in setOf("1", "2")) { "Unsupported base snapshot version" }
                     root.add("snapshotVersion", base)
@@ -55,6 +60,7 @@ class SubjectConversionSnapshotAdapter : TypeAdapterFactory {
     companion object {
         const val GENERATION = "semantic-subject-conversion/1"
         const val KIND_GENERATION = "semantic-subject-conversion/2"
+        const val MAPPED_QUEST_GENERATION = "semantic-subject-conversion/3"
     }
 }
 

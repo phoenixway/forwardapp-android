@@ -17,23 +17,36 @@ data class OrientationKindPlan(
     val id: String, val title: String, val version: Long, val kind: OrientationKind,
     val assessmentRevisionId: String, val assessmentVersion: Long,
     val planningCount: Int, val recurrenceCount: Int,
+    val mappedArcQuestId: String? = null,
 )
 
-/** Native semantic reclassification only. Independently owned downstream rows are not rewritten. */
+/** Explicit semantic reclassification; independently owned Planning and carrier rows are retained. */
 class CanonicalOrientationKindCoordinator @Inject constructor(
     private val db: AppDatabase,
     private val orientations: CanonicalOrientationRepository,
 ) {
     suspend fun canOffer(id: String): Boolean = db.withTransaction {
         val subject = db.orientationDao().getManagedSubject(id)
+        val kind = db.orientationDao().getOrientation(id)?.kind
+        val mappings = db.orientationDao().getAllLegacyMappings().filter { it.subjectId == id }
+        val mappedQuest = kind == OrientationKind.QUEST.name && mappings.size == 1 &&
+            mappings.single().sourceType == LegacyOrientationSourceType.ARC_QUEST.name &&
+            mappings.single().subjectId == LegacySubjectUuid.resolve(LegacySubjectRef(
+                LegacyOrientationSourceType.ARC_QUEST, mappings.single().sourceId)) &&
+            mappings.single().state == LegacySubjectMappingState.CUT_OVER.name && !mappings.single().isDeleted &&
+            db.arcQuestDao().getAllSync().any { it.id == mappings.single().sourceId &&
+                it.sourceType == com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType.MANUAL.name && !it.isDeleted } &&
+            db.managedSubjectConversionDao().getAll().none { it.subjectId == id } &&
+            db.workspaceDirectionEntryDao().getAll().none { it.orientationId == id }
         subject?.subjectType == "ORIENTATION" && !subject.isDeleted &&
-            db.orientationDao().getOrientation(id)?.kind in SUBJECT_CONVERSION_TARGET_KINDS.map { it.name } &&
-            db.orientationDao().getAllLegacyMappings().none { it.subjectId == id }
+            ((kind in SUBJECT_CONVERSION_TARGET_KINDS.map { it.name } && mappings.isEmpty()) || mappedQuest)
     }
 
     suspend fun preview(id: String): OrientationKindPlan = db.withTransaction {
-        require(canOffer(id)) { "Зміна типу доступна лише для активних native орієнтирів звичайних типів" }
+        require(canOffer(id)) { "Зміна типу недоступна для цього орієнтира" }
         val dao = db.orientationDao()
+        val mappedArcQuestId = dao.getAllLegacyMappings().singleOrNull { it.subjectId == id }
+            ?.takeIf { it.sourceType == LegacyOrientationSourceType.ARC_QUEST.name }?.sourceId
         val semantics = requireNotNull(orientations.getOrientationSemantics(id))
         val node = requireNotNull(dao.getOrientation(id))
         node.lifecycle?.let { OrientationLifecycle.valueOf(it) }
@@ -55,11 +68,14 @@ class CanonicalOrientationKindCoordinator @Inject constructor(
         }
         CanonicalSubjectConversionStore(db).validateCurrentClosure()
         OrientationKindPlan(id, semantics.subject.title, semantics.subject.version, semantics.kind, current.revisionId, current.version,
-            planning.size + refs.size, recurrenceCount)
+            planning.size + refs.size, recurrenceCount, mappedArcQuestId)
     }
 
     suspend fun transform(plan: OrientationKindPlan, target: OrientationKind, now: Long = System.currentTimeMillis()): String = db.withTransaction {
-        require(target in SUBJECT_CONVERSION_TARGET_KINDS && target != plan.kind) { "Оберіть інший підтриманий тип" }
+        val mappedQuestDirection = plan.mappedArcQuestId != null && plan.kind == OrientationKind.QUEST && target == OrientationKind.DIRECTION
+        require(mappedQuestDirection || (plan.mappedArcQuestId == null && target in SUBJECT_CONVERSION_TARGET_KINDS && target != plan.kind)) {
+            "Оберіть інший підтриманий тип"
+        }
         val dao = db.orientationDao()
         val eventId = "${plan.id}:ORIENTATION_KIND:${plan.version}"
         val history = db.managedSubjectConversionDao().getAll().filter { it.subjectId == plan.id }
@@ -77,16 +93,19 @@ class CanonicalOrientationKindCoordinator @Inject constructor(
         val at = maxOf(now, subject.updatedAt, current.updatedAt)
         val historicalKinds = historicalAssessmentKinds(history.map { it.toConversionEvidence() }, plan.kind, plan.version)
         val previousIds = dao.getAllAssessmentRevisions().filter { it.orientationId == plan.id && (it.id !in historicalKinds || it.id == current.revisionId) }.map { it.id }.sorted()
-        orientations.saveOrientation(
-            ManagedSubject(subject.id, subject.createdAt, at, null, false, subject.version + 1, ManagedSubjectType.ORIENTATION, subject.title, subject.description),
-            OrientationNode(subject.id, target, node.lifecycle?.let(OrientationLifecycle::valueOf), ValueOrigin.valueOf(node.lifecycleOrigin), assessment),
-            OrientationAssessmentRevision("${plan.id}:kind:${plan.version}:assessment", at, at, null, false, 1, plan.id, at, at,
-                AssessmentRevisionSource.USER, "Explicit kind change ${plan.kind.name} -> ${target.name}", assessment),
-        )
+        val updatedSubject = ManagedSubject(subject.id, subject.createdAt, at, null, false, subject.version + 1,
+            ManagedSubjectType.ORIENTATION, subject.title, subject.description)
+        val updatedNode = OrientationNode(subject.id, target, node.lifecycle?.let(OrientationLifecycle::valueOf),
+            ValueOrigin.valueOf(node.lifecycleOrigin), assessment)
+        val revision = OrientationAssessmentRevision("${plan.id}:kind:${plan.version}:assessment", at, at, null, false,
+            1, plan.id, at, at, AssessmentRevisionSource.USER,
+            "Explicit kind change ${plan.kind.name} -> ${target.name}", assessment)
+        if (mappedQuestDirection) orientations.saveMappedQuestDirection(updatedSubject, updatedNode, revision)
+        else orientations.saveOrientation(updatedSubject, updatedNode, revision)
         // Current assessment has an independent version/creation identity, not the subject's version.
         val updated = dao.getAllAssessments().single { it.orientationId == plan.id }
         dao.upsertAssessments(listOf(updated.copy(createdAt = current.createdAt, version = current.version + 1)))
-        val fact = ManagedSubjectConversionEntity(eventId, plan.id, 2, "ORIENTATION", "ORIENTATION", target.name,
+        val fact = ManagedSubjectConversionEntity(eventId, plan.id, if (mappedQuestDirection) 4 else 2, "ORIENTATION", "ORIENTATION", target.name,
             plan.version, plan.version + 1, null, 0, false, at, at, 1, null, plan.kind.name, Gson().toJson(previousIds))
         CanonicalSubjectConversionStore(db).merge(history + fact)
         CanonicalSubjectConversionStore(db).validateCurrentClosure()

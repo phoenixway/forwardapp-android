@@ -34,7 +34,7 @@ placement.
 | aggregate created/updated/version | deterministic min/max projection from group rows | COMMON PLANNING CORE migration seed |
 | `arcKey` | `StrategicPlanningScopeExtension.legacyArcKey` | STRATEGIC SCOPE EXTENSION / COMPATIBILITY |
 | current/selected month | `StrategicArcViewModel.currentArcKey` | APPLICATION STATE |
-| manual quest identity/title/description/liveness | canonical `Orientation(kind=QUEST)` | SEMANTIC ORIENTATION |
+| manual quest identity/title/description/liveness | canonical Orientation; initially `QUEST`, explicitly convertible to `DIRECTION` with format-4 history | SEMANTIC ORIENTATION |
 | source-backed quest identity | existing source Orientation | SEMANTIC ORIENTATION |
 | arc membership | `PlanningCommitment(role=FOCUS)` | PLANNING COMMITMENT |
 | `quest_order` | commitment `order` | PLANNING COMMITMENT |
@@ -82,7 +82,7 @@ planning role.
 
 | Source | Semantic target | Expected kind | Eligibility | Deferred | Integrity failure |
 |---|---|---|---|---|---|
-| MANUAL | live CUT_OVER `ARC_QUEST` mapping target | `QUEST` | resolved target | none after QUEST cutover | missing/divergent/non-CUT_OVER/incomplete/tombstoned-live target |
+| MANUAL | live CUT_OVER `ARC_QUEST` mapping target | `QUEST` or proven `DIRECTION` | resolved target | none after QUEST cutover | missing/divergent/non-CUT_OVER/incomplete/tombstoned-live target |
 | CONTEXT | CUT_OVER `CONTEXT` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |
 | BEACON | CUT_OVER `MAIN_BEACON` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |
 | BEACON_GROUP | CUT_OVER `MAIN_BEACON_GROUP` mapping target | current canonical kind | resolved target | source mapping not yet adopted | malformed/duplicate/divergent target |

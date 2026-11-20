@@ -346,7 +346,8 @@ private class TacticalMissionOrientationSnapshotResolver(
                 sourceType = LegacyOrientationSourceType.ARC_QUEST,
                 sourceId = arcQuestId,
                 mission = mission,
-                requiredKind = OrientationKind.QUEST,
+                requiredKind = null,
+                allowedKinds = setOf(OrientationKind.QUEST, OrientationKind.DIRECTION),
             )
         }
         val sourceId = quest.sourceId?.takeIf(String::isNotBlank)
@@ -394,6 +395,7 @@ private class TacticalMissionOrientationSnapshotResolver(
         sourceId: String,
         mission: TacticalMission,
         requiredKind: OrientationKind? = null,
+        allowedKinds: Set<OrientationKind>? = null,
     ): TacticalMissionOrientationResolution {
         val mappings = snapshot.mappings.filter { it.sourceType == sourceType.name && it.sourceId == sourceId }
         if (mappings.isEmpty()) {
@@ -415,6 +417,7 @@ private class TacticalMissionOrientationSnapshotResolver(
             allowDeleted = mission.isDeleted,
             path = TacticalMissionOrientationResolutionPath.ARC_SOURCE,
             requiredKind = requiredKind,
+            allowedKinds = allowedKinds,
         )
     }
 
@@ -423,6 +426,7 @@ private class TacticalMissionOrientationSnapshotResolver(
         allowDeleted: Boolean,
         path: TacticalMissionOrientationResolutionPath,
         requiredKind: OrientationKind? = null,
+        allowedKinds: Set<OrientationKind>? = null,
     ): TacticalMissionOrientationResolution {
         if (mapping.state != LegacySubjectMappingState.CUT_OVER.name || mapping.isDeleted) {
             return failure(
@@ -431,7 +435,7 @@ private class TacticalMissionOrientationSnapshotResolver(
                 "Source mapping is not live CUT_OVER",
             )
         }
-        return resolveOrientationTarget(mapping.subjectId, allowDeleted, path, mapping.sourceId, requiredKind)
+        return resolveOrientationTarget(mapping.subjectId, allowDeleted, path, mapping.sourceId, requiredKind, allowedKinds)
     }
 
     private fun resolveOrientationTarget(
@@ -440,6 +444,7 @@ private class TacticalMissionOrientationSnapshotResolver(
         path: TacticalMissionOrientationResolutionPath,
         sourceId: String,
         requiredKind: OrientationKind? = null,
+        allowedKinds: Set<OrientationKind>? = null,
     ): TacticalMissionOrientationResolution {
         val subjects = snapshot.subjects.filter { it.id == orientationId }
         val orientations = snapshot.orientations.filter { it.subjectId == orientationId }
@@ -461,7 +466,8 @@ private class TacticalMissionOrientationSnapshotResolver(
                 "Canonical target $orientationId is not a known Orientation",
             )
         }
-        if (requiredKind != null && orientation.kind != requiredKind.name) {
+        if ((requiredKind != null && orientation.kind != requiredKind.name) ||
+            (allowedKinds != null && allowedKinds.none { it.name == orientation.kind })) {
             return failure(
                 TacticalMissionOrientationResolutionCode.INVALID_ORIENTATION_TARGET,
                 sourceId,

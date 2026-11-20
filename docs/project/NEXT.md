@@ -1,12 +1,14 @@
 # Next
 
-## Mapped Quest repair: user-facing smoke
+## Manual Quest -> Direction acceptance
 
-The two cold starts and exact persisted-state comparison passed on device.
-Open Strategic planning and inspect the three formerly affected ArcQuests;
+Run focused shared, sync and Room tests for the new format-4 mapped ArcQuest
+conversion, then compile through the user's normal build workflow. On device,
+open Strategic planning and inspect the three formerly repaired ArcQuests;
 they should remain in their arcs with their existing Planning participation.
-The kind-change action must not offer direct QUEST -> DIRECTION for mapped
-ArcQuests. The verified pre-repair DB/WAL/SHM copy remains privately in
+Convert one manual quest to DIRECTION and confirm its exact ID, arc row,
+order/status and Planning participation survive a cold start. The verified
+pre-repair DB/WAL/SHM copy remains privately in
 `files/repair-backups/quest-kind-20261120-a1861132/` for rollback evidence.
 
 ## MagicBox history: verify clear and restart

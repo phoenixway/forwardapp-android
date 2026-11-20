@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-20 - Manual ArcQuest semantic kind decoupling in source
+
+The user accepted keeping a manual quest in its arc with the same semantic ID
+and Planning participation when its Orientation becomes DIRECTION. Source now
+admits this exact mapped QUEST -> DIRECTION command using conversion format 4,
+wire generation 3, and matching mapping/history validation. Quest bridge,
+Strategic/Tactical resolvers, Orientation bootstrap and historical startup repair
+recognize the new valid state. New quests still start as QUEST; unsupported old
+format-3 facts are not reinterpreted. No Room schema or H1 authority change.
+Static diff checks have passed; build, automated tests and physical acceptance
+remain pending under the user's no-build preference.
+
 ## 2026-11-20 - Mapped Quest kind startup repair
 
 Device database inspection through a same-package signed `expLocal` build found

@@ -91,6 +91,19 @@ class CanonicalOrientationRepository
             subject: ManagedSubject,
             orientation: OrientationNode,
             revision: OrientationAssessmentRevision,
+        ) = saveOrientationInternal(subject, orientation, revision, false)
+
+        internal suspend fun saveMappedQuestDirection(
+            subject: ManagedSubject,
+            orientation: OrientationNode,
+            revision: OrientationAssessmentRevision,
+        ) = saveOrientationInternal(subject, orientation, revision, true)
+
+        private suspend fun saveOrientationInternal(
+            subject: ManagedSubject,
+            orientation: OrientationNode,
+            revision: OrientationAssessmentRevision,
+            allowMappedQuestDirection: Boolean,
         ) {
             require(subject.subjectType == ManagedSubjectType.ORIENTATION)
             require(subject.id == orientation.subjectId)
@@ -103,7 +116,12 @@ class CanonicalOrientationRepository
                 val previousKind = dao.getOrientation(subject.id)?.kind
                 require(
                     previousKind == null || previousKind == orientation.kind.name ||
-                        dao.getAllLegacyMappings().none { it.subjectId == subject.id },
+                        dao.getAllLegacyMappings().none { it.subjectId == subject.id } ||
+                        (allowMappedQuestDirection && previousKind == OrientationKind.QUEST.name &&
+                            orientation.kind == OrientationKind.DIRECTION &&
+                            dao.getAllLegacyMappings().filter { it.subjectId == subject.id }.let { mappings ->
+                                mappings.size == 1 && mappings.single().sourceType == LegacyOrientationSourceType.ARC_QUEST.name
+                            }),
                 ) {
                     "Mapped Orientation kind cannot change through canonical save"
                 }

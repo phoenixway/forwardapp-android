@@ -230,7 +230,7 @@ private fun SnapshotBundle.toCanonicalOrientationValidationGraph(): CanonicalOri
             )
         },
         mappings = requireNotNull(legacySubjectMappings).map {
-            CanonicalLegacyMappingReference(it.id, it.subjectId)
+            CanonicalLegacyMappingReference(it.id, it.subjectId, it.sourceType)
         },
         relations = requireNotNull(orientationRelations).map { it.toModel() },
         aspectRefs = requireNotNull(aspectOrientationRefs).map { it.toModel() },

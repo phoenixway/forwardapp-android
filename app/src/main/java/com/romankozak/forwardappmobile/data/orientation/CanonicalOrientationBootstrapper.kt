@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.ThemeDefinitionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectConversionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
@@ -234,6 +235,7 @@ class CanonicalOrientationBootstrapper
                                 orientations = canonical.orientations,
                                 assessments = canonical.assessments,
                                 mappings = canonical.mappings,
+                                conversions = canonical.conversions,
                             )
                         }
                     val issues =
@@ -323,6 +325,7 @@ class CanonicalOrientationBootstrapper
         private suspend fun loadCanonicalSnapshot() =
             CanonicalOrientationBootstrapSnapshot(
                 mappings = orientationDao.getAllLegacyMappings(),
+                conversions = orientationDao.getSubjectConversions(),
                 subjects = orientationDao.getAllManagedSubjects(),
                 orientations = orientationDao.getAllOrientations(),
                 assessments = orientationDao.getAllAssessments(),
@@ -347,6 +350,7 @@ private data class LegacyOrientationBootstrapInput(
 
 private data class CanonicalOrientationBootstrapSnapshot(
     val mappings: List<LegacySubjectMappingEntity>,
+    val conversions: List<ManagedSubjectConversionEntity>,
     val subjects: List<ManagedSubjectEntity>,
     val orientations: List<OrientationEntity>,
     val assessments: List<OrientationAssessmentEntity>,
@@ -428,6 +432,7 @@ private suspend fun compareCanonicalRows(
     orientations: List<OrientationEntity>,
     assessments: List<OrientationAssessmentEntity>,
     mappings: List<LegacySubjectMappingEntity>,
+    conversions: List<ManagedSubjectConversionEntity>,
 ): List<OrientationBootstrapIssueEntity> {
     val subjectsById = subjects.associateBy { it.id }
     val orientationsById = orientations.associateBy { it.subjectId }
@@ -458,10 +463,12 @@ private suspend fun compareCanonicalRows(
         val isCutOverQuest =
             expected.source.sourceType == LegacyOrientationSourceType.ARC_QUEST &&
                 mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val convertedQuestDirection = isCutOverQuest && orientation?.kind == OrientationKind.DIRECTION.name &&
+            conversions.any { it.subjectId == canonicalSubjectId && it.formatVersion == 4 }
         val expectedKind =
             when {
                 isCutOverTheme -> OrientationKind.THEME.name
-                isCutOverQuest -> OrientationKind.QUEST.name
+                isCutOverQuest -> if (convertedQuestDirection) OrientationKind.DIRECTION.name else OrientationKind.QUEST.name
                 else -> expected.orientation.kind.name
             }
         val identityMismatch =

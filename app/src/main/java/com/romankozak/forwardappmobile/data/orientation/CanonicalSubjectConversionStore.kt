@@ -69,11 +69,16 @@ class CanonicalSubjectConversionStore @Inject constructor(private val db: AppDat
         val subjects = db.orientationDao().getAllManagedSubjects().associateBy { it.id }
         val orientations = db.orientationDao().getAllOrientations().associateBy { it.subjectId }
         val aspects = db.orientationDao().getAllAspects().mapTo(hashSetOf()) { it.subjectId }
-        val legacy = db.orientationDao().getAllLegacyMappings().mapTo(hashSetOf()) { it.subjectId }
+        val legacy = db.orientationDao().getAllLegacyMappings().groupBy { it.subjectId }
         val revisions = db.orientationDao().getAllAssessmentRevisions().associateBy { it.id }
         rows.groupBy { it.subjectId }.forEach { (id, facts) ->
             val subject = requireNotNull(subjects[id]) { "Missing converted subject" }
-            require(subject.subjectType == "ORIENTATION" && id !in aspects && id !in legacy) { "Invalid converted native subject" }
+            val mappings = legacy[id].orEmpty()
+            require(subject.subjectType == "ORIENTATION" && id !in aspects &&
+                (mappings.isEmpty() || (facts.size == 1 && facts.single().formatVersion == 4 &&
+                    mappings.size == 1 && mappings.single().sourceType == "ARC_QUEST"))) {
+                "Invalid converted subject mapping"
+            }
             val kind = com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind.valueOf(requireNotNull(orientations[id]).kind)
             val historical = com.romankozak.forwardappmobile.shared.core.domain.orientation.historicalAssessmentKinds(facts.map { it.toConversionEvidence() }, kind, subject.version)
             historical.forEach { (revisionId, historicalKind) ->

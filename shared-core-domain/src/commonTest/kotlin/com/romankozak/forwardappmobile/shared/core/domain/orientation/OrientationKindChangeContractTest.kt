@@ -39,4 +39,14 @@ class OrientationKindChangeContractTest {
         assertFails { first.copy(fromOrientationKind = "DAY_THEME").requireValidShape() }
         assertFails { assessmentAfterKindChange(OrientationKind.GOAL, OrientationKind.PROJECT, initialOrientationAssessment(OrientationKind.GOAL)) }
     }
+    @Test fun mappedQuestDirectionUsesNewHistoryWithoutAdmittingOldFormatThree() {
+        val source = initialOrientationAssessment(OrientationKind.QUEST)
+        val result = assessmentAfterKindChange(OrientationKind.QUEST, OrientationKind.DIRECTION, source)
+        assertEquals(source, result)
+        val mapped = fact(OrientationKind.QUEST, OrientationKind.DIRECTION, 2, listOf("initial")).copy(formatVersion = 4)
+        assertEquals(OrientationKind.QUEST,
+            historicalAssessmentKinds(listOf(mapped), OrientationKind.DIRECTION, 3)["initial"])
+        assertFails { mapped.copy(formatVersion = 3).requireValidShape() }
+        assertFails { mapped.copy(targetOrientationKind = OrientationKind.PROJECT.name).requireValidShape() }
+    }
 }

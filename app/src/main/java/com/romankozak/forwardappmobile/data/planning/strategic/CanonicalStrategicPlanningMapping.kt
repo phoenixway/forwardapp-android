@@ -270,9 +270,10 @@ private fun resolveTarget(
                 quest = quest,
                 sourceType = LegacyOrientationSourceType.ARC_QUEST,
                 sourceId = quest.id,
-                requiredKind = OrientationKind.QUEST,
+                requiredKind = null,
                 snapshot = snapshot,
                 missingIsDeferred = false,
+                allowedKinds = setOf(OrientationKind.QUEST, OrientationKind.DIRECTION),
             )
         ArcQuestSourceType.CONTEXT -> resolveSourceBacked(quest, LegacyOrientationSourceType.CONTEXT, snapshot)
         ArcQuestSourceType.BEACON -> resolveSourceBacked(quest, LegacyOrientationSourceType.MAIN_BEACON, snapshot)
@@ -368,6 +369,7 @@ private fun resolveMappedTarget(
     requiredKind: OrientationKind?,
     snapshot: StrategicPlanningResolutionSnapshot,
     missingIsDeferred: Boolean,
+    allowedKinds: Set<OrientationKind>? = null,
 ): StrategicTargetResolution {
     val mappings = snapshot.mappings.filter { it.sourceType == sourceType.name && it.sourceId == sourceId }
     if (mappings.isEmpty()) {
@@ -426,7 +428,8 @@ private fun resolveMappedTarget(
     val orientation = orientations.single()
     if (subject.subjectType != ManagedSubjectType.ORIENTATION.name ||
         runCatching { OrientationKind.valueOf(orientation.kind) }.getOrNull() == null ||
-        (requiredKind != null && orientation.kind != requiredKind.name)
+        (requiredKind != null && orientation.kind != requiredKind.name) ||
+        (allowedKinds != null && allowedKinds.none { it.name == orientation.kind })
     ) {
         return StrategicTargetResolution.Failure(
             StrategicParticipantIntegrityCode.INVALID_ORIENTATION_TARGET,

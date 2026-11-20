@@ -48,7 +48,7 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
         if (oldKind != null && oldKind != target.kind) {
             val oldVersion = requireNotNull(localSubjects[target.subjectId]).version
             require(bundle.managedSubjectConversions.orEmpty().any {
-                it.subjectId == target.subjectId && it.formatVersion == 2 && it.fromOrientationKind == oldKind && it.fromSubjectVersion >= oldVersion
+                it.subjectId == target.subjectId && it.formatVersion in setOf(2, 4) && it.fromOrientationKind == oldKind && it.fromSubjectVersion >= oldVersion
             }) { "Orientation kind change requires matching canonical history" }
         }
     }

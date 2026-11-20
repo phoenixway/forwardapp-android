@@ -22,8 +22,9 @@ internal fun OrientationKindDialog(state: OrientationKindState, vm: OrientationK
             state.plan?.let { plan ->
                 Text("«${plan.title}» · ${plan.kind.displayLabel()}")
                 Text("Збережуться та сама сутність, lifecycle, теги, зв’язки, Workspace і всі появи в Navigation. Planning references та participation (${plan.planningCount}), recurrence (${plan.recurrenceCount}) не змінюються.")
+                if (plan.mappedArcQuestId != null) Text("Квест залишиться у своїй арці з тим самим ID і участю в плануванні.")
                 Text("Оберіть новий тип:", style = MaterialTheme.typography.titleSmall)
-                SUBJECT_CONVERSION_TARGET_KINDS.filter { it != plan.kind }.forEach { kind ->
+                (if (plan.mappedArcQuestId != null) setOf(OrientationKind.DIRECTION) else SUBJECT_CONVERSION_TARGET_KINDS).filter { it != plan.kind }.forEach { kind ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = state.target == kind, enabled = !state.busy,
                         role = Role.RadioButton, onClick = { vm.select(kind) }), verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = state.target == kind, onClick = null, enabled = !state.busy)

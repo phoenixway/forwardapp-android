@@ -52,6 +52,18 @@ class SubjectConversionTransportTest {
         assertFailsWith<IllegalArgumentException> { requireValidCanonicalOrientationPayload(snapshot) }
     }
 
+    @Test fun `mapped ArcQuest conversion requires generation 3 and rejects older readers`() {
+        val mapped = ManagedSubjectConversionEntity("s:ORIENTATION_KIND:2", "s", 4, "ORIENTATION", "ORIENTATION", "DIRECTION",
+            2, 3, null, 0, false, 30, 30, 1, null, "QUEST", "[\"revision\"]")
+        val codec = com.google.gson.GsonBuilder().registerTypeAdapterFactory(SubjectConversionSnapshotAdapter()).create()
+        val raw = codec.toJson(SnapshotBundle(managedSubjectConversions = listOf(mapped)))
+        assertTrue(raw.contains(SubjectConversionSnapshotAdapter.MAPPED_QUEST_GENERATION))
+        assertEquals(listOf(mapped), codec.fromJson(raw, SnapshotBundle::class.java).managedSubjectConversions)
+        assertFails { Gson().fromJson(raw, SnapshotBundle::class.java) }
+        assertFails { codec.fromJson(raw.replace(SubjectConversionSnapshotAdapter.MAPPED_QUEST_GENERATION,
+            SubjectConversionSnapshotAdapter.KIND_GENERATION), SnapshotBundle::class.java) }
+    }
+
     @Test fun `dirty kind change sends its full owner history while ACK names only the submitted dirty fact`() {
         val kind = ManagedSubjectConversionEntity("s:ORIENTATION_KIND:2", "s", 2, "ORIENTATION", "ORIENTATION", "ONGOING_STANDARD",
             2, 3, null, 0, false, 30, 30, 1, null, "PROJECT", "[\"revision\"]")

@@ -333,6 +333,16 @@ ONGOING_STANDARD or OPPORTUNITY. Only live native unmapped Orientations are
 admitted, including former native Aspects with verified conversion history.
 Specialized kinds/legacy mappings/unknown lifecycle codes fail closed.
 
+Accepted 2026-11-20 exception: a live CUT_OVER MANUAL ArcQuest with its exact
+deterministic ARC_QUEST mapping may explicitly change its canonical Orientation
+from QUEST to DIRECTION while retaining semantic ID, ArcQuest carrier and
+Strategic/Tactical participation. New manual ArcQuests still create QUEST.
+This operation requires a single immutable format-4 conversion fact; a mapped
+DIRECTION without that fact is invalid. The command rejects other mappings,
+existing conversion history and any Workspace Direction entry. Format 3 is not
+admitted. Format-4 facts use conversion wire generation 3; old readers reject
+the generation. No Direction capability/entry is created by changing kind.
+
 One transaction revalidates the captured subject/current-assessment versions and
 Planning/recurrence admission, writes a new kind/current assessment/revision and
 immutable fact, then validates the complete semantic closure. Cancel and SavedState
