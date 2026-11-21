@@ -12,7 +12,7 @@ class TodayStageHeaderTest {
 
     @Test fun `six indicators use the requested order and swipes move one stage only`() {
         assertEquals(
-            listOf("Day Start", "Themes", "Day priorities", "Plan", "Journal", "Finalization"),
+            listOf("Start", "Themes", "Priorities", "Plan", "Journal", "Finalization"),
             stages.map(DayManagementTab::stageTitle),
         )
         assertEquals(6, stages.size)

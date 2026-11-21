@@ -54,7 +54,7 @@ internal fun TodayStageHeader(
     val stages = DayManagementTab.todaySubTabs()
     if (selectedTab !in stages) return
     var menuExpanded by remember { mutableStateOf(false) }
-    val stageColor = MaterialTheme.colorScheme.onTertiaryContainer
+    val stageColor = MaterialTheme.colorScheme.onSurface
     val swipeThreshold = with(LocalDensity.current) { 28.dp.toPx() }
 
     Surface(
@@ -70,9 +70,9 @@ internal fun TodayStageHeader(
             )
         },
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.78f),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = stageColor,
-        border = BorderStroke(1.dp, stageColor.copy(alpha = 0.26f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -116,8 +116,8 @@ internal fun TodayStageHeader(
                 onClick = { onReady(selectedTab) },
                 enabled = selectedTab.readyAction(runtimeState) != null || selectedTab.nextTodayStage() != null,
                 shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Text(
                     text = "Ready",
@@ -136,9 +136,9 @@ private fun TodayStageIndicators(
     selectedTab: DayManagementTab,
     runtimeState: DayManagementRuntimeState,
 ) {
-    val readyColor = MaterialTheme.colorScheme.tertiary
-    val outlineColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
-    val emptyColor = MaterialTheme.colorScheme.tertiaryContainer
+    val readyColor = MaterialTheme.colorScheme.primary
+    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val emptyColor = MaterialTheme.colorScheme.surfaceContainerLow
     val readyCount = stages.count { it.isReady(runtimeState) }
     Canvas(
         modifier = Modifier.width(104.dp).height(30.dp).semantics {
@@ -209,9 +209,9 @@ internal fun DayManagementTab.readyAction(state: DayManagementRuntimeState): Tod
 
 internal fun DayManagementTab.stageTitle(): String =
     when (this) {
-        DayManagementTab.DAY_START -> "Day Start"
+        DayManagementTab.DAY_START -> "Start"
         DayManagementTab.DAY_THEMES -> "Themes"
-        DayManagementTab.DAY_FOCUSES -> "Day priorities"
+        DayManagementTab.DAY_FOCUSES -> "Priorities"
         DayManagementTab.DAY_PLAN -> "Plan"
         DayManagementTab.JOURNAL -> "Journal"
         DayManagementTab.FINALIZATION -> "Finalization"

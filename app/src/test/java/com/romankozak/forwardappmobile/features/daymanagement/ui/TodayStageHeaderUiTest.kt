@@ -44,7 +44,7 @@ class TodayStageHeaderUiTest {
         ui.onNodeWithContentDescription("Вибрати стадію дня").performClick()
         ui.onNodeWithText("Themes").performClick()
         ui.onNodeWithTag("today-stage-controller").performTouchInput { swipeLeft() }
-        ui.onNodeWithText("Day priorities").assertExists()
+        ui.onNodeWithText("Priorities").assertExists()
         ui.runOnIdle {
             assertEquals(listOf(DayManagementTab.DAY_THEMES, DayManagementTab.DAY_FOCUSES), selections)
             assertEquals(emptyList<DayManagementTab>(), ready)
