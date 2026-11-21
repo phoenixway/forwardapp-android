@@ -65,6 +65,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTh
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesUiState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.EntityThemeSelector
+import com.romankozak.forwardappmobile.features.planning.PlanningOrientationSourceBadge
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
@@ -83,6 +84,7 @@ fun DayFocusesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dayThemesState by dayThemesViewModel.uiState.collectAsStateWithLifecycle()
+    val orientationSources = rememberDayFocusOrientationSources()
     val context = LocalContext.current
 
     LaunchedEffect(initialDayPlanId) {
@@ -98,6 +100,7 @@ fun DayFocusesScreen(
         onReorder = viewModel::updateItemsOrder,
         predictedDayDurationMinutes = predictedDayDurationMinutes,
         dayThemesState = dayThemesState,
+        orientationSources = orientationSources,
         onToggleTheme = dayThemesViewModel::toggleTheme,
         onRelatedLinkClick = { link ->
             val resolvedNavController = navController ?: return@DayFocusesContent
@@ -126,6 +129,7 @@ private fun DayFocusesContent(
     onReorder: (List<DayFocusItem>) -> Unit,
     predictedDayDurationMinutes: Long?,
     dayThemesState: DayThemesUiState,
+    orientationSources: DayFocusOrientationSourcesUi,
     onToggleTheme: (String, String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
@@ -190,6 +194,7 @@ private fun DayFocusesContent(
                         isBudgetOverLimit = isBudgetOverLimit,
                         predictedDayDurationMinutes = predictedDayDurationMinutes,
                         dayThemesState = dayThemesState,
+                        orientationSources = orientationSources,
                         onToggleTheme = onToggleTheme,
                     )
                 }
@@ -209,6 +214,7 @@ private fun LazyItemScope.DayFocusItemRow(
     isBudgetOverLimit: Boolean,
     predictedDayDurationMinutes: Long?,
     dayThemesState: DayThemesUiState,
+    orientationSources: DayFocusOrientationSourcesUi,
     onToggleTheme: (String, String) -> Unit,
 ) {
     ReorderableItem(reorderableState, key = item.id) { isDragging ->
@@ -261,6 +267,12 @@ private fun LazyItemScope.DayFocusItemRow(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    orientationSources.byItem[item.id]?.let { source ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        PlanningOrientationSourceBadge(source) {
+                            orientationSources.onOpen(item.id)
+                        }
+                    }
                     item.budgetPercent?.let { budgetPercent ->
                         Spacer(modifier = Modifier.height(4.dp))
                         DayFocusBudgetBadge(
