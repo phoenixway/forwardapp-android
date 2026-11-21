@@ -126,11 +126,28 @@ fun DayManagementScreen(
             if (tabs.toList() == DayManagementTab.todaySubTabs()) {
                 TodayStageHeader(
                     selectedTab = uiState.selectedTab,
+                    runtimeState = runtimeUiState.runtimeState,
                     onSelectTab = { tab ->
                         viewModel.selectTab(tab)
                         onTodayTabSelected?.invoke(tab)
                     },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    onReady = { tab ->
+                        val state = runtimeUiState.runtimeState
+                        when (tab.readyAction(state)) {
+                            TodayStageReadyAction.WAKE_UP -> runtimeViewModel.wakeUp()
+                            TodayStageReadyAction.FINALIZE_THEMES -> runtimeViewModel.finalizeThemes()
+                            TodayStageReadyAction.FINALIZE_FOCUS -> runtimeViewModel.finalizeFocus()
+                            TodayStageReadyAction.FINALIZE_PLAN -> runtimeViewModel.finalizePlan()
+                            TodayStageReadyAction.START_FINALIZATION -> runtimeViewModel.startFinalization()
+                            TodayStageReadyAction.SLEEP -> runtimeViewModel.sleep()
+                            null -> Unit
+                        }
+                        tab.nextTodayStage()?.let { next ->
+                            viewModel.selectTab(next)
+                            onTodayTabSelected?.invoke(next)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
             DayManagementScreenContent(
