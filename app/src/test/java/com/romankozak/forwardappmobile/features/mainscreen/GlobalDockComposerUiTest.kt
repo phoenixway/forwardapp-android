@@ -225,7 +225,7 @@ class GlobalDockComposerUiTest {
         } }
         ui.onNode(hasSetTextAction()).performTextInput("Quest draft")
         ui.onNodeWithContentDescription("Дії: Стратегічна арка · Квести").performClick()
-        clickMenu("Створити Quest на основі сутності")
+        clickMenu("Додати сутність як квест арки")
         ui.runOnIdle { assertEquals(listOf("source"), events) }
         ui.onNodeWithContentDescription("Дії: Стратегічна арка · Квести").performClick()
         clickMenu("Артефакт")
