@@ -55,7 +55,7 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 
-private const val COMPLETED_TASK_CONTENT_ALPHA = 0.6f
+private const val COMPLETED_TASK_CONTENT_ALPHA = 0.4f
 
 data class DayTaskCardActions(
     val onClick: () -> Unit,
@@ -188,16 +188,6 @@ private fun RowScope.DayTaskCardContent(
             maxLines = 4,
         )
 
-        planningContext()
-        if (hasVisibleTaskThemes(themes, selectedThemeIds)) EntityThemeSelector(
-            themes = themes,
-            selectedThemeIds = selectedThemeIds,
-            entityLabel = task.title,
-            onToggle = onToggleTheme,
-            modifier = Modifier.padding(top = 5.dp),
-        )
-        com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskRealizedPriorityChips(task, onClick)
-
         parsedDescription.mainText.takeIf { it.isNotBlank() }?.let { description ->
             DayPlanMarkdownText(
                 text = description,
@@ -214,12 +204,21 @@ private fun RowScope.DayTaskCardContent(
             taskWithReminder = taskWithReminder,
             linkedProjectTitles = linkedProjectTitles,
             contextIcons = parsedTaskText.icons,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 4.dp),
             onParentInfoClick = onParentInfoClick,
             orientationSource = orientationSource,
             relatedOrientations = relatedOrientations,
             onOpenOrientation = onOpenOrientation,
         )
+        planningContext()
+        if (hasVisibleTaskThemes(themes, selectedThemeIds)) EntityThemeSelector(
+            themes = themes,
+            selectedThemeIds = selectedThemeIds,
+            entityLabel = task.title,
+            onToggle = onToggleTheme,
+            modifier = Modifier.padding(top = 5.dp),
+        )
+        com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskRealizedPriorityChips(task, onClick)
     }
 }
 

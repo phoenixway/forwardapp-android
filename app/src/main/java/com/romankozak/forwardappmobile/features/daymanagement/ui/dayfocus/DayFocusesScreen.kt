@@ -16,7 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
@@ -50,7 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,10 +70,8 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTh
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.EntityThemeSelector
 import com.romankozak.forwardappmobile.features.planning.PlanningOrientationSourceBadge
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -159,8 +161,7 @@ private fun DayFocusesContent(
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 if (internalItems.any { dayThemesState.themesFor(it.id).isNotEmpty() }) item(key = "day-theme-summary") {
                     val percentByEntity = internalItems.associate { it.id to (it.budgetPercent ?: 0) }
@@ -221,82 +222,59 @@ private fun LazyItemScope.DayFocusItemRow(
         var showActionsSheet by remember(item.id) { mutableStateOf(false) }
         val hapticFeedback = LocalHapticFeedback.current
         val elevation by animateDpAsState(targetValue = if (isDragging) 8.dp else 0.dp, label = "dayFocusElevation")
-        val borderColor =
+        val typeColor =
             when (item.type) {
-                DayFocusType.FOCUS -> MaterialTheme.colorScheme.primary.copy(alpha = 0.46f)
-                DayFocusType.RESPONSIBILITY -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.46f)
+                DayFocusType.FOCUS -> MaterialTheme.colorScheme.primary
+                DayFocusType.RESPONSIBILITY -> MaterialTheme.colorScheme.tertiary
             }
-        UnifiedListItemSurface(
-            isSelected = isDragging,
-            state = UnifiedItemState.DEFAULT,
-            layout =
-                UnifiedListItemSurfaceLayout(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = elevation / 8),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                ),
-            colors =
-                UnifiedListItemColors(
-                    container = borderColor.copy(alpha = 0.10f),
-                    border = borderColor,
-                ),
-        ) {
-            Row(
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = elevation / 8)) {
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
+                shadowElevation = elevation,
             ) {
-                Icon(
-                    imageVector =
-                        if (item.type == DayFocusType.FOCUS) {
-                            Icons.Outlined.AutoAwesome
-                        } else {
-                            Icons.Outlined.TaskAlt
-                        },
-                    contentDescription = null,
-                    tint = borderColor,
-                    modifier = Modifier.size(20.dp),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = item.type.title(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    orientationSources.byItem[item.id]?.let { source ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        PlanningOrientationSourceBadge(source) {
-                            orientationSources.onOpen(item.id)
-                        }
-                    }
-                    item.budgetPercent?.let { budgetPercent ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        DayFocusBudgetBadge(
-                            budgetPercent = budgetPercent,
-                            isOverLimit = isBudgetOverLimit,
-                            predictedDayDurationMinutes = predictedDayDurationMinutes,
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (item.type == DayFocusType.FOCUS) Icons.Outlined.AutoAwesome else Icons.Outlined.TaskAlt,
+                            contentDescription = null,
+                            tint = typeColor,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    item.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-                        Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column(modifier = Modifier.weight(1f).padding(top = 5.dp)) {
                         Text(
-                            text = notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = item.title,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(450)),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 4,
+                            overflow = TextOverflow.Clip,
                         )
-                    }
-                    val visibleLinks = item.relatedLinks.orEmpty().filter { it.type != null }
-                    if (visibleLinks.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            visibleLinks.forEach { link ->
+                        item.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                            Text(
+                                text = notes,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(top = 1.dp),
+                            )
+                        }
+                        UnifiedStatusRow(modifier = Modifier.padding(top = 4.dp)) {
+                            UnifiedMetaChip(text = item.type.title(), contentColor = typeColor)
+                            orientationSources.byItem[item.id]?.let { source ->
+                                PlanningOrientationSourceBadge(source) { orientationSources.onOpen(item.id) }
+                            }
+                            item.budgetPercent?.let { budgetPercent ->
+                                DayFocusBudgetBadge(
+                                    budgetPercent = budgetPercent,
+                                    isOverLimit = isBudgetOverLimit,
+                                    predictedDayDurationMinutes = predictedDayDurationMinutes,
+                                )
+                            }
+                            item.relatedLinks.orEmpty().filter { it.type != null }.forEach { link ->
                                 val renderedLink =
                                     if (link.type == LinkType.CONTEXT) {
                                         link.copy(displayName = contextTitlesById[link.target] ?: link.displayName)
@@ -309,33 +287,35 @@ private fun LazyItemScope.DayFocusItemRow(
                                 )
                             }
                         }
+                        EntityThemeSelector(
+                            themes = dayThemesState.themes,
+                            selectedThemeIds = dayThemesState.assignments[item.id].orEmpty(),
+                            entityLabel = item.title,
+                            onToggle = { themeId -> onToggleTheme(item.id, themeId) },
+                            modifier = Modifier.padding(top = 5.dp),
+                        )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    EntityThemeSelector(
-                        themes = dayThemesState.themes,
-                        selectedThemeIds = dayThemesState.assignments[item.id].orEmpty(),
-                        entityLabel = item.title,
-                        onToggle = { themeId -> onToggleTheme(item.id, themeId) },
-                    )
-                }
-                IconButton(
-                    onClick = { showActionsSheet = true },
-                    modifier =
-                        with(this@ReorderableItem) {
-                            Modifier.longPressDraggableHandle(
-                                onDragStarted = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                            )
-                        },
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "Дії з фокусом",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    IconButton(
+                        onClick = { showActionsSheet = true },
+                        modifier =
+                            with(this@ReorderableItem) {
+                                Modifier.longPressDraggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                )
+                            }.size(34.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "Дії з фокусом",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         }
 
         if (showActionsSheet) {
@@ -367,17 +347,10 @@ private fun DayFocusBudgetBadge(
         } else {
             MaterialTheme.colorScheme.primary
         }
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.12f),
+    UnifiedMetaChip(
+        text = buildDayFocusBudgetLabel(budgetPercent, predictedDayDurationMinutes),
         contentColor = color,
-    ) {
-        Text(
-            text = buildDayFocusBudgetLabel(budgetPercent, predictedDayDurationMinutes),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-        )
-    }
+    )
 }
 
 private fun buildDayFocusBudgetLabel(
