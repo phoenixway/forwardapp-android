@@ -73,6 +73,8 @@ data class RecurringFocusTemplate(
     val notes: String?,
     val relatedLinks: List<CanonicalRelatedLink>,
     val budgetPercent: Int?,
+    /** Exact canonical Orientation source for Orientation-backed Day priorities. */
+    val sourceOrientationId: String? = null,
 )
 
 /**

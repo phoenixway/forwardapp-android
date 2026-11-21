@@ -1,5 +1,29 @@
 # ForwardApp Project State
 
+## 2026-11-21 - Journal entity-link release crash correction (HOST source pending verification)
+
+The newest local screenshot and Shizuku logcat showed a main-thread NPE when
+Journal metadata called `ActivityEntityType.displayName()` on a null enum.
+The installed release minified `ActivityEntityLink` JSON fields to `a`/`b`/`c`,
+while other persisted records can contain stable field names. The Room converter
+now decodes both forms with required ID/type validation; `@SerializedName`
+pins future writer keys. No Activity row, Room schema, or synced identity is
+rewritten. A focused converter regression covers stable and installed release
+forms; `git diff --check` passed. Build and physical acceptance remain pending.
+
+## 2026-11-21 - Orientation-backed Day priority creation (HOST source pending verification)
+
+The Today priorities menu now offers one "Додати пріоритет" action. It opens the
+canonical picker restricted to Orientations, then asks FOCUS or RESPONSIBILITY.
+The chosen DayFocusItem and exact typed PlanningReference SOURCE are committed
+together. The existing item property sheet remains the place for notes, budget,
+links and later recurrence conversion. Focus recurrence templates can retain an
+optional `sourceOrientationId`; Android transfers SOURCE on conversion/split and
+attaches it to new canonical occurrences. Current-only and whole-series deletion
+retire affected Planning references. Existing free-form quick Focus entry remains
+available. These records are SEMANTIC_NOT_HIERARCHY; no H1 authority or Room
+schema change. `git diff --check` passed; build and physical acceptance are pending.
+
 ## 2026-11-21 - Canonical recurrence template JSON recovery (HOST code pending device verification)
 
 Shizuku logcat on the installed release showed `DayPlanViewModel` flow failing

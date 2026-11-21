@@ -14,8 +14,7 @@ internal data class TodayMoreActionCallbacks(
     val onFinalizeFocus: () -> Unit,
     val onStartImplementation: () -> Unit,
     val onAddTaskFromContext: () -> Unit,
-    val onAddFocus: () -> Unit,
-    val onAddResponsibility: () -> Unit,
+    val onAddPriority: () -> Unit,
     val onOpenQuickDoneDialog: () -> Unit,
     val onOpenBackdatedDialog: () -> Unit,
     val onTimelessRecordClick: () -> Unit,
@@ -79,12 +78,8 @@ internal fun buildTodayAdditionalMoreActions(
                     onClick = callbacks.onFinalizeFocus,
                 ),
                 MoreSheetAction(
-                    label = "Додати фокус",
-                    onClick = callbacks.onAddFocus,
-                ),
-                MoreSheetAction(
-                    label = "Додати зону відповідальності",
-                    onClick = callbacks.onAddResponsibility,
+                    label = "Додати пріоритет",
+                    onClick = callbacks.onAddPriority,
                 ),
             )
 

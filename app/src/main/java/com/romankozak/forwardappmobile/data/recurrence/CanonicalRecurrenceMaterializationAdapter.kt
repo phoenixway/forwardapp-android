@@ -2,11 +2,16 @@ package com.romankozak.forwardappmobile.data.recurrence
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.RecurrenceMaterializationPlan
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyOf
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.planRecurringSeriesForDay
 import com.romankozak.forwardappmobile.shared.core.models.day.CanonicalDayDatabase
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFocusSeries
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringResponsibilitySeries
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +34,8 @@ class CanonicalRecurrenceMaterializationAdapter
         private val appDatabase: AppDatabase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val planningSources: RecurrencePlanningSourceBridge,
+        private val focusSources: FocusRecurrenceSourceBridge =
+            FocusRecurrenceSourceBridge(appDatabase, CanonicalPlanningReferenceRepository(appDatabase)),
     ) {
         /** Rule edits/imports can prepare an open Day without treating task/metric writes as rule edits. */
         fun observeRuleChanges(): Flow<Unit> = appDatabase.invalidationTracker
@@ -73,7 +80,13 @@ class CanonicalRecurrenceMaterializationAdapter
                 recurringSeriesDao
                     .getActiveCandidatesForDay(dayKey)
                     .map { it.toCanonicalSeries() }
-                    .filter { it !is com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries || planningSources.available(it.template.planningSource) }
+                    .filter { series ->
+                        when (series) {
+                            is RecurringTaskSeries -> planningSources.available(series.template.planningSource)
+                            is RecurringFocusSeries -> focusSources.available(series.template.sourceOrientationId)
+                            is RecurringResponsibilitySeries -> focusSources.available(series.template.sourceOrientationId)
+                        }
+                    }
 
             val recurringSeriesById = recurringSeries.associateBy { it.id }
 
@@ -294,11 +307,22 @@ class CanonicalRecurrenceMaterializationAdapter
 
             if (safeFocusEntities.isNotEmpty()) {
                 dayFocusItemDao.insertAll(safeFocusEntities)
+                safeFocusEntities.forEach { item ->
+                    val series = requireNotNull(recurringSeriesById[item.recurrenceSeriesId])
+                    focusSources.materialize(item.id, series.focusSourceOrientationId(), now)
+                }
             }
 
             repairedTasks.filterNot { it.isDeleted }.forEach { task ->
                 val series = recurringSeriesById[task.recurrenceSeriesId] as? com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
                 if (series != null) planningSources.repairMissing(task, series.template.planningSource, now)
+            }
+
+            repairedFocusItems.filterNot { it.isDeleted }.forEach { item ->
+                val series = recurringSeriesById[item.recurrenceSeriesId]
+                if (series is RecurringFocusSeries || series is RecurringResponsibilitySeries) {
+                    focusSources.repairMissing(item.id, series.focusSourceOrientationId(), now)
+                }
             }
 
             val safeTaskIds = safeTaskEntities.mapTo(mutableSetOf()) { it.id }
@@ -313,6 +337,13 @@ class CanonicalRecurrenceMaterializationAdapter
                     skippedExistingOccurrenceKeys.distinct(),
             )
         }
+
+        private fun RecurringSeries.focusSourceOrientationId(): String? =
+            when (this) {
+                is RecurringFocusSeries -> template.sourceOrientationId
+                is RecurringResponsibilitySeries -> template.sourceOrientationId
+                is RecurringTaskSeries -> null
+            }
 
         private fun localDayStart(timestamp: Long): Long {
             val calendar =

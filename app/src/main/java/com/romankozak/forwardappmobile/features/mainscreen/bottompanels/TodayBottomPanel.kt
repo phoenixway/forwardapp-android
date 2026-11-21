@@ -15,7 +15,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.activitytracker.BackdatedActivityDialog
 import com.romankozak.forwardappmobile.features.activitytracker.BackdatedActivityDraft
@@ -59,6 +58,7 @@ fun TodayBottomPanel(
     val context = androidx.compose.ui.platform.LocalContext.current
     var inputValue by rememberTodayComposerDraft(currentTab)
     var showContextPicker by remember { mutableStateOf(false) }
+    var showPriorityCreation by remember { mutableStateOf(false) }
     var showCalendar by remember { mutableStateOf(false) }
     var showClearJournalConfirmDialog by remember { mutableStateOf(false) }
     var showPredictedDurationDialog by remember { mutableStateOf(false) }
@@ -88,10 +88,7 @@ fun TodayBottomPanel(
                     onFinalizeFocus = onFinalizeFocus,
                     onStartImplementation = onStartImplementation,
                     onAddTaskFromContext = { showContextPicker = true },
-                    onAddFocus = { dayFocusesViewModel.openCreateDialog(DayFocusType.FOCUS) },
-                    onAddResponsibility = {
-                        dayFocusesViewModel.openCreateDialog(DayFocusType.RESPONSIBILITY)
-                    },
+                    onAddPriority = { showPriorityCreation = true },
                     onOpenQuickDoneDialog = {
                         if (activityInputText.isNotBlank()) {
                             journalQuickDoneDialogState = activityInputText
@@ -167,6 +164,11 @@ fun TodayBottomPanel(
         contextOptions = contextOptions,
         onDismiss = { showContextPicker = false },
         onEntitySelected = dayPlanViewModel::addTaskFromEntity,
+    )
+    TodayPriorityCreationHost(
+        visible = showPriorityCreation,
+        onDismiss = { showPriorityCreation = false },
+        onCreate = { source, type -> dayFocusesViewModel.createPriorityFromOrientation(source, type) },
     )
     TodayDatePickerDialogHost(showCalendar, selectedDate, onDateSelected) { showCalendar = false }
 

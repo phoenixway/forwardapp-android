@@ -69,6 +69,7 @@ class CanonicalFocusRecurrenceConversionTest {
                         interval = 1,
                         daysOfWeek = null,
                     ),
+                sourceOrientationId = null,
             )
 
         coVerify(exactly = 1) {

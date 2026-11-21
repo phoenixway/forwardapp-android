@@ -128,9 +128,25 @@ class Converters {
     @TypeConverter
     fun toActivityEntityLinks(value: String?): List<ActivityEntityLink> {
         if (value.isNullOrBlank()) return emptyList()
-        val listType = object : TypeToken<List<ActivityEntityLink>>() {}.type
-        return runCatching { gson.fromJson<List<ActivityEntityLink>>(value, listType).orEmpty() }
-            .getOrDefault(emptyList())
+        val array = JsonParser.parseString(value).asJsonArray
+        return array.map { element ->
+            require(element.isJsonObject) { "Invalid Activity entity link" }
+            val fields = element.asJsonObject
+            val id = fields.get("entityId") ?: fields.get("a")
+            val type = fields.get("entityType") ?: fields.get("b")
+            val dayPlanId = fields.get("dayPlanId") ?: fields.get("c")
+            require(id != null && id.isJsonPrimitive && id.asJsonPrimitive.isString && id.asString.isNotBlank()) {
+                "Missing Activity entity link ID"
+            }
+            require(type != null && type.isJsonPrimitive && type.asJsonPrimitive.isString) {
+                "Missing Activity entity link type"
+            }
+            ActivityEntityLink(
+                entityId = id.asString,
+                entityType = ActivityEntityType.valueOf(type.asString),
+                dayPlanId = dayPlanId?.takeUnless { it.isJsonNull }?.asString,
+            )
+        }
     }
 
     // --- Конвертери для статусів та пріоритетів місій ---

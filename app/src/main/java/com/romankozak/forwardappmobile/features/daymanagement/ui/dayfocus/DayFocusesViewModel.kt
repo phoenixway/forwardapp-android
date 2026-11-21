@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalFocusRecurrenceAuthoringAdapter
+import com.romankozak.forwardappmobile.data.recurrence.FocusRecurrenceSourceBridge
+import com.romankozak.forwardappmobile.data.planning.day.DayPriorityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.workspace.SystemWorkspacePresentationContextProjector
 import com.romankozak.forwardappmobile.data.repository.DayFocusesRepository
@@ -19,6 +21,8 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntityRef
+import com.romankozak.forwardappmobile.features.entitybrowser.CanonicalEntitySummary
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,6 +61,8 @@ class DayFocusesViewModel
     @Inject
     constructor(
         private val repository: DayFocusesRepository,
+        private val priorities: DayPriorityRepository,
+        private val focusSources: FocusRecurrenceSourceBridge,
         private val canonicalFocusRecurrenceAuthoringAdapter: CanonicalFocusRecurrenceAuthoringAdapter,
         private val dayManagementRepository: DayManagementRepository,
         private val systemWorkspacePresentationContextProjector: SystemWorkspacePresentationContextProjector,
@@ -133,6 +139,16 @@ class DayFocusesViewModel
 
         fun openCreateDialog(type: DayFocusType) {
             dialogModeFlow.value = DayFocusDialogMode.Create(type)
+        }
+
+        suspend fun createPriorityFromOrientation(
+            source: CanonicalEntitySummary,
+            type: DayFocusType,
+        ): DayFocusItem {
+            val orientation = source.ref as? CanonicalEntityRef.Orientation
+                ?: throw IllegalArgumentException("Пріоритет має спиратися на орієнтир")
+            val planId = requireNotNull(planIdFlow.value) { "План дня ще не завантажено" }
+            return priorities.create(planId, orientation.id, source.title, type)
         }
 
         fun openEditDialog(item: DayFocusItem) {
@@ -232,6 +248,7 @@ class DayFocusesViewModel
                                         type = type,
                                         budgetPercent = budgetPercent,
                                         rule = recurrenceIntent.rule,
+                                        sourceOrientationId = focusSources.sourceOrientationId(item.id),
                                     )
 
                                 else ->
@@ -300,7 +317,7 @@ class DayFocusesViewModel
         fun confirmDeleteCurrentOnly() {
             val item = pendingDeleteItemFlow.value ?: return
             viewModelScope.launch {
-                repository.deleteItem(item.id)
+                priorities.deleteCurrent(item.id)
                 pendingDeleteItemFlow.value = null
             }
         }
@@ -308,7 +325,7 @@ class DayFocusesViewModel
         fun confirmDeleteEverywhere() {
             val item = pendingDeleteItemFlow.value ?: return
             viewModelScope.launch {
-                repository.deleteItemEverywhere(item)
+                priorities.deleteEverywhere(item)
                 pendingDeleteItemFlow.value = null
             }
         }

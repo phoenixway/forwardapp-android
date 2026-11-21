@@ -41,6 +41,7 @@ class FocusRecurrenceTemplateJsonTest {
                         ),
                     ),
                 budgetPercent = 40,
+                sourceOrientationId = "orientation-1",
             )
 
         val json = encodeFocusRecurrenceTemplate(template)
@@ -48,6 +49,7 @@ class FocusRecurrenceTemplateJsonTest {
 
         assertEquals("Focus", obj.get("title").asString)
         assertEquals("https://example.test", obj.getAsJsonArray("relatedLinks")[0].asJsonObject.get("target").asString)
+        assertEquals("orientation-1", obj.get("sourceOrientationId").asString)
         assertEquals(template, decodeFocusRecurrenceTemplate(json))
     }
 

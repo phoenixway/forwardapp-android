@@ -150,6 +150,14 @@ absent `relatedLinks` collection from older templates reads as empty; a present
 malformed link fails rather than being silently dropped. Shared recurrence
 materialization still owns occurrence creation and tombstone handling.
 
+Orientation-backed Day priorities may carry optional `sourceOrientationId` in
+the focus/responsibility series template. It is an exact canonical Orientation
+ID, transported with the series JSON; the per-occurrence SOURCE relation remains
+owned by typed PlanningReference. Android transfers existing references when a
+one-off priority becomes recurring or a series splits, and attaches the source
+to newly materialized occurrences. An unavailable Orientation cannot create a
+new live occurrence, and an explicitly tombstoned SOURCE edge is not repaired.
+
 TASK series templates use the same explicit stable-key Android JSON boundary.
 The decoder also accepts the installed minified release's `a`–`l` template
 aliases and `a`/`b` typed-source aliases. Mandatory project/attachment lists,

@@ -1,9 +1,11 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.data.dao.CanonicalFocusSplitSourceVersion
+import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.compareLocalDayKeys
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyDayOfWeek
@@ -35,6 +37,8 @@ class CanonicalFocusRecurrenceAuthoringAdapter
     constructor(
         private val appDatabase: AppDatabase,
         private val materializationAdapter: CanonicalRecurrenceMaterializationAdapter,
+        private val focusSources: FocusRecurrenceSourceBridge =
+            FocusRecurrenceSourceBridge(appDatabase, CanonicalPlanningReferenceRepository(appDatabase)),
     ) {
         suspend fun createDailySeriesForPlan(
             dayPlanId: String,
@@ -125,6 +129,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
             type: DayFocusType,
             budgetPercent: Int?,
             rule: RecurrenceRule,
+            sourceOrientationId: String?,
         ): DayFocusItem {
             require(item.recurrenceSeriesId == null) {
                 "Cannot convert already-recurring focus item ${item.id}"
@@ -148,6 +153,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                     notes = notes?.trim()?.takeIf { it.isNotEmpty() },
                     relatedLinks = relatedLinks.toCanonicalRelatedLinks(),
                     budgetPercent = budgetPercent,
+                    sourceOrientationId = sourceOrientationId,
                 )
             val (kind, series) =
                 buildCanonicalFocusSeries(
@@ -184,13 +190,23 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                     version = 1,
                 )
 
-            appDatabase.canonicalRecurringSeriesDao().convertOneOffToCanonicalSeries(
-                series = series.toAndroidEntity(),
-                occurrence = occurrence,
-                sourceItemId = item.id,
-                sourceExpectedVersion = item.version,
-                updatedAt = now,
-            )
+            if (sourceOrientationId == null) {
+                appDatabase.canonicalRecurringSeriesDao().convertOneOffToCanonicalSeries(
+                    series = series.toAndroidEntity(), occurrence = occurrence,
+                    sourceItemId = item.id, sourceExpectedVersion = item.version, updatedAt = now,
+                )
+            } else {
+                appDatabase.withTransaction {
+                    check(focusSources.sourceOrientationId(item.id) == sourceOrientationId) {
+                        "Day priority source changed during recurrence conversion: ${item.id}"
+                    }
+                    appDatabase.canonicalRecurringSeriesDao().convertOneOffToCanonicalSeries(
+                        series = series.toAndroidEntity(), occurrence = occurrence,
+                        sourceItemId = item.id, sourceExpectedVersion = item.version, updatedAt = now,
+                    )
+                    focusSources.replace(item.id, occurrence.id, now)
+                }
+            }
 
             return occurrence
         }
@@ -261,6 +277,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                     notes = notes?.trim()?.takeIf { it.isNotEmpty() },
                     relatedLinks = relatedLinks.toCanonicalRelatedLinks(),
                     budgetPercent = budgetPercent,
+                    sourceOrientationId = oldTemplate.sourceOrientationId,
                 )
             val (newKind, newSeries) =
                 buildCanonicalFocusSeries(
@@ -275,6 +292,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
 
             val liveSourceOccurrences = mutableListOf<CanonicalFocusSplitSourceVersion>()
             val replacementOccurrences = mutableListOf<DayFocusItem>()
+            val referenceReplacements = mutableMapOf<String, String>()
             var selectedReplacement: DayFocusItem? = null
 
             occurrences.forEach { source ->
@@ -375,13 +393,14 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                                 version = 1,
                             )
                         replacementOccurrences += replacement
+                        referenceReplacements[source.id] = replacement.id
                         if (isSelected) {
                             selectedReplacement = replacement
                         }
                     }
 
                     !isClean -> {
-                        replacementOccurrences +=
+                        val replacement =
                             source.copy(
                                 id = UUID.randomUUID().toString(),
                                 isEveryday = false,
@@ -395,6 +414,8 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                                 isDeleted = false,
                                 version = 1,
                             )
+                        replacementOccurrences += replacement
+                        referenceReplacements[source.id] = replacement.id
                     }
                 }
             }
@@ -404,15 +425,30 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                     "New recurrence rule did not preserve selected split occurrence: ${item.id}"
                 }
 
-            seriesDao.splitCanonicalFocusSeries(
-                oldSeriesId = oldSeriesId,
-                oldSeriesExpectedVersion = storedSeries.version,
-                oldSeriesEndDayKey = previousLocalDayKey(splitDayKey),
-                newSeries = newSeries.toAndroidEntity(),
-                liveSourceOccurrences = liveSourceOccurrences,
-                replacementOccurrences = replacementOccurrences,
-                updatedAt = now,
-            )
+            val split: suspend () -> Unit = {
+                seriesDao.splitCanonicalFocusSeries(
+                    oldSeriesId = oldSeriesId,
+                    oldSeriesExpectedVersion = storedSeries.version,
+                    oldSeriesEndDayKey = previousLocalDayKey(splitDayKey),
+                    newSeries = newSeries.toAndroidEntity(),
+                    liveSourceOccurrences = liveSourceOccurrences,
+                    replacementOccurrences = replacementOccurrences,
+                    updatedAt = now,
+                )
+            }
+            if (oldTemplate.sourceOrientationId == null) {
+                split()
+            } else {
+                appDatabase.withTransaction {
+                    split()
+                    liveSourceOccurrences.forEach { source ->
+                        referenceReplacements[source.itemId]?.let { nextId ->
+                            focusSources.replace(source.itemId, nextId, now)
+                            focusSources.repairMissing(nextId, oldTemplate.sourceOrientationId, now)
+                        } ?: focusSources.retire(source.itemId, now)
+                    }
+                }
+            }
 
             return returnedOccurrence
         }
@@ -449,6 +485,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
                     notes = normalizedNotes,
                     relatedLinks = relatedLinks.toCanonicalRelatedLinks(),
                     budgetPercent = budgetPercent,
+                    sourceOrientationId = oldTemplate.sourceOrientationId,
                 )
             val nextAndroidRelatedLinks = nextTemplate.relatedLinks.toAndroidRelatedLinks()
             val updatedSeries =

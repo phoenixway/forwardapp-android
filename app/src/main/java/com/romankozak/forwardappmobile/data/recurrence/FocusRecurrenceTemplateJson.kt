@@ -29,6 +29,7 @@ internal fun encodeFocusRecurrenceTemplate(template: RecurringFocusTemplate): St
             },
         )
         addProperty("budgetPercent", template.budgetPercent)
+        template.sourceOrientationId?.let { addProperty("sourceOrientationId", it) }
     }.toString()
 
 internal fun decodeFocusRecurrenceTemplate(json: String): RecurringFocusTemplate {
@@ -40,6 +41,7 @@ internal fun decodeFocusRecurrenceTemplate(json: String): RecurringFocusTemplate
         notes = obj.field("notes", "b").stringOrNull(),
         relatedLinks = links?.asJsonArray?.map { element -> decodeRelatedLink(element) }.orEmpty(),
         budgetPercent = obj.field("budgetPercent", "d").intOrNull(),
+        sourceOrientationId = obj.get("sourceOrientationId").stringOrNull(),
     )
 }
 

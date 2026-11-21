@@ -513,7 +513,7 @@ private fun DayFocusesEmptyState() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Додайте фокус або зону відповідальності через поле внизу чи меню дій.",
+            text = "Додайте пріоритет на основі орієнтира через меню дій або швидкий фокус у полі внизу.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

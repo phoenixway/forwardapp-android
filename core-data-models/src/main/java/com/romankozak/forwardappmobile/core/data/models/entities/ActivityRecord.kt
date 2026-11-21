@@ -25,9 +25,9 @@ enum class ActivityEntityType {
 }
 
 data class ActivityEntityLink(
-    val entityId: String,
-    val entityType: ActivityEntityType,
-    val dayPlanId: String? = null,
+    @SerializedName("entityId") val entityId: String,
+    @SerializedName("entityType") val entityType: ActivityEntityType,
+    @SerializedName("dayPlanId") val dayPlanId: String? = null,
 )
 
 @Entity(
