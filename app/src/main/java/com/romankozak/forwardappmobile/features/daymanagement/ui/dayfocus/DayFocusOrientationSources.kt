@@ -32,7 +32,7 @@ class DayFocusOrientationSourcesViewModel @Inject constructor(
     private val navigation: DefaultNavigationDispatcher,
     @DefaultDispatcher dispatcher: CoroutineDispatcher,
 ) : ViewModel() {
-    val snapshot = observePlanningOrientationSources(
+    internal val snapshot = observePlanningOrientationSources(
         references, catalog, orientationDao, PlanningReferenceOwnerKind.DAY_FOCUS,
     ).flowOn(dispatcher)
         .catch { emit(PlanningOrientationSourceSnapshot()) }
