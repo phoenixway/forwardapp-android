@@ -1,11 +1,14 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -33,39 +37,41 @@ internal fun TodayStageHeader(
     val previous = stages.getOrNull(index - 1)
     val next = stages.getOrNull(index + 1)
 
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.76f),
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+    val stageColor = MaterialTheme.colorScheme.onTertiaryContainer
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.78f),
+        contentColor = stageColor,
+        border = BorderStroke(1.dp, stageColor.copy(alpha = 0.26f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 8.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { previous?.let(onSelectTab) }, enabled = previous != null) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Попередня стадія дня",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                Text(
-                    text = selectedTab.stageTitle(),
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            Box(Modifier.size(6.dp).background(stageColor, CircleShape))
+            Text(
+                text = selectedTab.stageTitle(),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            IconButton(onClick = { previous?.let(onSelectTab) }, enabled = previous != null) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Попередня стадія дня",
+                    modifier = Modifier.size(20.dp),
                 )
-                IconButton(onClick = { next?.let(onSelectTab) }, enabled = next != null) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Наступна стадія дня",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+            }
+            IconButton(onClick = { next?.let(onSelectTab) }, enabled = next != null) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Наступна стадія дня",
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }

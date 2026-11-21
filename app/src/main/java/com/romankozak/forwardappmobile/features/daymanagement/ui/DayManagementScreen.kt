@@ -130,7 +130,7 @@ fun DayManagementScreen(
                         viewModel.selectTab(tab)
                         onTodayTabSelected?.invoke(tab)
                     },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
             DayManagementScreenContent(
