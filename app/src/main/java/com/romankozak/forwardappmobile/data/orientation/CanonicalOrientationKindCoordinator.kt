@@ -62,7 +62,7 @@ class CanonicalOrientationKindCoordinator @Inject constructor(
         val authority = CanonicalPlanningReferenceRepository(db)
         refs.forEach { authority.requireOwner(PlanningReferenceOwner(PlanningReferenceOwnerKind.valueOf(it.ownerKind), it.ownerId), live = false) }
         val recurrenceCount = db.canonicalRecurringSeriesDao().getAllSync().count { series ->
-            !series.isDeleted && series.kind == "TASK" && decodeTaskRecurrenceTemplate(series.templateJson, Gson()).planningSource?.let {
+            !series.isDeleted && series.kind == "TASK" && decodeTaskRecurrenceTemplate(series.templateJson).planningSource?.let {
                 it.kind.name == "ORIENTATION" && it.id == id
             } == true
         }

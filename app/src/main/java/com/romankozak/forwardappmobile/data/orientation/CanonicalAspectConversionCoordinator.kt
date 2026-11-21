@@ -114,7 +114,7 @@ class CanonicalAspectConversionCoordinator @Inject constructor(
 
     private suspend fun requireNoRecurrenceSource(id: String) {
         db.canonicalRecurringSeriesDao().getAllSync().filter { !it.isDeleted && it.kind == "TASK" }.forEach {
-            val source = decodeTaskRecurrenceTemplate(it.templateJson, Gson()).planningSource
+            val source = decodeTaskRecurrenceTemplate(it.templateJson).planningSource
             require(source?.let { it.kind.name == "ASPECT" && it.id == id } != true) {
                 "Aspect є джерелом повторюваного завдання. Спершу змініть або від’єднайте джерело серії."
             }

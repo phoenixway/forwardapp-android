@@ -1,5 +1,19 @@
 # ForwardApp Project State
 
+## 2026-11-21 - Canonical recurrence template JSON recovery (HOST code pending device verification)
+
+Shizuku logcat on the installed release showed `DayPlanViewModel` flow failing
+inside shared recurrence materialization when `RecurringFocusTemplate.relatedLinks`
+was null. The release APK's focus template fields were R8-renamed, while Gson
+read persisted JSON by JVM field name. Android now writes FOCUS and
+RESPONSIBILITY and TASK templates with explicit stable JSON keys and reads both
+those keys and the installed release's short aliases. Task decoding also
+preserves typed `planningSource` under either naming scheme and rejects missing
+required lists/priority/points. Missing older focus `relatedLinks` defaults to
+an empty list; malformed present links fail explicitly. No schema,
+sync-envelope, occurrence-identity, or hierarchy-authority change. Focused
+codec regressions added; build and physical verification remain pending.
+
 ## 2026-11-20 - Manual ArcQuest semantic kind decoupling in source
 
 The user accepted keeping a manual quest in its arc with the same semantic ID

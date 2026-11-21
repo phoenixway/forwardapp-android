@@ -50,7 +50,7 @@ class CanonicalSubjectConversionStore @Inject constructor(private val db: AppDat
         val liveSubjects = db.orientationDao().getAllManagedSubjects().filterNot { it.isDeleted }.mapTo(hashSetOf()) { it.id }
         require(db.orientationDao().getAllAspects().none { it.subjectId in liveSubjects && it.parentAspectId in ids }) { "Unpromoted Aspect child" }
         db.canonicalRecurringSeriesDao().getAllSync().filter { !it.isDeleted && it.kind == "TASK" }.forEach {
-            val source = com.romankozak.forwardappmobile.data.recurrence.decodeTaskRecurrenceTemplate(it.templateJson, com.google.gson.Gson()).planningSource
+            val source = com.romankozak.forwardappmobile.data.recurrence.decodeTaskRecurrenceTemplate(it.templateJson).planningSource
             require(source?.let { it.kind.name == "ASPECT" && it.id in ids } != true) { "Unconverted recurrence source dependency" }
         }
         val dao = db.orientationDao()

@@ -142,6 +142,21 @@ Canonical focus/responsibility behavior is identified by canonical recurrence
 provenance. Legacy `isEveryday` / `recurringKey` fields may remain at explicit
 compatibility boundaries but do not define recurrence-v2 truth.
 
+Android persists FOCUS and RESPONSIBILITY series templates as JSON with stable
+`title`, `notes`, `relatedLinks`, and `budgetPercent` keys. The Android adapter
+decodes those keys explicitly, including nested link fields, and also accepts
+the four short field aliases written by the installed minified release. An
+absent `relatedLinks` collection from older templates reads as empty; a present
+malformed link fails rather than being silently dropped. Shared recurrence
+materialization still owns occurrence creation and tombstone handling.
+
+TASK series templates use the same explicit stable-key Android JSON boundary.
+The decoder also accepts the installed minified release's `a`–`l` template
+aliases and `a`/`b` typed-source aliases. Mandatory project/attachment lists,
+priority and points fail closed if absent or malformed; optional
+`planningSource` remains absent on older untyped templates. JSON transport
+continues to carry the template object without changing the bundle envelope.
+
 ### Live Desktop compatibility regressions
 
 Two live Android -> Desktop pulls exposed compatibility-boundary defects after
