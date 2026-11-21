@@ -53,7 +53,6 @@ internal fun MainScreenBottomBar(
     onShowAbout: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel,
-    commandDeckViewModel: CommandDeckViewModel,
     dayManagementViewModel: DayManagementViewModel,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayManagementRuntimeUiState: DayManagementRuntimeUiState,
@@ -110,10 +109,6 @@ internal fun MainScreenBottomBar(
                     dayManagementUiState.selectedTab
                         .takeIf { it in DayManagementTab.todaySubTabs() }
                         ?: defaultTodayTab,
-                onSelectTodayTab = { tab ->
-                    dayManagementViewModel.selectTab(tab)
-                    commandDeckViewModel.setSelectedTodayTab(tab)
-                },
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
                 onFinalizeThemes = dayManagementRuntimeViewModel::finalizeThemes,

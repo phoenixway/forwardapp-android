@@ -44,12 +44,11 @@ internal fun TodayBottomPanelContent(
     onBackdatedClick: (String) -> Unit,
     onDaySummaryClick: (String) -> Unit,
     onSubmitInput: () -> Unit,
-    onSelectTodayTab: (DayManagementTab) -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
 ) {
     val localActions = todayContextualActions(
-        currentTab, additionalMoreActions, runtimeUiState, onSelectTodayTab, onStartFinalization, onSleep,
+        currentTab, additionalMoreActions, runtimeUiState, onStartFinalization, onSleep,
     )
     ContextualComposerSurface {
         TodayAutocompleteHost(

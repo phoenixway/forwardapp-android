@@ -366,7 +366,6 @@ fun MainScreenLayout(
                     onShowAbout = { showAboutDialog = true },
                     onNavigateToRecentItem = onNavigateToRecentItem,
                     recentViewModel = recentViewModel,
-                    commandDeckViewModel = commandDeckViewModel,
                     dayManagementViewModel = dayManagementViewModel,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayManagementRuntimeUiState = dayManagementRuntimeUiState,

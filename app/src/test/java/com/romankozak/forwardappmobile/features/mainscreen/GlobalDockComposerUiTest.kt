@@ -249,15 +249,15 @@ class GlobalDockComposerUiTest {
         ui.runOnIdle { assertEquals(listOf("source"), events) }
     }
 
-    @Test fun `Today local mode selection delegates exact selected subtab`() {
-        var tab by mutableStateOf(DayManagementTab.DAY_PLAN)
+    @Test fun `Today local menu keeps actions without stage switches`() {
         ui.setContent { MaterialTheme {
-            ContextualActionsButton("Сьогодні", todayContextualActions(tab, emptyList(), DayManagementRuntimeUiState(),
-                { tab = it }, {}, {}))
+            ContextualActionsButton("Сьогодні", todayContextualActions(DayManagementTab.DAY_PLAN,
+                listOf(MoreSheetAction("Вибрати день") { events += "date" }), DayManagementRuntimeUiState(), {}, {}))
         } }
         ui.onNodeWithContentDescription("Дії: Сьогодні").performClick()
-        clickMenu(DayManagementTab.DAY_FOCUSES.title)
-        ui.runOnIdle { assertEquals(DayManagementTab.DAY_FOCUSES, tab) }
+        DayManagementTab.todaySubTabs().forEach { ui.onNodeWithText(it.title).assertDoesNotExist() }
+        clickMenu("Вибрати день")
+        ui.runOnIdle { assertEquals(listOf("date"), events) }
     }
 
     @Test fun `Today quick task supports both IME and send without invoking global creation`() {
@@ -272,7 +272,7 @@ class GlobalDockComposerUiTest {
                 onInputValueChange = { draft = it }, onActivityTextChange = {}, onActivityTagSuggestionClick = {},
                 onActivityEntityLinksChanged = {}, onToggleActivityStartStop = {}, onTimelessRecordClick = {},
                 onQuickDoneClick = {}, onBackdatedClick = {}, onDaySummaryClick = {},
-                onSubmitInput = { events += "task:${draft.text}" }, onSelectTodayTab = {},
+                onSubmitInput = { events += "task:${draft.text}" },
                 onStartFinalization = {}, onSleep = {},
             )
         } }
@@ -339,7 +339,7 @@ class GlobalDockComposerUiTest {
             var calendar by remember { mutableStateOf(false) }
             ContextualActionsButton("Сьогодні", todayContextualActions(DayManagementTab.DAY_PLAN,
                 todayDateActions(DayManagementTab.DAY_PLAN, { calendar = true }, {}, {}),
-                DayManagementRuntimeUiState(), {}, {}, {}))
+                DayManagementRuntimeUiState(), {}, {}))
             TodayDatePickerDialogHost(calendar, selected, { dates += it }) { calendar = false }
         } }
         ui.onNodeWithContentDescription("Дії: Сьогодні").performClick()

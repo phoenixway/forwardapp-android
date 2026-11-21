@@ -9,7 +9,6 @@ internal fun todayContextualActions(
     selected: DayManagementTab,
     additional: List<MoreSheetAction>,
     runtime: DayManagementRuntimeUiState,
-    onSelectTab: (DayManagementTab) -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
 ): List<ContextualAction> = buildList {
@@ -23,9 +22,5 @@ internal fun todayContextualActions(
             runtime.runtimeState.hasOpenOperationalDay -> "Почати фіналізацію"
             else -> "Стартувати день і фіналізацію"
         }, onClick = if (started) onSleep else onStartFinalization))
-    }
-    DayManagementTab.todaySubTabs().forEach { tab ->
-        add(ContextualAction("today-mode-${tab.name}", tab.title, tab.icon, selected = selected == tab,
-            onClick = { onSelectTab(tab) }))
     }
 }

@@ -9,14 +9,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ContextualComposerActionsTest {
-    @Test fun `Today exposes all six modes and preserves exact selected state and dispatch`() {
+    @Test fun `Today local actions do not duplicate stage navigation`() {
         DayManagementTab.todaySubTabs().forEach { current ->
-            var selected: DayManagementTab? = null
-            val actions = todayContextualActions(current, emptyList(), DayManagementRuntimeUiState(), { selected = it }, {}, {})
-            val modes = actions.filter { it.id.startsWith("today-mode-") }
-            assertEquals(6, modes.size)
-            assertEquals(listOf(current.title), modes.filter { it.selected == true }.map { it.label })
-            modes.forEachIndexed { index, action -> action.invokeIfEnabled(); assertEquals(DayManagementTab.todaySubTabs()[index], selected) }
+            val actions = todayContextualActions(current, emptyList(), DayManagementRuntimeUiState(), {}, {})
+            assertFalse(actions.any { it.id.startsWith("today-mode-") })
+            assertFalse(actions.any { it.label in DayManagementTab.todaySubTabs().map(DayManagementTab::title) })
         }
     }
 
@@ -24,7 +21,7 @@ class ContextualComposerActionsTest {
         val events = mutableListOf<String>()
         val actions = todayContextualActions(DayManagementTab.DAY_PLAN,
             listOf(MoreSheetAction("Source") { events += "source" }, MoreSheetAction("Plan ready") { events += "ready" }),
-            DayManagementRuntimeUiState(), {}, {}, {})
+            DayManagementRuntimeUiState(), {}, {})
         assertEquals(listOf("Source", "Plan ready"), actions.take(2).map { it.label })
         actions.take(2).forEach { it.invokeIfEnabled() }
         assertEquals(listOf("source", "ready"), events)
@@ -32,10 +29,10 @@ class ContextualComposerActionsTest {
 
     @Test fun `Finalization remains available only in its subtab and calls original command`() {
         var count = 0
-        val actions = todayContextualActions(DayManagementTab.FINALIZATION, emptyList(), DayManagementRuntimeUiState(), {}, { count++ }, {})
+        val actions = todayContextualActions(DayManagementTab.FINALIZATION, emptyList(), DayManagementRuntimeUiState(), { count++ }, {})
         actions.single { it.id == "finalize" }.invokeIfEnabled()
         assertEquals(1, count)
-        assertFalse(todayContextualActions(DayManagementTab.DAY_PLAN, emptyList(), DayManagementRuntimeUiState(), {}, {}, {}).any { it.id == "finalize" })
+        assertFalse(todayContextualActions(DayManagementTab.DAY_PLAN, emptyList(), DayManagementRuntimeUiState(), {}, {}).any { it.id == "finalize" })
     }
 
     @Test fun `Strategic source clear and presentation actions remain distinct`() {

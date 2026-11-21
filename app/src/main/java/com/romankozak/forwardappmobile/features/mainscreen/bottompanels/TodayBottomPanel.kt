@@ -32,7 +32,6 @@ fun TodayBottomPanel(
     selectedDate: Long,
     onDateSelected: (Long) -> Unit,
     currentTab: DayManagementTab,
-    onSelectTodayTab: (DayManagementTab) -> Unit,
     runtimeUiState: DayManagementRuntimeUiState,
     onWakeUp: () -> Unit,
     onFinalizeThemes: () -> Unit,
@@ -154,7 +153,6 @@ fun TodayBottomPanel(
                 else -> submitTask()
             }
         },
-        onSelectTodayTab = onSelectTodayTab,
         onStartFinalization = onStartFinalization,
         onSleep = onSleep,
     )
