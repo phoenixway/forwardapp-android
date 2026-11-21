@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -268,7 +269,7 @@ fun StrategicArcScreen(
                     hasPrevious = uiState.previousArcKey != null,
                     onPrevious = viewModel::navigateToPreviousArcMonth,
                     onNext = viewModel::navigateToNextArcMonth,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 )
                 when (selectedTab) {
                     StrategicArcTab.QUESTS ->
@@ -469,9 +470,9 @@ internal fun StrategicArcMonthHeader(
             shape = RoundedCornerShape(999.dp),
             color =
                 if (isCurrent) {
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.88f)
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.72f)
                 } else {
-                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.96f)
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f)
                 },
             contentColor =
                 if (isCurrent) {
@@ -479,16 +480,16 @@ internal fun StrategicArcMonthHeader(
                 } else {
                     MaterialTheme.colorScheme.onSecondaryContainer
                 },
-            tonalElevation = 1.dp,
-            shadowElevation = 2.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
             border =
                 androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
                     color =
                         if (isCurrent) {
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.42f)
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.26f)
                         } else {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.58f)
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.32f)
                         },
                 ),
         ) {
@@ -497,14 +498,14 @@ internal fun StrategicArcMonthHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onPrevious, enabled = hasPrevious) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Попередня арка")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Попередня арка", modifier = Modifier.size(20.dp))
                 }
                 Text(
                     text = formatStrategicArcMonth(arcKey),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 IconButton(onClick = onNext) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Наступна арка")
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Наступна арка", modifier = Modifier.size(20.dp))
                 }
             }
         }

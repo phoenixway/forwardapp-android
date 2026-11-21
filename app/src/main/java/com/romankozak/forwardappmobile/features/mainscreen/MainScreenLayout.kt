@@ -419,6 +419,7 @@ fun MainScreenLayout(
                     dayManagementViewModel = dayManagementViewModel,
                     currentDayManagementTab = dayManagementUiState.selectedTab,
                     defaultTodayTab = selectedTodayTab,
+                    onTodayTabSelected = commandDeckViewModel::setSelectedTodayTab,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,

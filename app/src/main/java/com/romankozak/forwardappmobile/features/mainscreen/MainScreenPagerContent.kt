@@ -51,6 +51,7 @@ internal fun MainScreenPagerContent(
     dayManagementViewModel: DayManagementViewModel,
     currentDayManagementTab: DayManagementTab,
     defaultTodayTab: DayManagementTab,
+    onTodayTabSelected: (DayManagementTab) -> Unit,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
@@ -251,6 +252,7 @@ internal fun MainScreenPagerContent(
                         currentDayManagementTab
                             .takeIf { it in DayManagementTab.todaySubTabs() }
                             ?: defaultTodayTab,
+                    onTodayTabSelected = onTodayTabSelected,
                     showFabMenu = false,
                 )
         }

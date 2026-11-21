@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class DayManagementTab(val title: String, val icon: ImageVector, val description: String) {
     DAY_START("Day Start", Icons.Outlined.PlayCircle, "Започаткувати день"),
     DAY_THEMES("Теми", Icons.Outlined.Palette, "Визначити мета-напрямки дня"),
-    DAY_FOCUSES("Day Focuses", Icons.Outlined.AutoAwesome, "Визначити фокуси дня"),
+    DAY_FOCUSES("Day priorities", Icons.Outlined.AutoAwesome, "Визначити фокуси дня"),
     DAY_PLAN("План Дня", Icons.AutoMirrored.Filled.ListAlt, "Створити та керувати завданнями дня"),
     JOURNAL("Journal", Icons.AutoMirrored.Outlined.MenuBook, "Ведення щоденника"),
     FINALIZATION("Finalization", Icons.Outlined.TaskAlt, "Підбити підсумки дня"),
