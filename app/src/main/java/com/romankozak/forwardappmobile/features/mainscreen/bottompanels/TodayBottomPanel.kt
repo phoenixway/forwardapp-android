@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentati
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 
 @Composable
 @Suppress("LongParameterList", "LongMethod")
@@ -40,7 +41,7 @@ fun TodayBottomPanel(
     onStartImplementation: () -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
-    onAddDayTheme: () -> Unit,
+    dayThemesViewModel: DayThemesViewModel,
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
     dayFocusesViewModel: DayFocusesViewModel = hiltViewModel(),
@@ -55,6 +56,13 @@ fun TodayBottomPanel(
     val activityEntityLinks by activityTrackerViewModel.pendingEntityLinks.collectAsStateWithLifecycle()
     val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
+    val themeBudgetPercent =
+        if (currentTab == DayManagementTab.DAY_THEMES) {
+            val themeState by dayThemesViewModel.uiState.collectAsStateWithLifecycle()
+            themeState.totalBudgetPercent
+        } else {
+            0
+        }
     val context = androidx.compose.ui.platform.LocalContext.current
     var inputValue by rememberTodayComposerDraft(currentTab)
     var showContextPicker by remember { mutableStateOf(false) }
@@ -156,7 +164,8 @@ fun TodayBottomPanel(
         },
         onStartFinalization = onStartFinalization,
         onSleep = onSleep,
-        onAddDayTheme = onAddDayTheme,
+        themeBudgetPercent = themeBudgetPercent,
+        onAddDayTheme = dayThemesViewModel::requestCreateTheme,
     )
 
     TodayContextPickerHost(

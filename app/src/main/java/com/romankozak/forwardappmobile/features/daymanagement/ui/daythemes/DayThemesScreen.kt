@@ -131,25 +131,6 @@ private fun DayThemesContent(
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Теми дня",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                val total = state.totalBudgetPercent
-                Text(
-                    text = "Розподілено $total зі 100%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (total > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
         if (state.themes.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),

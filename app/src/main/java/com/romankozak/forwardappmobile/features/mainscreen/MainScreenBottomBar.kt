@@ -122,7 +122,7 @@ internal fun MainScreenBottomBar(
                 dayPlanViewModel = dayPlanViewModel,
                 activityTrackerViewModel = activityTrackerViewModel,
                 dayFocusesViewModel = dayFocusesViewModel,
-                onAddDayTheme = dayThemesViewModel::requestCreateTheme,
+                dayThemesViewModel = dayThemesViewModel,
             )
         MAIN_SCREEN_TACTICS_ROUTE -> TacticsBottomPanel(
             viewModel = tacticalMissionViewModel, execution = isTacticalExecution,

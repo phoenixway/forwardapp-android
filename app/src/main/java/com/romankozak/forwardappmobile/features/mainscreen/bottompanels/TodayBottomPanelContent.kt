@@ -8,11 +8,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityInputBar
@@ -51,6 +55,7 @@ internal fun TodayBottomPanelContent(
     onSubmitInput: () -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
+    themeBudgetPercent: Int,
     onAddDayTheme: () -> Unit,
 ) {
     val localActions = todayContextualActions(
@@ -101,6 +106,15 @@ internal fun TodayBottomPanelContent(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Text(
+                    text = "Розподілено $themeBudgetPercent зі 100%",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (themeBudgetPercent > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                )
                 IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Outlined.Add, contentDescription = "Додати тему", modifier = Modifier.size(20.dp))
                 }
