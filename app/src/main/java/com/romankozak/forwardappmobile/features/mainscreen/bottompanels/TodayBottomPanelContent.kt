@@ -93,8 +93,12 @@ internal fun TodayBottomPanelContent(
             Row(
                 Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Теми дня", Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "Теми дня",
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 key(currentTab) {
                     ContextualActionsButton(
                         "Сьогодні · ${currentTab.title}", localActions,
