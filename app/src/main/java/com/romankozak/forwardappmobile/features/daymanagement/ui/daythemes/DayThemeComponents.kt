@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -115,10 +116,12 @@ fun EntityThemeSelector(
     entityLabel: String,
     onToggle: (String) -> Unit,
     modifier: Modifier = Modifier,
+    showPickerButton: Boolean = true,
 ) {
     var sheetVisible by remember { mutableStateOf(false) }
     val activeThemes = themes.filter(DayTheme::isActive)
     val selectedThemes = activeThemes.filter { it.id in selectedThemeIds }
+    if (!showPickerButton && selectedThemes.isEmpty()) return
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -134,8 +137,10 @@ fun EntityThemeSelector(
                 )
             }
         }
-        IconButton(onClick = { sheetVisible = true }, modifier = Modifier.size(28.dp)) {
-            Icon(Icons.Outlined.Sell, contentDescription = "Призначити теми", modifier = Modifier.size(17.dp))
+        if (showPickerButton) {
+            IconButton(onClick = { sheetVisible = true }, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Outlined.Sell, contentDescription = "Призначити теми", modifier = Modifier.size(17.dp))
+            }
         }
     }
 
@@ -144,52 +149,63 @@ fun EntityThemeSelector(
             onDismissRequest = { sheetVisible = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
-            Text(
-                text = "Теми · $entityLabel",
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (activeThemes.isEmpty()) {
-                Text(
-                    text = "Спочатку створіть тему у підвкладці «Теми».",
-                    modifier = Modifier.padding(20.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                LazyColumn {
-                    items(activeThemes, key = DayTheme::id) { theme ->
-                        val checked = theme.id in selectedThemeIds
-                        val supportingContent: (@Composable () -> Unit)? =
-                            theme.comment.takeIf(String::isNotBlank)?.let { comment ->
-                                {
-                                    Text(
-                                        text = comment,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                        ListItem(
-                            headlineContent = { Text(theme.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            supportingContent = supportingContent,
-                            leadingContent = {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Surface(shape = CircleShape, color = themeColor(theme), modifier = Modifier.size(30.dp)) {}
-                                    Icon(dayThemeIcon(theme.iconKey), null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                }
-                            },
-                            trailingContent = { Checkbox(checked = checked, onCheckedChange = { onToggle(theme.id) }) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.navigationBarsPadding())
+            DayThemePickerContent(themes, selectedThemeIds, entityLabel, onToggle)
         }
     }
+}
+
+@Composable
+fun DayThemePickerContent(
+    themes: List<DayTheme>,
+    selectedThemeIds: Set<String>,
+    entityLabel: String,
+    onToggle: (String) -> Unit,
+) {
+    val activeThemes = themes.filter(DayTheme::isActive)
+    Text(
+        text = "Теми · $entityLabel",
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (activeThemes.isEmpty()) {
+        Text(
+            text = "Спочатку створіть тему у підвкладці «Теми».",
+            modifier = Modifier.padding(20.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        LazyColumn(modifier = Modifier.heightIn(max = 480.dp)) {
+            items(activeThemes, key = DayTheme::id) { theme ->
+                val checked = theme.id in selectedThemeIds
+                val supportingContent: (@Composable () -> Unit)? =
+                    theme.comment.takeIf(String::isNotBlank)?.let { comment ->
+                        {
+                            Text(
+                                text = comment,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                ListItem(
+                    headlineContent = { Text(theme.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = supportingContent,
+                    leadingContent = {
+                        Box(contentAlignment = Alignment.Center) {
+                            Surface(shape = CircleShape, color = themeColor(theme), modifier = Modifier.size(30.dp)) {}
+                            Icon(dayThemeIcon(theme.iconKey), null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                    },
+                    trailingContent = { Checkbox(checked = checked, onCheckedChange = { onToggle(theme.id) }) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
+        }
+    }
+    Spacer(modifier = Modifier.navigationBarsPadding())
 }
 
 @OptIn(ExperimentalLayoutApi::class)

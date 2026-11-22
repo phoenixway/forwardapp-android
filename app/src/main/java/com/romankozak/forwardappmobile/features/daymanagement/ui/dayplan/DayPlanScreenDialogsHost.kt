@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesUiState
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 
 @Composable
@@ -18,6 +19,8 @@ fun DayPlanDialogsHost(
     overlayState: DayPlanOverlayState,
     viewModel: DayPlanViewModel,
     hapticFeedback: HapticFeedback,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     RecurringTaskDialogs(dialogState = dialogState, viewModel = viewModel)
     PlanCreationDialogs(
@@ -32,6 +35,8 @@ fun DayPlanDialogsHost(
         overlayState = overlayState,
         viewModel = viewModel,
         hapticFeedback = hapticFeedback,
+        dayThemesState = dayThemesState,
+        onToggleTheme = onToggleTheme,
     )
 }
 
@@ -116,6 +121,8 @@ private fun SelectedTaskDialogs(
     overlayState: DayPlanOverlayState,
     viewModel: DayPlanViewModel,
     hapticFeedback: HapticFeedback,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     dialogState.selectedTask?.let { selectedTaskWithReminder ->
         if (!dialogState.isEditTaskDialogOpen) {
@@ -139,6 +146,9 @@ private fun SelectedTaskDialogs(
                         onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
                     ),
                 showAddToTodayOption = !state.uiState.isToday,
+                themes = dayThemesState.themes,
+                selectedThemeIds = dayThemesState.assignments[selectedTaskWithReminder.dayTask.id].orEmpty(),
+                onToggleTheme = { themeId -> onToggleTheme(selectedTaskWithReminder.dayTask.id, themeId) },
             )
         }
     }

@@ -2,10 +2,12 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Today
@@ -25,12 +28,19 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.logicalProjectId
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTheme
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemePickerContent
 
 private const val TASK_OPTIONS_VERTICAL_PADDING_DP = 8
 private const val TASK_OPTIONS_DIVIDER_PADDING_DP = 16
@@ -55,18 +65,35 @@ fun TaskOptionsBottomSheet(
     onDismiss: () -> Unit,
     actions: TaskOptionsActions,
     showAddToTodayOption: Boolean,
+    themes: List<DayTheme>,
+    selectedThemeIds: Set<String>,
+    onToggleTheme: (String) -> Unit,
 ) {
+    var showThemes by remember(taskWithReminder.dayTask.id) { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        TaskOptionsContent(
-            task = taskWithReminder.dayTask,
-            taskWithReminder = taskWithReminder,
-            actions = actions,
-            showAddToTodayOption = showAddToTodayOption,
-            onDismiss = onDismiss,
-        )
+        if (showThemes) {
+            Column {
+                TextButton(onClick = { showThemes = false }) { Text("Назад до дій") }
+                DayThemePickerContent(
+                    themes = themes,
+                    selectedThemeIds = selectedThemeIds,
+                    entityLabel = taskWithReminder.dayTask.title,
+                    onToggle = onToggleTheme,
+                )
+            }
+        } else {
+            TaskOptionsContent(
+                task = taskWithReminder.dayTask,
+                taskWithReminder = taskWithReminder,
+                actions = actions,
+                showAddToTodayOption = showAddToTodayOption,
+                onShowThemes = { showThemes = true },
+                onDismiss = onDismiss,
+            )
+        }
     }
 }
 
@@ -76,15 +103,21 @@ private fun TaskOptionsContent(
     taskWithReminder: DayTaskWithReminder,
     actions: TaskOptionsActions,
     showAddToTodayOption: Boolean,
+    onShowThemes: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(vertical = TASK_OPTIONS_VERTICAL_PADDING_DP.dp)) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = TASK_OPTIONS_VERTICAL_PADDING_DP.dp),
+    ) {
         PrimaryTaskOptions(actions = actions, onDismiss = onDismiss)
         TaskOptionsDivider()
         SecondaryTaskOptions(
             task = task,
             actions = actions,
             showAddToTodayOption = showAddToTodayOption,
+            onShowThemes = onShowThemes,
             onDismiss = onDismiss,
         )
         TaskOptionsDivider()
@@ -143,8 +176,14 @@ private fun SecondaryTaskOptions(
     task: DayTask,
     actions: TaskOptionsActions,
     showAddToTodayOption: Boolean,
+    onShowThemes: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    TaskOptionsItem(
+        label = "Теми",
+        icon = { Icon(Icons.Outlined.Sell, contentDescription = null) },
+        onClick = onShowThemes,
+    )
     TaskOptionsItem(
         label = "Встановити нагадування",
         icon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },

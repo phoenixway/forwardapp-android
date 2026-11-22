@@ -92,5 +92,7 @@ fun DayPlanScreen(
         overlayState = presentationState.overlayState,
         viewModel = viewModel,
         hapticFeedback = hapticFeedback,
+        dayThemesState = dayThemesState,
+        onToggleTheme = dayThemesViewModel::toggleTheme,
     )
 }

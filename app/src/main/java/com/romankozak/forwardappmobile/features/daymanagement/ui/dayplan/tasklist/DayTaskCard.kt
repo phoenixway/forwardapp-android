@@ -222,6 +222,7 @@ private fun RowScope.DayTaskCardContent(
             entityLabel = task.title,
             onToggle = onToggleTheme,
             modifier = Modifier.padding(top = 5.dp),
+            showPickerButton = false,
         )
     }
 }
