@@ -53,6 +53,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -133,7 +135,11 @@ private fun DayThemesContent(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Теми дня", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Теми дня",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 val total = state.totalBudgetPercent
                 Text(
                     text = "Розподілено $total зі 100%",
@@ -190,11 +196,19 @@ private fun DayThemeCard(
     dragModifier: Modifier,
 ) {
     val color = themeColor(theme)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val accentColor =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) {
+            lerp(color, Color.White, 0.35f)
+        } else {
+            color
+        }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = color.copy(alpha = if (theme.isActive) 0.08f else 0.025f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.28f)),
+        contentColor = textColor,
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
@@ -212,14 +226,28 @@ private fun DayThemeCard(
                 }
             }
             Column(modifier = Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(theme.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    theme.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = textColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 theme.comment.takeIf(String::isNotBlank)?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
-            Text("${theme.budgetPercent}%", style = MaterialTheme.typography.labelLarge, color = color)
+            Text("${theme.budgetPercent}%", style = MaterialTheme.typography.labelLarge, color = accentColor)
             Switch(checked = theme.isActive, onCheckedChange = onActiveChange, modifier = Modifier.size(42.dp))
-            IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) { Icon(Icons.Outlined.Edit, "Редагувати") }
+            IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) {
+                Icon(Icons.Outlined.Edit, "Редагувати", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             IconButton(onClick = onDelete, modifier = Modifier.size(38.dp)) {
                 Icon(Icons.Outlined.Delete, "Видалити", tint = MaterialTheme.colorScheme.error)
             }
