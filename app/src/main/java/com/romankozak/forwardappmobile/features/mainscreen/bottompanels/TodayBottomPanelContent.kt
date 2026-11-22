@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -91,14 +90,10 @@ internal fun TodayBottomPanelContent(
             )
         } else {
             Row(
-                Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Теми дня",
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 key(currentTab) {
                     ContextualActionsButton(
                         "Сьогодні · ${currentTab.title}", localActions,
