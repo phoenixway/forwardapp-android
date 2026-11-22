@@ -1,14 +1,18 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -101,32 +105,39 @@ internal fun TodayBottomPanelContent(
                 compact = true,
             )
         } else {
-            Row(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)),
             ) {
-                Text(
-                    text = "Розподілено $themeBudgetPercent зі 100%",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (themeBudgetPercent > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
-                )
-                IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        Icons.Outlined.Add,
-                        contentDescription = "Додати тему",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 3.dp, bottom = 3.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Розподілено $themeBudgetPercent зі 100%",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (themeBudgetPercent > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start,
                     )
-                }
-                key(currentTab) {
-                    ContextualActionsButton(
-                        "Сьогодні · ${currentTab.title}", localActions,
-                    )
+                    IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            Icons.Outlined.Add,
+                            contentDescription = "Додати тему",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    key(currentTab) {
+                        ContextualActionsButton(
+                            "Сьогодні · ${currentTab.title}", localActions,
+                        )
+                    }
                 }
             }
         }
