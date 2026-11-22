@@ -120,7 +120,7 @@ internal fun TodayBottomPanelContent(
                         Icons.Outlined.Add,
                         contentDescription = "Додати тему",
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 key(currentTab) {
