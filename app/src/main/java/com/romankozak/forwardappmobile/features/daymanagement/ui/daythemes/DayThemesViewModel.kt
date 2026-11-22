@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,6 +26,12 @@ class DayThemesViewModel
         private val repository: DayThemeRepository,
     ) : ViewModel() {
         private val planId = MutableStateFlow<String?>(null)
+        private val createThemeRequests = Channel<Unit>(Channel.BUFFERED)
+        val createThemeRequest = createThemeRequests.receiveAsFlow()
+
+        fun requestCreateTheme() {
+            createThemeRequests.trySend(Unit)
+        }
 
         val uiState =
             planId.flatMapLatest { currentPlanId ->

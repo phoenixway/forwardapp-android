@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTa
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBottomPanel
@@ -60,6 +61,7 @@ internal fun MainScreenBottomBar(
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
     dayFocusesViewModel: DayFocusesViewModel,
+    dayThemesViewModel: DayThemesViewModel,
     tacticalMissionViewModel: TacticalMissionViewModel,
 ) {
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
@@ -120,6 +122,7 @@ internal fun MainScreenBottomBar(
                 dayPlanViewModel = dayPlanViewModel,
                 activityTrackerViewModel = activityTrackerViewModel,
                 dayFocusesViewModel = dayFocusesViewModel,
+                onAddDayTheme = dayThemesViewModel::requestCreateTheme,
             )
         MAIN_SCREEN_TACTICS_ROUTE -> TacticsBottomPanel(
             viewModel = tacticalMissionViewModel, execution = isTacticalExecution,

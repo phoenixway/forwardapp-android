@@ -40,6 +40,7 @@ fun TodayBottomPanel(
     onStartImplementation: () -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
+    onAddDayTheme: () -> Unit,
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
     dayFocusesViewModel: DayFocusesViewModel = hiltViewModel(),
@@ -155,6 +156,7 @@ fun TodayBottomPanel(
         },
         onStartFinalization = onStartFinalization,
         onSleep = onSleep,
+        onAddDayTheme = onAddDayTheme,
     )
 
     TodayContextPickerHost(

@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTa
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
@@ -56,6 +57,7 @@ internal fun MainScreenPagerContent(
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
     dayFocusesViewModel: DayFocusesViewModel,
+    dayThemesViewModel: DayThemesViewModel,
     sessionModeState: SessionModeState,
     latestSessionReason: String?,
     onSessionModeSelected: (com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode) -> Unit,
@@ -248,6 +250,7 @@ internal fun MainScreenPagerContent(
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
                     dayFocusesViewModel = dayFocusesViewModel,
+                    dayThemesViewModel = dayThemesViewModel,
                     currentDayManagementTab =
                         currentDayManagementTab
                             .takeIf { it in DayManagementTab.todaySubTabs() }

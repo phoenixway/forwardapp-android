@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.DragIndicator
@@ -32,7 +31,6 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +71,12 @@ fun DayThemesScreen(
     var deleteCandidate by remember { mutableStateOf<DayTheme?>(null) }
 
     LaunchedEffect(initialDayPlanId) { viewModel.loadPlan(initialDayPlanId) }
+    LaunchedEffect(viewModel) {
+        viewModel.createThemeRequest.collect {
+            editedTheme = null
+            editorVisible = true
+        }
+    }
 
     state.error?.let { error ->
         Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp))
@@ -81,7 +85,6 @@ fun DayThemesScreen(
 
     DayThemesContent(
         state = state,
-        onAdd = { editedTheme = null; editorVisible = true },
         onEdit = { editedTheme = it; editorVisible = true },
         onDelete = { deleteCandidate = it },
         onActiveChange = viewModel::setThemeActive,
@@ -114,7 +117,6 @@ fun DayThemesScreen(
 @Composable
 private fun DayThemesContent(
     state: DayThemesUiState,
-    onAdd: () -> Unit,
     onEdit: (DayTheme) -> Unit,
     onDelete: (DayTheme) -> Unit,
     onActiveChange: (String, Boolean) -> Unit,
@@ -146,10 +148,6 @@ private fun DayThemesContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = if (total > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            FilledTonalButton(onClick = onAdd, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                Icon(Icons.Outlined.Add, null, modifier = Modifier.size(18.dp))
-                Text("Додати")
             }
         }
         if (state.themes.isEmpty()) {

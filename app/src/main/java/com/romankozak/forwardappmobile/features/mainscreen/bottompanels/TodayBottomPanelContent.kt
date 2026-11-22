@@ -3,11 +3,17 @@ package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityInputBar
 import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
@@ -45,6 +51,7 @@ internal fun TodayBottomPanelContent(
     onSubmitInput: () -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
+    onAddDayTheme: () -> Unit,
 ) {
     val localActions = todayContextualActions(
         currentTab, additionalMoreActions, runtimeUiState, onStartFinalization, onSleep,
@@ -94,6 +101,9 @@ internal fun TodayBottomPanelContent(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Outlined.Add, contentDescription = "Додати тему", modifier = Modifier.size(20.dp))
+                }
                 key(currentTab) {
                     ContextualActionsButton(
                         "Сьогодні · ${currentTab.title}", localActions,

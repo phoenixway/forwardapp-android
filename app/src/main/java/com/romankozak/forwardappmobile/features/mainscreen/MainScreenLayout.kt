@@ -68,6 +68,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementVi
 import com.romankozak.forwardappmobile.features.daymanagement.ui.defaultTodayTabForRuntimeState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalCreateActionsHost
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
@@ -162,6 +163,7 @@ fun MainScreenLayout(
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
     val dayFocusesViewModel: DayFocusesViewModel = hiltViewModel()
+    val dayThemesViewModel: DayThemesViewModel = hiltViewModel()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
     val dayManagementRuntimeUiState by dayManagementRuntimeViewModel.uiState.collectAsStateWithLifecycle()
     val defaultTodayTab = defaultTodayTabForRuntimeState(dayManagementRuntimeUiState.runtimeState)
@@ -373,6 +375,7 @@ fun MainScreenLayout(
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
                     dayFocusesViewModel = dayFocusesViewModel,
+                    dayThemesViewModel = dayThemesViewModel,
                     tacticalMissionViewModel = tacticalMissionViewModel,
                 )
             },
@@ -423,6 +426,7 @@ fun MainScreenLayout(
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
                     dayFocusesViewModel = dayFocusesViewModel,
+                    dayThemesViewModel = dayThemesViewModel,
                     sessionModeState = sessionModeState,
                     latestSessionReason = latestSessionReason,
                     onSessionModeSelected = commandDeckViewModel::setSessionMode,
