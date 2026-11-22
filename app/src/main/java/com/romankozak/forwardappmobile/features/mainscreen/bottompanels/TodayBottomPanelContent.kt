@@ -113,7 +113,7 @@ internal fun TodayBottomPanelContent(
                     color = if (themeBudgetPercent > 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Start,
                 )
                 IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
                     Icon(
