@@ -116,7 +116,12 @@ internal fun TodayBottomPanelContent(
                     textAlign = TextAlign.End,
                 )
                 IconButton(onClick = onAddDayTheme, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Outlined.Add, contentDescription = "Додати тему", modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = "Додати тему",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
                 key(currentTab) {
                     ContextualActionsButton(
