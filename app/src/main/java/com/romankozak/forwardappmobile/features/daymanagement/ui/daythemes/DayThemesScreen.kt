@@ -24,15 +24,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -50,11 +46,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import sh.calvin.reorderable.ReorderableItem
@@ -148,8 +140,7 @@ private fun DayThemesContent(
         } else {
             LazyColumn(
                 state = lazyListState,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(9.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 items(orderedThemes, key = DayTheme::id) { theme ->
                     ReorderableItem(reorderableState, key = theme.id) {
@@ -166,74 +157,6 @@ private fun DayThemesContent(
         }
     }
 }
-@Composable
-private fun DayThemeCard(
-    theme: DayTheme,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onActiveChange: (Boolean) -> Unit,
-    dragModifier: Modifier,
-) {
-    val color = themeColor(theme)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val accentColor =
-        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) {
-            lerp(color, Color.White, 0.35f)
-        } else {
-            color
-        }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = color.copy(alpha = if (theme.isActive) 0.08f else 0.025f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.28f)),
-        contentColor = textColor,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Outlined.DragIndicator,
-                contentDescription = "Перетягнути тему",
-                modifier = dragModifier.size(32.dp).padding(6.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Surface(shape = CircleShape, color = color, modifier = Modifier.size(38.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(dayThemeIcon(theme.iconKey), null, tint = Color.White, modifier = Modifier.size(20.dp))
-                }
-            }
-            Column(modifier = Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(
-                    theme.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = textColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                theme.comment.takeIf(String::isNotBlank)?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Text("${theme.budgetPercent}%", style = MaterialTheme.typography.labelLarge, color = accentColor)
-            Switch(checked = theme.isActive, onCheckedChange = onActiveChange, modifier = Modifier.size(42.dp))
-            IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Edit, "Редагувати", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            IconButton(onClick = onDelete, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Delete, "Видалити", tint = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun DayThemeEditorSheet(
