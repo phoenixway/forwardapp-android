@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,21 +23,16 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -293,6 +286,7 @@ private fun LazyItemScope.DayFocusItemRow(
                             entityLabel = item.title,
                             onToggle = { themeId -> onToggleTheme(item.id, themeId) },
                             modifier = Modifier.padding(top = 5.dp),
+                            showPickerButton = false,
                         )
                     }
                     IconButton(
@@ -330,6 +324,8 @@ private fun LazyItemScope.DayFocusItemRow(
                     showActionsSheet = false
                     onDelete()
                 },
+                dayThemesState = dayThemesState,
+                onToggleTheme = { themeId -> onToggleTheme(item.id, themeId) },
             )
         }
     }
@@ -369,69 +365,6 @@ private fun formatBudgetHours(minutes: Long): String {
     } else {
         String.format(java.util.Locale.getDefault(), "%.1f", hours)
     }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun DayFocusItemOptionsSheet(
-    item: DayFocusItem,
-    onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-            DayFocusItemOption(
-                label = "Редагувати",
-                icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                onClick = onEdit,
-            )
-            DayFocusItemOption(
-                label = "Видалити",
-                color = MaterialTheme.colorScheme.error,
-                icon = {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                },
-                onClick = onDelete,
-            )
-            Spacer(modifier = Modifier.navigationBarsPadding())
-        }
-    }
-}
-
-@Composable
-private fun DayFocusItemOption(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
-    icon: @Composable () -> Unit,
-) {
-    androidx.compose.material3.ListItem(
-        headlineContent = {
-            Text(
-                text = label,
-                color = color,
-            )
-        },
-        leadingContent = icon,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-        colors =
-            androidx.compose.material3.ListItemDefaults.colors(
-                containerColor = androidx.compose.ui.graphics.Color.Transparent,
-            ),
-    )
 }
 
 @Composable
