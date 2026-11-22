@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.taskli
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskRealizedPriorityChips
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTheme
@@ -85,7 +88,7 @@ fun DayTaskCard(
     val contentAlpha = if (task.completed) COMPLETED_TASK_CONTENT_ALPHA else 1f
 
     Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 12.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
         UnifiedItemCheckbox(
@@ -139,6 +142,7 @@ fun DayTaskCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RowScope.DayTaskCardContent(
     taskWithReminder: DayTaskWithReminder,
@@ -209,6 +213,7 @@ private fun RowScope.DayTaskCardContent(
             orientationSource = orientationSource,
             relatedOrientations = relatedOrientations,
             onOpenOrientation = onOpenOrientation,
+            priorityChips = { DayTaskRealizedPriorityChips(task, onClick) },
         )
         planningContext()
         if (hasVisibleTaskThemes(themes, selectedThemeIds)) EntityThemeSelector(
@@ -218,10 +223,10 @@ private fun RowScope.DayTaskCardContent(
             onToggle = onToggleTheme,
             modifier = Modifier.padding(top = 5.dp),
         )
-        com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskRealizedPriorityChips(task, onClick)
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DayTaskMetaRow(
     taskWithReminder: DayTaskWithReminder,
@@ -232,6 +237,7 @@ private fun DayTaskMetaRow(
     orientationSource: CanonicalEntitySummary?,
     relatedOrientations: List<CanonicalEntitySummary>,
     onOpenOrientation: (String) -> Unit,
+    priorityChips: @Composable FlowRowScope.() -> Unit,
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
@@ -286,8 +292,10 @@ private fun DayTaskMetaRow(
             }
         }
 
-    if (metaItems.isEmpty() && contextIcons.isEmpty() && orientationSource == null && relatedOrientations.isEmpty()) return
+    if (metaItems.isEmpty() && contextIcons.isEmpty() && orientationSource == null &&
+        relatedOrientations.isEmpty() && task.realizedDayFocusItemIds.orEmpty().isEmpty()) return
     UnifiedStatusRow(modifier = modifier) {
+        priorityChips()
         orientationSource?.let { source ->
             PlanningOrientationSourceBadge(source) { onOpenOrientation(source.ref.id) }
         }

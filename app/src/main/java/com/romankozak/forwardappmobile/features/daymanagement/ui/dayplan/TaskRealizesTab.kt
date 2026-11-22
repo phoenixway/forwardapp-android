@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.planning.*
 import com.romankozak.forwardappmobile.data.planning.day.liveTaskPriorities
 import com.romankozak.forwardappmobile.features.planning.PlanningItemReferences
 import com.romankozak.forwardappmobile.features.planning.PlanningRelationSectionHeading
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 
 @Composable
 internal fun TaskRealizesTab(task: DayTask?, legacyLinks: List<Pair<String, String>>, onRemoveLegacy: (String) -> Unit,
@@ -95,11 +96,29 @@ internal fun DayFocusType.priorityLabel() = if (this == DayFocusType.FOCUS) "Ф�
 /** All cards in this navigation entry share one bulk priority catalog; no per-card DB lookup. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DayTaskRealizedPriorityChips(task: DayTask, onOpenTask: () -> Unit, viewModel: DayTaskPriorityCatalogViewModel = hiltViewModel()) {
+fun FlowRowScope.DayTaskRealizedPriorityChips(
+    task: DayTask,
+    onOpenTask: () -> Unit,
+    viewModel: DayTaskPriorityCatalogViewModel = hiltViewModel(),
+) {
     val catalog by viewModel.priorities.collectAsStateWithLifecycle()
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        liveTaskPriorities(task, catalog[task.dayPlanId].orEmpty()).forEach { priority ->
-            SuggestionChip(onClick = onOpenTask, label = { Text("${priority.type.priorityLabel()}: ${priority.title}") })
-        }
+    liveTaskPriorities(task, catalog[task.dayPlanId].orEmpty()).forEach { priority ->
+        val typeLabel = if (priority.type == DayFocusType.FOCUS) "Фокус" else "Зона відповідальності"
+        val label =
+            if (priority.title.equals(task.title, ignoreCase = true)) {
+                typeLabel
+            } else {
+                "$typeLabel · ${priority.title}"
+            }
+        UnifiedMetaChip(
+            text = label,
+            contentColor =
+                if (priority.type == DayFocusType.FOCUS) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                },
+            onClick = onOpenTask,
+        )
     }
 }
