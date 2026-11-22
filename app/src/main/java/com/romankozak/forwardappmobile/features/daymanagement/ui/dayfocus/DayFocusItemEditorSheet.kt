@@ -160,6 +160,7 @@ fun DayFocusItemEditorSheet(
             when (selectedTab) {
                 DayFocusEditorTab.GENERAL ->
                     LazyColumn(
+                        modifier = Modifier.weight(1f, fill = false),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
@@ -285,7 +286,7 @@ fun DayFocusItemEditorSheet(
                         }
                     }
 
-                DayFocusEditorTab.LINKS -> Column {
+                DayFocusEditorTab.LINKS -> Column(Modifier.weight(1f, fill = false)) {
                     existingItem?.let { item ->
                         com.romankozak.forwardappmobile.features.planning.PlanningReferencesPanel(
                             com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwner(
