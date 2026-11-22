@@ -251,7 +251,7 @@ private fun DayThemeEditorSheet(
             Text(if (theme == null) "Нова тема" else "Властивості теми", style = MaterialTheme.typography.titleLarge)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(if (carryForward) "Переносити в наступний день" else "Разова тема цього дня")
+                Text("Переносити на наступний день")
                 Switch(checked = carryForward, onCheckedChange = { carryForward = it })
             }
             Spacer(Modifier.height(12.dp))
