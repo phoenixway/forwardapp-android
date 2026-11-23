@@ -56,6 +56,7 @@ fun DayManagementScreen(
         remember(startTab, currentDayManagementTab, runtimeDefaultTodayTab) {
             currentDayManagementTab ?: DayManagementTab.fromRouteValue(startTab) ?: runtimeDefaultTodayTab
         }
+    val selectedTab = currentDayManagementTab ?: uiState.selectedTab
     val tabs =
         remember(requestedStartTab) {
             if (requestedStartTab in DayManagementTab.todaySubTabs()) {
@@ -76,8 +77,8 @@ fun DayManagementScreen(
         viewModel.selectTab(requestedStartTab)
     }
 
-    LaunchedEffect(uiState.selectedTab, pagerState) {
-        val pageIndex = tabs.indexOf(uiState.selectedTab)
+    LaunchedEffect(selectedTab, pagerState) {
+        val pageIndex = tabs.indexOf(selectedTab)
         if (pageIndex >= 0 && pagerState.currentPage != pageIndex) {
             pagerState.scrollToPage(pageIndex)
         }
@@ -97,7 +98,7 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            if (showFabMenu && uiState.selectedTab != DayManagementTab.DAY_THEMES) {
+            if (showFabMenu && selectedTab != DayManagementTab.DAY_THEMES) {
                 DayManagementFabMenu(
                     isFabMenuExpanded = isFabMenuExpanded,
                     onToggleExpanded = { isFabMenuExpanded = !isFabMenuExpanded },
@@ -125,7 +126,7 @@ fun DayManagementScreen(
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (tabs.toList() == DayManagementTab.todaySubTabs()) {
                 TodayStageHeader(
-                    selectedTab = uiState.selectedTab,
+                    selectedTab = selectedTab,
                     runtimeState = runtimeUiState.runtimeState,
                     onSelectTab = { tab ->
                         viewModel.selectTab(tab)

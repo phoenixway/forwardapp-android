@@ -57,7 +57,7 @@ internal fun MainScreenBottomBar(
     dayManagementViewModel: DayManagementViewModel,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayManagementRuntimeUiState: DayManagementRuntimeUiState,
-    defaultTodayTab: DayManagementTab,
+    selectedTodayTab: DayManagementTab,
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
     dayFocusesViewModel: DayFocusesViewModel,
@@ -107,10 +107,7 @@ internal fun MainScreenBottomBar(
             TodayBottomPanel(
                 selectedDate = dayManagementUiState.selectedDate,
                 onDateSelected = dayManagementViewModel::navigateToDate,
-                currentTab =
-                    dayManagementUiState.selectedTab
-                        .takeIf { it in DayManagementTab.todaySubTabs() }
-                        ?: defaultTodayTab,
+                currentTab = selectedTodayTab,
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
                 onFinalizeThemes = dayManagementRuntimeViewModel::finalizeThemes,
