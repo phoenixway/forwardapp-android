@@ -2,10 +2,12 @@
 
 ## Day Theme backup: verify repaired export before Restore
 
-After a rebuilt APK is installed, export a fresh full JSON backup. Verify that
-nonempty `dayThemeAssignmentDocuments[].assignments[]` records contain
-`entityId` and `dayThemeIds`, then validate Restore on disposable data before
-using it to replace the phone database. The November 22 and November 25 local
+The November 25 evening rebuild produced all 23 assignments with stable fields,
+but its other canonical rows still carry R8 one-letter fields and Restore
+fails at Big Picture. After the broader wire-keep fix is rebuilt, export a
+fresh full JSON backup. Verify nonempty assignment and Big Picture rows have
+canonical field names, then validate Restore on disposable data before using
+it to replace the phone database. Earlier November 22 and midday November 25
 backups have 23 empty assignment objects and cannot restore those links.
 
 ## Manual Quest -> Direction acceptance

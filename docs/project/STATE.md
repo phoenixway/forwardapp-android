@@ -12,6 +12,15 @@ signatures in R8, and rejects missing assignment fields before database
 replacement with an actionable error. The phone database was not changed or
 inspected. CI, rebuilt export, and physical Restore acceptance remain pending.
 
+The November 25 evening rebuilt export contains all 23 Theme assignments with
+`entityId`/`dayThemeIds`, confirming that narrow repair. Restore then fails on
+another Gson `LinkedTreeMap` cast, this time to `BigPictureContainerSnapshot`.
+The evening backup still uses minified one-letter fields in Big Picture,
+GroupScope coverage and canonical entity rows. Source now keeps complete backup
+DTO/entity field names and generic signatures under R8 and rejects old
+unstable-key backups before restore. No hierarchy authority or Room rows are
+changed by this wire repair. Fresh export and physical Restore remain pending.
+
 ## 2026-11-21 - Journal entity-link release crash correction (HOST source pending verification)
 
 The newest local screenshot and Shizuku logcat showed a main-thread NPE when

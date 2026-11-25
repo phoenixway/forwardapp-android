@@ -98,6 +98,9 @@ class SyncFileService @Inject constructor(
                 }
 
                 val rawRoot = JsonParser.parseString(normalizedJson).asJsonObject
+                rawRoot.get("snapshotBundle")?.takeIf { it.isJsonObject }?.asJsonObject?.let {
+                    SnapshotBackupWireGuard.requireStableFields(it)
+                }
                 val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
                 val snapshotBundle =
                     requireNotNull(backupData.snapshotBundle) {
@@ -166,6 +169,9 @@ class SyncFileService @Inject constructor(
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
             val rawRoot = JsonParser.parseString(normalizedJson).asJsonObject
+            rawRoot.get("snapshotBundle")?.takeIf { it.isJsonObject }?.asJsonObject?.let {
+                SnapshotBackupWireGuard.requireStableFields(it)
+            }
             val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
 
             backupData.snapshotBundle?.let { snapshotBundle ->
@@ -247,6 +253,7 @@ class SyncFileService @Inject constructor(
     private fun serializeVerifiedBackup(backup: FullAppBackup): String {
         val json = gson.toJson(backup)
         val snapshot = JsonParser.parseString(json).asJsonObject.getAsJsonObject("snapshotBundle")
+        SnapshotBackupWireGuard.requireStableFields(snapshot)
         CanonicalDayThemeImportGate.requireCompleteAssignments(snapshot)
         return json
     }
@@ -318,6 +325,8 @@ class SyncFileService @Inject constructor(
 
     private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
         val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
+        val wireSnapshot = jsonObject.get("snapshotBundle")?.takeIf { it.isJsonObject }?.asJsonObject ?: jsonObject
+        SnapshotBackupWireGuard.requireStableFields(wireSnapshot)
         gson.decodeCanonicalSnapshotRoot(jsonObject)?.let { decoded ->
             return ResolvedImportBundle(
                 CanonicalDayThemeImportGate.requireImportable(jsonObject, decoded),
