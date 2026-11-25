@@ -1,14 +1,14 @@
 # Next
 
-## Day Theme backup: verify repaired export before Restore
+## Full JSON import: device acceptance
 
-The November 25 evening rebuild produced all 23 assignments with stable fields,
-but its other canonical rows still carry R8 one-letter fields and Restore
-fails at Big Picture. After the broader wire-keep fix is rebuilt, export a
-fresh full JSON backup. Verify nonempty assignment and Big Picture rows have
-canonical field names, then validate Restore on disposable data before using
-it to replace the phone database. Earlier November 22 and midday November 25
-backups have 23 empty assignment objects and cannot restore those links.
+Build and install the source after `ea54d3b1`, then retry Restore and Merge
+with the 22:29 November 25 backup. Confirm Restore completes, relaunches with
+the expected Theme assignments and other data, and Merge finishes without
+recreating ordinary Context authority. If either path fails, capture the next
+specific `SyncFileService` error before changing another ingress rule. The
+November 22 and midday November 25 backups have 23 empty Theme assignment
+objects and cannot restore those links.
 
 ## Manual Quest -> Direction acceptance
 

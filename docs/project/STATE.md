@@ -1,5 +1,20 @@
 # ForwardApp Project State
 
+## 2026-11-25 - Full JSON Restore/Merge ingress repair (CI verified, device pending)
+
+The fresh 22:29 Android backup has stable wire fields. On-device Restore rejected
+one of nine live Workspace tag refs whose Workspace is already deleted; the
+captured log shows rejection before replacement, with no current Android fatal
+exception. Workspace deletion now tombstones its tags in the same transaction;
+transport ingress converts this historical invalid pair to a winning tag
+tombstone while keeping its logical membership identity. The same backup's
+Merge was rejected because it carries 195 ordinary Context configurations for
+canonical Workspaces. Merge now admits these restore-only compatibility rows
+only when canonical Workspace and capability payloads are present; it does not
+persist them as new Context authority. Focused `app-prod` tests passed in
+GitHub Actions run `45700208323` on `ea54d3b1`. APK and physical import
+acceptance remain pending.
+
 ## 2026-11-25 - Day Theme backup assignment serialization repair (source pending verification)
 
 The installed minified APK exports canonical Day Theme assignment entries as
