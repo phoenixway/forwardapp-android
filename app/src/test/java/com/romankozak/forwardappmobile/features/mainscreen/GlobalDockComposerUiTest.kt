@@ -273,7 +273,7 @@ class GlobalDockComposerUiTest {
                 onActivityEntityLinksChanged = {}, onToggleActivityStartStop = {}, onTimelessRecordClick = {},
                 onQuickDoneClick = {}, onBackdatedClick = {}, onDaySummaryClick = {},
                 onSubmitInput = { events += "task:${draft.text}" },
-                onStartFinalization = {}, onSleep = {},
+                onStartFinalization = {}, onSleep = {}, themeBudgetPercent = 0, onAddDayTheme = {},
             )
         } }
         ui.onNodeWithText(DayManagementTab.DAY_PLAN.title).assertDoesNotExist()
