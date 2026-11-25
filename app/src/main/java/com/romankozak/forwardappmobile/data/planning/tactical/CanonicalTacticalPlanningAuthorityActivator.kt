@@ -211,17 +211,34 @@ class CanonicalTacticalPlanningAuthorityActivator
                 database.orientationDao()
                     .getAllManagedSubjects()
                     .associateBy { it.id }
+            val cycleIds = database.tacticalIterationDao().getAllSync().mapTo(hashSetOf()) { it.id }
+            val resolutionSnapshot = TacticalMissionOrientationResolutionSnapshot(
+                missions = rows,
+                backlogEntries = database.workspaceBacklogEntryDao().getAll(),
+                arcQuests = database.arcQuestDao().getAllSync(),
+                mappings = database.orientationDao().getAllLegacyMappings(),
+                subjects = subjectsById.values.toList(),
+                orientations = database.orientationDao().getAllOrientations(),
+            )
 
             rows.sortedBy { it.id }.forEach { row ->
                 val candidates = commitmentsByMissionId[row.id].orEmpty()
 
                 if (candidates.isEmpty()) {
                     if (!row.isDeleted) {
-                        require(
-                            row.sourceType == MissionSourceType.CONTEXT_BACKLOG_ITEM ||
-                                row.sourceType == MissionSourceType.SLOT_BACKLOG_ITEM,
-                        ) {
-                            "Eligible TacticalMission ${row.id} is missing canonical MISSION participation"
+                        val historicalAlias = row.iterationId == null ||
+                            (row.weekKey.isNotBlank() && row.iterationId == row.weekKey && row.iterationId !in cycleIds)
+                        if (row.sourceType == MissionSourceType.MANUAL && historicalAlias) {
+                            val resolution = resolveTacticalMissionOrientation(row, resolutionSnapshot)
+                            require(resolution is TacticalMissionOrientationResolution.Resolved &&
+                                resolution.path == TacticalMissionOrientationResolutionPath.LEGACY_MANUAL_MAPPING) {
+                                "Standalone MANUAL TacticalMission ${row.id} requires a verified canonical INTENT mapping"
+                            }
+                        } else {
+                            require(row.sourceType == MissionSourceType.CONTEXT_BACKLOG_ITEM ||
+                                row.sourceType == MissionSourceType.SLOT_BACKLOG_ITEM) {
+                                "Eligible TacticalMission ${row.id} is missing canonical MISSION participation"
+                            }
                         }
                     }
                     // No canonical MISSION commitment is created for deferred

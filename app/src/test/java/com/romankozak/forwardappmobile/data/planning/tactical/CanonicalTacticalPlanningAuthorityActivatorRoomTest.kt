@@ -281,6 +281,62 @@ class CanonicalTacticalPlanningAuthorityActivatorRoomTest {
     }
 
     @Test
+    fun `canonical projection admits verified standalone MANUAL history without creating participation`() = runBlocking {
+        val db = database()
+        try {
+            seed(db, includeMapping = true)
+            val activator = activator(db)
+            activator.ensureActivated(now = 100L)
+
+            val historical = TacticalMission(
+                id = 12L,
+                title = "Historical",
+                description = "",
+                deadline = NO_DEADLINE,
+                projectId = null,
+                iterationId = null,
+                createdAt = 1L,
+                updatedAt = 2L,
+                version = 1L,
+            )
+            db.tacticalMissionDao().insertMissionRaw(historical)
+            val subjectId = legacyManualTacticalMissionSubjectId(12L)
+            db.orientationDao().upsertManagedSubjects(listOf(
+                ManagedSubjectEntity(subjectId, ManagedSubjectType.ORIENTATION.name,
+                    "Historical", "", 1L, 2L, null, false, 1L),
+            ))
+            db.orientationDao().upsertOrientations(listOf(
+                OrientationEntity(subjectId, OrientationKind.INTENT.name, null, ValueOrigin.UNSET.name),
+            ))
+            db.orientationDao().upsertLegacyMappings(listOf(
+                LegacySubjectMappingEntity(
+                    id = subjectId,
+                    sourceType = LegacyOrientationSourceType.TACTICAL_MISSION.name,
+                    sourceId = "12",
+                    subjectId = subjectId,
+                    migrationVersion = 1,
+                    state = LegacySubjectMappingState.CUT_OVER.name,
+                    createdAt = 1L,
+                    updatedAt = 2L,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                ),
+            ))
+
+            activator.projectCompatibilityRows()
+            assertEquals(historical, db.tacticalMissionDao().getMissionById(12L))
+            assertEquals(1, db.planningDao().getAllCommitments().size)
+
+            db.tacticalMissionDao().insertMissionRaw(historical.copy(id = 13L, iterationId = "cycle"))
+            val failure = runCatching { activator.projectCompatibilityRows() }.exceptionOrNull()
+            assertTrue(failure?.message?.contains("missing canonical MISSION participation") == true)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
     fun `extra tactical canonical scope fails exact parity and leaves marker inactive`() = runBlocking {
         val db = database()
         try {
