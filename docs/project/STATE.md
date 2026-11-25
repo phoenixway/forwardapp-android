@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Restore Goal bootstrap blank-description admission (CI verified, device pending)
+
+The 00:00 full backup reaches Orientation bootstrap after the Workspace-tag
+repair, then Restore fails with one issue. Offline comparison of its 4,430
+CUT_OVER Goal rows identified one legacy Goal description encoded as `""`
+while its canonical subject stores `null`; title, deletion and identity match.
+Bootstrap comparison now treats only these two absent-description forms as
+equivalent for CUT_OVER Goals. A genuinely different description still raises
+`SHADOW_MISMATCH`. The focused `app-prod` test passed in GitHub Actions run
+`45711285652` on `0f3625c71`; physical Restore acceptance remains pending.
+The source backup and phone database were not modified.
+
 ## 2026-11-25 - Full JSON Restore/Merge ingress repair (CI verified, device pending)
 
 The fresh 22:29 Android backup has stable wire fields. On-device Restore rejected
