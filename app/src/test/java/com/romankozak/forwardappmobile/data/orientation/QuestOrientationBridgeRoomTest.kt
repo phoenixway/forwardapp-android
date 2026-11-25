@@ -205,6 +205,15 @@ class QuestOrientationBridgeRoomTest {
             assertFalse(deletedAssessment.isDeleted)
             assertFalse(deletedMapping.isDeleted)
             assertTrue(deletedCompatibility.isDeleted)
+
+            // Restore clears the bootstrap marker, then reruns this projection.
+            // A removed Strategic participation must stay removed even though
+            // the reusable QUEST semantic subject remains live.
+            database.openHelper.writableDatabase.execSQL("DELETE FROM orientation_bootstrap_state")
+            val restoreBootstrap = bootstrapper(database).ensureBootstrapped()
+            assertTrue(restoreBootstrap.issues.isEmpty())
+            assertTrue(requireNotNull(database.arcQuestDao().getById(quest.id)).isDeleted)
+            assertFalse(requireNotNull(database.orientationDao().getManagedSubject(mapping.subjectId)).isDeleted)
         }
     }
 

@@ -703,16 +703,20 @@ private suspend fun repairArcQuestCompatibilityProjections(
                 "ARC_QUEST mapping ${mapping.sourceId} points to a non-MANUAL ArcQuest"
             }
 
+            // Strategic participation can be tombstoned while its reusable
+            // QUEST Orientation stays live. Bootstrap must not resurrect the
+            // ArcQuest carrier from semantic liveness alone.
+            val projectedDeletion = quest.isDeleted || subject.isDeleted
             if (
                 quest.title != subject.title ||
                 quest.description != subject.description ||
-                quest.isDeleted != subject.isDeleted
+                quest.isDeleted != projectedDeletion
             ) {
                 arcQuestDao.projectCommonFields(
                     questId = quest.id,
                     title = subject.title,
                     description = subject.description,
-                    isDeleted = subject.isDeleted,
+                    isDeleted = projectedDeletion,
                 )
             }
         }
