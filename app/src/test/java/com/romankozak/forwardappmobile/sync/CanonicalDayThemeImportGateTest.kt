@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeDocumentSnapshot
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -77,6 +78,21 @@ class CanonicalDayThemeImportGateTest {
 
         expectMalformed {
             CanonicalDayThemeImportGate.requireFullRestoreImportable(raw, SnapshotBundle())
+        }
+    }
+
+    @Test
+    fun `restore rejects release backup with empty assignment objects before replacement`() {
+        val raw =
+            JsonParser.parseString(
+                """{"themeDefinitions":[],"dayThemes":[],"dayThemeAssignmentDocuments":[{"a":"day-1","b":[{}]}]}""",
+            ).asJsonObject
+
+        try {
+            CanonicalDayThemeImportGate.requireFullRestoreImportable(raw, canonicalEmptyBundle())
+            fail("Expected incomplete assignment payload to be rejected")
+        } catch (failure: IllegalArgumentException) {
+            assertTrue(failure.message.orEmpty().contains("експортуйте нову копію"))
         }
     }
 

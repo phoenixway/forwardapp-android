@@ -1,5 +1,13 @@
 # Next
 
+## Day Theme backup: verify repaired export before Restore
+
+After a rebuilt APK is installed, export a fresh full JSON backup. Verify that
+nonempty `dayThemeAssignmentDocuments[].assignments[]` records contain
+`entityId` and `dayThemeIds`, then validate Restore on disposable data before
+using it to replace the phone database. The November 22 and November 25 local
+backups have 23 empty assignment objects and cannot restore those links.
+
 ## Manual Quest -> Direction acceptance
 
 Focused shared, sync and Room CI tests passed; APK build remains under the

@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.data.models.sync
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.ThemeDefinitionSnapshot
 import org.junit.Assert.assertEquals
@@ -154,5 +155,22 @@ class DayThemeCanonicalPresenceTest {
         assertEquals("day-1", decoded.dayThemeAssignmentDocuments!!.single().dayPlanId)
         assertFalse(json.contains("\"themeIds\""))
         assertTrue(json.contains("\"dayThemeAssignmentDocuments\""))
+    }
+
+    @Test
+    fun `release field aliases decode typed assignments and export stable names`() {
+        val oldJson = """{"a":"day-1","b":[{"a":"focus-1","b":["theme-1"]}],"c":1,"d":2,"f":3,"g":false}"""
+        val decoded = gson.fromJson(oldJson, DayThemeAssignmentDocumentSnapshot::class.java)
+
+        assertEquals("day-1", decoded.dayPlanId)
+        assertTrue(decoded.assignments.single() is DayThemeAssignmentSnapshot)
+        assertEquals("focus-1", decoded.assignments.single().entityId)
+        assertEquals(listOf("theme-1"), decoded.assignments.single().dayThemeIds)
+
+        val newJson = gson.toJson(decoded)
+        val stable = JsonParser.parseString(newJson).asJsonObject
+        assertTrue(stable.has("dayPlanId"))
+        assertTrue(stable.getAsJsonArray("assignments").single().asJsonObject.has("entityId"))
+        assertFalse(stable.has("a"))
     }
 }

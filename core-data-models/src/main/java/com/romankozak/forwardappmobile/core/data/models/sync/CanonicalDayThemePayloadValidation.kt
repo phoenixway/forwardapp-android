@@ -2,6 +2,9 @@ package com.romankozak.forwardappmobile.core.data.models.sync
 
 import com.romankozak.forwardappmobile.shared.core.models.day.canonicalDayThemeId
 
+private const val MISSING_ASSIGNMENTS_MESSAGE =
+    "Day Theme assignment data is missing from this backup. Export a new backup with the updated app."
+
 fun requireValidCanonicalDayThemePayload(bundle: SnapshotBundle) {
     val fields =
         listOf(
@@ -75,25 +78,39 @@ fun requireValidCanonicalDayThemePayload(bundle: SnapshotBundle) {
             "DayThemeAssignmentDocument references missing DayPlan ${document.dayPlanId}."
         }
 
-        require(document.assignments.map { it.entityId }.distinct().size == document.assignments.size) {
+        val assignments = requireNotNull(document.assignments) {
+            MISSING_ASSIGNMENTS_MESSAGE
+        }
+        val entityIds = assignments.map { assignment ->
+            requireNotNull(assignment?.entityId) {
+                MISSING_ASSIGNMENTS_MESSAGE
+            }
+        }
+        require(entityIds.distinct().size == assignments.size) {
             "DayThemeAssignmentDocument ${document.dayPlanId} contains duplicate entity assignments."
         }
 
-        document.assignments.forEach { assignment ->
-            require(assignment.entityId.isNotBlank()) {
+        assignments.forEach { assignment ->
+            val entityId = requireNotNull(assignment.entityId) {
+                MISSING_ASSIGNMENTS_MESSAGE
+            }
+            require(entityId.isNotBlank()) {
                 "DayTheme assignment entityId must not be blank."
             }
-            require(assignment.dayThemeIds.distinct().size == assignment.dayThemeIds.size) {
-                "DayTheme assignment ${assignment.entityId} contains duplicate dayThemeIds."
+            val dayThemeIds = requireNotNull(assignment.dayThemeIds) {
+                MISSING_ASSIGNMENTS_MESSAGE
+            }
+            require(dayThemeIds.distinct().size == dayThemeIds.size) {
+                "DayTheme assignment $entityId contains duplicate dayThemeIds."
             }
 
-            assignment.dayThemeIds.forEach { dayThemeId ->
+            dayThemeIds.forEach { dayThemeId ->
                 val referenced =
                     requireNotNull(dayThemesById[dayThemeId]) {
-                        "DayTheme assignment ${assignment.entityId} references missing DayTheme $dayThemeId."
+                        "DayTheme assignment $entityId references missing DayTheme $dayThemeId."
                     }
                 require(referenced.dayPlanId == document.dayPlanId) {
-                    "DayTheme assignment ${assignment.entityId} references DayTheme $dayThemeId from another day."
+                    "DayTheme assignment $entityId references DayTheme $dayThemeId from another day."
                 }
             }
         }

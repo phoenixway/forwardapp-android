@@ -83,7 +83,7 @@ class SyncFileService @Inject constructor(
             settings = SettingsContent(settingsMap),
             snapshotBundle = snapshotBundle,
         )
-        return gson.toJson(fullBackup)
+        return serializeVerifiedBackup(fullBackup)
     }
 
     suspend fun importFullBackupFromFile(uriString: String): Result<String> =
@@ -241,7 +241,14 @@ class SyncFileService @Inject constructor(
             settings = SettingsContent(settingsMap),
             snapshotBundle = snapshotBundle,
         )
-        return gson.toJson(fullBackup)
+        return serializeVerifiedBackup(fullBackup)
+    }
+
+    private fun serializeVerifiedBackup(backup: FullAppBackup): String {
+        val json = gson.toJson(backup)
+        val snapshot = JsonParser.parseString(json).asJsonObject.getAsJsonObject("snapshotBundle")
+        CanonicalDayThemeImportGate.requireCompleteAssignments(snapshot)
+        return json
     }
 
     suspend fun importFullBackupFromFileV2(uriString: String): Result<String> = withContext(Dispatchers.IO) {

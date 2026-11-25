@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-25 - Day Theme backup assignment serialization repair (source pending verification)
+
+The installed minified APK exports canonical Day Theme assignment entries as
+empty JSON objects. Both local November 22 and November 25 backups contain 23
+such entries; their entity/theme links cannot be recovered from those files.
+The November 25 Restore fails when Gson reads an assignment as `LinkedTreeMap`
+instead of `DayThemeAssignmentSnapshot`. Source now pins stable canonical DTO
+field names, admits the observed release aliases, preserves nested generic
+signatures in R8, and rejects missing assignment fields before database
+replacement with an actionable error. The phone database was not changed or
+inspected. CI, rebuilt export, and physical Restore acceptance remain pending.
+
 ## 2026-11-21 - Journal entity-link release crash correction (HOST source pending verification)
 
 The newest local screenshot and Shizuku logcat showed a main-thread NPE when

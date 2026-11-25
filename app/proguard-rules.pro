@@ -31,6 +31,14 @@
 -keep class com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin { *; }
 -keep class com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationEvaluationState { *; }
 
+# Gson stores Day Theme assignment lists inside canonical backup records.
+# Keep their generic signatures and field adapters in minified builds.
+-keepattributes Signature,RuntimeVisibleAnnotations
+-keep class com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.ThemeDefinitionSnapshot { *; }
+-keep class com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot { *; }
+-keep class com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentSnapshot { *; }
+-keep class com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot { *; }
+
 # Hilt / Dagger generated code (aggregators, components, sentinels).
 -keep class dagger.hilt.internal.aggregatedroot.codegen.** { *; }
 -keep class dagger.hilt.internal.processedrootsentinel.codegen.** { *; }
