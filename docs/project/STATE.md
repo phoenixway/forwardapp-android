@@ -20,6 +20,9 @@ GroupScope coverage and canonical entity rows. Source now keeps complete backup
 DTO/entity field names and generic signatures under R8 and rejects old
 unstable-key backups before restore. No hierarchy authority or Room rows are
 changed by this wire repair. Fresh export and physical Restore remain pending.
+Filtered `app-prod` wire-guard JVM test and production/test compilation passed
+in GitHub Actions run `45681384787` on `621db0f3`; release R8 behavior remains
+unverified until a rebuilt APK exports a fresh backup.
 
 ## 2026-11-21 - Journal entity-link release crash correction (HOST source pending verification)
 
