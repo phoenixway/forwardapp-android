@@ -12,11 +12,41 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.Orientatio
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationNode
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ValueOrigin
 import com.romankozak.forwardappmobile.shared.core.models.orientation.emptyApplicableAssessment
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CanonicalOrientationBootstrapPlanTest {
+    @Test
+    fun `cut over Goal accepts absent description encoded as empty or null but rejects real drift`() = runBlocking {
+        val legacy = projection("goal-description").let { it.copy(subject = it.subject.copy(description = "")) }
+        val rows = legacy.toCanonicalRows(Gson(), CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION)
+        val mapping = rows.mapping.copy(state = LegacySubjectMappingState.CUT_OVER.name)
+        val canonical = rows.subject.copy(description = null)
+
+        val equivalent = compareCanonicalRows(
+            projections = listOf(legacy),
+            subjects = listOf(canonical),
+            orientations = listOf(rows.orientation),
+            assessments = listOf(rows.assessment),
+            mappings = listOf(mapping),
+            conversions = emptyList(),
+        )
+        assertTrue(equivalent.isEmpty())
+
+        val drift = compareCanonicalRows(
+            projections = listOf(legacy),
+            subjects = listOf(canonical.copy(description = "different")),
+            orientations = listOf(rows.orientation),
+            assessments = listOf(rows.assessment),
+            mappings = listOf(mapping),
+            conversions = emptyList(),
+        )
+        assertEquals("SHADOW_MISMATCH", drift.single().code)
+        assertTrue(drift.single().detail.contains("subject.description"))
+    }
+
     @Test
     fun `bootstrap plan is idempotent after durable mapping exists`() {
         val projection = projection("goal-1")

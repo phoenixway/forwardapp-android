@@ -426,7 +426,7 @@ internal fun planBootstrap(
     return OrientationBootstrapPlan(rows, issues)
 }
 
-private suspend fun compareCanonicalRows(
+internal suspend fun compareCanonicalRows(
     projections: List<EffectiveOrientation>,
     subjects: List<ManagedSubjectEntity>,
     orientations: List<OrientationEntity>,
@@ -463,6 +463,13 @@ private suspend fun compareCanonicalRows(
         val isCutOverQuest =
             expected.source.sourceType == LegacyOrientationSourceType.ARC_QUEST &&
                 mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        // Older Goal compatibility rows use an empty string for an absent
+        // description, while canonical subjects may store the same absence as null.
+        val descriptionMatches =
+            subject?.description == expected.subject.description ||
+                (isCutOverGoal &&
+                    subject?.description.isNullOrEmpty() &&
+                    expected.subject.description.isNullOrEmpty())
         val convertedQuestDirection = isCutOverQuest && orientation?.kind == OrientationKind.DIRECTION.name &&
             conversions.any { it.subjectId == canonicalSubjectId && it.formatVersion == 4 }
         val expectedKind =
@@ -487,7 +494,7 @@ private suspend fun compareCanonicalRows(
                 false
             } else {
                 subject.title != expected.subject.title ||
-                    subject.description != expected.subject.description ||
+                    !descriptionMatches ||
                     subject.isDeleted != expected.subject.isDeleted ||
                     (
                         !isCutOverGoal &&
@@ -521,7 +528,7 @@ private suspend fun compareCanonicalRows(
                     if (subject != null) {
                         if (subject.subjectType != expected.subject.subjectType.name) add("subject.subjectType")
                         if (subject.title != expected.subject.title) add("subject.title")
-                        if (subject.description != expected.subject.description) add("subject.description")
+                        if (!descriptionMatches) add("subject.description")
                         if (subject.isDeleted != expected.subject.isDeleted) add("subject.isDeleted")
                         if (subject.createdAt != expected.subject.createdAt) add("subject.createdAt")
                         if (!isCutOverGoal && subject.updatedAt != expected.subject.updatedAt) {
