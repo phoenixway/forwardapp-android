@@ -1,5 +1,18 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Strategic Restore carrier deletion preservation (CI verified, device pending)
+
+The 01:43 backup reaches Strategic admission and reports a FOCUS deletion
+divergence. Seven deleted MANUAL ArcQuest carriers have deleted/DROPPED FOCUS
+participation while their reusable QUEST Orientation remains live. During
+Restore, Orientation bootstrap projected semantic liveness back onto each
+carrier and resurrected it before Strategic admission. Bootstrap now preserves
+carrier deletion independently and still tombstones a carrier if its semantic
+subject is deleted. The regression reruns bootstrap after clearing its local
+marker, matching Restore. The focused Room test passed in GitHub Actions run
+`45724687734` on `57982c75f`; physical Restore acceptance remains pending.
+No backup or device data was edited.
+
 ## 2026-11-26 - Historical TacticalMission Restore projection correction (CI verified, device pending)
 
 The 00:38 backup passes the earlier Restore checks, then canonical Tactical

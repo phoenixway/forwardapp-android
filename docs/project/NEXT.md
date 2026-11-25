@@ -2,8 +2,8 @@
 
 ## Full JSON import: device acceptance
 
-Build and install the source after `3ddb0ef5e`, then retry Restore and Merge
-with the 00:38 November 26 backup. Confirm Restore completes, relaunches with
+Build and install the source after `57982c75f`, then retry Restore and Merge
+with the 01:43 November 26 backup. Confirm Restore completes, relaunches with
 the expected Theme assignments and other data, and Merge finishes without
 recreating ordinary Context authority. If either path fails, capture the next
 specific `SyncFileService` error before changing another ingress rule. The
