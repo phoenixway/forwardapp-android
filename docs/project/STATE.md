@@ -1,5 +1,19 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Historical TacticalMission Restore projection correction (CI verified, device pending)
+
+The 00:38 backup passes the earlier Restore checks, then canonical Tactical
+compatibility projection rejects historical MANUAL TacticalMission 12 for
+missing MISSION participation. The backup has 77 live standalone MANUAL
+carriers without participation, each with a valid CUT_OVER INTENT mapping and
+complete assessment history. The accepted historical-alias contract admits
+these carriers without manufacturing old cycle participation. Projection now
+uses the existing semantic resolver for standalone/manual week aliases and
+retains failure for a real cycle mission missing its canonical commitment.
+The focused Room regression passed in GitHub Actions run `45716568368` on
+`3ddb0ef5e`; device Restore acceptance remains pending. The backup and phone
+database were not changed.
+
 ## 2026-11-26 - Restore Goal bootstrap blank-description admission (CI verified, device pending)
 
 The 00:00 full backup reaches Orientation bootstrap after the Workspace-tag
