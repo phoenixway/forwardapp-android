@@ -47,6 +47,28 @@ class CanonicalWorkspaceTagTransportStoreRoomTest {
     }
 
     @Test
+    fun `restore repairs live tag from deleted Workspace as winning tombstone`() = runBlocking {
+        val database = database()
+        try {
+            insertWorkspace(database)
+            val live = tag(version = 2L, updatedAt = 20L, isDeleted = false)
+            database.workspaceTagRefDao().upsert(listOf(live))
+            val owner = requireNotNull(database.workspaceDao().getById(OWNER))
+            database.workspaceDao().upsert(listOf(owner.copy(isDeleted = true, updatedAt = 30L)))
+
+            CanonicalWorkspaceTagTransportStore(database).mergeIncoming(listOf(live))
+
+            val repaired = database.workspaceTagRefDao().getAllForWorkspace(OWNER).single()
+            assertTrue(repaired.isDeleted)
+            assertEquals(3L, repaired.version)
+            assertTrue(repaired.updatedAt > 30L)
+            assertEquals(live.normalizedTag, repaired.normalizedTag)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `SnapshotBundle distinguishes absent tag transport from authoritative empty collection`() {
         val gson = Gson()
         assertNull(gson.fromJson("{}", SnapshotBundle::class.java).workspaceTagRefs)

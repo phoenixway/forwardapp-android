@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.hierarchy.HierarchyPlacementSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
@@ -13,6 +14,29 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class CanonicalMergeIngressGuardTest {
+    @Test
+    fun `normal merge admits restore compatibility configuration only with canonical owner`() {
+        val configuration = configuration("w")
+        val canonical = SnapshotBundle(
+            workspaces = listOf(workspace("w")),
+            workspaceCapabilityInstances = emptyList(),
+            contextConfigurations = listOf(configuration),
+            hierarchyPlacements = emptyList(),
+            hierarchyPlacementGroupScopes = emptyList(),
+            hierarchyPlacementLinkedAppearances = emptyList(),
+        )
+        requireCanonicalMergeIngress(canonical)
+
+        for (invalid in listOf(
+            canonical.copy(workspaceCapabilityInstances = null),
+            canonical.copy(workspaces = emptyList()),
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                requireCanonicalMergeIngress(invalid)
+            }
+        }
+    }
+
     @Test
     fun `merge rejects ordinary restore only backlog and inbox`() {
         assertThrows(IllegalArgumentException::class.java) {
@@ -156,6 +180,23 @@ class CanonicalMergeIngressGuardTest {
             provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
             sourceContextId = null,
         )
+
+    private fun configuration(contextId: String) = ContextConfigurationSnapshot(
+        id = "configuration-$contextId",
+        contextId = contextId,
+        basePresetCode = "project",
+        applyMode = "MERGE",
+        enableInbox = false,
+        enableLog = false,
+        enableAdvanced = false,
+        enableDashboard = false,
+        enableBacklog = false,
+        enableAttachments = false,
+        enableAutoLinkSubprojects = false,
+        version = 1L,
+        updatedAt = 1L,
+        isDeleted = false,
+    )
 
     private fun h1() =
         HierarchyPlacementSnapshot(

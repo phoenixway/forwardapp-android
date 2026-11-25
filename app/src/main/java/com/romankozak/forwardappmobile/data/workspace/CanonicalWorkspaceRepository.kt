@@ -502,6 +502,18 @@ class CanonicalWorkspaceRepository
             backlogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             executionLogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             hierarchyPlacementLifecycleCoordinator.retireWorkspaceTargetAppearances(id, now)
+            database.workspaceTagRefDao().getAllForWorkspace(id)
+                .filterNot { it.isDeleted }
+                .map { tag ->
+                    tag.copy(
+                        updatedAt = maxOf(now, tag.updatedAt + 1L),
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = tag.version + 1L,
+                    )
+                }
+                .takeIf { it.isNotEmpty() }
+                ?.let { database.workspaceTagRefDao().upsert(it) }
             workspaceDao.upsert(listOf(current.bump(now).copy(isDeleted = true)))
 
             orientationDao.upsertWorkspaceBindings(

@@ -37,6 +37,26 @@ class CanonicalWorkspaceRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun `workspace tombstone also tombstones its canonical tags`() = runBlocking {
+        val database = database()
+        try {
+            val repository = repository(database)
+            val workspaceId = repository.create("Tagged", now = 10L)
+            CanonicalWorkspaceTagRepository(database).replaceTags(workspaceId, listOf("important"), now = 15L)
+
+            repository.tombstone(workspaceId, now = 40L)
+
+            val tag = database.workspaceTagRefDao().getAllForWorkspace(workspaceId).single()
+            assertTrue(tag.isDeleted)
+            assertEquals(2L, tag.version)
+            assertEquals(40L, tag.updatedAt)
+            assertNull(tag.syncedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `workspace tombstone also tombstones owned canonical execution logs`() = runBlocking {
         val database = database()
         try {

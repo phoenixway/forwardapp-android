@@ -28,7 +28,8 @@ class CanonicalWorkspaceTagTransportStore
                 }
 
                 val workspaces = database.workspaceDao().getAll().associateBy { it.id }
-                incoming.forEach { candidate ->
+                val local = database.workspaceTagRefDao().getAll().associateBy { it.workspaceId to it.normalizedTag }
+                val admitted = incoming.map { candidate ->
                     require(candidate.workspaceId.isNotBlank()) { "Workspace tag owner must not be blank" }
                     require(
                         candidate.normalizedTag ==
@@ -47,14 +48,28 @@ class CanonicalWorkspaceTagTransportStore
                     val workspace = requireNotNull(workspaces[candidate.workspaceId]) {
                         "Workspace tag references missing Workspace: ${candidate.workspaceId}"
                     }
-                    require(!workspace.isDeleted || candidate.isDeleted) {
-                        "Live Workspace tag cannot belong to deleted Workspace: ${candidate.workspaceId}"
+                    val current = local[candidate.workspaceId to candidate.normalizedTag]
+                    if (workspace.isDeleted && (!candidate.isDeleted || current?.isDeleted == false)) {
+                        // Older backups and Workspace deletion paths could leave a live tag
+                        // on a deleted owner. Preserve its identity as a winning tombstone.
+                        val latestVersion = maxOf(candidate.version, current?.version ?: 0L)
+                        val latestTimestamp = maxOf(candidate.updatedAt, current?.updatedAt ?: 0L, workspace.updatedAt)
+                        check(latestVersion < Long.MAX_VALUE && latestTimestamp < Long.MAX_VALUE) {
+                            "Workspace tag lifecycle version exhausted: ${candidate.workspaceId}"
+                        }
+                        candidate.copy(
+                            updatedAt = latestTimestamp + 1L,
+                            syncedAt = null,
+                            isDeleted = true,
+                            version = latestVersion + 1L,
+                        )
+                    } else {
+                        candidate
                     }
                 }
 
-                val local = database.workspaceTagRefDao().getAll().associateBy { it.workspaceId to it.normalizedTag }
                 val winners =
-                    incoming.filter { candidate ->
+                    admitted.filter { candidate ->
                         val current = local[candidate.workspaceId to candidate.normalizedTag] ?: return@filter true
                         candidate.version > current.version ||
                             (candidate.version == current.version && candidate.updatedAt > current.updatedAt) ||

@@ -47,8 +47,17 @@ internal fun requireCanonicalMergeIngress(
             .distinct()
             .toList()
 
-    require(ordinaryConfigurationContextIds.isEmpty()) {
-        "Canonical merge ingress refuses ordinary Context configuration persistence after the Context Big Cut: " +
+    // Full Android backups retain these rows for exact Restore while also carrying
+    // canonical Workspace/capability state. Normal Merge ignores the legacy rows;
+    // it must still reject Context-era payloads without that canonical authority.
+    val canonicalWorkspaceIds = bundle.workspaces?.mapTo(hashSetOf()) { it.id }
+    require(
+        ordinaryConfigurationContextIds.isEmpty() ||
+            (bundle.workspaceCapabilityInstances != null &&
+                canonicalWorkspaceIds != null &&
+                ordinaryConfigurationContextIds.all { it in canonicalWorkspaceIds }),
+    ) {
+        "Canonical merge ingress refuses ordinary Context configuration without canonical Workspace/capability ownership: " +
             ordinaryConfigurationContextIds.joinToString()
     }
 
