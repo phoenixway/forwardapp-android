@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Android-to-Android Wi-Fi peer setup (source pending verification)
+## 2026-11-26 - Android-to-Android Wi-Fi peer setup (CI verified, device pending)
 
 The Android app already hosts `/export` and `/import`, but the main Push tile
 targeted `localhost:8080`, the Import entry used unrelated server discovery,
@@ -12,8 +12,9 @@ the `IP:port` to enter on the other device. The server and Settings use the
 same Wi-Fi address resolver.
 The stored address key remains compatible. Wi-Fi push/pull now merge data without
 restoring device-local settings on either Android endpoint. Full backup Restore
-behavior remains separate. Focused CI and physical two-device acceptance are
-pending.
+behavior remains separate. The focused peer-import test passed in GitHub Actions
+run `45811048457` on `374b15c9b`, including compilation of the Settings/server
+address change. Physical two-device acceptance remains pending.
 
 ## 2026-11-26 - Post-Restore H1 Workspace presentation admission (CI verified, device pending)
 
