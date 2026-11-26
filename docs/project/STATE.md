@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Post-Restore H1 Workspace presentation admission (CI pending)
+## 2026-11-26 - Post-Restore H1 Workspace presentation admission (CI verified, device pending)
 
 The 03:22 backup Restore completed on device, then the main thread crashed while
 reading H1. The 161 reported live Workspace placements all target live Workspace
@@ -10,7 +10,9 @@ reader's presentation adapter required a deleted same-id Context to admit many
 target IDs to the presentation adapter inside the same Room transaction. This
 admits those live canonical targets without recreating Context rows or admitting
 unplaced operational Workspaces. Missing or deleted targets still fail closed.
-Device acceptance remains pending; no backup or phone data was modified.
+The focused Room test class passed in GitHub Actions run `45736904220` on
+`ce5be4818`. Device acceptance remains pending; no backup or phone data was
+modified.
 
 ## 2026-11-26 - Strategic Restore carrier deletion preservation (CI verified, device pending)
 
