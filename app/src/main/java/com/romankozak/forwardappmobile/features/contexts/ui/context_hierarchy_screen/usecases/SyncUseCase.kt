@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import com.romankozak.forwardappmobile.features.sync.WifiAutoSyncStatus
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +45,7 @@ class SyncUseCase
 
         private var wifiSyncManager: WifiSyncManager? = null
         private var isInitialized = false
-        private val listeners = LinkedHashSet<Channel<ProjectUiEvent>>()
+        private val listeners = java.util.concurrent.ConcurrentHashMap.newKeySet<Channel<ProjectUiEvent>>()
         private val internalUiEventChannel = Channel<ProjectUiEvent>(Channel.BUFFERED)
 
         fun initialize(
@@ -52,7 +53,10 @@ class SyncUseCase
             application: Application,
             uiEventChannel: Channel<ProjectUiEvent>? = null,
         ) {
-            uiEventChannel?.let(listeners::add)
+            uiEventChannel?.let { channel ->
+                listeners.add(channel)
+                scope.coroutineContext[Job]?.invokeOnCompletion { listeners.remove(channel) }
+            }
             if (isInitialized) return
 
             val manager =

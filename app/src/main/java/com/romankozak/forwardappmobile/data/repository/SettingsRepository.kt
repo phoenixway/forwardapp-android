@@ -841,23 +841,9 @@ class SettingsRepository
 
         suspend fun restoreFromMap(settingsMap: Map<String, String>) {
             context.dataStore.edit { preferences ->
-                val serverKey = preferences[wifiSyncServerKeyKey]
-                val peerKey = preferences[wifiSyncPeerKeyKey]
-                val peerAddress = preferences[desktopSyncAddressKey]
-                val port = runCatching { preferences[wifiSyncPortKey] }.getOrNull()
-                val legacyPort = if (port == null) runCatching { preferences[stringPreferencesKey(wifiSyncPortKey.name)] }.getOrNull() else null
-                val serverEnabled = runCatching { preferences[wifiSyncServerEnabledKey] }.getOrNull()
-                val legacyServerEnabled = if (serverEnabled == null) runCatching { preferences[stringPreferencesKey(wifiSyncServerEnabledKey.name)] }.getOrNull() else null
-                preferences.clear()
-                if (serverKey != null) preferences[wifiSyncServerKeyKey] = serverKey
-                if (peerKey != null) preferences[wifiSyncPeerKeyKey] = peerKey
-                if (peerAddress != null) preferences[desktopSyncAddressKey] = peerAddress
-                if (port != null) preferences[wifiSyncPortKey] = port
-                if (legacyPort != null) preferences[stringPreferencesKey(wifiSyncPortKey.name)] = legacyPort
-                if (serverEnabled != null) preferences[wifiSyncServerEnabledKey] = serverEnabled
-                if (legacyServerEnabled != null) preferences[stringPreferencesKey(wifiSyncServerEnabledKey.name)] = legacyServerEnabled
+                preferences.clearKeepingWifiSyncLocal()
                 for ((key, value) in settingsMap) {
-                    if (key in setOf(wifiSyncServerKeyKey.name, wifiSyncPeerKeyKey.name, desktopSyncAddressKey.name, wifiSyncPortKey.name, wifiSyncServerEnabledKey.name)) continue
+                    if (key in WIFI_SYNC_DEVICE_LOCAL_KEYS) continue
                     when (key) {
                         showPlanningModesKey.name,
                         isBottomNavExpandedKey.name,
@@ -914,7 +900,7 @@ class SettingsRepository
         suspend fun getSettingsMap(): Map<String, String> {
             val preferences = context.dataStore.data.first()
             return preferences.asMap()
-                .filterKeys { it !in setOf(wifiSyncServerKeyKey, wifiSyncPeerKeyKey, desktopSyncAddressKey, wifiSyncPortKey, wifiSyncServerEnabledKey) }
+                .filterKeys { it.name !in WIFI_SYNC_DEVICE_LOCAL_KEYS }
                 .map { (key, value) -> key.name to value.toString() }.toMap()
         }
 

@@ -132,10 +132,7 @@ class WifiSyncManager(
             try {
                 check(currentWifiIpv4Address(application) != null) { "Wi‑Fi недоступний" }
                 withTimeout(90_000L) {
-                    val remoteJson = syncRepository.fetchFullBackupFromPeer(peer.address, peer.key).getOrThrow()
-                    syncRepository.importBackupJsonString(remoteJson, restoreSettings = false, allowEmpty = true).getOrThrow()
-                    val localJson = syncRepository.createFullBackupJsonString()
-                    syncRepository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
+                    exchangeFullSnapshotWithPeer(syncRepository, peer)
                 }
                 successful++
                 lastAutoSyncSuccessAt = System.currentTimeMillis()
