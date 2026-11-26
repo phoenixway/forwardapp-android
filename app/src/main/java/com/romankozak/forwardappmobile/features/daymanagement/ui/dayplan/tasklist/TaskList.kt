@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,24 @@ fun TaskList(
     val hapticFeedback = LocalHapticFeedback.current
     val orientationSources = rememberDayTaskOrientationSources()
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
+    var selectedThemeId by remember(dayThemesState.dayPlanId) { mutableStateOf<String?>(null) }
+    val filterThemeId = selectedThemeId
+    val visibleTasks = internalTasks.filter { task ->
+        filterThemeId == null || filterThemeId in dayThemesState.assignments[task.dayTask.id].orEmpty()
+    }
+
+    LaunchedEffect(selectedThemeId, internalTasks, dayThemesState.assignments, dayThemesState.themes) {
+        val themeId = selectedThemeId ?: return@LaunchedEffect
+        if (dayThemesState.activeThemes.none { it.id == themeId } ||
+            internalTasks.none { themeId in dayThemesState.assignments[it.dayTask.id].orEmpty() }
+        ) {
+            selectedThemeId = null
+        }
+    }
+
+    LaunchedEffect(selectedThemeId) {
+        if (selectedThemeId != null) lazyListState.scrollToItem(0)
+    }
 
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -76,7 +95,8 @@ fun TaskList(
             )
         } else {
             TaskListContent(
-                tasks = internalTasks,
+                tasks = visibleTasks,
+                allTasks = internalTasks,
                 linkedProjectTitles = linkedProjectTitles,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 lazyListState = lazyListState,
@@ -84,6 +104,10 @@ fun TaskList(
                 actions = actions,
                 dayThemesState = dayThemesState,
                 onToggleTheme = onToggleTheme,
+                selectedThemeId = selectedThemeId,
+                onSelectTheme = { themeId ->
+                    selectedThemeId = if (selectedThemeId == themeId) null else themeId
+                },
                 orientationSources = orientationSources,
             )
         }
@@ -94,6 +118,7 @@ fun TaskList(
 @Composable
 private fun TaskListContent(
     tasks: List<DayTaskWithReminder>,
+    allTasks: List<DayTaskWithReminder>,
     linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     lazyListState: LazyListState,
@@ -101,6 +126,8 @@ private fun TaskListContent(
     actions: TaskListActions,
     dayThemesState: DayThemesUiState,
     onToggleTheme: (String, String) -> Unit,
+    selectedThemeId: String?,
+    onSelectTheme: (String) -> Unit,
     orientationSources: DayTaskOrientationSourcesUi,
 ) {
     val composition = com.romankozak.forwardappmobile.features.planning.rememberPlanningCompositionList()
@@ -109,13 +136,15 @@ private fun TaskListContent(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        if (tasks.any { dayThemesState.themesFor(it.dayTask.id).isNotEmpty() }) item(key = "task-theme-summary") {
+        if (allTasks.any { dayThemesState.themesFor(it.dayTask.id).isNotEmpty() }) item(key = "task-theme-summary") {
             DayThemeUsageSummary(
-                label = "Завдання",
+                label = "",
                 themes = dayThemesState.themes,
-                entityIds = tasks.map { it.dayTask.id },
+                entityIds = allTasks.map { it.dayTask.id },
                 assignments = dayThemesState.assignments,
-                minutesByEntity = tasks.associate { it.dayTask.id to (it.dayTask.estimatedDurationMinutes ?: 0L) },
+                minutesByEntity = allTasks.associate { it.dayTask.id to (it.dayTask.estimatedDurationMinutes ?: 0L) },
+                selectedThemeId = selectedThemeId,
+                onThemeClick = onSelectTheme,
             )
         }
         items(tasks, key = { it.dayTask.id }) { taskWithReminder ->
@@ -127,6 +156,7 @@ private fun TaskListContent(
                 actions = actions,
                 dayThemesState = dayThemesState,
                 onToggleTheme = onToggleTheme,
+                canReorder = selectedThemeId == null,
                 orientationSources = orientationSources,
                 composition = composition,
             )
@@ -144,6 +174,7 @@ private fun LazyItemScope.TaskListItem(
     actions: TaskListActions,
     dayThemesState: DayThemesUiState,
     onToggleTheme: (String, String) -> Unit,
+    canReorder: Boolean,
     orientationSources: DayTaskOrientationSourcesUi,
     composition: com.romankozak.forwardappmobile.features.planning.PlanningCompositionListUi,
 ) {
@@ -170,7 +201,7 @@ private fun LazyItemScope.TaskListItem(
                                 onLongPress = { actions.onTaskLongPress(taskWithReminder) },
                                 onParentInfoClick = actions.onParentInfoClick,
                             ),
-                        dragHandleModifier = Modifier.draggableHandle(),
+                        dragHandleModifier = if (canReorder) Modifier.draggableHandle() else Modifier,
                         themes = dayThemesState.themes,
                         selectedThemeIds = dayThemesState.assignments[taskWithReminder.dayTask.id].orEmpty(),
                         onToggleTheme = { themeId -> onToggleTheme(taskWithReminder.dayTask.id, themeId) },

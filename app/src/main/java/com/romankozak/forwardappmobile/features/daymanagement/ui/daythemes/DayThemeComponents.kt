@@ -218,6 +218,8 @@ fun DayThemeUsageSummary(
     percentByEntity: Map<String, Int> = emptyMap(),
     minutesByEntity: Map<String, Long> = emptyMap(),
     predictedDayDurationMinutes: Long? = null,
+    selectedThemeId: String? = null,
+    onThemeClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val used = themes.filter(DayTheme::isActive).mapNotNull { theme ->
@@ -230,7 +232,7 @@ fun DayThemeUsageSummary(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        if (label.isNotBlank()) Text(label, style = MaterialTheme.typography.labelMedium)
         used.forEach { (theme, ids) ->
             val percent = ids.sumOf { percentByEntity[it] ?: 0 }
             val minutes =
@@ -241,7 +243,12 @@ fun DayThemeUsageSummary(
                 if (percent > 0) append(" · $percent%")
                 if (minutes != null) append(" · ${formatThemeMinutes(minutes)}")
             }
-            DayThemeChip(theme = theme, suffix = suffix)
+            DayThemeChip(
+                theme = theme,
+                suffix = suffix,
+                selected = selectedThemeId == theme.id,
+                onClick = onThemeClick?.let { click -> { click(theme.id) } },
+            )
         }
     }
 }
