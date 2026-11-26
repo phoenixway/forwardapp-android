@@ -208,7 +208,7 @@ private fun WifiTransferInstructions() {
         ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Між пристроями · вручну", style = MaterialTheme.typography.titleMedium)
+            Text("Між пристроями", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "1. На пристрої, до якого підключаєтесь, відкрийте «Приймати через Wi‑Fi».\n" +
@@ -218,7 +218,7 @@ private fun WifiTransferInstructions() {
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                "Увімкнений сервер лише очікує підключення; передачу запускаєте кнопкою.",
+                "Ці кнопки запускають ручний обмін. Увімкнений сервер може також приймати автоматичний синк із Desktop.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
