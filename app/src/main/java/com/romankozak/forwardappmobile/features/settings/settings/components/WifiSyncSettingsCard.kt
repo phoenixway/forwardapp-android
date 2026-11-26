@@ -55,7 +55,7 @@ fun WifiSyncSettingsCard(
         }
         if (localIpAddress != null) {
             Text(
-                text = "Для іншого пристрою: $localIpAddress:$wifiSyncPort. Після зміни порту збережіть налаштування і перезапустіть сервер.",
+                text = "Поточна адреса Wi‑Fi: $localIpAddress:$wifiSyncPort. Після зміни порту або Wi‑Fi мережі відкрийте «Приймати через Wi‑Fi», щоб сервер показав актуальну адресу.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

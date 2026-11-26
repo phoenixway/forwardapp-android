@@ -37,7 +37,7 @@ fun ServerInfo(address: String) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Введіть цю адресу на десктоп-додатку:",
+            "Введіть цю адресу на іншому пристрої:",
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.height(16.dp))
@@ -66,5 +66,10 @@ fun ServerInfo(address: String) {
                 )
             }
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Ключ цього пристрою: Налаштування → Інтеграції → Wi‑Fi синхронізація",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }

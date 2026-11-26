@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
@@ -89,6 +90,13 @@ fun CommandDeckImportExportSheet(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "Файли",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                    )
+                }
                 item {
                     ImportExportTile(
                         icon = Icons.Default.CloudUpload,
@@ -147,12 +155,27 @@ fun CommandDeckImportExportSheet(
                         },
                     )
                 }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    WifiTransferInstructions()
+                }
+                item {
+                    ImportExportTile(
+                        icon = Icons.Default.Wifi,
+                        title = "Приймати через Wi‑Fi",
+                        subtitle = "Показати адресу цього пристрою для підключення",
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        onClick = {
+                            onDismiss()
+                            onShowWifiServer()
+                        },
+                    )
+                }
                 item {
                     ImportExportTile(
                         icon = Icons.Default.CloudUpload,
-                        title = "Надіслати через Wi-Fi",
-                        subtitle = "На пристрій з адреси в налаштуваннях",
-                        containerColor = importExportSheetColor,
+                        title = "Надіслати через Wi‑Fi",
+                        subtitle = "Передати зміни на пристрій, що приймає",
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
                         onClick = {
                             onDismiss()
                             onWifiPush("")
@@ -162,21 +185,9 @@ fun CommandDeckImportExportSheet(
                 item {
                     ImportExportTile(
                         icon = Icons.Default.Wifi,
-                        title = "Приймати через Wi-Fi",
-                        subtitle = "Показати адресу цього пристрою",
-                        containerColor = importExportSheetColor,
-                        onClick = {
-                            onDismiss()
-                            onShowWifiServer()
-                        },
-                    )
-                }
-                item {
-                    ImportExportTile(
-                        icon = Icons.Default.Wifi,
-                        title = "Отримати через Wi-Fi",
-                        subtitle = "З іншого Android або комп’ютера",
-                        containerColor = importExportSheetColor,
+                        title = "Отримати через Wi‑Fi",
+                        subtitle = "Забрати дані з пристрою, що приймає",
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
                         onClick = {
                             onDismiss()
                             onShowWifiImport()
@@ -184,6 +195,33 @@ fun CommandDeckImportExportSheet(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WifiTransferInstructions() {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Між пристроями · вручну", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "1. На пристрої, до якого підключаєтесь, відкрийте «Приймати через Wi‑Fi».\n" +
+                    "2. Тут збережіть його адресу й ключ у Налаштуваннях → Інтеграції. Ключ показано в налаштуваннях того пристрою.\n" +
+                    "3. Оберіть «Надіслати» або «Отримати» відповідно до напрямку передачі.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Увімкнений сервер лише очікує підключення; передачу запускаєте кнопкою.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
         }
     }
 }

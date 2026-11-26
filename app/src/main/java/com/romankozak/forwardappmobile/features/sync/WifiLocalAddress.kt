@@ -13,13 +13,15 @@ fun currentWifiIpv4Address(context: Context): String? {
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         val networks = listOfNotNull(connectivityManager.activeNetwork) + connectivityManager.allNetworks
-        return networks.distinct().firstNotNullOfOrNull { network ->
+        val wifiAddresses = networks.distinct().flatMap { network ->
             val capabilities = connectivityManager.getNetworkCapabilities(network)
-            if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) != true) return@firstNotNullOfOrNull null
+            if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) != true) return@flatMap emptyList()
             connectivityManager.getLinkProperties(network)
                 ?.linkAddresses
-                ?.firstNotNullOfOrNull { (it.address as? Inet4Address)?.hostAddress }
+                ?.mapNotNull { it.address as? Inet4Address }
+                .orEmpty()
         }
+        return preferredWifiIpv4Address(wifiAddresses)
     }
 
     @Suppress("DEPRECATION")
@@ -36,3 +38,15 @@ fun currentWifiIpv4Address(context: Context): String? {
         ipAddress shr 24 and 0xff,
     )
 }
+
+/** Prefer a LAN address when Android reports several IPv4 addresses on Wi-Fi. */
+internal fun preferredWifiIpv4Address(addresses: List<Inet4Address>): String? =
+    addresses
+        .filterNot { it.isAnyLocalAddress || it.isLoopbackAddress || it.isMulticastAddress }
+        .minByOrNull { address ->
+            when {
+                address.isSiteLocalAddress -> 0
+                address.isLinkLocalAddress -> 2
+                else -> 1
+            }
+        }?.hostAddress

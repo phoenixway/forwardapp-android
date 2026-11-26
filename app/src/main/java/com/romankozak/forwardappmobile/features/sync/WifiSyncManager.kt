@@ -82,19 +82,29 @@ class WifiSyncManager(
 
     fun onShowWifiServerDialog() {
         _showWifiServerDialog.value = true
-        if (isServerRunning && _wifiServerAddress.value != null) {
-            _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
-        } else {
-            _wifiServerAddress.value = null
-            startWifiServer()
+        viewModelScope.launch {
+            val currentHost = currentWifiIpv4Address(application)
+            val currentPort = settingsRepository.wifiSyncPortFlow.first()
+            if (isServerRunning && _wifiServerAddress.value == "$currentHost:$currentPort") {
+                _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
+            } else if (isServerRunning) {
+                _wifiServerAddress.value = null
+                withContext(Dispatchers.IO) { wifiSyncServer.stop() }
+                isServerRunning = false
+                startWifiServer()
+            } else {
+                _wifiServerAddress.value = null
+                startWifiServer()
+            }
         }
     }
 
     private fun startWifiServer() {
-        if (isServerRunning || isServerStarting) {
+        if (isServerRunning) {
             _syncStatus.value = WifiSyncStatus.ServerRunning(_wifiServerAddress.value)
             return
         }
+        if (isServerStarting) return
         isServerStarting = true
         viewModelScope.launch {
             try {
@@ -113,7 +123,8 @@ class WifiSyncManager(
                         val message = exception.message ?: "Unknown error"
                         val isPortBusy = exception is BindException || message.contains("Address already in use")
                         if (isPortBusy) {
-                            val fallbackPort = findAvailablePort(port + 1, 20)
+                            val fallbackPort = currentWifiIpv4Address(application)
+                                ?.let { host -> findAvailablePort(port + 1, 20, host) }
                             if (fallbackPort != null) {
                                 settingsRepository.saveWifiSyncPort(fallbackPort)
                                 val fallbackResult = startServerOnPort(fallbackPort)
@@ -168,13 +179,14 @@ class WifiSyncManager(
     private fun findAvailablePort(
         startPort: Int,
         maxAttempts: Int,
+        host: String,
     ): Int? {
         val endPort = startPort + maxAttempts
         for (port in startPort..endPort) {
             val available =
                 runCatching {
                     ServerSocket().use { socket ->
-                        socket.bind(InetSocketAddress("0.0.0.0", port))
+                        socket.bind(InetSocketAddress(host, port))
                         true
                     }
                 }.getOrDefault(false)

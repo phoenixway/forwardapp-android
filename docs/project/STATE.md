@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (implementation; CI/device pending)
+
+The main Import/Export sheet now groups manual device transfer apart from file
+backup actions and explains the receiving server, peer address/key setup, and
+send/receive direction. Android still does not schedule automatic data transfer;
+the saved server-enabled setting starts the listener when its owner is active.
+The displayed Wi-Fi IPv4 address prefers a LAN address when several Wi-Fi
+addresses exist. The server and port probe bind specifically to that address,
+and reopening the receive dialog restarts the listener after an address or
+port change. Physical Wi-Fi roaming while the receive dialog remains closed
+does not yet trigger an automatic listener rebind.
+
 ## 2026-11-26 - Wi-Fi sync pairing keys (CI verified; device validation pending)
 
 The Android Wi-Fi server requires its device-specific pairing key in the

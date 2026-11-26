@@ -78,7 +78,7 @@ class WifiSyncServer(
 
             Log.d(TAG, "Server Start: Attempting to start Ktor server on $ipAddress:$port")
 
-            if (!isPortFree(port)) {
+            if (!isPortFree(port, ipAddress)) {
                 val msg = "Port $port is already in use. Stop other sync server or pick another port."
                 val exception = BindException(msg)
                 Log.e(DEBUG_TAG, "[WifiSyncServer] Port check failed: $msg", exception)
@@ -86,7 +86,7 @@ class WifiSyncServer(
             }
 
             val engine =
-                embeddedServer(CIO, port = port, host = "0.0.0.0") {
+                embeddedServer(CIO, port = port, host = ipAddress) {
                     install(ContentNegotiation) {
                         gson {
                             registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
@@ -420,10 +420,10 @@ class WifiSyncServer(
         Log.d(DEBUG_TAG, "[WifiSyncServer] Background server locks released")
     }
 
-    private fun isPortFree(port: Int): Boolean {
+    private fun isPortFree(port: Int, host: String): Boolean {
         return runCatching {
             ServerSocket().use { socket ->
-                socket.bind(InetSocketAddress("0.0.0.0", port))
+                socket.bind(InetSocketAddress(host, port))
                 true
             }
         }.getOrElse { throwable ->

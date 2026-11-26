@@ -37,7 +37,7 @@ fun WifiServerDialog(
                         CircularProgressIndicator()
                     }
                 }
-                address.startsWith("Помилка:") -> {
+                address.startsWith("Помилка:") || address.startsWith("Error:") -> {
                     Column(
                         modifier = Modifier.fillMaxWidth().height(100.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
