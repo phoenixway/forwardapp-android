@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Device sync control screen, second UI pass (device pending)
+
+The sync screen now separates local connection controls from the global auto
+sync policy. The local card groups listener status, address/key actions and QR
+pairing; peer cards show the last recorded exchange, preserve per-peer auto sync
+settings when the global policy is off, and use a compact sync action. One Add
+menu retains both QR scanning and manual entry. The journal shows three compact
+rows with date on older records and retains full copyable details. UI state
+labels are derived from recorded outcomes and stages; no sync protocol, data
+model, or network behavior changed. Physical layout and accessibility review
+remain pending.
+
 ## 2026-11-26 - Compact device sync control screen (device validation pending)
 
 The device sync screen now uses compact local and peer cards, contextual help,

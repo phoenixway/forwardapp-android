@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,20 +27,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>) {
+internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>, modifier: Modifier = Modifier) {
     var showAll by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<WifiSyncEvent?>(null) }
     val clipboard = LocalClipboardManager.current
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Журнал", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = { showAll = true }, enabled = events.isNotEmpty()) { Text("Усі записи") }
+            TextButton(onClick = { showAll = true }, enabled = events.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Усі записи")
+            }
         }
         if (events.isEmpty()) Text("Операцій поки немає", style = MaterialTheme.typography.bodySmall)
         events.take(3).forEach { event -> JournalRow(event) { selected = event } }
@@ -47,7 +51,7 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>) {
     if (showAll) AlertDialog(
         onDismissRequest = { showAll = false }, title = { Text("Журнал синхронізації") },
         text = { Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-            events.forEach { event -> JournalRow(event) { selected = event } }
+            events.forEach { event -> JournalRow(event) { showAll = false; selected = event } }
         } },
         confirmButton = { TextButton(onClick = {
             clipboard.setText(AnnotatedString(events.joinToString("\n\n", transform = ::formatTechnicalEvent)))
@@ -55,7 +59,7 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>) {
         dismissButton = { TextButton(onClick = { showAll = false }) { Text("Закрити") } },
     )
     selected?.let { event -> AlertDialog(
-        onDismissRequest = { selected = null }, title = { Text(eventTitle(event)) },
+        onDismissRequest = { selected = null }, title = { Text(syncEventTitle(event)) },
         text = { Text(formatTechnicalEvent(event), style = MaterialTheme.typography.bodySmall) },
         confirmButton = { TextButton(onClick = { clipboard.setText(AnnotatedString(formatTechnicalEvent(event))) }) {
             Icon(Icons.Outlined.ContentCopy, null); Text("Копіювати діагностику")
@@ -66,31 +70,31 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>) {
 
 @Composable
 private fun JournalRow(event: WifiSyncEvent, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 7.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (event.outcome == "error") "●" else "○", color = if (event.outcome == "error")
-                MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-            Text("  ${eventTitle(event)}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            Text(time(event.startedAt, "HH:mm"), style = MaterialTheme.typography.labelSmall,
+    Column {
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick).padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SyncStatusIcon(event.outcome, null, Modifier.size(18.dp))
+            Column(Modifier.weight(1f)) {
+                Text(syncEventTitle(event), style = MaterialTheme.typography.bodySmall, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis)
+                Text(event.peerName, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Text(journalTime(event.startedAt), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(event.peerName, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        HorizontalDivider(Modifier.padding(top = 7.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
-private fun eventTitle(event: WifiSyncEvent): String = when (event.outcome) {
-    "success" -> "Синхронізація завершена"
-    "error" -> "Помилка · ${event.stage}"
-    "cancelled" -> "Синхронізацію перервано"
-    else -> event.stage
+private fun journalTime(value: Long): String {
+    val dayFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+    val pattern = if (dayFormat.format(Date(value)) == dayFormat.format(Date())) "HH:mm" else "dd.MM HH:mm"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(value))
 }
 
-private fun time(value: Long, pattern: String): String = SimpleDateFormat(pattern, Locale.getDefault()).format(Date(value))
-
 private fun formatTechnicalEvent(event: WifiSyncEvent): String = buildString {
-    append(time(event.startedAt, "dd.MM HH:mm:ss"))
+    append(SimpleDateFormat("dd.MM HH:mm:ss", Locale.getDefault()).format(Date(event.startedAt)))
     append(" · ").append(event.mode)
     append(" · ").append(event.peerName).append(" (").append(event.address).append(")")
     append("\nЕтап: ").append(event.stage)
