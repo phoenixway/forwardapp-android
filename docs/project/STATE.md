@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Android foreground multi-peer auto sync (implementation; CI/device pending)
+## 2026-11-26 - Android foreground multi-peer auto sync (focused CI; device pending)
 
 Settings now enables Android auto sync and accepts additional named peers
 beside the saved primary address/key. MainActivity foreground state gates the
@@ -10,11 +10,17 @@ global dirty ACK. An empty peer backup is a valid no-op before local delivery.
 Configuration lives in a device-local DataStore separate from JSON backup;
 the primary address, key, local server port and server switch are preserved
 across Restore and omitted from exported settings. Desktop remains frozen.
+The server listener now honors the runtime Wi-Fi feature gate as well as its
+own saved switch; a hidden/disabled Wi-Fi feature does not keep a listener up.
 An active auto-sync round checks the Wi-Fi address and restarts the local
 listener when its bound address or port has changed.
 Full exchange is intentionally conservative and may be expensive for large
 databases or many peers. Network and conflict failures appear as a per-round
 count/error state; physical convergence remains to be tested.
+The peer store, empty-peer import, full exchange and local-key Restore tests
+passed app-prod GitHub Actions runs `45823061900` (`7bef825a7`) and
+`45824593843` (`99fadd410`). The final listener feature-gate adjustment is
+pending compilation at this point.
 
 ## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (CI verified; device pending)
 

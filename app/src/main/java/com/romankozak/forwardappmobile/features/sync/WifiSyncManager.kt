@@ -81,7 +81,9 @@ class WifiSyncManager(
             }
         }
         viewModelScope.launch {
-            settingsRepository.wifiSyncServerEnabledFlow.collectLatest { enabled ->
+            combine(settingsRepository.wifiSyncServerEnabledFlow, settingsRepository.featureTogglesFlow) { enabled, toggles ->
+                enabled && toggles[FeatureFlag.WifiSync] == true && FeatureToggles.isEnabled(FeatureFlag.WifiSync)
+            }.collectLatest { enabled ->
                 Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Server enabled changed: $enabled")
                 if (enabled) {
                     startWifiServer()
@@ -167,6 +169,7 @@ class WifiSyncManager(
     }
 
     fun onShowWifiServerDialog() {
+        if (!FeatureToggles.isEnabled(FeatureFlag.WifiSync)) return
         _showWifiServerDialog.value = true
         viewModelScope.launch {
             val currentHost = currentWifiIpv4Address(application)
