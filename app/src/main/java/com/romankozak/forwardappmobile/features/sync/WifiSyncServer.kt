@@ -11,6 +11,9 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.shared.contracts.sync.WIFI_PEER_KEY_HEADER
+import com.romankozak.forwardappmobile.shared.contracts.sync.acceptsWifiPeerKey
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -29,6 +32,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import java.io.File
 import java.net.BindException
 import java.net.InetSocketAddress
@@ -43,6 +47,7 @@ class WifiSyncServer(
     private val syncRepository: SyncRepository,
     private val context: Context,
     private val dayManagementRepository: DayManagementRepository,
+    private val settingsRepository: SettingsRepository,
 ) {
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
@@ -117,11 +122,19 @@ class WifiSyncServer(
                         }
 
                         get("/status") {
+                            if (!acceptsWifiPeerKey(settingsRepository.wifiSyncServerKeyFlow.first(), call.request.headers[WIFI_PEER_KEY_HEADER])) {
+                                call.respond(HttpStatusCode.Unauthorized)
+                                return@get
+                            }
                             val remote = call.request.local.remoteHost
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /status from $remote")
                             call.respondText("ForwardApp Mobile Server is running!")
                         }
                         get("/export") {
+                            if (!acceptsWifiPeerKey(settingsRepository.wifiSyncServerKeyFlow.first(), call.request.headers[WIFI_PEER_KEY_HEADER])) {
+                                call.respond(HttpStatusCode.Unauthorized)
+                                return@get
+                            }
                             Log.d("WifiSyncServer", "Запит на /export отримано.")
                             val remote = call.request.local.remoteHost
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export from $remote")
@@ -233,6 +246,10 @@ class WifiSyncServer(
                             }
                         }
                         post("/import") {
+                            if (!acceptsWifiPeerKey(settingsRepository.wifiSyncServerKeyFlow.first(), call.request.headers[WIFI_PEER_KEY_HEADER])) {
+                                call.respond(HttpStatusCode.Unauthorized)
+                                return@post
+                            }
                             Log.d("WifiSyncServer", "Запит на /import отримано.")
                             val remote = call.request.local.remoteHost
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /import from $remote")

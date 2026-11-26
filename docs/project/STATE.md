@@ -1,5 +1,21 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Wi-Fi sync pairing keys (implementation; CI and device validation pending)
+
+The Android Wi-Fi server requires its device-specific pairing key in the
+`X-ForwardApp-Sync-Key` header for `/status`, `/export`, and `/import`. Settings
+shows a generated local key, copy and rotate actions, and a separate peer key
+for Android outbound sync. The Android client sends the saved peer key to the
+configured peer. Desktop transport also sends the key configured as
+`androidSyncKey` in `~/.forwardapp-desktop/workspace/android-sync-settings.json`.
+Old unauthenticated clients receive HTTP 401 and must be updated.
+
+The keys remain local during JSON full backup, Wi-Fi payload generation, and
+Restore; Restore ignores incoming key fields and preserves the local values.
+Android system backup is disabled. The transport remains plain HTTP on the
+local network, so the key and data are not protected against network capture;
+encrypted transport is a separate future change.
+
 ## 2026-11-26 - Android-to-Android Wi-Fi peer setup (CI verified, device pending)
 
 The Android app already hosts `/export` and `/import`, but the main Push tile

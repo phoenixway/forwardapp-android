@@ -175,6 +175,7 @@ class NoOpSyncLocalDataSource @Inject constructor() : SyncLocalDataSource {
 @Singleton
 class NoOpSyncSettingsSource @Inject constructor() : SyncSettingsSource {
     override val wifiSyncPortFlow: Flow<Int> = flowOf(0)
+    override val wifiSyncPeerKeyFlow: Flow<String> = flowOf("")
 }
 
 // Needs to be 'open' in main module for this to work

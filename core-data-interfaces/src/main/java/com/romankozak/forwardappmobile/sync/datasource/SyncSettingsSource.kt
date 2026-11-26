@@ -5,4 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface SyncSettingsSource {
     val wifiSyncPortFlow: Flow<Int>
+    val wifiSyncPeerKeyFlow: Flow<String>
 }

@@ -160,6 +160,7 @@ fun SettingsScreen(
                         uiState.reminderVibrationEnabled != initial.reminderVibrationEnabled ||
                         uiState.wifiSyncServerEnabled != initial.wifiSyncServerEnabled ||
                         uiState.desktopSyncAddress != initial.desktopSyncAddress ||
+                        uiState.wifiSyncPeerKey != initial.wifiSyncPeerKey ||
                         uiState.attachmentsLibraryEnabled != initial.attachmentsLibraryEnabled ||
                         uiState.scriptsLibraryEnabled != initial.scriptsLibraryEnabled ||
                         uiState.allowSystemProjectMoves != initial.allowSystemProjectMoves ||
@@ -342,6 +343,8 @@ fun SettingsScreen(
                             serverEnabled = uiState.wifiSyncServerEnabled,
                             wifiSyncPort = uiState.wifiSyncPort,
                             peerAddress = uiState.desktopSyncAddress,
+                            serverKey = uiState.wifiSyncServerKey,
+                            peerKey = uiState.wifiSyncPeerKey,
                             localIpAddress = localWifiIp,
                             onServerEnabledChange = { enabled ->
                                 if (uiState.wifiSyncEnabled) {
@@ -350,6 +353,8 @@ fun SettingsScreen(
                             },
                             onPortChange = viewModel::onWifiSyncPortChanged,
                             onPeerAddressChange = viewModel::onDesktopSyncAddressChanged,
+                            onPeerKeyChange = viewModel::onWifiSyncPeerKeyChanged,
+                            onRotateServerKey = viewModel::rotateWifiSyncServerKey,
                             onRefreshLocalAddress = { localWifiIp = currentWifiIpv4Address(context) },
                             enabled = uiState.wifiSyncEnabled,
                         )

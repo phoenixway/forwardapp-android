@@ -35,6 +35,7 @@ class WifiSyncManager(
             syncRepository,
             application,
             dayManagementRepository,
+            settingsRepository,
         )
     private var isServerRunning = false
     private var isServerStarting = false
@@ -157,6 +158,7 @@ class WifiSyncManager(
 
     private suspend fun startServerOnPort(port: Int): Result<String> {
         return runCatching {
+            settingsRepository.ensureWifiSyncServerKey()
             withContext(Dispatchers.IO) { wifiSyncServer.start(port) }
         }.getOrElse { exception ->
             Result.failure(exception)

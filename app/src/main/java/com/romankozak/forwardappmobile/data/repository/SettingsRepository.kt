@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.repository
 
 import android.content.Context
 import android.util.Log
+import java.security.SecureRandom
+import java.util.Base64
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -82,6 +84,8 @@ class SettingsRepository
         private val reminderVibrationEnabledKey = booleanPreferencesKey("reminder_vibration_enabled")
         private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
         private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
+        private val wifiSyncServerKeyKey = stringPreferencesKey("wifi_sync_server_key")
+        private val wifiSyncPeerKeyKey = stringPreferencesKey("wifi_sync_peer_key")
         private val globalSearchSelectedTypesKey = stringSetPreferencesKey("global_search_selected_types")
         private val globalSearchCurrentModeKey = stringPreferencesKey("global_search_current_mode")
         private val goalBeaconProgressExpandedKey = booleanPreferencesKey("goal_beacon_progress_expanded")
@@ -183,6 +187,12 @@ class SettingsRepository
             context.dataStore.data.map { prefs ->
                 prefs[desktopSyncAddressKey] ?: ""
             }
+
+        val wifiSyncServerKeyFlow: Flow<String> =
+            context.dataStore.data.map { prefs -> prefs[wifiSyncServerKeyKey].orEmpty() }
+
+        val wifiSyncPeerKeyFlow: Flow<String> =
+            context.dataStore.data.map { prefs -> prefs[wifiSyncPeerKeyKey].orEmpty() }
 
         private fun Preferences.safeFloat(
             key: Preferences.Key<Float>,
@@ -327,6 +337,23 @@ class SettingsRepository
             context.dataStore.edit { prefs ->
                 prefs[desktopSyncAddressKey] = address
             }
+        }
+
+        suspend fun ensureWifiSyncServerKey(): String {
+            var key = ""
+            context.dataStore.edit { prefs ->
+                key = prefs[wifiSyncServerKeyKey].orEmpty().ifBlank { newWifiSyncKey() }
+                prefs[wifiSyncServerKeyKey] = key
+            }
+            return key
+        }
+
+        suspend fun rotateWifiSyncServerKey() {
+            context.dataStore.edit { prefs -> prefs[wifiSyncServerKeyKey] = newWifiSyncKey() }
+        }
+
+        suspend fun saveWifiSyncPeerKey(key: String) {
+            context.dataStore.edit { prefs -> prefs[wifiSyncPeerKeyKey] = key.trim() }
         }
 
         suspend fun getRingtoneSettings(): RingtoneSettings {
@@ -802,8 +829,13 @@ class SettingsRepository
 
         suspend fun restoreFromMap(settingsMap: Map<String, String>) {
             context.dataStore.edit { preferences ->
+                val serverKey = preferences[wifiSyncServerKeyKey]
+                val peerKey = preferences[wifiSyncPeerKeyKey]
                 preferences.clear()
+                if (serverKey != null) preferences[wifiSyncServerKeyKey] = serverKey
+                if (peerKey != null) preferences[wifiSyncPeerKeyKey] = peerKey
                 for ((key, value) in settingsMap) {
+                    if (key == wifiSyncServerKeyKey.name || key == wifiSyncPeerKeyKey.name) continue
                     when (key) {
                         showPlanningModesKey.name,
                         isBottomNavExpandedKey.name,
@@ -859,7 +891,9 @@ class SettingsRepository
 
         suspend fun getSettingsMap(): Map<String, String> {
             val preferences = context.dataStore.data.first()
-            return preferences.asMap().map { (key, value) -> key.name to value.toString() }.toMap()
+            return preferences.asMap()
+                .filterKeys { it != wifiSyncServerKeyKey && it != wifiSyncPeerKeyKey }
+                .map { (key, value) -> key.name to value.toString() }.toMap()
         }
 
         private fun parseSet(rawValue: String?): Set<String> {
@@ -1368,3 +1402,7 @@ class SettingsRepository
             }
         }
     }
+
+private fun newWifiSyncKey(): String =
+    ByteArray(24).also(SecureRandom()::nextBytes)
+        .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }

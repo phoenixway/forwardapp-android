@@ -52,6 +52,7 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblem
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
+import com.romankozak.forwardappmobile.shared.contracts.sync.WIFI_PEER_KEY_HEADER
 import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSyncVersion
@@ -952,11 +953,14 @@ class SyncWifiService @Inject constructor(
 
     suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = withContext(Dispatchers.IO) {
         try {
+            val peerKey = settingsSource.wifiSyncPeerKeyFlow.first().ifBlank { error("Введіть ключ іншого пристрою в налаштуваннях Wi‑Fi синхронізації") }
             val fullUrl = buildWifiUrl(address, "/export").let { base ->
                 if (deltaSince != null) "$base?deltaSince=$deltaSince" else base
             }
-            val response: String = client.get(fullUrl).body()
-            Result.success(response)
+            val response = client.get(fullUrl) { headers.append(WIFI_PEER_KEY_HEADER, peerKey) }
+            if (response.status == io.ktor.http.HttpStatusCode.Unauthorized) error("Неправильний ключ іншого пристрою")
+            if (!response.status.isSuccess()) error("Сервер повернув помилку: ${response.status.value}")
+            Result.success(response.body())
         } catch (e: Exception) {
             Log.e(WIFI_LOG, "Error fetching from Wi‑Fi", e)
             Result.failure(e)
@@ -965,6 +969,7 @@ class SyncWifiService @Inject constructor(
 
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            val peerKey = settingsSource.wifiSyncPeerKeyFlow.first().ifBlank { error("Введіть ключ іншого пристрою в налаштуваннях Wi‑Fi синхронізації") }
             val selection = localDataSource.getUnsyncedSelection()
             val dirtyCanonicalSeries = fullBackupLocalDataSource.loadUnsyncedCanonicalRecurringSeries()
             val dirtyCanonicalPlanning = fullBackupLocalDataSource.loadUnsyncedCanonicalPlanning()
@@ -1054,6 +1059,7 @@ class SyncWifiService @Inject constructor(
                         snapshotBundle = pushPlan.snapshotDelta,
                     )
                 val response = client.post(fullUrl) {
+                    headers.append(WIFI_PEER_KEY_HEADER, peerKey)
                     contentType(ContentType.Application.Json)
                     setBody(backupWrapper)
                 }
@@ -1107,7 +1113,7 @@ class SyncWifiService @Inject constructor(
                     )
                     Result.success(Unit)
                 } else {
-                    Result.failure(Exception("Сервер повернув помилку: ${response.status.value}"))
+                    Result.failure(Exception(if (response.status == io.ktor.http.HttpStatusCode.Unauthorized) "Неправильний ключ іншого пристрою" else "Сервер повернув помилку: ${response.status.value}"))
                 }
             }
         } catch (e: Exception) {

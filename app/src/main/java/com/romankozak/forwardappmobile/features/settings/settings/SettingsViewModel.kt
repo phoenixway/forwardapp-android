@@ -97,6 +97,8 @@ data class SettingsUiState(
     val reminderVibrationEnabled: Boolean = true,
     val wifiSyncServerEnabled: Boolean = false,
     val desktopSyncAddress: String = "",
+    val wifiSyncServerKey: String = "",
+    val wifiSyncPeerKey: String = "",
     val ollamaNumCtx: Int = 8192,
     val ollamaNumPredict: Int = -1,
     val ollamaNumBatch: Int = 0,
@@ -121,6 +123,17 @@ class SettingsViewModel
         val uiState = _uiState.asStateFlow()
 
         init {
+            viewModelScope.launch {
+                settingsRepo.ensureWifiSyncServerKey()
+                settingsRepo.wifiSyncServerKeyFlow.collect { key ->
+                    _uiState.update { it.copy(wifiSyncServerKey = key) }
+                }
+            }
+            viewModelScope.launch {
+                settingsRepo.wifiSyncPeerKeyFlow.collect { key ->
+                    _uiState.update { it.copy(wifiSyncPeerKey = key) }
+                }
+            }
             viewModelScope.launch {
                 nerManager.nerState.collect { state ->
                     _uiState.update { it.copy(nerState = state) }
@@ -474,6 +487,14 @@ class SettingsViewModel
             _uiState.update { it.copy(desktopSyncAddress = address) }
         }
 
+        fun onWifiSyncPeerKeyChanged(key: String) {
+            _uiState.update { it.copy(wifiSyncPeerKey = key) }
+        }
+
+        fun rotateWifiSyncServerKey() {
+            viewModelScope.launch { settingsRepo.rotateWifiSyncServerKey() }
+        }
+
         fun onStrategicManagementToggle(enabled: Boolean) {
             updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
         }
@@ -550,6 +571,7 @@ class SettingsViewModel
                 )
                 settingsRepo.saveWifiSyncServerEnabled(currentState.wifiSyncServerEnabled)
                 settingsRepo.saveDesktopSyncAddress(currentState.desktopSyncAddress)
+                settingsRepo.saveWifiSyncPeerKey(currentState.wifiSyncPeerKey)
                 settingsRepo.saveRingtoneType(currentState.ringtoneType)
                 currentState.ringtoneUris.forEach { (type, uri) ->
                     settingsRepo.saveRingtoneUri(type, uri)

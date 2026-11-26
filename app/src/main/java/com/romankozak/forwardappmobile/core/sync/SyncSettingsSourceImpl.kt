@@ -14,4 +14,5 @@ class SyncSettingsSourceImpl
     ) : SyncSettingsSource {
         // Ми просто перенаправляємо потік з репозиторію налаштувань
         override val wifiSyncPortFlow: Flow<Int> = settingsRepository.wifiSyncPortFlow
+        override val wifiSyncPeerKeyFlow: Flow<String> = settingsRepository.wifiSyncPeerKeyFlow
     }

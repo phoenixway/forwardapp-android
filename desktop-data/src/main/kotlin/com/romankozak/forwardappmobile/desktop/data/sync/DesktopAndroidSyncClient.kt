@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.desktop.data.sync
 
 import com.romankozak.forwardappmobile.desktop.data.contexts.DesktopWorkspaceFileStore
 import com.romankozak.forwardappmobile.desktop.data.contexts.MergeImportResult
+import com.romankozak.forwardappmobile.shared.contracts.sync.WIFI_PEER_KEY_HEADER
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -18,11 +19,16 @@ class DesktopAndroidSyncClient(
     private val fileStore: DesktopWorkspaceFileStore,
     private val payloadFactory: DesktopAndroidSyncPayloadFactory = DesktopAndroidSyncPayloadFactory(fileStore),
     private val client: HttpClient = HttpClient(CIO),
+    private val settingsStore: DesktopAndroidSyncSettingsStore = DesktopAndroidSyncSettingsStore(),
 ) {
+    private fun peerKey(): String = settingsStore.read().androidSyncKey.trim().ifBlank {
+        error("Enter the Android sync key in android-sync-settings.json")
+    }
+
     suspend fun ping(address: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val response = client.get(buildUrl(address, "/status"))
+                val response = client.get(buildUrl(address, "/status")) { headers.append(WIFI_PEER_KEY_HEADER, peerKey()) }
                 check(response.status.isSuccess()) { "Status returned ${response.status.value}" }
             }
         }
@@ -33,7 +39,7 @@ class DesktopAndroidSyncClient(
     ): Result<DesktopAndroidSyncResult> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val response = client.get(buildUrl(address, "/export"))
+                val response = client.get(buildUrl(address, "/export")) { headers.append(WIFI_PEER_KEY_HEADER, peerKey()) }
                 check(response.status.isSuccess()) { "Export returned ${response.status.value}" }
                 val body = response.bodyAsText()
                 val importResult = fileStore.mergeSnapshotText(body)
@@ -57,6 +63,7 @@ class DesktopAndroidSyncClient(
         val payload = payloadFactory.createDeltaBackupJsonString(lastSyncAt) ?: return false
         val response =
             client.post(buildUrl(address, "/import")) {
+                headers.append(WIFI_PEER_KEY_HEADER, peerKey())
                 contentType(ContentType.Application.Json)
                 setBody(payload)
             }

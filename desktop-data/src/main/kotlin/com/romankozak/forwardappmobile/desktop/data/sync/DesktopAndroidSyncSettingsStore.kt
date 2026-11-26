@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.desktop.data.sync
 
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -25,6 +27,7 @@ class DesktopAndroidSyncSettingsStore(
     fun write(settings: DesktopAndroidSyncSettings) {
         settingsFile.parent?.createDirectories()
         settingsFile.writeText(json.encodeToString(DesktopAndroidSyncSettings.serializer(), settings))
+        runCatching { Files.setPosixFilePermissions(settingsFile, PosixFilePermissions.fromString("rw-------")) }
     }
 
     companion object {
@@ -40,4 +43,5 @@ data class DesktopAndroidSyncSettings(
     val androidAddress: String = "",
     val autoSyncEnabled: Boolean = false,
     val lastSyncAt: Long? = null,
+    val androidSyncKey: String = "",
 )

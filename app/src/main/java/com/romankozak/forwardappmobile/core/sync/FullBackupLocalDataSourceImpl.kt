@@ -662,6 +662,7 @@ class FullBackupLocalDataSourceImpl
 
         override suspend fun getSettingsSnapshot(): Map<String, String> {
             return settingsRepository.getPreferencesSnapshot().asMap()
+                .filterKeys { it.name != "wifi_sync_server_key" && it.name != "wifi_sync_peer_key" }
                 .mapKeys { it.key.name }
                 .mapValues { it.value.toString() }
         }
