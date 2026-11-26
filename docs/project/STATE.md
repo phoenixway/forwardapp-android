@@ -1,5 +1,16 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Wi-Fi peer key Save lifecycle (implementation; CI/device pending)
+
+Live Android A1/A2 acceptance reached A2's "missing peer key" error even after
+the user pasted and saved the key twice. Settings Save launched persistence in
+the Settings ViewModel scope and immediately navigated away, allowing the job
+to be canceled when that ViewModel was destroyed. Independent DataStore
+collectors could also overwrite a draft Wi-Fi key/address while the form was
+open. Save now captures the form values, waits for the settings write before
+closing, reports write failures, and keeps the edited peer pair stable during
+other settings emissions. The live retry is pending.
+
 ## 2026-11-26 - Android foreground multi-peer auto sync (focused CI; device pending)
 
 Settings now enables Android auto sync and accepts additional named peers
@@ -19,8 +30,8 @@ databases or many peers. Network and conflict failures appear as a per-round
 count/error state; physical convergence remains to be tested.
 The peer store, empty-peer import, full exchange and local-key Restore tests
 passed app-prod GitHub Actions runs `45823061900` (`7bef825a7`) and
-`45824593843` (`99fadd410`). The final listener feature-gate adjustment is
-pending compilation at this point.
+`45824593843` (`99fadd410`). The listener feature-gate adjustment compiled
+and the focused exchange test passed in run `45825517518` (`480cf478f`).
 
 ## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (CI verified; device pending)
 

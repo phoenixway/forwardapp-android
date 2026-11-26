@@ -1,5 +1,14 @@
 # Next
 
+## A1/A2 Wi-Fi peer key acceptance
+
+After updating A2 with the Settings Save lifecycle fix, paste A1's server key
+into A2 Settings → Integrations → Key of other device, save, reopen Settings
+and confirm the field still contains the key. On A1 open Receive over Wi-Fi;
+on A2 use Send over Wi-Fi. Confirm the missing-key error is gone and the data
+arrives. If authentication then returns 401, compare A1's current local server
+key with A2's saved peer key; rotating A1's key invalidates older copies.
+
 ## Android foreground auto sync acceptance
 
 After CI and an APK update on both phones, enable Wi-Fi servers and set each

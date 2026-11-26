@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.settings.settings
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,6 +47,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +77,8 @@ import com.romankozak.forwardappmobile.features.settings.settings.components.Wif
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.features.sync.currentWifiIpv4Address
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -88,6 +93,9 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val saveScope = rememberCoroutineScope()
+    var isSaving by remember { mutableStateOf(false) }
+    BackHandler(enabled = isSaving) { }
     var localWifiIp by remember { mutableStateOf<String?>(null) }
 
     var tempShowModes by remember(planningSettings.showModes) { mutableStateOf(planningSettings.showModes) }
@@ -204,6 +212,7 @@ fun SettingsScreen(
             ) {
                 TextButton(
                     onClick = onBack,
+                    enabled = !isSaving,
                     colors =
                         ButtonDefaults.textButtonColors(
                             containerColor = Color.Transparent,
@@ -212,22 +221,33 @@ fun SettingsScreen(
                 ) { Text("Close") }
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    enabled = isDirty,
+                    enabled = isDirty && !isSaving,
                     onClick = {
-                        onSave(
-                            PlanningSettings(
-                                showModes = tempShowModes,
-                                dailyTag = tempDailyTag,
-                                mediumTag = tempMediumTag,
-                                longTag = tempLongTag,
-                                vaultName = tempVaultName,
-                            ),
+                        val settingsToSave = uiState
+                        val planningToSave = PlanningSettings(
+                            showModes = tempShowModes,
+                            dailyTag = tempDailyTag,
+                            mediumTag = tempMediumTag,
+                            longTag = tempLongTag,
+                            vaultName = tempVaultName,
                         )
-                        viewModel.saveSettings()
-                        onBack()
+                        isSaving = true
+                        saveScope.launch {
+                            try {
+                                viewModel.saveSettings(settingsToSave)
+                                onSave(planningToSave)
+                                onBack()
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (error: Exception) {
+                                Toast.makeText(context, "Не вдалося зберегти: ${error.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isSaving = false
+                            }
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                ) { Text("Save") }
+                ) { Text(if (isSaving) "Збереження…" else "Save") }
             }
         },
     ) { padding ->

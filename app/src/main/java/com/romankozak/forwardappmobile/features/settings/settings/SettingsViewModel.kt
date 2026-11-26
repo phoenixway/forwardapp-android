@@ -124,6 +124,7 @@ class SettingsViewModel
     ) : ViewModel() {
         private val logTag = "AI_CHAT_OLLAMA"
         private var fetchModelsJob: Job? = null
+        private var wifiPeerDraftEdited = false
 
         private val _uiState = MutableStateFlow(SettingsUiState())
         val uiState = _uiState.asStateFlow()
@@ -147,7 +148,7 @@ class SettingsViewModel
             }
             viewModelScope.launch {
                 settingsRepo.wifiSyncPeerKeyFlow.collect { key ->
-                    _uiState.update { it.copy(wifiSyncPeerKey = key) }
+                    if (!wifiPeerDraftEdited) _uiState.update { it.copy(wifiSyncPeerKey = key) }
                 }
             }
             viewModelScope.launch {
@@ -252,7 +253,7 @@ class SettingsViewModel
                             ringtoneVolumes = ringtoneVolumes,
                             reminderVibrationEnabled = reminderVibrationEnabled,
                             wifiSyncServerEnabled = wifiSyncServerEnabled,
-                            desktopSyncAddress = desktopSyncAddress,
+                            desktopSyncAddress = if (wifiPeerDraftEdited) it.desktopSyncAddress else desktopSyncAddress,
                             ollamaNumCtx = values[OLLAMA_NUM_CTX_INDEX] as Int,
                             ollamaNumPredict = values[OLLAMA_NUM_PREDICT_INDEX] as Int,
                             ollamaNumBatch = values[OLLAMA_NUM_BATCH_INDEX] as Int,
@@ -500,10 +501,12 @@ class SettingsViewModel
         }
 
         fun onDesktopSyncAddressChanged(address: String) {
+            wifiPeerDraftEdited = true
             _uiState.update { it.copy(desktopSyncAddress = address) }
         }
 
         fun onWifiSyncPeerKeyChanged(key: String) {
+            wifiPeerDraftEdited = true
             _uiState.update { it.copy(wifiSyncPeerKey = key) }
         }
 
@@ -574,9 +577,7 @@ class SettingsViewModel
             _uiState.update { it.copy(reminderVibrationEnabled = enabled) }
         }
 
-        fun saveSettings() {
-            viewModelScope.launch {
-                val currentState = _uiState.value
+        suspend fun saveSettings(currentState: SettingsUiState) {
                 Log.e(
                     "SettingsViewModel",
                     "Saving server settings: mode=${currentState.serverIpConfigurationMode}, " +
@@ -624,6 +625,6 @@ class SettingsViewModel
                     val enabled = currentState.featureToggles[flag] ?: FeatureToggles.isEnabled(flag)
                     settingsRepo.saveFeatureToggle(flag, enabled)
                 }
-            }
+            wifiPeerDraftEdited = false
         }
     }
