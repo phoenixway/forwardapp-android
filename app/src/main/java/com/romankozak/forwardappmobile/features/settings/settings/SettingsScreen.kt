@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,6 +72,7 @@ import com.romankozak.forwardappmobile.features.settings.settings.components.Set
 import com.romankozak.forwardappmobile.features.settings.settings.components.ThemeSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.WifiSyncSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
+import com.romankozak.forwardappmobile.features.sync.currentWifiIpv4Address
 import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -85,6 +87,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var localWifiIp by remember { mutableStateOf<String?>(null) }
 
     var tempShowModes by remember(planningSettings.showModes) { mutableStateOf(planningSettings.showModes) }
     var tempDailyTag by remember(planningSettings.dailyTag) { mutableStateOf(planningSettings.dailyTag) }
@@ -112,6 +116,11 @@ fun SettingsScreen(
         )
     var selectedTabName by rememberSaveable { mutableStateOf(SettingsTab.General.name) }
     val selectedTab = tabs.firstOrNull { it.name == selectedTabName } ?: SettingsTab.General
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == SettingsTab.Integrations) {
+            localWifiIp = currentWifiIpv4Address(context)
+        }
+    }
 
     val isDirty by remember(
         uiState,
@@ -333,6 +342,7 @@ fun SettingsScreen(
                             serverEnabled = uiState.wifiSyncServerEnabled,
                             wifiSyncPort = uiState.wifiSyncPort,
                             peerAddress = uiState.desktopSyncAddress,
+                            localIpAddress = localWifiIp,
                             onServerEnabledChange = { enabled ->
                                 if (uiState.wifiSyncEnabled) {
                                     viewModel.onWifiSyncServerEnabledToggle(enabled)
@@ -340,6 +350,7 @@ fun SettingsScreen(
                             },
                             onPortChange = viewModel::onWifiSyncPortChanged,
                             onPeerAddressChange = viewModel::onDesktopSyncAddressChanged,
+                            onRefreshLocalAddress = { localWifiIp = currentWifiIpv4Address(context) },
                             enabled = uiState.wifiSyncEnabled,
                         )
                     }

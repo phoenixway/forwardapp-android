@@ -133,6 +133,8 @@ Android device runs the server and shows its actual `IP:port`. The initiating
 device stores that address as its peer address; the persisted key remains
 `desktop_sync_address` for compatibility with existing installations. A blank
 unset peer address is never replaced with a hard-coded sample or localhost.
+Settings shows the current Wi-Fi IPv4 address and local `IP:port` with manual
+refresh; it uses the same resolver as the Android server.
 
 Peer Wi-Fi push and pull merge `SnapshotBundle` data only. Device-local settings,
 including the server switch, local port and peer address, remain on their own

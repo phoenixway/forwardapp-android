@@ -3,8 +3,9 @@
 ## Android-to-Android Wi-Fi peer acceptance
 
 After a verified APK is installed on both phones, place them on the same local
-Wi-Fi. On phone B enable the Wi-Fi server and open «Приймати через Wi-Fi» to
-read its exact `IP:port`. On phone A enter that address under Settings →
+Wi-Fi. On phone B check its IP in Settings → Integrations, enable the Wi-Fi
+server and open «Приймати через Wi-Fi» to confirm the exact `IP:port`. On phone
+A enter that address under Settings →
 Integrations and use «Надіслати через Wi-Fi» for a disposable new item. Confirm
 it arrives on B, then make a separate new item on B and use «Отримати через
 Wi-Fi» on A. Check that each phone keeps its own peer address, local port and

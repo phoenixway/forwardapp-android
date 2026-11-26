@@ -7,6 +7,9 @@ targeted `localhost:8080`, the Import entry used unrelated server discovery,
 and settings called the peer address a Desktop address. Push now resolves the
 saved peer address, Import opens the editable peer-address dialog, and Settings
 explains the receiving server's local port versus the other device's `IP:port`.
+Settings also shows the current Wi-Fi IPv4 address with a refresh action and
+the `IP:port` to enter on the other device. The server and Settings use the
+same Wi-Fi address resolver.
 The stored address key remains compatible. Wi-Fi push/pull now merge data without
 restoring device-local settings on either Android endpoint. Full backup Restore
 behavior remains separate. Focused CI and physical two-device acceptance are

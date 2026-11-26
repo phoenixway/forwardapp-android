@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,9 +19,11 @@ fun WifiSyncSettingsCard(
     serverEnabled: Boolean,
     wifiSyncPort: Int,
     peerAddress: String,
+    localIpAddress: String?,
     onServerEnabledChange: (Boolean) -> Unit,
     onPortChange: (String) -> Unit,
     onPeerAddressChange: (String) -> Unit,
+    onRefreshLocalAddress: () -> Unit,
     enabled: Boolean = true,
 ) {
     SettingsCard(
@@ -31,6 +34,24 @@ fun WifiSyncSettingsCard(
             text = "Для двох Android або Android і комп’ютера: під’єднайте пристрої до однієї Wi‑Fi мережі. На пристрої, що приймає дані, увімкніть сервер і відкрийте «Приймати через Wi‑Fi» в меню імпорту / експорту, щоб побачити його адресу.",
             style = MaterialTheme.typography.bodyMedium,
         )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (localIpAddress == null) "IP цього телефона: Wi‑Fi недоступний"
+                    else "IP цього телефона: $localIpAddress",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            TextButton(onClick = onRefreshLocalAddress) { Text("Оновити") }
+        }
+        if (localIpAddress != null) {
+            Text(
+                text = "Для іншого пристрою: $localIpAddress:$wifiSyncPort. Після зміни порту збережіть налаштування і перезапустіть сервер.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,

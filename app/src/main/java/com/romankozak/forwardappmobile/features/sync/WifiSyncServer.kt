@@ -1,10 +1,7 @@
 package com.romankozak.forwardappmobile.features.sync
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
-import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import com.google.gson.Gson
@@ -34,7 +31,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.BindException
-import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.text.SimpleDateFormat
@@ -64,7 +60,7 @@ class WifiSyncServer(
         stop()
 
         return try {
-            val ipAddress = getWifiIpAddress()
+            val ipAddress = currentWifiIpv4Address(context)
             if (ipAddress == null) {
                 val errorMessage = "Не вдалося отримати IP-адресу. Перевірте з'єднання з Wi-Fi."
                 Log.e(TAG, "Server Start: FAILURE. $errorMessage")
@@ -405,42 +401,6 @@ class WifiSyncServer(
         }
         wakeLock = null
         Log.d(DEBUG_TAG, "[WifiSyncServer] Background server locks released")
-    }
-
-    private fun getWifiIpAddress(): String? {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return null
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
-            if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                return null
-            }
-
-            val linkProperties = connectivityManager.getLinkProperties(network) ?: return null
-            for (linkAddress in linkProperties.linkAddresses) {
-                val address = linkAddress.address
-                if (address is Inet4Address) {
-                    return address.hostAddress
-                }
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-
-            @Suppress("DEPRECATION")
-            val ipAddressInt = wifiManager.connectionInfo.ipAddress
-            if (ipAddressInt == 0) return null
-            return String.Companion.format(
-                Locale.US,
-                "%d.%d.%d.%d",
-                ipAddressInt and 0xff,
-                ipAddressInt shr 8 and 0xff,
-                ipAddressInt shr 16 and 0xff,
-                ipAddressInt shr 24 and 0xff,
-            )
-        }
-        return null
     }
 
     private fun isPortFree(port: Int): Boolean {
