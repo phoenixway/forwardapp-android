@@ -64,7 +64,10 @@ class WifiSyncEventJournal @Inject constructor(@ApplicationContext private val c
                 is CancellationException -> "cancelled"
                 else -> "error"
             },
-            detail = error?.let { "${it.javaClass.simpleName}: ${safeErrorDetail(it)}" },
+            detail = error?.let {
+                val type = it.javaClass.simpleName.takeIf { name -> name.length > 3 } ?: "Помилка"
+                "$type: ${safeErrorDetail(it)}"
+            },
         )
     }
 
@@ -89,6 +92,8 @@ class WifiSyncEventJournal @Inject constructor(@ApplicationContext private val c
             error is TimeoutCancellationException -> "Перевищено час очікування"
             error is CancellationException -> "Операцію перервано"
             message.contains("timeout", ignoreCase = true) -> "Перевищено час очікування"
+            message.contains("malformed JSON", ignoreCase = true) ||
+                message.contains("JsonReader", ignoreCase = true) -> "Некоректний JSON"
             message.contains("401") || message.contains("ключ", ignoreCase = true) -> "Перевірте ключ іншого пристрою"
             message.contains("refused", ignoreCase = true) -> "Інший пристрій відхилив з’єднання"
             else -> "Помилка на етапі обміну; вміст даних у журналі не зберігається"

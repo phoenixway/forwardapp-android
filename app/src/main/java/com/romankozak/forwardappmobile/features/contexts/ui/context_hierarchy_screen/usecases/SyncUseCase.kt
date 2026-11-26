@@ -46,6 +46,7 @@ class SyncUseCase
         val syncUiState: StateFlow<SyncUiState> = _syncUiState.asStateFlow()
 
         private var wifiSyncManager: WifiSyncManager? = null
+        private var isForeground = false
         private var isInitialized = false
         private val listeners = java.util.concurrent.ConcurrentHashMap.newKeySet<Channel<ProjectUiEvent>>()
         private val internalUiEventChannel = Channel<ProjectUiEvent>(Channel.BUFFERED)
@@ -73,6 +74,7 @@ class SyncUseCase
                     uiEventChannel = internalUiEventChannel,
                 )
             wifiSyncManager = manager
+            manager.setForeground(isForeground)
 
             scope.launch {
                 internalUiEventChannel.receiveAsFlow().collect { event ->
@@ -117,6 +119,7 @@ class SyncUseCase
         }
 
         fun setForeground(foreground: Boolean) {
+            isForeground = foreground
             wifiSyncManager?.setForeground(foreground)
         }
 

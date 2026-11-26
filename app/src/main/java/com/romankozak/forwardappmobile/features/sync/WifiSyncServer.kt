@@ -7,14 +7,15 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.BuildConfig
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
 import com.romankozak.forwardappmobile.shared.contracts.sync.WIFI_PEER_KEY_HEADER
 import com.romankozak.forwardappmobile.shared.contracts.sync.acceptsWifiPeerKey
 import com.romankozak.forwardappmobile.sync.SyncRepository
+import com.romankozak.forwardappmobile.sync.LongDeserializer
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.gson.gson
@@ -48,6 +49,7 @@ class WifiSyncServer(
     private val context: Context,
     private val dayManagementRepository: DayManagementRepository,
     private val settingsRepository: SettingsRepository,
+    private val eventJournal: WifiSyncEventJournal,
 ) {
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
@@ -57,6 +59,8 @@ class WifiSyncServer(
 
     private val gson: Gson by lazy {
         GsonBuilder()
+            .registerTypeAdapterFactory(SubjectConversionSnapshotAdapter())
+            .registerTypeAdapter(Long::class.java, LongDeserializer())
             .setPrettyPrinting()
             .create()
     }
@@ -138,6 +142,8 @@ class WifiSyncServer(
                             Log.d("WifiSyncServer", "Запит на /export отримано.")
                             val remote = call.request.local.remoteHost
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /export from $remote")
+                            val eventId = eventJournal.begin(WifiAutoSyncPeer("incoming-export", "Запит іншого пристрою", remote, ""), "Вхідний експорт")
+                            eventJournal.stage(eventId, "Підготовка даних")
                             try {
                                 val deltaSinceParam =
                                     call.request.queryParameters["deltaSince"]
@@ -175,74 +181,22 @@ class WifiSyncServer(
                                         )
                                         syncRepository.createFullBackupJsonString()
                                     }
-                                val backup = gson.fromJson(rawBackupJson, FullAppBackup::class.java)
-                                val projects = backup.snapshotBundle?.contexts.orEmpty()
-                                val missingSystemKeys = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
-                                val systemKeyStats = "systemKeys=${projects.size - missingSystemKeys}/${projects.size}"
-                                val backupJson = gson.toJson(backup)
-                                Log.d(DEBUG_TAG, "[WifiSyncServer] Export prepared $systemKeyStats")
-                                val tacticalMissions = backup.snapshotBundle?.tacticalMissions.orEmpty()
-                                Log.d(
-                                    TACTICAL_TRACE_TAG,
-                                    "android export delta=${deltaSinceParam != null} count=${tacticalMissions.size} " +
-                                        "sample=${tacticalMissions.take(TACTICAL_TRACE_SAMPLE_SIZE).map { it.id }}",
-                                )
-                                val snapshotTacticalMissions = backup.snapshotBundle?.tacticalMissions.orEmpty()
-                                Log.d(
-                                    TACTICAL_TRACE_TAG,
-                                    "android export snapshot count=${snapshotTacticalMissions.size} " +
-                                        "sample=${snapshotTacticalMissions.take(TACTICAL_TRACE_SAMPLE_SIZE).map { it.id }}",
-                                )
-
-                                // ========== DEFECT #2 DEBUG: Log attachments in export ==========
-                                try {
-                                    val attachmentsCount = backup.snapshotBundle?.attachments?.size ?: 0
-                                    Log.i(
-                                        "ForwardSync",
-                                        "wifi export bytes=${backupJson.length} " +
-                                            "snapshotPlans=${backup.snapshotBundle?.dayPlans?.size ?: 0} " +
-                                            "snapshotFocus=${backup.snapshotBundle?.dayFocusItems?.size ?: 0} " +
-                                            "snapshotTasks=${backup.snapshotBundle?.dayTasks?.size ?: 0} " +
-                                            "snapshotRuntime=${backup.snapshotBundle?.dayManagementRuntimeState != null}",
-                                    )
-                                    Log.d(
-                                        DEBUG_TAG,
-                                        "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount",
-                                    )
-                                    if (attachmentsCount == 0) {
-                                        Log.w(
-                                            DEBUG_TAG,
-                                            "[WifiSyncServer] WARNING: Exporting 0 attachments to desktop!",
-                                        )
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(
-                                        DEBUG_TAG,
-                                        "[WifiSyncServer] Failed to analyze export content",
-                                        e,
-                                    )
-                                }
-
                                 Log.d(
                                     DEBUG_TAG,
-                                    "[WifiSyncServer] DEBUG_MARK_EXPORT_READY len=${backupJson.length}",
+                                    "[WifiSyncServer] DEBUG_MARK_EXPORT_READY len=${rawBackupJson.length}",
                                 )
-                                dumpToFileDebug("export", backupJson)
-                                if (BuildConfig.DEBUG) {
-                                    Log.d(
-                                        DEBUG_TAG,
-                                        "[WifiSyncServer] /export dump head=${backupJson.take(400)}",
-                                    )
-                                }
+                                dumpToFileDebug("export", rawBackupJson)
                                 Log.d(
                                     DEBUG_TAG,
-                                    "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes",
+                                    "[WifiSyncServer] /export COMPLETE, JSON size=${rawBackupJson.length} bytes",
                                 )
-                                call.respondText(backupJson, ContentType.Application.Json)
+                                call.respondText(rawBackupJson, ContentType.Application.Json)
+                                eventJournal.finish(eventId)
                             } catch (e: Exception) {
+                                eventJournal.finish(eventId, e)
                                 Log.e("WifiSyncServer", "Помилка при створенні бекапу", e)
                                 Log.e(DEBUG_TAG, "[WifiSyncServer] /export error ${e.message}", e)
-                                call.respondText("Помилка сервера: ${e.message}")
+                                call.respondText("SYNC_EXPORT_FAILED", ContentType.Text.Plain, HttpStatusCode.InternalServerError)
                             }
                         }
                         post("/import") {
@@ -253,6 +207,8 @@ class WifiSyncServer(
                             Log.d("WifiSyncServer", "Запит на /import отримано.")
                             val remote = call.request.local.remoteHost
                             Log.d(DEBUG_TAG, "[WifiSyncServer] /import from $remote")
+                            val eventId = eventJournal.begin(WifiAutoSyncPeer("incoming-import", "Запит іншого пристрою", remote, ""), "Вхідний імпорт")
+                            eventJournal.stage(eventId, "Злиття даних")
                             try {
                                 val body = call.receiveText()
                                 Log.d(
@@ -276,6 +232,7 @@ class WifiSyncServer(
                                     com.google.gson.JsonParser.parseString(body).asJsonObject
                                 val rawSnapshot = rawRoot.get("snapshotBundle")
                                 if (rawSnapshot == null || rawSnapshot.isJsonNull) {
+                                    eventJournal.finish(eventId, IllegalArgumentException("Canonical snapshotBundle section is required"))
                                     return@post call.respond(
                                         HttpStatusCode.Companion.BadRequest,
                                         "Canonical snapshotBundle section is required",
@@ -310,6 +267,7 @@ class WifiSyncServer(
                                         "snapshotRuntimeSleepAt=${snapshotBundle?.dayManagementRuntimeState?.sleepAt}",
                                 )
                                 if (snapshotBundle == null) {
+                                    eventJournal.finish(eventId, IllegalArgumentException("Canonical snapshotBundle section is required"))
                                     return@post call.respond(
                                         HttpStatusCode.Companion.BadRequest,
                                         "Canonical snapshotBundle section is required",
@@ -320,8 +278,10 @@ class WifiSyncServer(
                                     syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
                                     Log.i("ForwardSync", "wifi canonical snapshot import applied")
                                 }
+                                eventJournal.finish(eventId)
                                 call.respond(HttpStatusCode.Companion.OK, "Import applied")
                             } catch (e: Exception) {
+                                eventJournal.finish(eventId, e)
                                 Log.e("WifiSyncServer", "Помилка при імпорті", e)
                                 Log.e(DEBUG_TAG, "[WifiSyncServer] /import error ${e.message}", e)
                                 call.respond(
@@ -433,8 +393,6 @@ class WifiSyncServer(
     }
 }
 
-private const val TACTICAL_TRACE_TAG = "TacticalMissionDebug"
-private const val TACTICAL_TRACE_SAMPLE_SIZE = 12
 
 private fun FullAppBackup.describeDayImportPayload(bodyLength: Int): String {
     val plans = snapshotBundle?.dayPlans.orEmpty()

@@ -1,5 +1,24 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Wi-Fi full export failure diagnosis (source changed; device pending)
+
+Two-phone manual sync reached the receiving phone and failed after fetch with
+Gson malformed-JSON text at line 1, column 10. The server's `/export` handler
+previously reparsed and reserialized the already verified backup with a
+different Gson configuration, then returned a plain-text error with HTTP 200
+if that or another export step failed. The client treated the text as a backup
+and reported the failure during merge. The server now sends the verified JSON
+unchanged, returns HTTP 500 on export failure, and records incoming export
+attempts in its local sync journal. The client rejects non-object JSON at the
+fetch boundary and reports server failure at the receiving stage. The device
+screen also shows actual listener status. A separate startup ordering defect
+could drop the Activity foreground state before SyncUseCase initialization;
+the state is now replayed when the manager starts. Live A1/A2 confirmation
+and focused CI are pending.
+The incoming `/import` handler now uses the same Gson adapters as the verified
+backup path and records its own success/failure in the local journal, so a
+second-phase import failure is visible on the receiving phone.
+
 ## 2026-11-26 - Device sync management screen (focused CI verified; device pending)
 
 The main More sheet now opens a dedicated "Sync between devices" screen beside

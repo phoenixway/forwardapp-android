@@ -948,8 +948,14 @@ class SyncWifiService @Inject constructor(
             }
             val response = client.get(fullUrl) { headers.append(WIFI_PEER_KEY_HEADER, peerKey) }
             if (response.status == io.ktor.http.HttpStatusCode.Unauthorized) error("Неправильний ключ іншого пристрою")
-            if (!response.status.isSuccess()) error("Сервер повернув помилку: ${response.status.value}")
-            Result.success(response.body())
+            if (response.status == HttpStatusCode.InternalServerError) {
+                error("Інший пристрій не зміг підготувати дані (HTTP 500). Перегляньте журнал синхронізації на ньому.")
+            }
+            if (!response.status.isSuccess()) error("Інший пристрій повернув помилку HTTP ${response.status.value}")
+            val payload: String = response.body()
+            val isJsonObject = runCatching { com.google.gson.JsonParser.parseString(payload).isJsonObject }.getOrDefault(false)
+            check(isJsonObject) { "Інший пристрій повернув не JSON. Перегляньте журнал синхронізації на ньому." }
+            Result.success(payload)
         } catch (e: Exception) {
             Log.e(WIFI_LOG, "Error fetching from Wi‑Fi", e)
             Result.failure(e)

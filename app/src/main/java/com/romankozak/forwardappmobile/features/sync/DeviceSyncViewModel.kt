@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
 import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncSettingsStore
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -26,6 +27,7 @@ data class DeviceSyncUiState(
     val peers: List<WifiAutoSyncPeer> = emptyList(),
     val autoSyncEnabled: Boolean = false,
     val localConnectionEnabled: Boolean = false,
+    val listenerStatus: WifiSyncStatus = WifiSyncStatus.Disabled,
     val localAddress: String? = null,
     val localPort: Int = 8080,
     val localKey: String = "",
@@ -39,6 +41,7 @@ class DeviceSyncViewModel @Inject constructor(
     private val store: WifiAutoSyncSettingsStore,
     private val syncRepository: SyncRepository,
     private val journal: WifiSyncEventJournal,
+    private val syncUseCase: SyncUseCase,
     private val application: Application,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DeviceSyncUiState())
@@ -58,6 +61,7 @@ class DeviceSyncViewModel @Inject constructor(
         viewModelScope.launch { settings.wifiSyncServerEnabledFlow.collect { enabled -> _state.update { it.copy(localConnectionEnabled = enabled) } } }
         viewModelScope.launch { settings.wifiSyncServerKeyFlow.collect { key -> _state.update { it.copy(localKey = key) } } }
         viewModelScope.launch { settings.wifiSyncPortFlow.collect { port -> _state.update { it.copy(localPort = port) } } }
+        viewModelScope.launch { syncUseCase.syncUiState.collect { sync -> _state.update { it.copy(listenerStatus = sync.syncStatus) } } }
         viewModelScope.launch { journal.eventsFlow.collect { entries -> _events.value = entries } }
         refreshLocalAddress()
     }

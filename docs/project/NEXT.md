@@ -1,5 +1,14 @@
 # Next
 
+## Wi-Fi export and two-phone retry
+
+Update both phones to a build containing the export error fix. On each phone,
+check that the device-sync screen says it is ready to receive at its actual
+IP:port. Retry manual sync in both directions. If one side shows HTTP 500,
+copy the technical journal from the phone preparing the export; a malformed
+payload on the client should no longer be misreported as a merge error.
+Focused CI and physical convergence are pending for this fix.
+
 ## Device sync screen acceptance
 
 After a build with the new screen, on two Android phones verify the displayed

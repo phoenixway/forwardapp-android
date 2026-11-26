@@ -48,6 +48,7 @@ class WifiSyncManager(
             application,
             dayManagementRepository,
             settingsRepository,
+            eventJournal,
         )
     private var isServerRunning = false
     private var isServerStarting = false

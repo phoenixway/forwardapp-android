@@ -26,4 +26,16 @@ class WifiSyncEventJournalTest {
         assertThat(event.toString()).doesNotContain("secret-key")
         assertThat(event.toString()).doesNotContain("snapshot-content")
     }
+
+    @Test fun `malformed export is identified without recording raw data`() = runBlocking {
+        val journal = WifiSyncEventJournal(ApplicationProvider.getApplicationContext<Context>())
+        val peer = WifiAutoSyncPeer("incoming", "Запит іншого пристрою", "192.168.1.4", "secret-key")
+        val id = journal.begin(peer, "Вхідний експорт")
+
+        journal.finish(id, IllegalStateException("Use JsonReader to accept malformed JSON: snapshot-content"))
+
+        val event = journal.eventsFlow.first().first { it.id == id }
+        assertThat(event.detail).contains("Некоректний JSON")
+        assertThat(event.detail).doesNotContain("snapshot-content")
+    }
 }

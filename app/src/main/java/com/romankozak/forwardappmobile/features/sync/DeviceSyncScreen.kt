@@ -73,6 +73,9 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
                             Switch(state.localConnectionEnabled, onCheckedChange = viewModel::setLocalConnectionEnabled)
                         }
                         Text("Інші ваші пристрої зможуть обмінюватися даними з цим телефоном, поки додаток працює.", style = MaterialTheme.typography.bodySmall)
+                        Text(listenerStatusText(state.listenerStatus), style = MaterialTheme.typography.bodyMedium,
+                            color = if (state.listenerStatus is WifiSyncStatus.ServerRunning) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error)
                         Text("Адреса цього пристрою: ${state.localAddress?.let { "$it:${state.localPort}" } ?: "Wi‑Fi недоступний"}")
                         TextButton(onClick = viewModel::refreshLocalAddress) { Text("Оновити адресу") }
                         Text("Ключ цього пристрою: ${state.localKey}")
@@ -131,6 +134,15 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Скасувати") } },
         )
     }
+}
+
+private fun listenerStatusText(status: WifiSyncStatus): String = when (status) {
+    is WifiSyncStatus.ServerRunning -> "Готовий приймати підключення: ${status.address ?: "адреса невідома"}"
+    is WifiSyncStatus.Error -> "Не вдалося запустити приймання: ${status.message}"
+    WifiSyncStatus.Syncing -> "Підготовка приймання…"
+    WifiSyncStatus.Disabled -> "Приймання зараз вимкнене"
+    WifiSyncStatus.Offline -> "Wi‑Fi недоступний"
+    WifiSyncStatus.Idle -> "Приймання ще не запущене"
 }
 
 @Composable
