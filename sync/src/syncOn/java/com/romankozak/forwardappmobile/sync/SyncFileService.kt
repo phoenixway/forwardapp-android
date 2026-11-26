@@ -295,8 +295,7 @@ class SyncFileService @Inject constructor(
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
             val backupData = runCatching { gson.fromJson(normalizedJson, FullAppBackup::class.java) }.getOrNull()
             val snapshotBundleToApply = resolveIncomingImportBundle(normalizedJson).snapshotBundle
-            Log.e(
-                "DaySyncImport",
+            Timber.tag("DaySyncImport").d(
                 "json import resolved chars=${normalizedJson.length} ${snapshotBundleToApply.describeDayPayload()}",
             )
 
