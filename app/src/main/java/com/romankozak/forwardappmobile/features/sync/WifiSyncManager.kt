@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -35,6 +36,7 @@ class WifiSyncManager(
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,
     private val autoSyncSettingsStore: WifiAutoSyncSettingsStore,
+    private val eventJournal: WifiSyncEventJournal,
     private val dayManagementRepository: DayManagementRepository,
     private val application: Application,
     private val viewModelScope: CoroutineScope,
@@ -131,18 +133,23 @@ class WifiSyncManager(
         var firstError: String? = null
         peers.forEach { peer ->
             _autoSyncStatus.value = WifiAutoSyncStatus.Syncing(peer.name.ifBlank { peer.address }, peers.size)
+            val eventId = eventJournal.begin(peer, "Автоматично")
             try {
                 check(currentWifiIpv4Address(application) != null) { "Wi‑Fi недоступний" }
                 withTimeout(90_000L) {
-                    exchangeFullSnapshotWithPeer(syncRepository, peer)
+                    exchangeFullSnapshotWithPeer(syncRepository, peer) { eventJournal.stage(eventId, it) }
                 }
+                eventJournal.finish(eventId)
                 successful++
                 lastAutoSyncSuccessAt = System.currentTimeMillis()
             } catch (timeout: TimeoutCancellationException) {
+                eventJournal.finish(eventId, timeout)
                 if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: перевищено час очікування"
             } catch (cancelled: CancellationException) {
+                withContext(NonCancellable) { eventJournal.finish(eventId, cancelled) }
                 throw cancelled
             } catch (error: Exception) {
+                eventJournal.finish(eventId, error)
                 Log.w(SYNC_LOG_TAG, "Auto sync with ${peer.address} failed: ${error.message}", error)
                 if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: ${wifiSyncErrorMessage(error)}"
             }
@@ -312,11 +319,15 @@ class WifiSyncManager(
         viewModelScope.launch {
             _syncStatus.value = WifiSyncStatus.Syncing
             Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing full Wi‑Fi import from $address")
+            val eventId = eventJournal.begin(WifiAutoSyncPeer("manual-import", "Ручний імпорт", address, ""), "Імпорт")
+            eventJournal.stage(eventId, "Отримання даних")
             val result = syncRepository.fetchBackupFromWifi(address, deltaSince = null)
             result
                 .onSuccess { jsonString ->
+                    eventJournal.stage(eventId, "Злиття даних")
                     syncRepository.importBackupJsonString(jsonString, restoreSettings = false)
                         .onSuccess { importedCount ->
+                            eventJournal.finish(eventId)
                             _syncStatus.value = WifiSyncStatus.Idle
                             uiEventChannel.send(
                                 ProjectUiEvent.ShowToast("Wi‑Fi import applied: $importedCount items"),
@@ -324,6 +335,7 @@ class WifiSyncManager(
                             onDismissWifiImportDialog()
                         }
                         .onFailure {
+                            eventJournal.finish(eventId, it)
                             val message = it.message ?: "Wi‑Fi import failed"
                             _syncStatus.value = WifiSyncStatus.Error(message)
                             Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Apply import error: $message", it)
@@ -331,6 +343,7 @@ class WifiSyncManager(
                         }
                 }
                 .onFailure {
+                    eventJournal.finish(eventId, it)
                     val message = wifiSyncErrorMessage(it)
                     _syncStatus.value = WifiSyncStatus.Error(message)
                     Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Import error: $message", it)
@@ -350,11 +363,15 @@ class WifiSyncManager(
             }
             _syncStatus.value = WifiSyncStatus.Syncing
             Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing Wi‑Fi push to $targetAddress")
+            val eventId = eventJournal.begin(WifiAutoSyncPeer("manual-push", "Ручне надсилання", targetAddress, ""), "Надсилання")
+            eventJournal.stage(eventId, "Надсилання даних")
             val result = syncRepository.pushUnsyncedToWifi(targetAddress)
             if (result.isSuccess) {
+                eventJournal.finish(eventId)
                 _syncStatus.value = WifiSyncStatus.Idle
                 uiEventChannel.send(ProjectUiEvent.ShowToast("Synced changes over Wi‑Fi"))
             } else {
+                eventJournal.finish(eventId, result.exceptionOrNull())
                 val message = result.exceptionOrNull()?.let(::wifiSyncErrorMessage) ?: "Не вдалося синхронізуватися"
                 _syncStatus.value = WifiSyncStatus.Error(message)
                 Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Push error: $message", result.exceptionOrNull())

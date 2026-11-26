@@ -46,6 +46,7 @@ import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
 @Composable
 fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val events by viewModel.events.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     var editing by remember { mutableStateOf<WifiAutoSyncPeer?>(null) }
     var removing by remember { mutableStateOf<WifiAutoSyncPeer?>(null) }
@@ -111,6 +112,7 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
                     onAutoSyncChange = { viewModel.setPeerAutoSync(peer, it) },
                     onSync = { viewModel.syncNow(peer) })
             }
+            item { DeviceSyncJournalSection(events) }
         }
     }
     editing?.let { peer ->

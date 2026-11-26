@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.sync.WifiSyncManager
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
 import com.romankozak.forwardappmobile.features.sync.WifiAutoSyncStatus
+import com.romankozak.forwardappmobile.features.sync.WifiSyncEventJournal
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -30,6 +31,7 @@ class SyncUseCase
         private val settingsRepository: SettingsRepository,
         private val dayManagementRepository: DayManagementRepository,
         private val autoSyncSettingsStore: WifiAutoSyncSettingsStore,
+        private val wifiSyncEventJournal: WifiSyncEventJournal,
     ) {
         data class SyncUiState(
             val showWifiServerDialog: Boolean = false,
@@ -64,6 +66,7 @@ class SyncUseCase
                     syncRepository = syncRepository,
                     settingsRepository = settingsRepository,
                     autoSyncSettingsStore = autoSyncSettingsStore,
+                    eventJournal = wifiSyncEventJournal,
                     dayManagementRepository = dayManagementRepository,
                     application = application,
                     viewModelScope = scope,

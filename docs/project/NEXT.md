@@ -6,6 +6,9 @@ After a build with the new screen, on two Android phones verify the displayed
 IP:port and key, add each phone on the other, use manual Sync, then enable
 global and per-device auto sync. Confirm both incoming switches are on, both
 phones share Wi-Fi, and errors identify the unreachable peer clearly.
+Check the last-three-operation summary and the detailed copyable journal after
+one success and one unreachable-peer attempt. The journal must not expose keys
+or snapshot content.
 Compilation and physical convergence remain pending for this slice.
 
 ## A1/A2 Wi-Fi peer key acceptance

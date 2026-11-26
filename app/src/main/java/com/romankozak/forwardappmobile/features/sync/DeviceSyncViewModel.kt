@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -36,10 +38,13 @@ class DeviceSyncViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val store: WifiAutoSyncSettingsStore,
     private val syncRepository: SyncRepository,
+    private val journal: WifiSyncEventJournal,
     private val application: Application,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DeviceSyncUiState())
     val state = _state.asStateFlow()
+    private val _events = MutableStateFlow<List<WifiSyncEvent>>(emptyList())
+    val events = _events.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -53,6 +58,7 @@ class DeviceSyncViewModel @Inject constructor(
         viewModelScope.launch { settings.wifiSyncServerEnabledFlow.collect { enabled -> _state.update { it.copy(localConnectionEnabled = enabled) } } }
         viewModelScope.launch { settings.wifiSyncServerKeyFlow.collect { key -> _state.update { it.copy(localKey = key) } } }
         viewModelScope.launch { settings.wifiSyncPortFlow.collect { port -> _state.update { it.copy(localPort = port) } } }
+        viewModelScope.launch { journal.eventsFlow.collect { entries -> _events.value = entries } }
         refreshLocalAddress()
     }
 
@@ -117,14 +123,19 @@ class DeviceSyncViewModel @Inject constructor(
     fun syncNow(peer: WifiAutoSyncPeer) = viewModelScope.launch {
         if (_state.value.syncingPeerId != null) return@launch
         _state.update { it.copy(syncingPeerId = peer.id, message = null) }
+        val eventId = journal.begin(peer, "Вручну")
         try {
-            withTimeout(90_000L) { exchangeFullSnapshotWithPeer(syncRepository, peer) }
+            withTimeout(90_000L) { exchangeFullSnapshotWithPeer(syncRepository, peer) { journal.stage(eventId, it) } }
+            journal.finish(eventId)
             _state.update { it.copy(message = "${peer.name}: синхронізовано") }
         } catch (error: TimeoutCancellationException) {
+            journal.finish(eventId, error)
             _state.update { it.copy(message = "Час очікування вичерпано. Перевірте Wi‑Fi, адресу й приймання на іншому пристрої.") }
         } catch (error: CancellationException) {
+            withContext(NonCancellable) { journal.finish(eventId, error) }
             throw error
         } catch (error: Exception) {
+            journal.finish(eventId, error)
             _state.update { it.copy(message = wifiSyncErrorMessage(error)) }
         } finally {
             _state.update { it.copy(syncingPeerId = null) }

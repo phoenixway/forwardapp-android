@@ -14,6 +14,11 @@ The Wi-Fi client now has an explicit 10-second connect timeout; unreachable-peer
 errors explain the address, port, Wi-Fi and incoming-connection checks. A connect
 timeout alone does not identify which check fails. Physical two-phone acceptance
 and compilation are pending.
+The screen now keeps a device-local bounded journal of the latest 50 automatic
+exchanges, new-screen manual exchanges, and legacy Wi-Fi Push/Import operations,
+with three recent statuses on the screen and a copyable detailed view. Entries
+include time, peer address, exchange stage,
+outcome and safe error class/category; keys and snapshot content are excluded.
 
 ## 2026-11-26 - Wi-Fi peer key Save lifecycle (CI verified; device pending)
 

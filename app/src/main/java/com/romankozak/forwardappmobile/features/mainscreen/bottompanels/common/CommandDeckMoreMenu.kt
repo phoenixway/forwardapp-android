@@ -29,7 +29,9 @@ data class MoreSheetAction(
     val label: String,
     val onClick: () -> Unit,
     val icon: ImageVector = Icons.Outlined.Tune,
-)
+) {
+    constructor(text: String, action: () -> Unit) : this(text, action, Icons.Outlined.Tune)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

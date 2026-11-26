@@ -10,6 +10,7 @@ sync gate. Manual synchronization uses the same full pull/merge/push exchange
 as auto sync and serializes locally with it. Saved peers are configuration,
 not a claim of a verified live connection. No SnapshotBundle or hierarchy
 authority changes. Peer configuration remains `SEMANTIC_NOT_HIERARCHY`.
+The local event journal is diagnostic metadata only, not sync or backup state.
 
 ## 2026-11-26 - Android foreground Wi-Fi auto sync uses per-peer full exchange
 
