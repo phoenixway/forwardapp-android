@@ -61,7 +61,7 @@ internal fun DeviceSyncLocalCard(
         WifiSyncStatus.Idle -> "Приймання не запущене"
     }
     Card(shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Smartphone, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -123,7 +123,7 @@ private fun TechnicalValueRow(
 @Composable
 internal fun DeviceSyncGlobalAutoSyncRow(enabled: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        color = MaterialTheme.colorScheme.surfaceContainer) {
         Column {
             HorizontalDivider(Modifier.padding(horizontal = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),

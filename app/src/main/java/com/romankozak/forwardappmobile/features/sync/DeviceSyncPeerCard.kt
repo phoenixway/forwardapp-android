@@ -65,7 +65,7 @@ internal fun DeviceSyncPeerCard(
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startedAt))
     }
     Card(modifier = modifier, shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column {
             HorizontalDivider(Modifier.padding(horizontal = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

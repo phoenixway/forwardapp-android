@@ -39,7 +39,7 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>, modifier: Mod
     var showAll by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<WifiSyncEvent?>(null) }
     val clipboard = LocalClipboardManager.current
-    Surface(modifier, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+    Surface(modifier, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Журнал", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)

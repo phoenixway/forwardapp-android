@@ -83,9 +83,9 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
                 viewModel::refreshConnectionAddress,
                 onCopy = { clipboard.setText(AnnotatedString(it)) }, onShowQr = { showQr = true }) }
             item { DeviceSyncGlobalAutoSyncRow(state.autoSyncEnabled, viewModel::setAutoSyncEnabled) }
-            item { Surface(modifier = Modifier.padding(top = 16.dp),
+            item { Surface(modifier = Modifier.padding(top = 24.dp),
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                color = MaterialTheme.colorScheme.surfaceContainer) {
                 Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text("Пристрої · ${state.peers.size}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                     Box {
@@ -112,7 +112,7 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
             } }
             if (state.peers.isEmpty()) item {
                 Surface(shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    color = MaterialTheme.colorScheme.surfaceContainer) {
                     Text("Додайте інший пристрій через QR-код або введіть адресу й ключ.",
                         modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                         style = MaterialTheme.typography.bodySmall)
@@ -128,7 +128,7 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
                     shape = if (index == state.peers.lastIndex) RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
                         else RoundedCornerShape(0.dp))
             }
-            item { DeviceSyncJournalSection(events, Modifier.padding(top = 16.dp, bottom = 12.dp)) }
+            item { DeviceSyncJournalSection(events, Modifier.padding(top = 24.dp, bottom = 12.dp)) }
         }
     }
     if (showHelp) AlertDialog(onDismissRequest = { showHelp = false }, title = { Text("Як підключити пристрої") },
