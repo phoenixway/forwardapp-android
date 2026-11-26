@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Wi-Fi peer key Save lifecycle (implementation; CI/device pending)
+## 2026-11-26 - Wi-Fi peer key Save lifecycle (CI verified; device pending)
 
 Live Android A1/A2 acceptance reached A2's "missing peer key" error even after
 the user pasted and saved the key twice. Settings Save launched persistence in
@@ -10,6 +10,9 @@ collectors could also overwrite a draft Wi-Fi key/address while the form was
 open. Save now captures the form values, waits for the settings write before
 closing, reports write failures, and keeps the edited peer pair stable during
 other settings emissions. The live retry is pending.
+The focused authentication/Restore test and app-prod compilation passed in
+GitHub Actions run `45831861854` on `1083b03cc`. The A1/A2 behavior remains
+unverified on an APK containing this commit.
 
 ## 2026-11-26 - Android foreground multi-peer auto sync (focused CI; device pending)
 
