@@ -59,13 +59,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.DayPlanningScopeExtensionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSyncVersion
-import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.serialization.gson.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -942,14 +938,7 @@ class SyncWifiService @Inject constructor(
 ) {
     private val WIFI_LOG = "FWD_SYNC_WIFI"
 
-    private val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            gson {
-                registerTypeAdapterFactory(com.romankozak.forwardappmobile.core.data.models.sync.SubjectConversionSnapshotAdapter())
-                registerTypeAdapter(Long::class.java, LongDeserializer())
-            }
-        }
-    }
+    private val client = createSyncWifiHttpClient()
 
     suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null, peerKeyOverride: String? = null): Result<String> = withContext(Dispatchers.IO) {
         try {

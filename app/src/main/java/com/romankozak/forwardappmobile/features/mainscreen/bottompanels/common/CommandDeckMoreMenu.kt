@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import kotlinx.coroutines.launch
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 data class MoreSheetAction(
     val label: String,
     val onClick: () -> Unit,
+    val icon: ImageVector = Icons.Outlined.Tune,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +43,7 @@ fun CommandDeckMoreActionButton(
     onNavigateToAiInsights: () -> Unit,
     onNavigateToAiLifeManagement: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToDeviceSync: () -> Unit,
     onExportToFile: () -> Unit,
     onImportFromFileRequest: (Uri) -> Unit,
     onSelectiveImportFromFileRequest: (Uri) -> Unit,
@@ -128,6 +132,7 @@ fun CommandDeckMoreActionButton(
                         )
                     },
                 onNavigateToSettings = { runAfterSheetDismiss(onNavigateToSettings) },
+                onNavigateToDeviceSync = { runAfterSheetDismiss(onNavigateToDeviceSync) },
                 featureToggles = featureToggles,
                 containerColor = moreSheetColor,
             )

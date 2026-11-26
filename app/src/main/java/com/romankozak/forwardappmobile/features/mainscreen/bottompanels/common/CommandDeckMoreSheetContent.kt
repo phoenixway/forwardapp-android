@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,6 +58,7 @@ internal fun MoreBottomSheetContent(
     onNavigateToAiInsights: () -> Unit,
     onNavigateToAiLifeManagement: () -> Unit,
     onShowImportExportSheet: () -> Unit,
+    onNavigateToDeviceSync: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onNavigateToEntityLibrary: () -> Unit,
@@ -133,6 +135,11 @@ internal fun MoreBottomSheetContent(
                     Log.e("FullJsonImport", "MoreSheetMenuItem Import/Export click")
                     onShowImportExportSheet()
                 },
+            )
+            MoreSheetMenuItem(
+                icon = Icons.Outlined.Sync,
+                label = "Sync between devices",
+                onClick = onNavigateToDeviceSync,
             )
             MoreSheetMenuItem(
                 icon = Icons.Outlined.Info,

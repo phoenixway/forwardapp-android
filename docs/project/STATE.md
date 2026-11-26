@@ -1,5 +1,20 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Device sync management screen (source implemented; device pending)
+
+The main More sheet now opens a dedicated "Sync between devices" screen beside
+Import/Export. It shows this phone's Wi-Fi address/key, an incoming-connection
+switch, saved peers, add/edit/remove, manual full exchange, global foreground
+auto sync, and a separate auto sync switch per peer. The existing primary
+address/key remain in device-local SettingsRepository keys; only its name and
+auto-sync participation are new local DataStore values. Additional peers retain
+their existing local IDs and keys. Manual and automatic full exchanges share a
+local mutex, so their pull/merge/push sequences do not overlap on one phone.
+The Wi-Fi client now has an explicit 10-second connect timeout; unreachable-peer
+errors explain the address, port, Wi-Fi and incoming-connection checks. A connect
+timeout alone does not identify which check fails. Physical two-phone acceptance
+and compilation are pending.
+
 ## 2026-11-26 - Wi-Fi peer key Save lifecycle (CI verified; device pending)
 
 Live Android A1/A2 acceptance reached A2's "missing peer key" error even after

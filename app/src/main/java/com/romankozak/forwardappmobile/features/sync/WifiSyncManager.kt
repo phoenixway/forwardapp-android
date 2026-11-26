@@ -144,7 +144,7 @@ class WifiSyncManager(
                 throw cancelled
             } catch (error: Exception) {
                 Log.w(SYNC_LOG_TAG, "Auto sync with ${peer.address} failed: ${error.message}", error)
-                if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: ${error.message ?: "помилка"}"
+                if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: ${wifiSyncErrorMessage(error)}"
             }
         }
         _autoSyncStatus.value = WifiAutoSyncStatus.Result(successful, peers.size, lastAutoSyncSuccessAt, firstError)
@@ -331,7 +331,7 @@ class WifiSyncManager(
                         }
                 }
                 .onFailure {
-                    val message = it.message ?: "Wi‑Fi import failed"
+                    val message = wifiSyncErrorMessage(it)
                     _syncStatus.value = WifiSyncStatus.Error(message)
                     Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Import error: $message", it)
                     uiEventChannel.send(ProjectUiEvent.ShowToast("Error: $message"))
@@ -355,7 +355,7 @@ class WifiSyncManager(
                 _syncStatus.value = WifiSyncStatus.Idle
                 uiEventChannel.send(ProjectUiEvent.ShowToast("Synced changes over Wi‑Fi"))
             } else {
-                val message = result.exceptionOrNull()?.message ?: "Wi‑Fi sync failed"
+                val message = result.exceptionOrNull()?.let(::wifiSyncErrorMessage) ?: "Не вдалося синхронізуватися"
                 _syncStatus.value = WifiSyncStatus.Error(message)
                 Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Push error: $message", result.exceptionOrNull())
                 uiEventChannel.send(ProjectUiEvent.ShowToast("Wi‑Fi sync failed: $message"))

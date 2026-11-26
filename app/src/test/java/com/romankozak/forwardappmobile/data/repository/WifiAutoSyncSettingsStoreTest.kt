@@ -11,6 +11,33 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class WifiAutoSyncSettingsStoreTest {
+    @Test fun `per-device auto sync switches exclude only their own peer`() = runBlocking<Unit> {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val settings = SettingsRepository(context)
+        val store = WifiAutoSyncSettingsStore(context, settings)
+        val priorAddress = settings.desktopSyncAddressFlow.first()
+        val priorKey = settings.wifiSyncPeerKeyFlow.first()
+        val priorPrimaryEnabled = store.primaryEnabledFlow.first()
+        val priorPrimaryName = store.primaryNameFlow.first()
+        val priorEnabled = store.enabledFlow.first()
+        val priorExtras = store.extraPeersFlow.first()
+        try {
+            settings.saveWifiSyncPeerConnection("192.168.1.2:8080", "first-key")
+            store.setPrimaryEnabled(false)
+            store.upsertExtraPeer(WifiAutoSyncPeer("second", "Phone B", "192.168.1.3:8080", "second-key"))
+
+            assertThat(store.peersFlow.first().map { it.id }).containsExactly("second")
+            store.setPrimaryEnabled(true)
+            store.setExtraPeerEnabled("second", false)
+            assertThat(store.peersFlow.first().map { it.id }).containsExactly("primary")
+        } finally {
+            store.save(priorEnabled, priorExtras)
+            store.setPrimaryEnabled(priorPrimaryEnabled)
+            store.setPrimaryName(priorPrimaryName)
+            settings.saveWifiSyncPeerConnection(priorAddress, priorKey)
+        }
+    }
+
     @Test fun `configured primary and additional peers stay local and independent`() = runBlocking<Unit> {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val settings = SettingsRepository(context)

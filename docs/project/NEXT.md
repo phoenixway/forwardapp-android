@@ -1,5 +1,13 @@
 # Next
 
+## Device sync screen acceptance
+
+After a build with the new screen, on two Android phones verify the displayed
+IP:port and key, add each phone on the other, use manual Sync, then enable
+global and per-device auto sync. Confirm both incoming switches are on, both
+phones share Wi-Fi, and errors identify the unreachable peer clearly.
+Compilation and physical convergence remain pending for this slice.
+
 ## A1/A2 Wi-Fi peer key acceptance
 
 After updating A2 with the Settings Save lifecycle fix, paste A1's server key

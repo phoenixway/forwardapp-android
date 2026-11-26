@@ -1,5 +1,16 @@
 # ForwardApp Decisions
 
+## 2026-11-26 - Device sync management uses existing local peer configuration
+
+The dedicated device-sync screen presents the primary Settings peer and extra
+local peers as one list. Primary address/key storage and additional-peer IDs
+are preserved. A device-local primary name and participation switch extend the
+existing configuration; the global foreground switch remains the master auto
+sync gate. Manual synchronization uses the same full pull/merge/push exchange
+as auto sync and serializes locally with it. Saved peers are configuration,
+not a claim of a verified live connection. No SnapshotBundle or hierarchy
+authority changes. Peer configuration remains `SEMANTIC_NOT_HIERARCHY`.
+
 ## 2026-11-26 - Android foreground Wi-Fi auto sync uses per-peer full exchange
 
 The Android auto-sync switch operates only while MainActivity is foregrounded.

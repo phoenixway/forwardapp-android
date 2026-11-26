@@ -21,6 +21,7 @@ fun BottomPanelMoreActionButton(
         onNavigateToAiInsights = actions.onNavigateToAiInsights,
         onNavigateToAiLifeManagement = actions.onNavigateToAiLifeManagement,
         onNavigateToSettings = actions.onNavigateToSettings,
+        onNavigateToDeviceSync = actions.onNavigateToDeviceSync,
         onExportToFile = actions.onExportToFile,
         onImportFromFileRequest = actions.onImportFromFileRequest,
         onSelectiveImportFromFileRequest = actions.onSelectiveImportFromFileRequest,

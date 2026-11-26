@@ -46,7 +46,7 @@ fun WifiSyncSettingsCard(
         icon = Icons.Default.Sync,
     ) {
         Text(
-            text = "Для двох Android або Android і комп’ютера: під’єднайте пристрої до однієї Wi‑Fi мережі. На пристрої, що приймає дані, увімкніть сервер і відкрийте «Приймати через Wi‑Fi» в меню імпорту / експорту, щоб побачити його адресу.",
+            text = "Для двох Android або Android і комп’ютера: під’єднайте пристрої до однієї Wi‑Fi мережі. Дозвольте підключення на телефоні, який має приймати дані. Його адресу й ключ можна подивитися в «Sync between devices» у меню More.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Row(
@@ -63,7 +63,7 @@ fun WifiSyncSettingsCard(
         }
         if (localIpAddress != null) {
             Text(
-                text = "Поточна адреса Wi‑Fi: $localIpAddress:$wifiSyncPort. Після зміни порту або Wi‑Fi мережі відкрийте «Приймати через Wi‑Fi», щоб сервер показав актуальну адресу.",
+                text = "Адреса цього телефона для іншого пристрою: $localIpAddress:$wifiSyncPort. Після зміни мережі оновіть адресу на екрані синхронізації.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -87,7 +87,7 @@ fun WifiSyncSettingsCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Приймати дані на цьому телефоні",
+                text = "Дозволити підключення до цього телефона",
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
             )
@@ -101,7 +101,7 @@ fun WifiSyncSettingsCard(
             value = wifiSyncPort.toString(),
             onValueChange = onPortChange,
             label = "Порт цього телефона",
-            helper = "Число від 1 до 65535 для сервера цього телефона. На іншому пристрої введіть адресу IP:порт, показану в «Приймати через Wi‑Fi».",
+            helper = "Число від 1 до 65535. Разом з IP утворює адресу цього телефона, яку потрібно ввести на іншому пристрої.",
             singleLine = true,
             enabled = enabled,
         )
@@ -109,7 +109,7 @@ fun WifiSyncSettingsCard(
             value = peerAddress,
             onValueChange = onPeerAddressChange,
             label = "Адреса іншого пристрою",
-            helper = "IP:порт сервера на іншому Android або комп’ютері, наприклад 192.168.1.5:8080. Використовується для Push та Wi‑Fi імпорту.",
+            helper = "Адреса іншого Android або комп’ютера у форматі IP:порт, наприклад 192.168.1.5:8080. Використовується для Push та Wi‑Fi імпорту.",
             singleLine = true,
             modifier = Modifier.padding(top = 8.dp),
             enabled = enabled,
@@ -135,7 +135,7 @@ fun WifiSyncSettingsCard(
             Switch(checked = autoSyncEnabled, onCheckedChange = onAutoSyncEnabledChange, enabled = enabled)
         }
         Text(
-            "Основний пристрій — адреса й ключ вище. Для двостороннього обміну увімкніть сервер на кожному телефоні. Збережіть налаштування.",
+            "Основний пристрій — адреса й ключ вище. Для двостороннього обміну дозвольте підключення на кожному телефоні. Збережіть налаштування.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 8.dp),
         )

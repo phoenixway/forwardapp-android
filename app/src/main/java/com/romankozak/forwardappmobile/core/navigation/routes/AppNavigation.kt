@@ -72,6 +72,7 @@ import com.romankozak.forwardappmobile.features.entitylibrary.EntityLibraryScree
 import com.romankozak.forwardappmobile.features.settings.ManageContextMarkersScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
 import com.romankozak.forwardappmobile.features.sync.SyncScreen
+import com.romankozak.forwardappmobile.features.sync.DeviceSyncScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
@@ -194,6 +195,7 @@ private fun NavGraphBuilder.mainGraph(
                 )
             },
             onNavigateToSettings = { navigationManager.navigate(target = NavTarget.Settings) },
+            onNavigateToDeviceSync = { navController.navigate(NavigationRoutes.DEVICE_SYNC) },
             onNavigateToInbox = {
                 scope.launch {
                     val inbox = goalListViewModel.getInboxProjectPresentation()
@@ -516,6 +518,10 @@ private fun NavGraphBuilder.mainGraph(
                 goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveSettings(settings))
             },
         )
+    }
+
+    composable(NavigationRoutes.DEVICE_SYNC) {
+        DeviceSyncScreen(onBack = { navController.popBackStack() })
     }
 
     composable(NavigationRoutes.MANAGE_CONTEXT_MARKERS) { backStackEntry ->
