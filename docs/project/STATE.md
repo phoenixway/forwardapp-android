@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Wi-Fi full export failure diagnosis (source changed; device pending)
+## 2026-11-26 - Wi-Fi full export failure diagnosis (focused CI verified; device pending)
 
 Two-phone manual sync reached the receiving phone and failed after fetch with
 Gson malformed-JSON text at line 1, column 10. The server's `/export` handler
@@ -13,8 +13,9 @@ attempts in its local sync journal. The client rejects non-object JSON at the
 fetch boundary and reports server failure at the receiving stage. The device
 screen also shows actual listener status. A separate startup ordering defect
 could drop the Activity foreground state before SyncUseCase initialization;
-the state is now replayed when the manager starts. Live A1/A2 confirmation
-and focused CI are pending.
+the state is now replayed when the manager starts. Focused app-prod compilation
+and journal/full-exchange tests passed in GitHub Actions run `45860872733` on
+`f0919ec59`. Live A1/A2 confirmation is pending.
 The incoming `/import` handler now uses the same Gson adapters as the verified
 backup path and records its own success/failure in the local journal, so a
 second-phase import failure is visible on the receiving phone.

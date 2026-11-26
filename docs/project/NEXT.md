@@ -7,7 +7,7 @@ check that the device-sync screen says it is ready to receive at its actual
 IP:port. Retry manual sync in both directions. If one side shows HTTP 500,
 copy the technical journal from the phone preparing the export; a malformed
 payload on the client should no longer be misreported as a merge error.
-Focused CI and physical convergence are pending for this fix.
+Focused CI passed in run `45860872733`; physical convergence is pending.
 
 ## Device sync screen acceptance
 
