@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (implementation; CI/device pending)
+## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (CI verified; device pending)
 
 The main Import/Export sheet now groups manual device transfer apart from file
 backup actions and explains the receiving server, peer address/key setup, and
@@ -11,6 +11,9 @@ addresses exist. The server and port probe bind specifically to that address,
 and reopening the receive dialog restarts the listener after an address or
 port change. Physical Wi-Fi roaming while the receive dialog remains closed
 does not yet trigger an automatic listener rebind.
+The focused address-selection test and app-prod compilation passed in GitHub
+Actions run `45817823915` on `c1fe869f7`. Two-device connection and UI acceptance
+remain pending.
 
 ## 2026-11-26 - Wi-Fi sync pairing keys (CI verified; device validation pending)
 
