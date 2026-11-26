@@ -1,5 +1,22 @@
 # ForwardApp Decisions
 
+## 2026-11-26 - Android foreground Wi-Fi auto sync uses per-peer full exchange
+
+The Android auto-sync switch operates only while MainActivity is foregrounded.
+The configured primary peer plus any additional local peers are visited
+independently, immediately on foreground/configuration change and every five
+minutes afterward. Each cycle pulls a verified full SnapshotBundle, merges it
+without restoring device settings, then pushes the resulting full verified
+snapshot. The automatic path never uses the legacy global dirty ACK: that ACK
+cannot prove delivery to more than one peer. Manual Push retains its existing
+contract. Peer addresses, keys and auto-sync enablement stay device-local.
+
+The new peer configuration is connection metadata, `SEMANTIC_NOT_HIERARCHY`;
+SnapshotBundle hierarchy authority and V1/V2 cutover are unchanged. Full
+exchange trades bandwidth and merge cost for safe initial multi-peer delivery.
+Per-peer revision/checkpoint optimization requires a separately verified
+protocol and remains deferred.
+
 ## 2026-11-20 - ArcQuest participation survives semantic Quest to Direction conversion
 
 A MANUAL ArcQuest remains the same operational carrier in its arc, with the same

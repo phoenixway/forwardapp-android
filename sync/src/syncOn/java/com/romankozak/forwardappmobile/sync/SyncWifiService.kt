@@ -951,9 +951,9 @@ class SyncWifiService @Inject constructor(
         }
     }
 
-    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun fetchBackupFromWifi(address: String, deltaSince: Long? = null, peerKeyOverride: String? = null): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val peerKey = settingsSource.wifiSyncPeerKeyFlow.first().ifBlank { error("Введіть ключ іншого пристрою в налаштуваннях Wi‑Fi синхронізації") }
+            val peerKey = (peerKeyOverride ?: settingsSource.wifiSyncPeerKeyFlow.first()).ifBlank { error("Введіть ключ іншого пристрою в налаштуваннях Wi‑Fi синхронізації") }
             val fullUrl = buildWifiUrl(address, "/export").let { base ->
                 if (deltaSince != null) "$base?deltaSince=$deltaSince" else base
             }
@@ -966,6 +966,23 @@ class SyncWifiService @Inject constructor(
             Result.failure(e)
         }
     }
+
+    /** Full peer delivery deliberately has no global dirty ACK: every peer must receive its own copy. */
+    suspend fun pushFullBackupToWifi(address: String, peerKey: String, backupJson: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                require(peerKey.isNotBlank()) { "Введіть ключ іншого пристрою" }
+                val response = client.post(buildWifiUrl(address, "/import")) {
+                    headers.append(WIFI_PEER_KEY_HEADER, peerKey)
+                    contentType(ContentType.Application.Json)
+                    setBody(backupJson)
+                }
+                check(response.status.isSuccess()) {
+                    if (response.status == HttpStatusCode.Unauthorized) "Неправильний ключ іншого пристрою"
+                    else "Сервер повернув помилку: ${response.status.value}"
+                }
+            }
+        }
 
     suspend fun pushUnsyncedToWifi(address: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {

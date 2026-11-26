@@ -4,15 +4,24 @@ import android.app.Application
 import android.util.Log
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncSettingsStore
+import com.romankozak.forwardappmobile.core.config.FeatureFlag
+import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,6 +34,7 @@ private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 class WifiSyncManager(
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,
+    private val autoSyncSettingsStore: WifiAutoSyncSettingsStore,
     private val dayManagementRepository: DayManagementRepository,
     private val application: Application,
     private val viewModelScope: CoroutineScope,
@@ -55,6 +65,15 @@ class WifiSyncManager(
     private val _syncStatus = MutableStateFlow<WifiSyncStatus>(WifiSyncStatus.Disabled)
     val syncStatus: StateFlow<WifiSyncStatus> = _syncStatus.asStateFlow()
 
+    private val _isForeground = MutableStateFlow(false)
+    private val _autoSyncStatus = MutableStateFlow<WifiAutoSyncStatus>(WifiAutoSyncStatus.Off)
+    val autoSyncStatus: StateFlow<WifiAutoSyncStatus> = _autoSyncStatus.asStateFlow()
+    private var lastAutoSyncSuccessAt: Long? = null
+
+    fun setForeground(foreground: Boolean) {
+        _isForeground.value = foreground
+    }
+
     init {
         viewModelScope.launch {
             settingsRepository.desktopSyncAddressFlow.collectLatest { address ->
@@ -71,11 +90,81 @@ class WifiSyncManager(
                 }
             }
         }
+        viewModelScope.launch {
+            combine(
+                autoSyncSettingsStore.enabledFlow,
+                autoSyncSettingsStore.peersFlow,
+                settingsRepository.featureTogglesFlow,
+                _isForeground,
+                settingsRepository.wifiSyncServerEnabledFlow,
+            ) { enabled, peers, toggles, foreground, serverEnabled ->
+                AutoSyncConfig(enabled && toggles[FeatureFlag.WifiSync] == true && FeatureToggles.isEnabled(FeatureFlag.WifiSync), peers, foreground, serverEnabled)
+            }.collectLatest { config ->
+                when {
+                    !config.enabled -> _autoSyncStatus.value = WifiAutoSyncStatus.Off
+                    !config.foreground -> _autoSyncStatus.value = WifiAutoSyncStatus.Paused
+                    !config.serverEnabled -> _autoSyncStatus.value = WifiAutoSyncStatus.NeedsServer
+                    config.peers.isEmpty() -> _autoSyncStatus.value = WifiAutoSyncStatus.NeedsSetup
+                    else -> while (true) {
+                        runAutoSyncRound(config.peers)
+                        delay(5 * 60 * 1000L)
+                    }
+                }
+            }
+        }
     }
+
+    private suspend fun runAutoSyncRound(peers: List<WifiAutoSyncPeer>) {
+        val wifiHost = currentWifiIpv4Address(application)
+        if (wifiHost != null && isServerRunning) {
+            val port = settingsRepository.wifiSyncPortFlow.first()
+            if (_wifiServerAddress.value != "$wifiHost:$port") {
+                withContext(Dispatchers.IO) { wifiSyncServer.stop() }
+                isServerRunning = false
+                _wifiServerAddress.value = null
+                startWifiServer()
+            }
+        }
+        var successful = 0
+        var firstError: String? = null
+        peers.forEach { peer ->
+            _autoSyncStatus.value = WifiAutoSyncStatus.Syncing(peer.name.ifBlank { peer.address }, peers.size)
+            try {
+                check(currentWifiIpv4Address(application) != null) { "Wi‑Fi недоступний" }
+                withTimeout(90_000L) {
+                    val remoteJson = syncRepository.fetchFullBackupFromPeer(peer.address, peer.key).getOrThrow()
+                    syncRepository.importBackupJsonString(remoteJson, restoreSettings = false, allowEmpty = true).getOrThrow()
+                    val localJson = syncRepository.createFullBackupJsonString()
+                    syncRepository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
+                }
+                successful++
+                lastAutoSyncSuccessAt = System.currentTimeMillis()
+            } catch (timeout: TimeoutCancellationException) {
+                if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: перевищено час очікування"
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(SYNC_LOG_TAG, "Auto sync with ${peer.address} failed: ${error.message}", error)
+                if (firstError == null) firstError = "${peer.name.ifBlank { peer.address }}: ${error.message ?: "помилка"}"
+            }
+        }
+        _autoSyncStatus.value = WifiAutoSyncStatus.Result(successful, peers.size, lastAutoSyncSuccessAt, firstError)
+    }
+
+    private data class AutoSyncConfig(
+        val enabled: Boolean,
+        val peers: List<WifiAutoSyncPeer>,
+        val foreground: Boolean,
+        val serverEnabled: Boolean,
+    )
 
     fun onDesktopAddressChange(address: String) {
         _desktopAddress.value = address
         viewModelScope.launch {
+            if (autoSyncSettingsStore.enabledFlow.first()) {
+                autoSyncSettingsStore.disable()
+                uiEventChannel.send(ProjectUiEvent.ShowToast("Автосинк вимкнено: перевірте адресу й ключ у налаштуваннях"))
+            }
             settingsRepository.saveDesktopSyncAddress(address)
         }
     }

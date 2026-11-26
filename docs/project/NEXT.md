@@ -1,5 +1,15 @@
 # Next
 
+## Android foreground auto sync acceptance
+
+After CI and an APK update on both phones, enable Wi-Fi servers and set each
+phone's peer address/key in Settings → Integrations. Enable auto sync on at
+least one phone. Keep both apps open, create a disposable item on each, and
+verify both converge without tapping Send/Receive. Check Deck's compact
+syncing/success/error state. Repeat after backgrounding/foregrounding the
+initiating app. Add a third peer and verify an item from peer 3 reaches peer 2
+on the next round. Confirm an empty/new phone receives the first snapshot.
+
 ## Android-to-Android Wi-Fi peer acceptance
 
 After a verified APK is installed on both phones, place them on the same local

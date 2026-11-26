@@ -32,6 +32,14 @@ class SyncFileServiceSnapshotTest {
 
     private val gson = GsonBuilder().create()
 
+    @Test
+    fun `empty peer backup is a valid no-op for automatic exchange`() = runBlocking {
+        val emptyBackup = gson.toJson(FullAppBackup(snapshotBundle = SnapshotBundle(version = 2)))
+        val result = syncFileService.importBackupJsonString(emptyBackup, restoreSettings = false, allowEmpty = true)
+        assertThat(result.getOrThrow()).isEqualTo(0)
+        coVerify(exactly = 0) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
+    }
+
     @Before
     fun setup() {
         syncFileService =

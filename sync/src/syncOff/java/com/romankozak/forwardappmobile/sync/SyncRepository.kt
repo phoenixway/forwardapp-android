@@ -17,10 +17,16 @@ import javax.inject.Singleton
 class SyncRepository @Inject constructor(
     private val delegate: NoOpSyncApi,
 ) : SyncApi by delegate {
+    suspend fun fetchFullBackupFromPeer(address: String, key: String): Result<String> =
+        Result.failure(IllegalStateException("Sync is disabled"))
+
+    suspend fun pushFullBackupToPeer(address: String, key: String, backupJson: String): Result<Unit> =
+        Result.failure(IllegalStateException("Sync is disabled"))
+
     suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> =
         Result.failure(IllegalStateException("Sync is disabled"))
 
-    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true): Result<Int> =
+    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true, allowEmpty: Boolean = false): Result<Int> =
         Result.failure(IllegalStateException("Sync is disabled"))
 
     suspend fun loadSelectiveImportPreview(

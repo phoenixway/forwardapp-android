@@ -194,6 +194,11 @@ class SettingsRepository
         val wifiSyncPeerKeyFlow: Flow<String> =
             context.dataStore.data.map { prefs -> prefs[wifiSyncPeerKeyKey].orEmpty() }
 
+        val wifiSyncPrimaryPeerFlow: Flow<Pair<String, String>> =
+            context.dataStore.data.map { prefs ->
+                (prefs[desktopSyncAddressKey].orEmpty() to prefs[wifiSyncPeerKeyKey].orEmpty())
+            }
+
         private fun Preferences.safeFloat(
             key: Preferences.Key<Float>,
             defaultValue: Float,
@@ -354,6 +359,13 @@ class SettingsRepository
 
         suspend fun saveWifiSyncPeerKey(key: String) {
             context.dataStore.edit { prefs -> prefs[wifiSyncPeerKeyKey] = key.trim() }
+        }
+
+        suspend fun saveWifiSyncPeerConnection(address: String, key: String) {
+            context.dataStore.edit { prefs ->
+                prefs[desktopSyncAddressKey] = address.trim()
+                prefs[wifiSyncPeerKeyKey] = key.trim()
+            }
         }
 
         suspend fun getRingtoneSettings(): RingtoneSettings {
@@ -831,11 +843,21 @@ class SettingsRepository
             context.dataStore.edit { preferences ->
                 val serverKey = preferences[wifiSyncServerKeyKey]
                 val peerKey = preferences[wifiSyncPeerKeyKey]
+                val peerAddress = preferences[desktopSyncAddressKey]
+                val port = runCatching { preferences[wifiSyncPortKey] }.getOrNull()
+                val legacyPort = if (port == null) runCatching { preferences[stringPreferencesKey(wifiSyncPortKey.name)] }.getOrNull() else null
+                val serverEnabled = runCatching { preferences[wifiSyncServerEnabledKey] }.getOrNull()
+                val legacyServerEnabled = if (serverEnabled == null) runCatching { preferences[stringPreferencesKey(wifiSyncServerEnabledKey.name)] }.getOrNull() else null
                 preferences.clear()
                 if (serverKey != null) preferences[wifiSyncServerKeyKey] = serverKey
                 if (peerKey != null) preferences[wifiSyncPeerKeyKey] = peerKey
+                if (peerAddress != null) preferences[desktopSyncAddressKey] = peerAddress
+                if (port != null) preferences[wifiSyncPortKey] = port
+                if (legacyPort != null) preferences[stringPreferencesKey(wifiSyncPortKey.name)] = legacyPort
+                if (serverEnabled != null) preferences[wifiSyncServerEnabledKey] = serverEnabled
+                if (legacyServerEnabled != null) preferences[stringPreferencesKey(wifiSyncServerEnabledKey.name)] = legacyServerEnabled
                 for ((key, value) in settingsMap) {
-                    if (key == wifiSyncServerKeyKey.name || key == wifiSyncPeerKeyKey.name) continue
+                    if (key in setOf(wifiSyncServerKeyKey.name, wifiSyncPeerKeyKey.name, desktopSyncAddressKey.name, wifiSyncPortKey.name, wifiSyncServerEnabledKey.name)) continue
                     when (key) {
                         showPlanningModesKey.name,
                         isBottomNavExpandedKey.name,
@@ -892,7 +914,7 @@ class SettingsRepository
         suspend fun getSettingsMap(): Map<String, String> {
             val preferences = context.dataStore.data.first()
             return preferences.asMap()
-                .filterKeys { it != wifiSyncServerKeyKey && it != wifiSyncPeerKeyKey }
+                .filterKeys { it !in setOf(wifiSyncServerKeyKey, wifiSyncPeerKeyKey, desktopSyncAddressKey, wifiSyncPortKey, wifiSyncServerEnabledKey) }
                 .map { (key, value) -> key.name to value.toString() }.toMap()
         }
 

@@ -57,6 +57,12 @@ class SyncRepository @Inject constructor(
     override suspend fun fetchBackupFromWifi(address: String, deltaSince: Long?): Result<String> =
         wifiSyncService.fetchBackupFromWifi(address, deltaSince)
 
+    suspend fun fetchFullBackupFromPeer(address: String, key: String): Result<String> =
+        wifiSyncService.fetchBackupFromWifi(address, null, key)
+
+    suspend fun pushFullBackupToPeer(address: String, key: String, backupJson: String): Result<Unit> =
+        wifiSyncService.pushFullBackupToWifi(address, key, backupJson)
+
     // Виправлено: SyncApi очікує Result<Unit>
     override suspend fun pushUnsyncedToWifi(address: String): Result<Unit> =
         wifiSyncService.pushUnsyncedToWifi(address)
@@ -95,8 +101,8 @@ class SyncRepository @Inject constructor(
     suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> =
         mergeRepository.applyServerChanges(changes)
 
-    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true): Result<Int> =
-        fileService.importBackupJsonString(jsonString, restoreSettings)
+    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true, allowEmpty: Boolean = false): Result<Int> =
+        fileService.importBackupJsonString(jsonString, restoreSettings, allowEmpty)
 
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
         mergeRepository.createBackupDiff(incoming)

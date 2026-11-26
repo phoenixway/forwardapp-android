@@ -3,9 +3,11 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import android.app.Application
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncSettingsStore
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.sync.WifiSyncManager
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
+import com.romankozak.forwardappmobile.features.sync.WifiAutoSyncStatus
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +28,7 @@ class SyncUseCase
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
         private val dayManagementRepository: DayManagementRepository,
+        private val autoSyncSettingsStore: WifiAutoSyncSettingsStore,
     ) {
         data class SyncUiState(
             val showWifiServerDialog: Boolean = false,
@@ -32,6 +36,7 @@ class SyncUseCase
             val showWifiImportDialog: Boolean = false,
             val desktopAddress: String = "",
             val syncStatus: WifiSyncStatus = WifiSyncStatus.Disabled,
+            val autoSyncStatus: WifiAutoSyncStatus = WifiAutoSyncStatus.Off,
         )
 
         private val _syncUiState = MutableStateFlow(SyncUiState())
@@ -45,15 +50,16 @@ class SyncUseCase
         fun initialize(
             scope: CoroutineScope,
             application: Application,
-            uiEventChannel: Channel<ProjectUiEvent>,
+            uiEventChannel: Channel<ProjectUiEvent>? = null,
         ) {
-            listeners.add(uiEventChannel)
+            uiEventChannel?.let(listeners::add)
             if (isInitialized) return
 
             val manager =
                 WifiSyncManager(
                     syncRepository = syncRepository,
                     settingsRepository = settingsRepository,
+                    autoSyncSettingsStore = autoSyncSettingsStore,
                     dayManagementRepository = dayManagementRepository,
                     application = application,
                     viewModelScope = scope,
@@ -89,10 +95,22 @@ class SyncUseCase
                         desktopAddress = desktopAddress,
                         syncStatus = syncStatus,
                     )
-                }.collect { syncState -> _syncUiState.value = syncState }
+                }.collect { syncState ->
+                    _syncUiState.update { current -> syncState.copy(autoSyncStatus = current.autoSyncStatus) }
+                }
+            }
+
+            scope.launch {
+                manager.autoSyncStatus.collect { status ->
+                    _syncUiState.update { it.copy(autoSyncStatus = status) }
+                }
             }
 
             isInitialized = true
+        }
+
+        fun setForeground(foreground: Boolean) {
+            wifiSyncManager?.setForeground(foreground)
         }
 
         private fun manager(): WifiSyncManager =

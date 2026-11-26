@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalP
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.data.DatabaseInitializer
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
 import dagger.hilt.android.HiltAndroidApp
@@ -33,6 +34,7 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var syncUseCase: SyncUseCase
 
 
     @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
@@ -235,6 +237,7 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
         }
 
         // 2️⃣ ВСЕ ІНШЕ
+        syncUseCase.initialize(scope = appScope, application = this)
         appScope.launch {
             runCatching {
                 StartupTrace.measure("Application.featureToggles") {

@@ -1,5 +1,16 @@
 # ForwardApp Backlog
 
+## Wi-Fi multi-peer full exchange optimization
+
+Status: DEFERRED / NON-BLOCKING (2026-11-26). Estimate: large (>=1 day).
+
+Foreground auto sync currently exchanges full verified snapshots with each
+peer every five minutes to avoid the global dirty ACK losing delivery to later
+peers. A future protocol can use durable per-peer revisions or content hashes
+to reduce CPU, bandwidth and battery cost, but must prove clock-skew safety,
+deletion propagation, exact-version merge and independent peer acknowledgement
+before replacing full exchange. Background operation remains unrequested.
+
 ## Connections command error containment when capability is absent
 
 Status: OBSERVED / NON-BLOCKING for assessment NPE fix (2026-11-09).

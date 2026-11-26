@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.settings.settings.components
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
 
 @Composable
 fun WifiSyncSettingsCard(
@@ -23,11 +25,17 @@ fun WifiSyncSettingsCard(
     peerAddress: String,
     serverKey: String,
     peerKey: String,
+    autoSyncEnabled: Boolean,
+    extraPeers: List<WifiAutoSyncPeer>,
     localIpAddress: String?,
     onServerEnabledChange: (Boolean) -> Unit,
     onPortChange: (String) -> Unit,
     onPeerAddressChange: (String) -> Unit,
     onPeerKeyChange: (String) -> Unit,
+    onAutoSyncEnabledChange: (Boolean) -> Unit,
+    onAddExtraPeer: () -> Unit,
+    onUpdateExtraPeer: (WifiAutoSyncPeer) -> Unit,
+    onRemoveExtraPeer: (String) -> Unit,
     onRotateServerKey: () -> Unit,
     onRefreshLocalAddress: () -> Unit,
     enabled: Boolean = true,
@@ -115,5 +123,54 @@ fun WifiSyncSettingsCard(
             modifier = Modifier.padding(top = 8.dp),
             enabled = enabled,
         )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Автосинхронізація", style = MaterialTheme.typography.titleMedium)
+                Text("Поки ForwardApp відкритий. Обмін із кожним пристроєм окремо кожні 5 хвилин.",
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Switch(checked = autoSyncEnabled, onCheckedChange = onAutoSyncEnabledChange, enabled = enabled)
+        }
+        Text(
+            "Основний пристрій — адреса й ключ вище. Для двостороннього обміну увімкніть сервер на кожному телефоні. Збережіть налаштування.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        extraPeers.forEach { peer ->
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Додатковий пристрій", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                    TextButton(onClick = { onRemoveExtraPeer(peer.id) }) { Text("Видалити") }
+                }
+                AnimatedTextField(
+                    value = peer.name,
+                    onValueChange = { onUpdateExtraPeer(peer.copy(name = it)) },
+                    label = "Назва пристрою",
+                    helper = "Наприклад, другий телефон",
+                    singleLine = true,
+                    enabled = enabled,
+                )
+                AnimatedTextField(
+                    value = peer.address,
+                    onValueChange = { onUpdateExtraPeer(peer.copy(address = it)) },
+                    label = "Адреса IP:порт",
+                    helper = "Адреса з «Приймати через Wi‑Fi» на іншому пристрої",
+                    singleLine = true,
+                    enabled = enabled,
+                )
+                AnimatedTextField(
+                    value = peer.key,
+                    onValueChange = { onUpdateExtraPeer(peer.copy(key = it)) },
+                    label = "Ключ пристрою",
+                    helper = "Ключ із налаштувань того пристрою",
+                    singleLine = true,
+                    enabled = enabled,
+                )
+            }
+        }
+        TextButton(onClick = onAddExtraPeer, enabled = enabled) { Text("Додати пристрій") }
     }
 }

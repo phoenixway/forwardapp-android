@@ -113,6 +113,7 @@ private fun AnimatedCommandDeck(
     focusContextsViewModel: FocusContextsViewModel,
     commandDeckViewModel: CommandDeckViewModel,
 ) {
+    val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
     var focusContextsExpanded by remember {
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY, defaultValue = true))
     }
@@ -126,8 +127,9 @@ private fun AnimatedCommandDeck(
                     shape = RoundedCornerShape(0.dp),
                 )
                 .padding(horizontal = 16.dp).padding(top = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        WifiAutoSyncIndicator(syncUiState.autoSyncStatus)
         Column(
             modifier = Modifier.padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),

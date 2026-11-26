@@ -70,6 +70,19 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var contextMarkerHandler: com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 
+    @Inject
+    lateinit var syncUseCase: com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
+
+    override fun onStart() {
+        super.onStart()
+        syncUseCase.setForeground(true)
+    }
+
+    override fun onStop() {
+        syncUseCase.setForeground(false)
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         StartupTrace.mark("MainActivity.onCreate.begin")
         setTheme(R.style.Theme_Cyberpunk_Day)

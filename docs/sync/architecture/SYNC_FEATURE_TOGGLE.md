@@ -88,6 +88,14 @@ workflows are gated.
 Runtime consumers also check `FeatureFlag.WifiSync` before opening Wi-Fi sync
 dialogs or performing Wi-Fi import/push actions.
 
+The foreground Android auto-sync loop is a separate device-local opt-in under
+Settings → Integrations. It also requires this runtime Wi-Fi feature toggle,
+at least one configured peer, and the local server switch. MainActivity
+foreground transitions start/cancel its loop. The per-peer full-snapshot
+exchange does not call the manual Push dirty-ACK path; it cannot use a global
+ACK to represent delivery to several peers. The extra peer list and auto-sync
+switch live in `wifi_auto_sync_local` DataStore and are outside JSON backup.
+
 ## 3. Relationship between the layers
 
 The effective model is:

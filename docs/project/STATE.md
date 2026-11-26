@@ -1,16 +1,33 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Android foreground multi-peer auto sync (implementation; CI/device pending)
+
+Settings now enables Android auto sync and accepts additional named peers
+beside the saved primary address/key. MainActivity foreground state gates the
+five-minute loop; a compact status appears on Deck. Each peer receives a full
+verified snapshot after its own full pull/merge, without the manual Push path's
+global dirty ACK. An empty peer backup is a valid no-op before local delivery.
+Configuration lives in a device-local DataStore separate from JSON backup;
+the primary address, key, local server port and server switch are preserved
+across Restore and omitted from exported settings. Desktop remains frozen.
+An active auto-sync round checks the Wi-Fi address and restarts the local
+listener when its bound address or port has changed.
+Full exchange is intentionally conservative and may be expensive for large
+databases or many peers. Network and conflict failures appear as a per-round
+count/error state; physical convergence remains to be tested.
+
 ## 2026-11-26 - Manual Wi-Fi transfer flow and address selection (CI verified; device pending)
 
 The main Import/Export sheet now groups manual device transfer apart from file
 backup actions and explains the receiving server, peer address/key setup, and
-send/receive direction. Android still does not schedule automatic data transfer;
-the saved server-enabled setting starts the listener when its owner is active.
+send/receive direction. Those buttons remain manual; foreground auto sync is
+described in the newer section above. The saved server-enabled setting starts
+the listener when its owner is active.
 The displayed Wi-Fi IPv4 address prefers a LAN address when several Wi-Fi
 addresses exist. The server and port probe bind specifically to that address,
 and reopening the receive dialog restarts the listener after an address or
-port change. Physical Wi-Fi roaming while the receive dialog remains closed
-does not yet trigger an automatic listener rebind.
+port change. Without auto sync, physical Wi-Fi roaming while the receive dialog
+remains closed does not trigger an automatic listener rebind.
 The focused address-selection test and app-prod compilation passed in GitHub
 Actions run `45817823915` on `c1fe869f7`. Two-device connection and UI acceptance
 remain pending.

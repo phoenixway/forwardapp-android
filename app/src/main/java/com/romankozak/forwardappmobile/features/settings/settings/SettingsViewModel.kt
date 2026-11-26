@@ -13,6 +13,8 @@ import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
+import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncSettingsStore
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.NerState
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+import java.util.UUID
 
 private const val DEFAULT_WIFI_SYNC_PORT = 8080
 private const val DEFAULT_OLLAMA_PORT = 11434
@@ -99,6 +102,8 @@ data class SettingsUiState(
     val desktopSyncAddress: String = "",
     val wifiSyncServerKey: String = "",
     val wifiSyncPeerKey: String = "",
+    val wifiAutoSyncEnabled: Boolean = false,
+    val wifiAutoSyncExtraPeers: List<WifiAutoSyncPeer> = emptyList(),
     val ollamaNumCtx: Int = 8192,
     val ollamaNumPredict: Int = -1,
     val ollamaNumBatch: Int = 0,
@@ -113,6 +118,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepo: SettingsRepository,
+        private val wifiAutoSyncSettingsStore: WifiAutoSyncSettingsStore,
         private val nerManager: NerManager,
         private val ollamaService: OllamaService,
     ) : ViewModel() {
@@ -123,6 +129,16 @@ class SettingsViewModel
         val uiState = _uiState.asStateFlow()
 
         init {
+            viewModelScope.launch {
+                wifiAutoSyncSettingsStore.enabledFlow.collect { enabled ->
+                    _uiState.update { it.copy(wifiAutoSyncEnabled = enabled) }
+                }
+            }
+            viewModelScope.launch {
+                wifiAutoSyncSettingsStore.extraPeersFlow.collect { peers ->
+                    _uiState.update { it.copy(wifiAutoSyncExtraPeers = peers) }
+                }
+            }
             viewModelScope.launch {
                 settingsRepo.ensureWifiSyncServerKey()
                 settingsRepo.wifiSyncServerKeyFlow.collect { key ->
@@ -495,6 +511,29 @@ class SettingsViewModel
             viewModelScope.launch { settingsRepo.rotateWifiSyncServerKey() }
         }
 
+        fun onWifiAutoSyncEnabledChanged(enabled: Boolean) {
+            _uiState.update { it.copy(wifiAutoSyncEnabled = enabled, wifiSyncServerEnabled = enabled || it.wifiSyncServerEnabled) }
+        }
+
+        fun addWifiAutoSyncPeer() {
+            _uiState.update { state ->
+                state.copy(wifiAutoSyncExtraPeers = state.wifiAutoSyncExtraPeers +
+                    WifiAutoSyncPeer(UUID.randomUUID().toString(), "", "", ""))
+            }
+        }
+
+        fun updateWifiAutoSyncPeer(peer: WifiAutoSyncPeer) {
+            _uiState.update { state ->
+                state.copy(wifiAutoSyncExtraPeers = state.wifiAutoSyncExtraPeers.map { if (it.id == peer.id) peer else it })
+            }
+        }
+
+        fun removeWifiAutoSyncPeer(id: String) {
+            _uiState.update { state ->
+                state.copy(wifiAutoSyncExtraPeers = state.wifiAutoSyncExtraPeers.filterNot { it.id == id })
+            }
+        }
+
         fun onStrategicManagementToggle(enabled: Boolean) {
             updateFeatureToggle(FeatureFlag.StrategicManagement, enabled)
         }
@@ -570,8 +609,8 @@ class SettingsViewModel
                     fastApiPort = currentState.fastApiPort,
                 )
                 settingsRepo.saveWifiSyncServerEnabled(currentState.wifiSyncServerEnabled)
-                settingsRepo.saveDesktopSyncAddress(currentState.desktopSyncAddress)
-                settingsRepo.saveWifiSyncPeerKey(currentState.wifiSyncPeerKey)
+                settingsRepo.saveWifiSyncPeerConnection(currentState.desktopSyncAddress, currentState.wifiSyncPeerKey)
+                wifiAutoSyncSettingsStore.save(currentState.wifiAutoSyncEnabled, currentState.wifiAutoSyncExtraPeers)
                 settingsRepo.saveRingtoneType(currentState.ringtoneType)
                 currentState.ringtoneUris.forEach { (type, uri) ->
                     settingsRepo.saveRingtoneUri(type, uri)

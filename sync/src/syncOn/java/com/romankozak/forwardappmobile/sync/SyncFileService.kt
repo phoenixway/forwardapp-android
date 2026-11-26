@@ -290,6 +290,7 @@ class SyncFileService @Inject constructor(
     suspend fun importBackupJsonString(
         jsonString: String,
         restoreSettings: Boolean = true,
+        allowEmpty: Boolean = false,
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
@@ -300,6 +301,7 @@ class SyncFileService @Inject constructor(
             )
 
             if (isEffectivelyEmpty(snapshotBundleToApply)) {
+                if (allowEmpty) return@withContext Result.success(0)
                 throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
             }
 

@@ -161,6 +161,8 @@ fun SettingsScreen(
                         uiState.wifiSyncServerEnabled != initial.wifiSyncServerEnabled ||
                         uiState.desktopSyncAddress != initial.desktopSyncAddress ||
                         uiState.wifiSyncPeerKey != initial.wifiSyncPeerKey ||
+                        uiState.wifiAutoSyncEnabled != initial.wifiAutoSyncEnabled ||
+                        uiState.wifiAutoSyncExtraPeers != initial.wifiAutoSyncExtraPeers ||
                         uiState.attachmentsLibraryEnabled != initial.attachmentsLibraryEnabled ||
                         uiState.scriptsLibraryEnabled != initial.scriptsLibraryEnabled ||
                         uiState.allowSystemProjectMoves != initial.allowSystemProjectMoves ||
@@ -345,6 +347,8 @@ fun SettingsScreen(
                             peerAddress = uiState.desktopSyncAddress,
                             serverKey = uiState.wifiSyncServerKey,
                             peerKey = uiState.wifiSyncPeerKey,
+                            autoSyncEnabled = uiState.wifiAutoSyncEnabled,
+                            extraPeers = uiState.wifiAutoSyncExtraPeers,
                             localIpAddress = localWifiIp,
                             onServerEnabledChange = { enabled ->
                                 if (uiState.wifiSyncEnabled) {
@@ -354,6 +358,10 @@ fun SettingsScreen(
                             onPortChange = viewModel::onWifiSyncPortChanged,
                             onPeerAddressChange = viewModel::onDesktopSyncAddressChanged,
                             onPeerKeyChange = viewModel::onWifiSyncPeerKeyChanged,
+                            onAutoSyncEnabledChange = viewModel::onWifiAutoSyncEnabledChanged,
+                            onAddExtraPeer = viewModel::addWifiAutoSyncPeer,
+                            onUpdateExtraPeer = viewModel::updateWifiAutoSyncPeer,
+                            onRemoveExtraPeer = viewModel::removeWifiAutoSyncPeer,
                             onRotateServerKey = viewModel::rotateWifiSyncServerKey,
                             onRefreshLocalAddress = { localWifiIp = currentWifiIpv4Address(context) },
                             enabled = uiState.wifiSyncEnabled,
