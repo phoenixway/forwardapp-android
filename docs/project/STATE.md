@@ -1,6 +1,6 @@
 # ForwardApp Project State
 
-## 2026-11-26 - Device sync management screen (source implemented; device pending)
+## 2026-11-26 - Device sync management screen (focused CI verified; device pending)
 
 The main More sheet now opens a dedicated "Sync between devices" screen beside
 Import/Export. It shows this phone's Wi-Fi address/key, an incoming-connection
@@ -13,12 +13,14 @@ local mutex, so their pull/merge/push sequences do not overlap on one phone.
 The Wi-Fi client now has an explicit 10-second connect timeout; unreachable-peer
 errors explain the address, port, Wi-Fi and incoming-connection checks. A connect
 timeout alone does not identify which check fails. Physical two-phone acceptance
-and compilation are pending.
+is pending.
 The screen now keeps a device-local bounded journal of the latest 50 automatic
 exchanges, new-screen manual exchanges, and legacy Wi-Fi Push/Import operations,
 with three recent statuses on the screen and a copyable detailed view. Entries
 include time, peer address, exchange stage,
 outcome and safe error class/category; keys and snapshot content are excluded.
+The app-prod filtered compilation and focused peer-store, full-exchange and
+journal tests passed in GitHub Actions run `45846553739` on `5c7c4ca99`.
 
 ## 2026-11-26 - Wi-Fi peer key Save lifecycle (CI verified; device pending)
 

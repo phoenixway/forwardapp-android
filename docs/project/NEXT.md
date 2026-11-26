@@ -9,7 +9,8 @@ phones share Wi-Fi, and errors identify the unreachable peer clearly.
 Check the last-three-operation summary and the detailed copyable journal after
 one success and one unreachable-peer attempt. The journal must not expose keys
 or snapshot content.
-Compilation and physical convergence remain pending for this slice.
+Physical convergence remains pending for this slice; focused compilation and
+tests passed in run `45846553739`.
 
 ## A1/A2 Wi-Fi peer key acceptance
 
