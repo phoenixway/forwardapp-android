@@ -150,20 +150,20 @@ fun CommandDeckImportExportSheet(
                 item {
                     ImportExportTile(
                         icon = Icons.Default.CloudUpload,
-                        title = "Push змін по Wi-Fi",
-                        subtitle = "Надіслати несинхронізоване",
+                        title = "Надіслати через Wi-Fi",
+                        subtitle = "На пристрій з адреси в налаштуваннях",
                         containerColor = importExportSheetColor,
                         onClick = {
                             onDismiss()
-                            onWifiPush("localhost:8080")
+                            onWifiPush("")
                         },
                     )
                 }
                 item {
                     ImportExportTile(
                         icon = Icons.Default.Wifi,
-                        title = "Wi-Fi сервер",
-                        subtitle = "Запустити локальний сервер",
+                        title = "Приймати через Wi-Fi",
+                        subtitle = "Показати адресу цього пристрою",
                         containerColor = importExportSheetColor,
                         onClick = {
                             onDismiss()
@@ -174,8 +174,8 @@ fun CommandDeckImportExportSheet(
                 item {
                     ImportExportTile(
                         icon = Icons.Default.Wifi,
-                        title = "Wi-Fi імпорт",
-                        subtitle = "Отримати дані з сервера",
+                        title = "Отримати через Wi-Fi",
+                        subtitle = "З іншого Android або комп’ютера",
                         containerColor = importExportSheetColor,
                         onClick = {
                             onDismiss()

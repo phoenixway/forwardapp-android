@@ -31,11 +31,12 @@ fun WifiImportDialog(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Імпорт з Wi-Fi", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(16.dp))
-                Text("Введіть IP-адресу та порт десктоп-додатку:")
+                Text("Введіть адресу сервера на іншому Android або комп’ютері. Обидва пристрої мають бути в одній Wi‑Fi мережі.")
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = desktopAddress,
                     onValueChange = onAddressChange,
+                    label = { Text("Адреса іншого пристрою") },
                     placeholder = { Text("Напр. 192.168.1.5:8080") },
                     singleLine = true,
                 )

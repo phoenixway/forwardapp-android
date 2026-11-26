@@ -95,8 +95,8 @@ class SyncRepository @Inject constructor(
     suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> =
         mergeRepository.applyServerChanges(changes)
 
-    suspend fun importBackupJsonString(jsonString: String): Result<Int> =
-        fileService.importBackupJsonString(jsonString)
+    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true): Result<Int> =
+        fileService.importBackupJsonString(jsonString, restoreSettings)
 
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
         mergeRepository.createBackupDiff(incoming)

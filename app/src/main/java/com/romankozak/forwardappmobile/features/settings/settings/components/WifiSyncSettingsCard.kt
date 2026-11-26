@@ -17,22 +17,26 @@ import androidx.compose.ui.unit.dp
 fun WifiSyncSettingsCard(
     serverEnabled: Boolean,
     wifiSyncPort: Int,
-    desktopAddress: String,
+    peerAddress: String,
     onServerEnabledChange: (Boolean) -> Unit,
     onPortChange: (String) -> Unit,
-    onDesktopAddressChange: (String) -> Unit,
+    onPeerAddressChange: (String) -> Unit,
     enabled: Boolean = true,
 ) {
     SettingsCard(
-        title = "Wi‑Fi Sync",
+        title = "Синхронізація через Wi‑Fi",
         icon = Icons.Default.Sync,
     ) {
+        Text(
+            text = "Для двох Android або Android і комп’ютера: під’єднайте пристрої до однієї Wi‑Fi мережі. На пристрої, що приймає дані, увімкніть сервер і відкрийте «Приймати через Wi‑Fi» в меню імпорту / експорту, щоб побачити його адресу.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Android as Wi‑Fi sync server",
+                text = "Приймати дані на цьому телефоні",
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
             )
@@ -45,16 +49,16 @@ fun WifiSyncSettingsCard(
         AnimatedTextField(
             value = wifiSyncPort.toString(),
             onValueChange = onPortChange,
-            label = "Server port",
-            helper = "Port used for LAN sync server",
+            label = "Порт цього телефона",
+            helper = "Число від 1 до 65535 для сервера цього телефона. На іншому пристрої введіть адресу IP:порт, показану в «Приймати через Wi‑Fi».",
             singleLine = true,
             enabled = enabled,
         )
         AnimatedTextField(
-            value = desktopAddress,
-            onValueChange = onDesktopAddressChange,
-            label = "Desktop client address",
-            helper = "Default host:port for desktop client (e.g., 192.168.0.12:8080)",
+            value = peerAddress,
+            onValueChange = onPeerAddressChange,
+            label = "Адреса іншого пристрою",
+            helper = "IP:порт сервера на іншому Android або комп’ютері, наприклад 192.168.1.5:8080. Використовується для Push та Wi‑Fi імпорту.",
             singleLine = true,
             modifier = Modifier.padding(top = 8.dp),
             enabled = enabled,

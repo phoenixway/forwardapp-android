@@ -1,5 +1,17 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Android-to-Android Wi-Fi peer setup (source pending verification)
+
+The Android app already hosts `/export` and `/import`, but the main Push tile
+targeted `localhost:8080`, the Import entry used unrelated server discovery,
+and settings called the peer address a Desktop address. Push now resolves the
+saved peer address, Import opens the editable peer-address dialog, and Settings
+explains the receiving server's local port versus the other device's `IP:port`.
+The stored address key remains compatible. Wi-Fi push/pull now merge data without
+restoring device-local settings on either Android endpoint. Full backup Restore
+behavior remains separate. Focused CI and physical two-device acceptance are
+pending.
+
 ## 2026-11-26 - Post-Restore H1 Workspace presentation admission (CI verified, device pending)
 
 The 03:22 backup Restore completed on device, then the main thread crashed while

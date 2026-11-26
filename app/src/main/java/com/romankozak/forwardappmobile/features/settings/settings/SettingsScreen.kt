@@ -332,14 +332,14 @@ fun SettingsScreen(
                         WifiSyncSettingsCard(
                             serverEnabled = uiState.wifiSyncServerEnabled,
                             wifiSyncPort = uiState.wifiSyncPort,
-                            desktopAddress = uiState.desktopSyncAddress,
+                            peerAddress = uiState.desktopSyncAddress,
                             onServerEnabledChange = { enabled ->
                                 if (uiState.wifiSyncEnabled) {
                                     viewModel.onWifiSyncServerEnabledToggle(enabled)
                                 }
                             },
                             onPortChange = viewModel::onWifiSyncPortChanged,
-                            onDesktopAddressChange = viewModel::onDesktopSyncAddressChanged,
+                            onPeerAddressChange = viewModel::onDesktopSyncAddressChanged,
                             enabled = uiState.wifiSyncEnabled,
                         )
                     }

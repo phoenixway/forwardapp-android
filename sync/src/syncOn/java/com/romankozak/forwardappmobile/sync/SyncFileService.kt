@@ -287,7 +287,10 @@ class SyncFileService @Inject constructor(
         }
     }
 
-    suspend fun importBackupJsonString(jsonString: String): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importBackupJsonString(
+        jsonString: String,
+        restoreSettings: Boolean = true,
+    ): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
             val backupData = runCatching { gson.fromJson(normalizedJson, FullAppBackup::class.java) }.getOrNull()
@@ -302,7 +305,9 @@ class SyncFileService @Inject constructor(
             }
 
             mergeRepository.applyServerChanges(snapshotBundleToApply).getOrThrow()
-            backupData?.settings?.settings?.let { localDataSource.restoreSettings(it) }
+            if (restoreSettings) {
+                backupData?.settings?.settings?.let { localDataSource.restoreSettings(it) }
+            }
 
             Result.success(snapshotBundleToApply.importItemCount())
         } catch (e: Exception) {

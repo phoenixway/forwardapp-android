@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -41,6 +42,19 @@ class SyncFileServiceSnapshotTest {
                 restoreCanonicalizer = mockRestoreCanonicalizer,
                 restoreRepository = mockRestoreRepository,
             )
+    }
+
+    @Test
+    fun `Wi-Fi peer import merges data without replacing this device settings`() = runBlocking {
+        val backup = gson.fromJson(createNewFormatJson(), FullAppBackup::class.java)
+            .copy(settings = SettingsContent(mapOf("desktop_sync_address" to "192.168.1.20:8080")))
+        coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
+
+        val result = syncFileService.importBackupJsonString(gson.toJson(backup), restoreSettings = false)
+
+        assertThat(result.isSuccess).isTrue()
+        coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
+        coVerify(exactly = 0) { mockLocalDataSource.restoreSettings(any()) }
     }
 
     // === Допоміжні методи для створення JSON (Без скорочень) ===

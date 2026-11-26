@@ -34,7 +34,6 @@ class WifiSyncManager(
         WifiSyncServer(
             syncRepository,
             application,
-            settingsRepository,
             dayManagementRepository,
         )
     private var isServerRunning = false
@@ -199,16 +198,7 @@ class WifiSyncManager(
     }
 
     fun onShowWifiImportDialog() {
-        viewModelScope.launch {
-            val serverAddress = settingsRepository.getWifiSyncUrl().first()
-            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Retrieved wifi sync url: $serverAddress")
-            if (serverAddress.isNullOrBlank()) {
-                _syncStatus.value = WifiSyncStatus.Offline
-                uiEventChannel.send(ProjectUiEvent.ShowToast("Server address not configured in settings"))
-            } else {
-                performWifiImport(serverAddress)
-            }
-        }
+        _showWifiImportDialog.value = true
     }
 
     fun onDismissWifiImportDialog() {
@@ -222,7 +212,7 @@ class WifiSyncManager(
             val result = syncRepository.fetchBackupFromWifi(address, deltaSince = null)
             result
                 .onSuccess { jsonString ->
-                    syncRepository.importBackupJsonString(jsonString)
+                    syncRepository.importBackupJsonString(jsonString, restoreSettings = false)
                         .onSuccess { importedCount ->
                             _syncStatus.value = WifiSyncStatus.Idle
                             uiEventChannel.send(
@@ -248,9 +238,16 @@ class WifiSyncManager(
 
     fun performWifiPush(address: String) {
         viewModelScope.launch {
+            val targetAddress = address.trim().ifEmpty { settingsRepository.desktopSyncAddressFlow.first().trim() }
+            if (targetAddress.isEmpty()) {
+                val message = "Вкажіть адресу іншого пристрою в Налаштуваннях → Інтеграції → Wi-Fi Sync"
+                _syncStatus.value = WifiSyncStatus.Error(message)
+                uiEventChannel.send(ProjectUiEvent.ShowToast(message))
+                return@launch
+            }
             _syncStatus.value = WifiSyncStatus.Syncing
-            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing Wi‑Fi push to $address")
-            val result = syncRepository.pushUnsyncedToWifi(address)
+            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing Wi‑Fi push to $targetAddress")
+            val result = syncRepository.pushUnsyncedToWifi(targetAddress)
             if (result.isSuccess) {
                 _syncStatus.value = WifiSyncStatus.Idle
                 uiEventChannel.send(ProjectUiEvent.ShowToast("Synced changes over Wi‑Fi"))

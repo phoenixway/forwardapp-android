@@ -14,7 +14,6 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -47,7 +46,6 @@ private const val DAY_SYNC_IMPORT_TAG = "DaySyncImport"
 class WifiSyncServer(
     private val syncRepository: SyncRepository,
     private val context: Context,
-    private val settingsRepository: SettingsRepository,
     private val dayManagementRepository: DayManagementRepository,
 ) {
     private val TAG = "WifiSyncServer"
@@ -276,16 +274,6 @@ class WifiSyncServer(
                                         rawSnapshot,
                                         com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle::class.java,
                                     )
-                                val canonicalSettings =
-                                    rawRoot.get("settings")
-                                        ?.takeUnless { it.isJsonNull }
-                                        ?.let { rawSettings ->
-                                            gson.fromJson(
-                                                rawSettings,
-                                                com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent::class.java,
-                                            )
-                                        }
-
                                 val backup =
                                     FullAppBackup(
                                         backupSchemaVersion =
@@ -293,7 +281,7 @@ class WifiSyncServer(
                                                 ?.takeUnless { it.isJsonNull }
                                                 ?.asInt
                                                 ?: 2,
-                                                                    settings = canonicalSettings,
+                                        settings = null,
                                         snapshotBundle = canonicalSnapshot,
                                     )
                                 Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
@@ -318,14 +306,6 @@ class WifiSyncServer(
                                 withContext(NonCancellable) {
                                     syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
                                     Log.i("ForwardSync", "wifi canonical snapshot import applied")
-                                    backup.settings?.settings?.let { settings ->
-                                        try {
-                                            settingsRepository.restoreFromMap(settings)
-                                        } catch (e: Exception) {
-                                            Log.w("ForwardSync", "wifi import settings restore failed: ${e.message}", e)
-                                            Log.e(DEBUG_TAG, "[WifiSyncServer] Failed to restore incoming settings", e)
-                                        }
-                                    }
                                 }
                                 call.respond(HttpStatusCode.Companion.OK, "Import applied")
                             } catch (e: Exception) {

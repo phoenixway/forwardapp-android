@@ -125,5 +125,18 @@ When changing synchronization availability, preserve the distinction between:
 Do not document `prod` as permanently disabling Wi-Fi sync unless production
 code again enforces that as a hard rule.
 
+## 5. Local peer addresses and settings
+
+Android exposes the same `/export` and `/import` Wi-Fi endpoints to another
+Android device or a Desktop client on the same local network. The receiving
+Android device runs the server and shows its actual `IP:port`. The initiating
+device stores that address as its peer address; the persisted key remains
+`desktop_sync_address` for compatibility with existing installations. A blank
+unset peer address is never replaced with a hard-coded sample or localhost.
+
+Peer Wi-Fi push and pull merge `SnapshotBundle` data only. Device-local settings,
+including the server switch, local port and peer address, remain on their own
+device. Full backup Restore retains its separate settings behavior.
+
 Do not rename or replace `SYNC_ENABLED` in documentation without changing the
 actual Gradle property consumed by `sync/build.gradle.kts`.

@@ -181,7 +181,7 @@ class SettingsRepository
 
         val desktopSyncAddressFlow: Flow<String> =
             context.dataStore.data.map { prefs ->
-                prefs[desktopSyncAddressKey] ?: "192.168.0.106"
+                prefs[desktopSyncAddressKey] ?: ""
             }
 
         private fun Preferences.safeFloat(

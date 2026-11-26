@@ -20,7 +20,7 @@ class SyncRepository @Inject constructor(
     suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> =
         Result.failure(IllegalStateException("Sync is disabled"))
 
-    suspend fun importBackupJsonString(jsonString: String): Result<Int> =
+    suspend fun importBackupJsonString(jsonString: String, restoreSettings: Boolean = true): Result<Int> =
         Result.failure(IllegalStateException("Sync is disabled"))
 
     suspend fun loadSelectiveImportPreview(
