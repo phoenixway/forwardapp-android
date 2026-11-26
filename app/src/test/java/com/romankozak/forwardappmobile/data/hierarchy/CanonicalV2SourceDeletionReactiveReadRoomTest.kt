@@ -122,4 +122,27 @@ class CanonicalV2SourceDeletionReactiveReadRoomTest {
             assertThat(failure).isInstanceOf(CanonicalV2HierarchyProjectionException::class.java)
         }
     }
+
+    @Test fun `placed canonical Workspace remains visible without historical Context tombstone`() = runBlocking<Unit> {
+        SemanticDeletionRoomFixture().use { f ->
+            f.workspace()
+            val workspace = f.db.workspaceDao().getById("workspace")!!
+            f.db.workspaceDao().upsert(listOf(workspace.copy(provenance = "CANONICAL_ONLY")))
+            val projector = SystemWorkspacePresentationContextProjector(
+                f.db.workspaceDao(),
+                SystemWorkspaceTagAuthority(f.db.workspaceDao(), f.db.workspaceTagRefDao(),
+                    f.db.systemWorkspaceTagSeedStateDao(), CanonicalWorkspaceTagRepository(f.db)),
+                CanonicalWorkspaceTagRepository(f.db), f.db.contextDao(),
+            )
+            assertThat(projector.projectPresentationUniverse()).isEmpty()
+
+            f.h1.addAppearance(HierarchyTargetRef(HierarchyTargetType.WORKSPACE, "workspace"),
+                H1StructuralParent.Root, now = 20)
+            val read = withTimeout(10_000) { reader(f).observe().first() }
+            assertThat(read.workspaceOccurrences("workspace")).hasSize(1)
+            assertThat(read.workspacePresentationsByTargetId.getValue("workspace").name).isEqualTo("Workspace")
+            assertThat(render(read).mapNotNull { (it.node as? OrientationHierarchyNode.WorkspaceNode)?.id })
+                .containsExactly("workspace")
+        }
+    }
 }

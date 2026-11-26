@@ -78,17 +78,25 @@ class SystemWorkspacePresentationContextProjector
         /**
          * Projects the complete read-only project presentation universe.
          *
- * A retired ordinary project may be presented from its live
- * CANONICAL_ONLY Workspace when a deleted same-id Context proves the
- * historical project identity. A live standalone operational Workspace is
- * independently admitted without a Context shell. The tombstone contributes
- * no display fields. Reserved System ids remain independently shell-free.
+         * A retired ordinary project may be presented from its live
+         * CANONICAL_ONLY Workspace when a deleted same-id Context proves the
+         * historical project identity. A live Workspace with an exact H1 appearance
+         * is also admitted for the hierarchy read without requiring that legacy
+         * tombstone. A live standalone operational Workspace is independently
+         * admitted without a Context shell. The tombstone contributes
+         * no display fields. Reserved System ids remain independently shell-free.
          */
-        suspend fun projectPresentationUniverse(): List<ContextPresentation> =
-            projectPresentationUniverse(contextDao.getAllActiveOrdered())
+        suspend fun projectPresentationUniverse(
+            structurallyPlacedWorkspaceIds: Set<String> = emptySet(),
+        ): List<ContextPresentation> =
+            projectPresentationUniverse(
+                contextDao.getAllActiveOrdered(),
+                structurallyPlacedWorkspaceIds,
+            )
 
         suspend fun projectPresentationUniverse(
             contexts: List<Context>,
+            structurallyPlacedWorkspaceIds: Set<String> = emptySet(),
         ): List<ContextPresentation> {
             val workspaces = workspaceDao.getAll()
             val retiredOrdinaryContextIds =
@@ -132,6 +140,7 @@ class SystemWorkspacePresentationContextProjector
                 workspaces = workspaces.map { it.toPresentationState() },
                 canonicalTagsById = canonicalTagsById,
                 retiredOrdinaryContextIds = retiredOrdinaryContextIds,
+                structurallyPlacedWorkspaceIds = structurallyPlacedWorkspaceIds,
             )
         }
 
@@ -319,6 +328,8 @@ internal fun projectPresentationUniverseFromState(
     workspaces: List<WorkspacePresentationState>,
     canonicalTagsById: Map<String, List<String>>,
     retiredOrdinaryContextIds: Set<String> = emptySet(),
+    /** Exact live H1 Workspace targets supplied by the canonical hierarchy reader. */
+    structurallyPlacedWorkspaceIds: Set<String> = emptySet(),
 ): List<ContextPresentation> {
     val workspaceById = workspaces.associateBy { it.id }
     val contextIds = contexts.mapTo(hashSetOf()) { it.id }
@@ -331,6 +342,7 @@ internal fun projectPresentationUniverseFromState(
                 workspace = workspaceById[context.id],
                 canonicalTags = canonicalTagsById[context.id],
                 ordinaryRetirementEvidence = context.id in retiredOrdinaryContextIds,
+                structuralPlacementEvidence = context.id in structurallyPlacedWorkspaceIds,
             )
         }
 
@@ -342,6 +354,7 @@ internal fun projectPresentationUniverseFromState(
                     (
                         SystemContexts.isSystem(ContextId(workspace.id)) ||
                             workspace.id in retiredOrdinaryContextIds ||
+                            workspace.id in structurallyPlacedWorkspaceIds ||
                             workspace.isStandaloneOperationalWorkspace()
                     )
             }
@@ -354,6 +367,8 @@ internal fun projectPresentationUniverseFromState(
                     canonicalTags = canonicalTagsById[workspace.id],
                     ordinaryRetirementEvidence =
                         workspace.id in retiredOrdinaryContextIds,
+                    structuralPlacementEvidence =
+                        workspace.id in structurallyPlacedWorkspaceIds,
                 )
             }
             .toList()
@@ -367,6 +382,7 @@ private fun resolvePresentationFromState(
     workspace: WorkspacePresentationState?,
     canonicalTags: List<String>?,
     ordinaryRetirementEvidence: Boolean,
+    structuralPlacementEvidence: Boolean = false,
 ): ContextPresentation? {
     val isSystem = SystemContexts.isSystem(ContextId(contextId))
 
@@ -383,6 +399,7 @@ private fun resolvePresentationFromState(
         if (
             !isSystem &&
             !ordinaryRetirementEvidence &&
+            !structuralPlacementEvidence &&
             !workspace.isStandaloneOperationalWorkspace()
         ) {
             return null

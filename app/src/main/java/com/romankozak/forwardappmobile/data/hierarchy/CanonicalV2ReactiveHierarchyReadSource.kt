@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyContextPresentationNode
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyId
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.PlacementId
+import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.HierarchyTargetType
 import com.romankozak.forwardappmobile.shared.core.domain.hierarchy.hierarchyPlacementSiblingComparator
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,7 +49,12 @@ class CanonicalV2ReactiveHierarchyReadSource
                 database.withTransaction {
                     val rows = database.hierarchyPlacementDao().getLiveStructuralReadFrame(hierarchyId.value)
                     val dao = database.orientationDao()
-                    val workspaces = systemWorkspacePresentationContextProjector.projectPresentationUniverse()
+                    val placedWorkspaceIds = rows.asSequence()
+                        .map { it.placement }
+                        .filter { it.targetType == HierarchyTargetType.WORKSPACE.name }
+                        .mapTo(hashSetOf()) { it.targetId }
+                    val workspaces = systemWorkspacePresentationContextProjector
+                        .projectPresentationUniverse(placedWorkspaceIds)
                         .map { it.toCanonicalV2WorkspacePresentation() }
                     val subjects = dao.getAllManagedSubjects()
                     val mappings = dao.getAllLegacyMappings()
