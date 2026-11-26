@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +55,7 @@ internal fun DeviceSyncPeerCard(
     onAutoSyncChange: (Boolean) -> Unit,
     onSync: () -> Unit,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(0.dp),
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val outcome = if (syncing) "running" else latestEvent?.outcome ?: "idle"
@@ -61,8 +64,11 @@ internal fun DeviceSyncPeerCard(
     val timeText = latestEvent?.let { event ->
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startedAt))
     }
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Card(modifier = modifier, shape = shape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        Column {
+            HorizontalDivider(Modifier.padding(horizontal = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Smartphone, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
@@ -102,6 +108,7 @@ internal fun DeviceSyncPeerCard(
             }
             if (peer.enabled && !globalAutoSyncEnabled) Text("Автозапуски призупинено глобально",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

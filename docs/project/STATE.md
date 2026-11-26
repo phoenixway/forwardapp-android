@@ -11,6 +11,9 @@ rows with date on older records and retains full copyable details. UI state
 labels are derived from recorded outcomes and stages; no sync protocol, data
 model, or network behavior changed. Physical layout and accessibility review
 remain pending.
+The local controls and global policy, the saved-device header and peers, and the
+journal header and entries are now grouped into three low-emphasis surface
+sections with internal dividers; controls and behavior are unchanged.
 
 ## 2026-11-26 - Compact device sync control screen (device validation pending)
 

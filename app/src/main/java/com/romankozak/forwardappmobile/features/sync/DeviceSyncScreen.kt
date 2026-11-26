@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.sync
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
@@ -24,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -80,43 +82,51 @@ fun DeviceSyncScreen(onBack: () -> Unit, viewModel: DeviceSyncViewModel = hiltVi
             item { DeviceSyncLocalCard(state, viewModel::setLocalConnectionEnabled,
                 viewModel::refreshConnectionAddress,
                 onCopy = { clipboard.setText(AnnotatedString(it)) }, onShowQr = { showQr = true }) }
-            item { DeviceSyncGlobalAutoSyncRow(state.autoSyncEnabled, viewModel::setAutoSyncEnabled,
-                Modifier.padding(top = 16.dp)) }
-            item { Row(modifier = Modifier.padding(top = 16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text("Пристрої · ${state.peers.size}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                Box {
-                    TextButton(onClick = { addMenuOpen = true }, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Icon(Icons.Outlined.Add, null); Text("Додати", modifier = Modifier.padding(start = 4.dp))
-                    }
-                    DropdownMenu(expanded = addMenuOpen, onDismissRequest = { addMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Сканувати QR-код") },
-                            leadingIcon = { Icon(Icons.Outlined.QrCodeScanner, null) }, onClick = {
-                                addMenuOpen = false
-                                scanError = false
-                                scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                                    .setPrompt("Скануйте код іншого пристрою")
-                                    .setBeepEnabled(false).setOrientationLocked(false))
-                            })
-                        DropdownMenuItem(text = { Text("Ввести адресу та ключ") },
-                            leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = {
-                                addMenuOpen = false
-                                editing = WifiAutoSyncPeer("", "", "", "")
-                            })
+            item { DeviceSyncGlobalAutoSyncRow(state.autoSyncEnabled, viewModel::setAutoSyncEnabled) }
+            item { Surface(modifier = Modifier.padding(top = 16.dp),
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text("Пристрої · ${state.peers.size}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                    Box {
+                        TextButton(onClick = { addMenuOpen = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Icon(Icons.Outlined.Add, null); Text("Додати", modifier = Modifier.padding(start = 4.dp))
+                        }
+                        DropdownMenu(expanded = addMenuOpen, onDismissRequest = { addMenuOpen = false }) {
+                            DropdownMenuItem(text = { Text("Сканувати QR-код") },
+                                leadingIcon = { Icon(Icons.Outlined.QrCodeScanner, null) }, onClick = {
+                                    addMenuOpen = false
+                                    scanError = false
+                                    scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                                        .setPrompt("Скануйте код іншого пристрою")
+                                        .setBeepEnabled(false).setOrientationLocked(false))
+                                })
+                            DropdownMenuItem(text = { Text("Ввести адресу та ключ") },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = {
+                                    addMenuOpen = false
+                                    editing = WifiAutoSyncPeer("", "", "", "")
+                                })
+                        }
                     }
                 }
             } }
             if (state.peers.isEmpty()) item {
-                Text("Додайте інший пристрій через QR-код або введіть адресу й ключ.",
-                    style = MaterialTheme.typography.bodySmall)
+                Surface(shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Text("Додайте інший пристрій через QR-код або введіть адресу й ключ.",
+                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                        style = MaterialTheme.typography.bodySmall)
+                }
             }
-            items(state.peers, key = { it.id }) { peer ->
+            itemsIndexed(state.peers, key = { _, peer -> peer.id }) { index, peer ->
                 val latest = events.firstOrNull { event ->
                     event.address == peer.address && event.mode in listOf("Вручну", "Автоматично")
                 }
                 DeviceSyncPeerCard(peer, state.autoSyncEnabled, state.syncingPeerId == peer.id,
                     latest, onEdit = { editing = peer }, onRemove = { removing = peer },
                     onAutoSyncChange = { viewModel.setPeerAutoSync(peer, it) }, onSync = { viewModel.syncNow(peer) },
-                    modifier = Modifier.padding(top = 4.dp))
+                    shape = if (index == state.peers.lastIndex) RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                        else RoundedCornerShape(0.dp))
             }
             item { DeviceSyncJournalSection(events, Modifier.padding(top = 16.dp, bottom = 12.dp)) }
         }

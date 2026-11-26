@@ -16,6 +16,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,20 +39,27 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>, modifier: Mod
     var showAll by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<WifiSyncEvent?>(null) }
     val clipboard = LocalClipboardManager.current
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Журнал", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = { showAll = true }, enabled = events.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("Усі записи")
+    Surface(modifier, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Журнал", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { showAll = true }, enabled = events.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Усі записи")
+                }
+            }
+            if (events.isEmpty()) Text("Операцій поки немає", style = MaterialTheme.typography.bodySmall)
+            val recent = events.take(3)
+            recent.forEachIndexed { index, event ->
+                JournalRow(event, showDivider = index < recent.lastIndex) { selected = event }
             }
         }
-        if (events.isEmpty()) Text("Операцій поки немає", style = MaterialTheme.typography.bodySmall)
-        events.take(3).forEach { event -> JournalRow(event) { selected = event } }
     }
     if (showAll) AlertDialog(
         onDismissRequest = { showAll = false }, title = { Text("Журнал синхронізації") },
         text = { Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-            events.forEach { event -> JournalRow(event) { showAll = false; selected = event } }
+            events.forEachIndexed { index, event ->
+                JournalRow(event, showDivider = index < events.lastIndex) { showAll = false; selected = event }
+            }
         } },
         confirmButton = { TextButton(onClick = {
             clipboard.setText(AnnotatedString(events.joinToString("\n\n", transform = ::formatTechnicalEvent)))
@@ -69,7 +77,7 @@ internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>, modifier: Mod
 }
 
 @Composable
-private fun JournalRow(event: WifiSyncEvent, onClick: () -> Unit) {
+private fun JournalRow(event: WifiSyncEvent, showDivider: Boolean, onClick: () -> Unit) {
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick).padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -83,7 +91,7 @@ private fun JournalRow(event: WifiSyncEvent, onClick: () -> Unit) {
             Text(journalTime(event.startedAt), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
