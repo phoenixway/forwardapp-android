@@ -54,7 +54,7 @@ class CanonicalV2ReactiveHierarchyReadSource
                         .filter { it.targetType == HierarchyTargetType.WORKSPACE.name }
                         .mapTo(hashSetOf()) { it.targetId }
                     val workspaces = systemWorkspacePresentationContextProjector
-                        .projectPresentationUniverse(placedWorkspaceIds)
+                        .projectHierarchyPresentationUniverse(placedWorkspaceIds)
                         .map { it.toCanonicalV2WorkspacePresentation() }
                     val subjects = dao.getAllManagedSubjects()
                     val mappings = dao.getAllLegacyMappings()

@@ -86,8 +86,11 @@ class SystemWorkspacePresentationContextProjector
          * admitted without a Context shell. The tombstone contributes
          * no display fields. Reserved System ids remain independently shell-free.
          */
-        suspend fun projectPresentationUniverse(
-            structurallyPlacedWorkspaceIds: Set<String> = emptySet(),
+        suspend fun projectPresentationUniverse(): List<ContextPresentation> =
+            projectPresentationUniverse(contextDao.getAllActiveOrdered())
+
+        suspend fun projectHierarchyPresentationUniverse(
+            structurallyPlacedWorkspaceIds: Set<String>,
         ): List<ContextPresentation> =
             projectPresentationUniverse(
                 contextDao.getAllActiveOrdered(),
