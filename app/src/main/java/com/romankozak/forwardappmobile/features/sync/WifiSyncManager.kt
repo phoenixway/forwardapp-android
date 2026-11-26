@@ -179,7 +179,13 @@ class WifiSyncManager(
     fun onShowWifiServerDialog() {
         if (!FeatureToggles.isEnabled(FeatureFlag.WifiSync)) return
         _showWifiServerDialog.value = true
+        refreshServerAddress(requireEnabled = false)
+    }
+
+    fun refreshServerAddress(requireEnabled: Boolean = true) {
+        if (!FeatureToggles.isEnabled(FeatureFlag.WifiSync)) return
         viewModelScope.launch {
+            if (requireEnabled && !settingsRepository.wifiSyncServerEnabledFlow.first()) return@launch
             val currentHost = currentWifiIpv4Address(application)
             val currentPort = settingsRepository.wifiSyncPortFlow.first()
             if (isServerRunning && _wifiServerAddress.value == "$currentHost:$currentPort") {

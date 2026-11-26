@@ -80,6 +80,11 @@ class DeviceSyncViewModel @Inject constructor(
         _state.update { it.copy(localAddress = currentWifiIpv4Address(application)) }
     }
 
+    fun refreshConnectionAddress() {
+        refreshLocalAddress()
+        syncUseCase.refreshWifiServerAddress()
+    }
+
     fun setLocalConnectionEnabled(enabled: Boolean) {
         viewModelScope.launch { settings.saveWifiSyncServerEnabled(enabled) }
     }

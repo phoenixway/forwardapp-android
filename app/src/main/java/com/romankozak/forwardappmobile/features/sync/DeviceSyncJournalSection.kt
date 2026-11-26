@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.sync
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,63 +33,68 @@ import java.util.Locale
 
 @Composable
 internal fun DeviceSyncJournalSection(events: List<WifiSyncEvent>) {
-    var showDetails by remember { mutableStateOf(false) }
+    var showAll by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf<WifiSyncEvent?>(null) }
     val clipboard = LocalClipboardManager.current
-    Card {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Журнал синхронізації", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                TextButton(onClick = { showDetails = true }) { Text("More") }
-            }
-            if (events.isEmpty()) Text("Операцій поки немає", style = MaterialTheme.typography.bodySmall)
-            events.take(3).forEach { event ->
-                Text("${eventTime(event.startedAt)} · ${event.peerName}: ${eventSummary(event)}",
-                    style = MaterialTheme.typography.bodySmall)
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Журнал", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = { showAll = true }, enabled = events.isNotEmpty()) { Text("Усі записи") }
         }
+        if (events.isEmpty()) Text("Операцій поки немає", style = MaterialTheme.typography.bodySmall)
+        events.take(3).forEach { event -> JournalRow(event) { selected = event } }
     }
-    if (showDetails) {
-        AlertDialog(
-            onDismissRequest = { showDetails = false },
-            title = { Text("Технічний журнал синхронізації") },
-            text = {
-                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (events.isEmpty()) Text("Операцій поки немає")
-                    events.forEach { event ->
-                        Text(formatTechnicalEvent(event), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    clipboard.setText(AnnotatedString(events.joinToString("\n\n", transform = ::formatTechnicalEvent)))
-                }, enabled = events.isNotEmpty()) {
-                    Icon(Icons.Outlined.ContentCopy, null)
-                    Text("Копіювати")
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDetails = false }) { Text("Закрити") } },
-        )
+    if (showAll) AlertDialog(
+        onDismissRequest = { showAll = false }, title = { Text("Журнал синхронізації") },
+        text = { Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+            events.forEach { event -> JournalRow(event) { selected = event } }
+        } },
+        confirmButton = { TextButton(onClick = {
+            clipboard.setText(AnnotatedString(events.joinToString("\n\n", transform = ::formatTechnicalEvent)))
+        }) { Icon(Icons.Outlined.ContentCopy, null); Text("Копіювати журнал") } },
+        dismissButton = { TextButton(onClick = { showAll = false }) { Text("Закрити") } },
+    )
+    selected?.let { event -> AlertDialog(
+        onDismissRequest = { selected = null }, title = { Text(eventTitle(event)) },
+        text = { Text(formatTechnicalEvent(event), style = MaterialTheme.typography.bodySmall) },
+        confirmButton = { TextButton(onClick = { clipboard.setText(AnnotatedString(formatTechnicalEvent(event))) }) {
+            Icon(Icons.Outlined.ContentCopy, null); Text("Копіювати діагностику")
+        } },
+        dismissButton = { TextButton(onClick = { selected = null }) { Text("Закрити") } },
+    ) }
+}
+
+@Composable
+private fun JournalRow(event: WifiSyncEvent, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 7.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(if (event.outcome == "error") "●" else "○", color = if (event.outcome == "error")
+                MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+            Text("  ${eventTitle(event)}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(time(event.startedAt, "HH:mm"), style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(event.peerName, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HorizontalDivider(Modifier.padding(top = 7.dp), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
-private fun eventTime(time: Long): String =
-    SimpleDateFormat("dd.MM HH:mm:ss", Locale.getDefault()).format(Date(time))
-
-private fun eventSummary(event: WifiSyncEvent): String = when (event.outcome) {
-    "success" -> "завершено"
-    "error" -> "помилка · ${event.stage}"
-    "cancelled" -> "перервано · ${event.stage}"
-    else -> "триває · ${event.stage}"
+private fun eventTitle(event: WifiSyncEvent): String = when (event.outcome) {
+    "success" -> "Синхронізація завершена"
+    "error" -> "Помилка · ${event.stage}"
+    "cancelled" -> "Синхронізацію перервано"
+    else -> event.stage
 }
+
+private fun time(value: Long, pattern: String): String = SimpleDateFormat(pattern, Locale.getDefault()).format(Date(value))
 
 private fun formatTechnicalEvent(event: WifiSyncEvent): String = buildString {
-    append(eventTime(event.startedAt))
+    append(time(event.startedAt, "dd.MM HH:mm:ss"))
     append(" · ").append(event.mode)
     append(" · ").append(event.peerName).append(" (").append(event.address).append(")")
     append("\nЕтап: ").append(event.stage)
-    append("\nСтан: ").append(eventSummary(event))
+    append("\nСтан: ").append(event.outcome)
     event.finishedAt?.let { append(" · ").append((it - event.startedAt).coerceAtLeast(0) / 1000).append(" с") }
     event.detail?.let { append("\nДеталі: ").append(it) }
 }

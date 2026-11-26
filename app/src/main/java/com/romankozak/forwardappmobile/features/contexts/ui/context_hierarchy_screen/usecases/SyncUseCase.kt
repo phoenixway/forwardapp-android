@@ -128,6 +128,8 @@ class SyncUseCase
 
         fun onShowWifiServerDialog() = manager().onShowWifiServerDialog()
 
+        fun refreshWifiServerAddress() = manager().refreshServerAddress()
+
         fun onShowWifiImportDialog() = manager().onShowWifiImportDialog()
 
         fun onDismissWifiServerDialog() = manager().onDismissWifiServerDialog()

@@ -1,5 +1,18 @@
 # ForwardApp Project State
 
+## 2026-11-26 - Compact device sync control screen (device validation pending)
+
+The device sync screen now uses compact local and peer cards, contextual help,
+per-peer last exchange status, and three tappable journal entries with copyable
+details. The local address can be copied or refreshed; refresh also checks the
+listener binding. Pairing keys are hidden by default. A local QR code contains
+the address and key, and scanning a compatible code opens a prefilled peer form
+for review before saving. Manual address/key entry remains available. The QR
+payload is a versioned `forwardapp-pair://device` URI with `address` and `key`
+query parameters; it must be treated as a secret while displayed. The Android
+scanner is provided by ZXing Android Embedded 4.3.0. Physical layout, camera,
+and two-phone pairing validation are pending.
+
 ## 2026-11-26 - Wi-Fi full export failure diagnosis (focused CI verified; device pending)
 
 Two-phone manual sync reached the receiving phone and failed after fetch with

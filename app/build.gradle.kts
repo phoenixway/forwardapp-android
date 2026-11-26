@@ -237,6 +237,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.zxing.android.embedded)
 
     // Compose Foundation та Animation
     implementation(libs.compose.foundation)
