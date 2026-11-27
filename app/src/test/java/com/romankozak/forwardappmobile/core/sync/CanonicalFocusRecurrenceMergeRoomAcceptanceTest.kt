@@ -10,11 +10,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
-import com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
-import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
-import com.romankozak.forwardappmobile.data.dao.DayPlanDao
-import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
 import com.romankozak.forwardappmobile.data.recurrence.toAndroidEntity
 import com.romankozak.forwardappmobile.data.recurrence.toCanonicalSeries
@@ -27,9 +22,6 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFo
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringResponsibilitySeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
-import io.mockk.coEvery
-import io.mockk.mockk
-import io.mockk.mockkClass
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -42,7 +34,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.util.Calendar
 import java.util.TimeZone
-import kotlin.reflect.KClass
 
 @RunWith(RobolectricTestRunner::class)
 class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
@@ -169,7 +160,7 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
                         .map { it.toSnapshot() },
             )
 
-        val subject = createSubject(db)
+        val subject = createRoomMergeSubject(db)
 
         subject.applySnapshotBundle(bundle)
 
@@ -349,7 +340,7 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
                         .map { it.toSnapshot() },
             )
 
-        createSubject(db).applySnapshotBundle(bundle)
+        createRoomMergeSubject(db).applySnapshotBundle(bundle)
 
         val persisted = db.dayFocusItemDao().getAllSync().sortedBy { it.id }
         assertEquals(2, persisted.size)
@@ -528,7 +519,7 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
                         .map { it.toSnapshot() },
             )
 
-        createSubject(db).applySnapshotBundle(bundle)
+        createRoomMergeSubject(db).applySnapshotBundle(bundle)
 
         val persisted = db.dayFocusItemDao().getAllSync().associateBy { it.id }
 
@@ -707,52 +698,4 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
             set(parts[0], parts[1] - 1, parts[2], 0, 0, 0)
         }.timeInMillis
     }
-
-    private fun createSubject(db: AppDatabase): MergeLocalDataSourceImpl {
-        val constructor =
-            MergeLocalDataSourceImpl::class.java.declaredConstructors.single { candidate ->
-                !candidate.isSynthetic &&
-                    candidate.parameterTypes.none {
-                        it.name == "kotlin.jvm.internal.DefaultConstructorMarker"
-                    }
-            }
-        constructor.isAccessible = true
-
-        val arguments =
-            constructor.parameterTypes.map { parameterType ->
-                when (parameterType) {
-                    AppDatabase::class.java -> db
-                    DayPlanDao::class.java -> db.dayPlanDao()
-                    DayTaskDao::class.java -> db.dayTaskDao()
-                    DayFocusItemDao::class.java -> db.dayFocusItemDao()
-                    CanonicalRecurringSeriesDao::class.java -> db.canonicalRecurringSeriesDao()
-                    ContextWorkspaceWriteThrough::class.java -> contextWorkspaceWriteThrough()
-                    else -> relaxedMock(parameterType)
-                }
-            }.toTypedArray()
-
-        return constructor.newInstance(*arguments) as MergeLocalDataSourceImpl
-    }
-
-    private fun contextWorkspaceWriteThrough(): ContextWorkspaceWriteThrough {
-        val writeThrough = mockk<ContextWorkspaceWriteThrough>(relaxed = true)
-        coEvery {
-            writeThrough.mutateAndAfterWorkspaceRefresh<Any?>(
-                any(),
-                any(),
-                any(),
-            )
-        } coAnswers {
-            val mutation = secondArg<suspend () -> Any?>()
-            val afterRefresh = thirdArg<suspend (Any?) -> Unit>()
-            val result = mutation()
-            afterRefresh(result)
-            result
-        }
-        return writeThrough
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun relaxedMock(type: Class<*>): Any =
-        mockkClass(type.kotlin as KClass<Any>, relaxed = true)
 }
