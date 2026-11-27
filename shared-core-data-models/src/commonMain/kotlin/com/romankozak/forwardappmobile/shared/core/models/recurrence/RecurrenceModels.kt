@@ -63,7 +63,25 @@ data class RecurringTaskTemplate(
     val executionStrictness: String? = null,
     /** Explicit creation source; absent in older templates. Never inferred from goalId/projectId. */
     val planningSource: RecurringTaskPlanningSource? = null,
+    /** Null carries no series intent. Empty defaults represent an explicit selection of no targets. */
+    val realizesDefaults: RecurringTaskRealizesDefaults? = null,
+    /** Complete replacements for the effective defaults, keyed by the first day they apply. */
+    val realizesChanges: Map<LocalDayKey, RecurringTaskRealizesDefaults> = emptyMap(),
 )
+
+/** Stable target IDs resolved against each task's own DayPlan. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
+data class RecurringTaskRealizesDefaults(
+    val themeDefinitionIds: Set<String> = emptySet(),
+    /** Canonical FOCUS or RESPONSIBILITY series IDs. */
+    val prioritySeriesIds: Set<String> = emptySet(),
+) {
+    init {
+        require(themeDefinitionIds.none { it.isBlank() }) { "Invalid recurring task theme definition ID" }
+        require(prioritySeriesIds.none { it.isBlank() }) { "Invalid recurring task priority series ID" }
+    }
+}
 
 /** Content/defaults copied into a FOCUS or RESPONSIBILITY DayFocusItem. */
 @OptIn(kotlin.js.ExperimentalJsExport::class)

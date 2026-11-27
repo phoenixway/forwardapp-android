@@ -24,6 +24,8 @@ data class DayPlanningScopeExtension(
     val syncedAt: Long?,
     val version: Long,
     val isDeleted: Boolean,
+    val localDate: String? = null,
+    val timeZoneId: String? = null,
 )
 
 fun validateDayPlanningScopeExtension(
@@ -31,6 +33,10 @@ fun validateDayPlanningScopeExtension(
 ): List<PlanningContractViolation> {
     val path = "dayScopeExtensions.${extension.scopeId.value}"
     val violations = mutableListOf<PlanningContractViolation>()
+
+    if ((extension.localDate == null) != (extension.timeZoneId == null)) {
+        violations += PlanningContractViolation(path, "INCOMPLETE_PERSONAL_DAY_KEY", "Day requires both local date and named time zone")
+    }
 
     if (extension.calendarDayStartMillis < 0L) {
         violations +=

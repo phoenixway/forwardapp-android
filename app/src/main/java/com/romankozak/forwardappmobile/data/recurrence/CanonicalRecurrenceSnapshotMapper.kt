@@ -40,12 +40,16 @@ object CanonicalRecurrenceSnapshotMapper {
     fun dayTaskEntity(
         snapshot: DayTaskSnapshot,
         baseEntity: DayTask,
-    ): DayTask =
-        baseEntity.copy(
+    ): DayTask {
+        require(snapshot.realizesOverride == null || snapshot.recurrence != null) {
+            "DayTask ${snapshot.id} has a Realizes override without recurrence"
+        }
+        return baseEntity.copy(
             recurrenceSeriesId = snapshot.recurrence?.seriesId,
             recurrenceOccurrenceDayKey = snapshot.recurrence?.occurrenceDayKey,
             recurrenceSourceSeriesVersion = snapshot.recurrence?.sourceSeriesVersion,
         )
+    }
 
     fun dayFocusItemEntity(
         snapshot: DayFocusItemSnapshot,

@@ -8,9 +8,15 @@ internal fun mergeDayTaskRealizations(local: DayTask?, incoming: DayTaskSnapshot
     if (local == null) return entity
     if (incoming.version < local.version || (local.isDeleted && incoming.version == local.version)) return local
     val refs = incoming.realizedDayFocusItemIds
-    if (refs == null) return entity.copy(realizedDayFocusItemIds = local.realizedDayFocusItemIds)
-    require(incoming.version != local.version || refs.toSet() == local.realizedDayFocusItemIds.toSet()) {
+    require(refs == null || incoming.version != local.version || refs.toSet() == local.realizedDayFocusItemIds.toSet()) {
         "Equal-version divergent DayTask realization references: ${incoming.id}"
     }
-    return entity.copy(realizedDayFocusItemIds = refs.distinct().sorted())
+    val override = incoming.realizesOverride
+    require(override == null || local.realizesOverride == null || incoming.version != local.version || override == local.realizesOverride) {
+        "Equal-version divergent DayTask Realizes overrides: ${incoming.id}"
+    }
+    return entity.copy(
+        realizedDayFocusItemIds = refs?.distinct()?.sorted() ?: local.realizedDayFocusItemIds,
+        realizesOverride = override ?: local.realizesOverride,
+    )
 }

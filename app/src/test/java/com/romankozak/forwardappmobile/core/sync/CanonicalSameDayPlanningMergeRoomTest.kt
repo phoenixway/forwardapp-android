@@ -117,8 +117,7 @@ class CanonicalSameDayPlanningMergeRoomTest {
 
             val failure = runCatching { createRoomMergeSubject(db).applySnapshotBundle(incoming) }.exceptionOrNull()
 
-            assertTrue("Expected Planning rejection, received $failure", failure is IllegalArgumentException)
-            assertEquals("Planning commitment durable identity cannot change for ${localCommitment.id}", failure?.message)
+            assertTrue("Expected an unverified calendar identity conflict, received $failure", failure is DayPlanMergeIdentityConflict)
             assertEquals(listOf(localPlan), db.dayPlanDao().getAllPlansSync())
             assertEquals(listOf(localTask), db.dayTaskDao().getAllTasksSync())
             assertEquals(listOf(localScope), planning.loadAllScopes())

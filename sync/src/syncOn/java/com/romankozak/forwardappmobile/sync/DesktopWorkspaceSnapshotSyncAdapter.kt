@@ -217,6 +217,8 @@ private fun SharedDayPlanningScopeExtensionSnapshot.toAndroidSnapshot():
     DayPlanningScopeExtensionSnapshot(
         scopeId = scopeId,
         calendarDayStartMillis = calendarDayStartMillis,
+        localDate = localDate,
+        timeZoneId = timeZoneId,
         outcome = outcome,
         plannedBudgetMinutes = plannedBudgetMinutes,
         createdAt = createdAt,

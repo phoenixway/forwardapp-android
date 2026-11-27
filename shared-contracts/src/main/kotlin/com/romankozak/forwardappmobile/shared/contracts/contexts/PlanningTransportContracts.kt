@@ -52,6 +52,8 @@ data class SharedDayPlanningScopeExtensionSnapshot(
     val syncedAt: Long?,
     val version: Long,
     val isDeleted: Boolean,
+    val localDate: String? = null,
+    val timeZoneId: String? = null,
 )
 
 @Serializable
@@ -171,6 +173,7 @@ fun DesktopWorkspaceSnapshot.requireValidCanonicalPlanningTransport() {
         }
         extensions.forEach { extension ->
             require(extension.scopeId.isNotBlank()) { "Day planning extension scope id is blank." }
+            require((extension.localDate == null) == (extension.timeZoneId == null)) { "Incomplete personal Day key" }
             require(extension.calendarDayStartMillis >= 0L) { "Invalid Day calendar key." }
             require(extension.plannedBudgetMinutes == null || extension.plannedBudgetMinutes > 0L) {
                 "Invalid Day planned budget."

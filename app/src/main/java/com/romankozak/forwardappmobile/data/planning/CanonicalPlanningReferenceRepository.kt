@@ -19,6 +19,7 @@ class CanonicalPlanningReferenceRepository @Inject constructor(private val db: A
         target: PlanningReferenceTarget,
         role: PlanningReferenceRole = PlanningReferenceRole.RELATED,
         now: Long = System.currentTimeMillis(),
+        initialCreatedAt: Long = now,
     ): String = db.withTransaction {
         requireOwner(owner, live = true)
         requireTarget(target, live = true)
@@ -30,12 +31,10 @@ class CanonicalPlanningReferenceRepository @Inject constructor(private val db: A
         if (role == PlanningReferenceRole.SOURCE) {
             require(rows.none { it.role == role.name && !it.isDeleted }) { "Planning item already has a source" }
         }
-        val key = listOf(owner.kind.name, owner.id, target.kind.name, target.id, role.name)
-            .joinToString("") { "${it.length}:$it" }
-        val id = previous?.id ?: UUID.nameUUIDFromBytes("planning-reference:v1:$key".toByteArray(Charsets.UTF_8)).toString()
+        val id = previous?.id ?: planningReferenceId(owner.kind.name, owner.id, target.kind.name, target.id, role.name)
         db.planningReferenceDao().upsert(
             PlanningReferenceEntity(id, owner.kind.name, owner.id, target.kind.name, target.id, role.name,
-                previous?.createdAt ?: now, now, null, (previous?.version ?: 0) + 1, false),
+                previous?.createdAt ?: initialCreatedAt, now, null, (previous?.version ?: 0) + 1, false),
         )
         id
     }
@@ -82,4 +81,15 @@ class CanonicalPlanningReferenceRepository @Inject constructor(private val db: A
             require(it.moveToFirst()) { "Unavailable typed Planning endpoint: $table/$id" }
         }
     }
+}
+
+internal fun planningReferenceId(
+    ownerKind: String,
+    ownerId: String,
+    targetKind: String,
+    targetId: String,
+    role: String,
+): String {
+    val key = listOf(ownerKind, ownerId, targetKind, targetId, role).joinToString("") { "${it.length}:$it" }
+    return UUID.nameUUIDFromBytes("planning-reference:v1:$key".toByteArray(Charsets.UTF_8)).toString()
 }

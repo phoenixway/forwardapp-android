@@ -33,12 +33,12 @@ class RecurrencePlanningSourceBridge @Inject constructor(
         }
     }
 
-    suspend fun materialize(task: DayTask, source: RecurringTaskPlanningSource?, now: Long) {
-        writer.persist(source?.target(), now) { task }
+    suspend fun materialize(task: DayTask, source: RecurringTaskPlanningSource?, now: Long, initialCreatedAt: Long = now) {
+        writer.persist(source?.target(), now, initialCreatedAt) { task }
     }
 
     /** An imported occurrence may precede its Planning metadata. Explicit edge tombstones still win. */
-    suspend fun repairMissing(task: DayTask, source: RecurringTaskPlanningSource?, now: Long) {
+    suspend fun repairMissing(task: DayTask, source: RecurringTaskPlanningSource?, now: Long, initialCreatedAt: Long = now) {
         if (source == null) return
         val edges = db.planningReferenceDao().getForOwner(PlanningReferenceOwnerKind.DAY_TASK.name, task.id)
             .filter { it.role == PlanningReferenceRole.SOURCE.name }
@@ -46,7 +46,7 @@ class RecurrencePlanningSourceBridge @Inject constructor(
         require(edges.all { it.targetKind == source.kind.name && it.targetId == source.id }) {
             "Recurring occurrence and template sources disagree"
         }
-        materialize(task, source, now)
+        materialize(task, source, now, initialCreatedAt)
     }
 
     suspend fun retire(taskId: String, now: Long) = writer.deleteTask(taskId, now) {}

@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority as
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.dao.CanonicalTaskSplitSourceVersion
+import com.romankozak.forwardappmobile.data.daythemes.rekeyTaskThemeAssignments
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.compareLocalDayKeys
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.previousLocalDayKey
@@ -15,6 +16,7 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceR
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskTemplate
+import com.romankozak.forwardappmobile.shared.core.domain.recurrence.realizesOn
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -115,7 +117,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                         "$seriesId@${materialization.dayKey}"
                 }
 
-            val authoredOccurrence =
+            val authoredDetails =
                 occurrence.copy(
                     scheduledTime = scheduledTime,
                     dueTime = dueTime,
@@ -123,6 +125,12 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     updatedAt = now,
                     syncedAt = null,
                 )
+            val authoredOccurrence = if (authoredDetails != occurrence &&
+                appDatabase.verifiedRecurrenceDayStart(dayPlan.id, materialization.dayKey) != null) {
+                authoredDetails.copy(version = occurrence.version + 1)
+            } else {
+                authoredDetails
+            }
             if (authoredOccurrence != occurrence) {
                 appDatabase.dayTaskDao().update(authoredOccurrence)
             }
@@ -144,28 +152,9 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             points: Int,
             executionStrictness: TaskExecutionStrictness,
             rule: RecurrenceRule,
-        ): DayTask = appDatabase.withTransaction {
-            require(task.recurrenceSeriesId == null) {
-                "Cannot convert already-canonical recurring task ${task.id}"
-            }
-            require(!task.isDeleted) {
-                "Cannot convert deleted task ${task.id}"
-            }
-            require(title.isNotBlank()) {
-                "Canonical recurring task title must not be blank"
-            }
-
-            val dayPlan =
-                checkNotNull(appDatabase.dayPlanDao().getPlanById(task.dayPlanId)) {
-                    "Cannot convert task to canonical recurrence: DayPlan not found: ${task.dayPlanId}"
-                }
-
-            val now = System.currentTimeMillis()
-            val seriesId = UUID.randomUUID().toString()
-            val startDayKey = canonicalLocalDayKey(dayPlan.date)
-            val canonicalRule = rule.normalizedForSeriesStart(startDayKey)
-            val template =
-                buildTemplate(
+        ): DayTask = appDatabase.convertTaskToRecurringSeries(
+            task, rule, planningSources, priority, executionStrictness,
+            buildTemplate(
                     title = title,
                     description = description,
                     goalId = goalId,
@@ -177,66 +166,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     estimatedDurationMinutes = estimatedDurationMinutes,
                     points = points,
                     executionStrictness = executionStrictness,
-                )
-            val series =
-                RecurringTaskSeries(
-                    id = seriesId,
-                    createdAt = now,
-                    updatedAt = now,
-                    syncedAt = null,
-                    isDeleted = false,
-                    version = 1,
-                    rule = canonicalRule,
-                    startDayKey = startDayKey,
-                    endDayKey = null,
-                    template = template.copy(planningSource = planningSources.source(task.id)),
-                )
-
-            val occurrence =
-                task.copy(
-                    id =
-                        recurrenceOccurrenceId(
-                            kind = RecurringSeriesKind.TASK,
-                            seriesId = seriesId,
-                            dayKey = startDayKey,
-                        ),
-                    title = template.title,
-                    description = template.description,
-                    goalId = template.goalId,
-                    projectId = template.projectId,
-                    projectWorkspaceId = null,
-                    linkedProjectIds = template.linkedProjectIds,
-                    linkedAttachmentIds = template.linkedAttachmentIds,
-                    recurrenceSeriesId = seriesId,
-                    recurrenceOccurrenceDayKey = startDayKey,
-                    recurrenceSourceSeriesVersion = series.version,
-                    taskType = template.taskType ?: if (template.goalId != null) "GOAL" else null,
-                    priority = priority,
-                    estimatedDurationMinutes = template.estimatedDurationMinutes,
-                    executionStrictness = executionStrictness,
-                    points = template.points,
-                    createdAt = now,
-                    updatedAt = now,
-                    syncedAt = null,
-                    isDeleted = false,
-                    version = 1,
-                )
-
-            appDatabase.canonicalRecurringSeriesDao().convertTaskOneOffToCanonicalSeries(
-                series = series.toAndroidEntity(),
-                occurrence = occurrence,
-                sourceTaskId = task.id,
-                sourceExpectedVersion = task.version,
-                updatedAt = now,
-            )
-
-            planningSources.replace(task, occurrence, now)
-            return@withTransaction checkNotNull(
-                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(occurrence.id),
-            ) {
-                "Canonical recurring task occurrence was not persisted: ${occurrence.id}"
-            }
-        }
+                ),
+        )
 
         suspend fun splitSeriesFromOccurrence(
             task: DayTask,
@@ -328,7 +259,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     rule = canonicalRule,
                     startDayKey = splitDayKey,
                     endDayKey = null,
-                    template = nextTemplate.copy(planningSource = storedSeries.template.planningSource),
+                    template = nextTemplate.copy(
+                        planningSource = oldTemplate.planningSource,
+                        realizesDefaults = oldTemplate.realizesOn(splitDayKey),
+                        realizesChanges = oldTemplate.realizesChanges.filterKeys { it > splitDayKey },
+                    ),
                 )
 
             val liveSourceOccurrences = mutableListOf<CanonicalTaskSplitSourceVersion>()
@@ -473,6 +408,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 recurrenceSeriesId = null,
                                 recurrenceOccurrenceDayKey = null,
                                 recurrenceSourceSeriesVersion = null,
+                                realizesOverride = null,
                                 createdAt = now,
                                 updatedAt = now,
                                 syncedAt = null,
@@ -501,6 +437,10 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             occurrences.filter { !it.isDeleted && it.recurrenceOccurrenceDayKey!! >= splitDayKey }.forEach { source ->
                 planningSources.replace(source, replacementBySource[source.id], now)
             }
+            appDatabase.rekeyTaskThemeAssignments(
+                occurrences.mapNotNull { source -> replacementBySource[source.id]?.let { source to it } },
+                now,
+            )
             return@withTransaction checkNotNull(
                 appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(returnedOccurrence.id),
             ) {
@@ -583,7 +523,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     updatedAt = now,
                     syncedAt = null,
                     version = nextVersion,
-                    template = nextTemplate.copy(planningSource = storedSeries.template.planningSource),
+                    template = nextTemplate.copy(
+                        planningSource = oldTemplate.planningSource,
+                        realizesDefaults = oldTemplate.realizesDefaults,
+                        realizesChanges = oldTemplate.realizesChanges,
+                    ),
                 )
 
             val occurrences = seriesDao.getTaskOccurrencesForSeries(seriesId)
@@ -750,6 +694,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     recurrenceSeriesId = null,
                     recurrenceOccurrenceDayKey = null,
                     recurrenceSourceSeriesVersion = null,
+                    realizesOverride = null,
                     createdAt = now,
                     updatedAt = now,
                     syncedAt = null,
@@ -765,6 +710,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 updatedAt = now,
             )
             planningSources.replace(task, detached, now)
+            appDatabase.rekeyTaskThemeAssignments(listOf(task to detached), now)
             return@withTransaction detached
         }
 

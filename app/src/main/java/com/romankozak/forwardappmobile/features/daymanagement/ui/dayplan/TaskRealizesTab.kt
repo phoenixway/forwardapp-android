@@ -30,18 +30,28 @@ internal fun TaskRealizesTab(task: DayTask?, legacyLinks: List<Pair<String, Stri
     var picker by remember(task?.id) { mutableStateOf<String?>(null) }
     var showHelp by remember { mutableStateOf(false) }
     val current = state.task?.takeIf { it.id == task?.id }
+    var scopedEdit by remember(task?.id) { mutableStateOf<((Boolean) -> Unit)?>(null) }
+    fun edit(recurringTarget: Boolean, apply: (Boolean) -> Unit) {
+        if (current?.recurrenceSeriesId != null && recurringTarget) scopedEdit = apply else apply(false)
+    }
+    if (scopedEdit != null) AlertDialog(
+        onDismissRequest = { scopedEdit = null },
+        title = { Text("Змінити зв’язок завдання") },
+        confirmButton = { TextButton(onClick = { scopedEdit?.invoke(true); scopedEdit = null }) { Text("Це й наступні") } },
+        dismissButton = { TextButton(onClick = { scopedEdit?.invoke(false); scopedEdit = null }) { Text("Лише це") } },
+    )
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         RealizationHeading("Теми", enabled = current != null && !busy, onAdd = { picker = "themes" })
         state.themes.filter { it.id in state.selectedThemeIds }.forEach { theme ->
-            RealizationRow(theme.title, busy) { viewModel.toggleTheme(theme.id) }
+            RealizationRow(theme.title, busy) { edit(true) { viewModel.toggleTheme(theme.id, it) } }
         }
         Spacer(Modifier.height(8.dp))
         RealizationHeading("Пріоритети", enabled = current != null && !busy, onAdd = { picker = "priorities" })
         current?.let { liveTaskPriorities(it, state.priorities) }.orEmpty().forEach { priority ->
-            RealizationRow(priority.title, busy, subtitle = priority.type.priorityLabel()) { viewModel.togglePriority(priority.id) }
+            RealizationRow(priority.title, busy, subtitle = priority.type.priorityLabel()) { edit(priority.recurrenceSeriesId != null) { viewModel.togglePriority(priority.id, it) } }
         }
-        if (state.suggestedThemeIds.isNotEmpty()) TextButton(enabled = !busy, onClick = viewModel::acceptSuggestedThemes) {
+        if (state.suggestedThemeIds.isNotEmpty()) TextButton(enabled = !busy, onClick = { edit(true) { viewModel.acceptSuggestedThemes(it) } }) {
             Text("Додати теми вибраних пріоритетів (${state.suggestedThemeIds.size})")
         }
         Spacer(Modifier.height(8.dp))
@@ -63,13 +73,13 @@ internal fun TaskRealizesTab(task: DayTask?, legacyLinks: List<Pair<String, Stri
                 if (state.themes.isEmpty()) Text("На цей день тем немає")
                 state.themes.forEach { theme ->
                     FilterChip(selected = theme.id in state.selectedThemeIds, enabled = !busy,
-                        onClick = { viewModel.toggleTheme(theme.id) }, label = { Text(theme.title) })
+                        onClick = { edit(true) { viewModel.toggleTheme(theme.id, it) } }, label = { Text(theme.title) })
                 }
             } else {
                 if (state.priorities.isEmpty()) Text("На цей день пріоритетів немає")
                 state.priorities.forEach { priority ->
                     FilterChip(selected = priority.id in current?.realizedDayFocusItemIds.orEmpty(), enabled = !busy,
-                        onClick = { viewModel.togglePriority(priority.id) }, label = { Text("${priority.type.priorityLabel()}: ${priority.title}") })
+                        onClick = { edit(priority.recurrenceSeriesId != null) { viewModel.togglePriority(priority.id, it) } }, label = { Text("${priority.type.priorityLabel()}: ${priority.title}") })
                 }
             }
         } }, confirmButton = { TextButton(onClick = { picker = null }) { Text("Готово") } })

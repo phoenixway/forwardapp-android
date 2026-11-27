@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFo
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringResponsibilitySeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFocusTemplate
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskRealizesDefaults
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskTemplate
 import kotlin.js.JsExport
 import kotlin.js.JsName
@@ -251,6 +252,20 @@ fun createDayFocusItemForJs(
 
 
 @JsExport
+@JsName("createRecurringTaskRealizesDefaults")
+fun createRecurringTaskRealizesDefaultsForJs(
+    themeDefinitionIds: Array<String>,
+    prioritySeriesIds: Array<String>,
+): RecurringTaskRealizesDefaults =
+    RecurringTaskRealizesDefaults(themeDefinitionIds.toSet(), prioritySeriesIds.toSet())
+
+@JsExport
+data class RecurringTaskRealizesChange(
+    val dayKey: String,
+    val defaults: RecurringTaskRealizesDefaults,
+)
+
+@JsExport
 @JsName("createRecurringTaskTemplate")
 fun createRecurringTaskTemplateForJs(
     title: String,
@@ -266,6 +281,8 @@ fun createRecurringTaskTemplateForJs(
     executionStrictness: String?,
     planningSourceKind: String? = null,
     planningSourceId: String? = null,
+    realizesDefaults: RecurringTaskRealizesDefaults? = null,
+    realizesChanges: Array<RecurringTaskRealizesChange> = emptyArray(),
 ): RecurringTaskTemplate =
     RecurringTaskTemplate(
         title = title,
@@ -288,6 +305,8 @@ fun createRecurringTaskTemplateForJs(
                 enumValueOf<com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSourceKind>(requireNotNull(planningSourceKind)),
                 requireNotNull(planningSourceId),
             ),
+        realizesDefaults = realizesDefaults,
+        realizesChanges = realizesChanges.associate { requireLocalDayKey(it.dayKey) to it.defaults },
     )
 
 @JsExport

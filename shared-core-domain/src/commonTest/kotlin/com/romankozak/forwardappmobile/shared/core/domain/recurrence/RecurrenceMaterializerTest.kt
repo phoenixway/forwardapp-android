@@ -124,6 +124,27 @@ class RecurrenceMaterializerTest {
         )
 
     @Test
+    fun `keyed days keep initial metadata stable across materialization order clocks and local content`() {
+        val series = listOf(taskSeries(), focusSeries(), responsibilitySeries())
+        val dayStart = now - 10_000L
+        val first = planRecurringSeriesForDay(database(series), dayKey, now, keyedDayStart = dayStart)
+        val localTask = first.tasksToCreate.single().copy(id = "one-off", recurrence = null, order = 900L)
+        val localFocus = first.focusItemsToCreate.first().copy(id = "one-off-focus", recurrence = null, order = 900L)
+        val later = now + 600L
+        val second = planRecurringSeriesForDay(
+            database(series.reversed(), tasks = listOf(localTask), focusItems = listOf(localFocus)),
+            dayKey,
+            later,
+            keyedDayStart = dayStart,
+        )
+
+        assertEquals(first.tasksToCreate.map { it.copy(updatedAt = later) }, second.tasksToCreate)
+        assertEquals(first.focusItemsToCreate.map { it.copy(updatedAt = later) }, second.focusItemsToCreate)
+        assertEquals(dayStart, second.tasksToCreate.single().createdAt)
+        assertEquals(setOf(dayStart), second.focusItemsToCreate.map { it.createdAt }.toSet())
+    }
+
+    @Test
     fun `materializes recurrence-owned task defaults from canonical template`() {
         val baseSeries = taskSeries()
         val series =

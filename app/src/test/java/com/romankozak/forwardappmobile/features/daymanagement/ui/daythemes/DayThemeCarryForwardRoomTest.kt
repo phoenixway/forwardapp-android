@@ -9,6 +9,10 @@ import com.romankozak.forwardappmobile.data.orientation.*
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
 import com.romankozak.forwardappmobile.data.planning.day.*
 import com.romankozak.forwardappmobile.shared.core.models.day.canonicalDayThemeId
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.data.recurrence.*
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.*
+import kotlinx.coroutines.Dispatchers
 import java.util.Calendar
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
@@ -38,6 +42,41 @@ class DayThemeCarryForwardRoomTest {
                 db.dayPlanningScopeExtensionDao(), db.dayPlanningAuthorityStateDao(), bridge)
             authority.ensureActivated(10)
             block(f, bridge, CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority, db), authority)
+        }
+    }
+
+    @Test fun `turning on repeat inherits the chosen theme after late preparation and respects edit scope`() = runBlocking<Unit> {
+        fixture { f, bridge, planning, _ ->
+            val db = f.db
+            val themes = DayThemeRepository(db, db.canonicalDayThemeDao(), bridge, planning)
+            val source = DayTask(id = "oneoff", dayPlanId = "yesterday", title = "Task", version = 1)
+            db.dayTaskDao().insert(source)
+            val yesterdayTheme = canonicalDayThemeId("yesterday", "carry")
+            val todayTheme = canonicalDayThemeId("today", "carry")
+            themes.toggleEntityTheme("yesterday", source.id, yesterdayTheme)
+            val sources = recurrencePlanningSources(db)
+            val materializer = CanonicalRecurrenceMaterializationAdapter(db, Dispatchers.Unconfined, sources)
+            val author = CanonicalTaskRecurrenceAuthoringAdapter(db, materializer, sources)
+            val converted = author.convertOneOffToSeries(source, source.title, null, null, null, null,
+                emptyList(), emptyList(), source.priority, null, source.points, source.executionStrictness,
+                RecurrenceRule(RecurrenceFrequency.DAILY, 1, null))
+            materializer.materializeForDate(today)
+            val occurrence = db.dayTaskDao().getTasksForDayIncludingDeletedSync("today").single()
+            suspend fun links(plan: String, taskId: String) = themes.observe(plan).first().assignments
+                .singleOrNull { it.entityId == taskId }?.themeIds.orEmpty()
+            assertThat(links("today", occurrence.id)).isEmpty()
+            themes.prepareDay("today", today)
+            assertThat(links("today", occurrence.id)).containsExactly(todayTheme)
+            val editor = RecurringTaskRealizesEditor(db)
+            editor.set(occurrence.id, TaskRealizesKind.THEMES, setOf(todayTheme), false, forward = false)
+            materializer.materializeForDate(today)
+            assertThat(links("today", occurrence.id)).isEmpty()
+            assertThat(links("yesterday", converted.id)).containsExactly(yesterdayTheme)
+            editor.set(occurrence.id, TaskRealizesKind.THEMES, setOf(todayTheme), true, forward = true)
+            assertThat(links("today", occurrence.id)).containsExactly(todayTheme)
+            editor.set(occurrence.id, TaskRealizesKind.THEMES, setOf(todayTheme), false, forward = true)
+            assertThat(links("yesterday", converted.id)).containsExactly(yesterdayTheme)
+            assertThat(links("today", occurrence.id)).isEmpty()
         }
     }
 

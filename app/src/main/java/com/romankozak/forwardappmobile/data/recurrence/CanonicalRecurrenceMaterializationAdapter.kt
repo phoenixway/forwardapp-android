@@ -1,11 +1,11 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
+import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.RecurrenceMaterializationPlan
-import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyOf
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.planRecurringSeriesForDay
 import com.romankozak.forwardappmobile.shared.core.models.day.CanonicalDayDatabase
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFocusSeries
@@ -16,7 +16,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -55,16 +54,17 @@ class CanonicalRecurrenceMaterializationAdapter
             date: Long,
             now: Long,
         ): RecurrenceMaterializationPlan {
-            val dayStart = localDayStart(date)
-            val dayKey = localDayKey(dayStart)
+            val calendar = PersonalPlanningDay.at(date)
+            val dayKey = calendar.date.toString()
 
             val dayPlanDao = appDatabase.dayPlanDao()
             val dayTaskDao = appDatabase.dayTaskDao()
             val dayFocusItemDao = appDatabase.dayFocusItemDao()
             val recurringSeriesDao = appDatabase.canonicalRecurringSeriesDao()
 
-            val plans = dayPlanDao.getActivePlansForDateSync(dayStart)
+            val plans = dayPlanDao.getActivePersonalDayPlans(calendar.start, calendar.scopeId)
             val planIds = plans.map { it.id }
+            val keyedDayStart = planIds.singleOrNull()?.let { appDatabase.verifiedRecurrenceDayStart(it, dayKey) }
 
             val tasks =
                 planIds.flatMap { planId ->
@@ -218,6 +218,7 @@ class CanonicalRecurrenceMaterializationAdapter
                     database = canonicalDatabase,
                     dayKey = dayKey,
                     now = now,
+                    keyedDayStart = keyedDayStart,
                 )
 
             val skippedExistingOccurrenceKeys =
@@ -252,6 +253,10 @@ class CanonicalRecurrenceMaterializationAdapter
                                 "existing=${existing.recurrenceSeriesId}@${existing.recurrenceOccurrenceDayKey}, " +
                                 "existingDayPlanId=${existing.dayPlanId}, " +
                                 "plannedDayPlanId=${candidate.dayPlanId}"
+                        }
+                        check(existing.dayPlanId == candidate.dayPlanId ||
+                            (keyedDayStart == null && appDatabase.verifiedRecurrenceDayStart(existing.dayPlanId, occurrenceDayKey) == null)) {
+                            "Canonical recurring task identity belongs to a different keyed DayPlan: ${candidate.id}"
                         }
 
                         skippedExistingOccurrenceKeys +=
@@ -290,6 +295,10 @@ class CanonicalRecurrenceMaterializationAdapter
                                 "existingDayPlanId=${existing.dayPlanId}, " +
                                 "plannedDayPlanId=${candidate.dayPlanId}"
                         }
+                        check(existing.dayPlanId == candidate.dayPlanId ||
+                            (keyedDayStart == null && appDatabase.verifiedRecurrenceDayStart(existing.dayPlanId, occurrenceDayKey) == null)) {
+                            "Canonical recurring priority identity belongs to a different keyed DayPlan: ${candidate.id}"
+                        }
 
                         skippedExistingOccurrenceKeys +=
                             "$seriesId@$occurrenceDayKey"
@@ -301,7 +310,7 @@ class CanonicalRecurrenceMaterializationAdapter
                 dayTaskDao.insertAll(safeTaskEntities)
                 safeTaskEntities.forEach { task ->
                     val series = recurringSeriesById[task.recurrenceSeriesId] as com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
-                    planningSources.materialize(task, series.template.planningSource, now)
+                    planningSources.materialize(task, series.template.planningSource, now, keyedDayStart ?: now)
                 }
             }
 
@@ -309,21 +318,27 @@ class CanonicalRecurrenceMaterializationAdapter
                 dayFocusItemDao.insertAll(safeFocusEntities)
                 safeFocusEntities.forEach { item ->
                     val series = requireNotNull(recurringSeriesById[item.recurrenceSeriesId])
-                    focusSources.materialize(item.id, series.focusSourceOrientationId(), now)
+                    focusSources.materialize(item.id, series.focusSourceOrientationId(), now, keyedDayStart ?: now)
                 }
             }
 
             repairedTasks.filterNot { it.isDeleted }.forEach { task ->
                 val series = recurringSeriesById[task.recurrenceSeriesId] as? com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
-                if (series != null) planningSources.repairMissing(task, series.template.planningSource, now)
+                if (series != null) {
+                    val initialCreatedAt = keyedDayStart?.takeIf { task.createdAt == it } ?: now
+                    planningSources.repairMissing(task, series.template.planningSource, now, initialCreatedAt)
+                }
             }
 
             repairedFocusItems.filterNot { it.isDeleted }.forEach { item ->
                 val series = recurringSeriesById[item.recurrenceSeriesId]
                 if (series is RecurringFocusSeries || series is RecurringResponsibilitySeries) {
-                    focusSources.repairMissing(item.id, series.focusSourceOrientationId(), now)
+                    val initialCreatedAt = keyedDayStart?.takeIf { item.createdAt == it } ?: now
+                    focusSources.repairMissing(item.id, series.focusSourceOrientationId(), now, initialCreatedAt)
                 }
             }
+
+            planIds.forEach { appDatabase.reconcileRecurringTaskLinks(it, now) }
 
             val safeTaskIds = safeTaskEntities.mapTo(mutableSetOf()) { it.id }
             val safeFocusIds = safeFocusEntities.mapTo(mutableSetOf()) { it.id }
@@ -345,29 +360,4 @@ class CanonicalRecurrenceMaterializationAdapter
                 is RecurringTaskSeries -> null
             }
 
-        private fun localDayStart(timestamp: Long): Long {
-            val calendar =
-                Calendar.getInstance().apply {
-                    timeInMillis = timestamp
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-
-            return calendar.timeInMillis
-        }
-
-        private fun localDayKey(timestamp: Long): String {
-            val calendar =
-                Calendar.getInstance().apply {
-                    timeInMillis = timestamp
-                }
-
-            return localDayKeyOf(
-                year = calendar.get(Calendar.YEAR),
-                month = calendar.get(Calendar.MONTH) + 1,
-                day = calendar.get(Calendar.DAY_OF_MONTH),
-            )
-        }
     }

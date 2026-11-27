@@ -70,6 +70,7 @@ class CanonicalDayPlanningScopeExtensionRepository
             }
 
         private suspend fun requireValidDependency(extension: DayPlanningScopeExtension) {
+            verifyPersonalPlanningDay(extension.scopeId.value, extension.calendarDayStartMillis, extension.localDate, extension.timeZoneId)
             val scope = planningDao.getScope(extension.scopeId.value)?.toPlanningScopeStrict()
             val violations = validateDayPlanningScopeExtensionDependency(extension, scope)
             require(violations.isEmpty()) { "Day planning extension violates V3 contract: $violations" }
@@ -80,6 +81,9 @@ private fun requireForwardRevision(
     current: DayPlanningScopeExtension,
     incoming: DayPlanningScopeExtension,
 ) {
+    require(incoming.localDate == current.localDate && incoming.timeZoneId == current.timeZoneId) {
+        "Day extension calendar identity is immutable"
+    }
     require(incoming.createdAt == current.createdAt) { "Day extension createdAt is immutable" }
     require(incoming.version > current.version) { "Day extension update must advance version" }
 }

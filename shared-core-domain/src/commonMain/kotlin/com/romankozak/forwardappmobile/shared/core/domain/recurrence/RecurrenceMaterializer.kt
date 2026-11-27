@@ -164,10 +164,11 @@ private fun materializeTask(
     series: RecurringTaskSeries,
     dayKey: LocalDayKey,
     now: Long,
+    keyedDayStart: Long?,
 ): DayTask =
     DayTask(
         id = recurrenceOccurrenceId(series.kind, series.id, dayKey),
-        createdAt = now,
+        createdAt = keyedDayStart?.coerceAtLeast(0) ?: now,
         updatedAt = now,
         syncedAt = null,
         isDeleted = false,
@@ -183,7 +184,7 @@ private fun materializeTask(
         activityRecordId = null,
         taskType = series.template.taskType ?: if (series.template.goalId != null) "GOAL" else null,
         entityId = null,
-        order = nextTaskOrder(database, plannedTasks, plan.id),
+        order = if (keyedDayStart != null) series.createdAt.coerceAtLeast(0) else nextTaskOrder(database, plannedTasks, plan.id),
         priority = series.template.priority,
         status = TaskStatus.NOT_STARTED,
         completed = false,
@@ -211,10 +212,11 @@ private fun materializeFocus(
     series: RecurringFocusSeries,
     dayKey: LocalDayKey,
     now: Long,
+    keyedDayStart: Long?,
 ): DayFocusItem =
     DayFocusItem(
         id = recurrenceOccurrenceId(series.kind, series.id, dayKey),
-        createdAt = now,
+        createdAt = keyedDayStart?.coerceAtLeast(0) ?: now,
         updatedAt = now,
         syncedAt = null,
         isDeleted = false,
@@ -226,7 +228,7 @@ private fun materializeFocus(
         relatedLinks = series.template.relatedLinks.toList(),
         type = DayFocusType.FOCUS,
         budgetPercent = series.template.budgetPercent,
-        order = nextFocusOrder(database, plannedFocusItems, plan.id, DayFocusType.FOCUS),
+        order = if (keyedDayStart != null) series.createdAt.coerceAtLeast(0) else nextFocusOrder(database, plannedFocusItems, plan.id, DayFocusType.FOCUS),
     )
 
 private fun materializeResponsibility(
@@ -236,10 +238,11 @@ private fun materializeResponsibility(
     series: RecurringResponsibilitySeries,
     dayKey: LocalDayKey,
     now: Long,
+    keyedDayStart: Long?,
 ): DayFocusItem =
     DayFocusItem(
         id = recurrenceOccurrenceId(series.kind, series.id, dayKey),
-        createdAt = now,
+        createdAt = keyedDayStart?.coerceAtLeast(0) ?: now,
         updatedAt = now,
         syncedAt = null,
         isDeleted = false,
@@ -251,7 +254,7 @@ private fun materializeResponsibility(
         relatedLinks = series.template.relatedLinks.toList(),
         type = DayFocusType.RESPONSIBILITY,
         budgetPercent = series.template.budgetPercent,
-        order = nextFocusOrder(
+        order = if (keyedDayStart != null) series.createdAt.coerceAtLeast(0) else nextFocusOrder(
             database,
             plannedFocusItems,
             plan.id,
@@ -265,6 +268,8 @@ private fun materializeResponsibility(
  *
  * The caller owns wall-clock/day-boundary resolution. This function never derives
  * occurrence identity from now.
+ * A caller with a verified keyed DayPlan supplies its start for a stable creation
+ * baseline. Its local clock remains the update timestamp for change export.
  *
  * It does not create DayPlans, resolve sync conflicts, revive existing entities,
  * or ignore tombstones.
@@ -273,6 +278,7 @@ fun planRecurringSeriesForDay(
     database: CanonicalDayDatabase,
     dayKey: LocalDayKey,
     now: Long,
+    keyedDayStart: Long? = null,
 ): RecurrenceMaterializationPlan {
     requireLocalDayKey(dayKey)
 
@@ -290,7 +296,12 @@ fun planRecurringSeriesForDay(
     val plannedFocusItems = mutableListOf<DayFocusItem>()
     val skippedExistingOccurrenceKeys = mutableListOf<String>()
 
-    for (series in database.recurringSeries) {
+    val seriesToConsider = if (keyedDayStart != null) {
+        database.recurringSeries.sortedWith(compareBy<RecurringSeries> { it.createdAt }.thenBy { it.id })
+    } else {
+        database.recurringSeries
+    }
+    for (series in seriesToConsider) {
         if (!recurringSeriesMatchesDay(series, dayKey)) continue
 
         val occurrenceKey = recurrenceOccurrenceKey(series.id, dayKey)
@@ -318,6 +329,7 @@ fun planRecurringSeriesForDay(
                         series = series,
                         dayKey = dayKey,
                         now = now,
+                        keyedDayStart = keyedDayStart,
                     )
 
             is RecurringFocusSeries ->
@@ -329,6 +341,7 @@ fun planRecurringSeriesForDay(
                         series = series,
                         dayKey = dayKey,
                         now = now,
+                        keyedDayStart = keyedDayStart,
                     )
 
             is RecurringResponsibilitySeries ->
@@ -340,6 +353,7 @@ fun planRecurringSeriesForDay(
                         series = series,
                         dayKey = dayKey,
                         now = now,
+                        keyedDayStart = keyedDayStart,
                     )
         }
     }

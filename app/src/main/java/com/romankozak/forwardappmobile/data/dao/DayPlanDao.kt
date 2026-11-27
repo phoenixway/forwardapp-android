@@ -52,6 +52,12 @@ interface DayPlanDao {
     )
     suspend fun getActivePlansForDateSync(dayStartMillis: Long): List<DayPlan>
 
+    @Query(PERSONAL_DAY_ROWS)
+    suspend fun getActivePersonalDayPlans(start: Long, scopeId: String): List<DayPlan>
+
+    @Query(PERSONAL_DAY_ROWS + " LIMIT 1")
+    fun observePersonalDay(start: Long, scopeId: String): Flow<DayPlan?>
+
     @Query(
         """
         SELECT * FROM day_plans
@@ -196,3 +202,11 @@ interface DayPlanDao {
     @Upsert
     suspend fun insertPlans(plans: List<DayPlan>)
 }
+
+// A legacy row has no stored zone. It remains accessible by its original calendar start.
+private const val PERSONAL_DAY_ROWS = """
+    SELECT p.* FROM day_plans p
+    LEFT JOIN day_planning_scope_extensions e ON e.scopeId = p.id
+    WHERE p.isDeleted = 0 AND (p.id = :scopeId OR (e.localDate IS NULL AND p.date = :start))
+    ORDER BY (p.id = :scopeId) DESC, (p.id LIKE 'day_plan_%') ASC, p.createdAt ASC, p.updatedAt ASC, p.id ASC
+"""

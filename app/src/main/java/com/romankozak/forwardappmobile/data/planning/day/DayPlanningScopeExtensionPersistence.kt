@@ -13,9 +13,12 @@ internal class CorruptDayPlanningScopeExtensionException(
 
 internal fun DayPlanningScopeExtensionEntity.toDomainStrict(): DayPlanningScopeExtension =
     try {
+        verifyPersonalPlanningDay(scopeId, calendarDayStartMillis, localDate, timeZoneId)
         DayPlanningScopeExtension(
             scopeId = PlanningScopeId(scopeId),
             calendarDayStartMillis = calendarDayStartMillis,
+            localDate = localDate,
+            timeZoneId = timeZoneId,
             outcome = outcome?.toDayPlanningOutcomeStable(),
             plannedBudgetMinutes = plannedBudgetMinutes,
             createdAt = createdAt,
@@ -39,6 +42,8 @@ internal fun DayPlanningScopeExtension.toEntity(): DayPlanningScopeExtensionEnti
     DayPlanningScopeExtensionEntity(
         scopeId = scopeId.value,
         calendarDayStartMillis = calendarDayStartMillis,
+        localDate = localDate,
+        timeZoneId = timeZoneId,
         outcome = outcome?.toStableCode(),
         plannedBudgetMinutes = plannedBudgetMinutes,
         createdAt = createdAt,

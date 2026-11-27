@@ -36,12 +36,12 @@ class FocusRecurrenceSourceBridge @Inject constructor(
         }
     }
 
-    suspend fun materialize(itemId: String, orientationId: String?, now: Long) {
+    suspend fun materialize(itemId: String, orientationId: String?, now: Long, initialCreatedAt: Long = now) {
         if (orientationId == null) return
-        references.attach(owner(itemId), target(orientationId), PlanningReferenceRole.SOURCE, now)
+        references.attach(owner(itemId), target(orientationId), PlanningReferenceRole.SOURCE, now, initialCreatedAt)
     }
 
-    suspend fun repairMissing(itemId: String, orientationId: String?, now: Long) {
+    suspend fun repairMissing(itemId: String, orientationId: String?, now: Long, initialCreatedAt: Long = now) {
         if (orientationId == null) return
         val sources = db.planningReferenceDao().getForOwner(PlanningReferenceOwnerKind.DAY_FOCUS.name, itemId)
             .filter { it.role == PlanningReferenceRole.SOURCE.name }
@@ -49,7 +49,7 @@ class FocusRecurrenceSourceBridge @Inject constructor(
         require(sources.all { it.targetKind == PlanningReferenceTargetKind.ORIENTATION.name && it.targetId == orientationId }) {
             "Day priority occurrence and series sources disagree: $itemId"
         }
-        materialize(itemId, orientationId, now)
+        materialize(itemId, orientationId, now, initialCreatedAt)
     }
 
     suspend fun replace(oldId: String, newId: String, now: Long) {

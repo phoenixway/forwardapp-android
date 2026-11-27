@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management
 
 import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskRealizesOverride
 
 data class DayTaskSnapshot(
     @SerializedName("id") val id: String,
@@ -42,4 +43,6 @@ data class DayTaskSnapshot(
     @SerializedName("points") val points: Int,
     /** null = pre-realization payload; empty = explicit empty set. */
     @SerializedName("realizedDayFocusItemIds") val realizedDayFocusItemIds: List<String>? = null,
+    /** null = legacy payload; a present empty override resets occurrence intent. */
+    @SerializedName("realizesOverride") val realizesOverride: TaskRealizesOverride? = null,
 )

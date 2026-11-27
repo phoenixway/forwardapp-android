@@ -6,9 +6,42 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFails
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RecurrenceJsFacadeTest {
+    @Test
+    fun `js task template factory preserves optional Realizes defaults and dated clears`() {
+        fun createTaskTemplate(
+            defaults: com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskRealizesDefaults? = null,
+            changes: Array<RecurringTaskRealizesChange> = emptyArray(),
+        ) = createRecurringTaskTemplateForJs(
+            title = "Task",
+            description = null,
+            goalId = null,
+            linkedProjectIds = emptyArray(),
+            linkedAttachmentIds = emptyArray(),
+            priority = "NONE",
+            estimatedDurationMinutes = null,
+            points = 0,
+            projectId = null,
+            taskType = null,
+            executionStrictness = null,
+            realizesDefaults = defaults,
+            realizesChanges = changes,
+        )
+
+        val defaults = createRecurringTaskRealizesDefaultsForJs(arrayOf("theme"), arrayOf("priority"))
+        val empty = createRecurringTaskRealizesDefaultsForJs(emptyArray(), emptyArray())
+        val template = createTaskTemplate(defaults, arrayOf(RecurringTaskRealizesChange("2026-11-27", empty)))
+
+        assertNull(createTaskTemplate().realizesOn("2026-11-26"))
+        assertEquals(setOf("theme"), template.realizesDefaults?.themeDefinitionIds)
+        assertEquals(setOf("priority"), template.realizesDefaults?.prioritySeriesIds)
+        assertEquals(defaults, template.realizesOn("2026-11-26"))
+        assertEquals(empty, template.realizesOn("2026-11-27"))
+    }
+
     @Test
     fun `js recurrence origin factory converts safe number to canonical long`() {
         val origin =

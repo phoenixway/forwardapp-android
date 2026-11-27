@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.planning
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.*
+import com.romankozak.forwardappmobile.data.recurrence.isInitialKeyedRecurrenceSource
 import com.romankozak.forwardappmobile.database.AppDatabase
 
 /** Separate nullable generation: absent payload never claims reference authority. */
@@ -28,6 +29,14 @@ class CanonicalPlanningReferenceSyncStore(private val db: AppDatabase) {
                     }
                     incoming.version < previous.version -> Unit
                     incoming.copy(syncedAt = null) == previous.copy(syncedAt = null) -> Unit
+                    incoming.copy(updatedAt = previous.updatedAt, syncedAt = null) == previous.copy(syncedAt = null) &&
+                        db.isInitialKeyedRecurrenceSource(incoming) -> {
+                        if (incoming.updatedAt > previous.updatedAt) {
+                            val winner = incoming.copy(syncedAt = null)
+                            prospective[incoming.id] = winner
+                            winners += winner
+                        }
+                    }
                     else -> error("Equal-version Planning reference divergence: ${incoming.id}")
                 }
             }

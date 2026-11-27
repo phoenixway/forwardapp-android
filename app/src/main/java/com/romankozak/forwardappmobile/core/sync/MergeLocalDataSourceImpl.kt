@@ -50,6 +50,7 @@ import com.romankozak.forwardappmobile.data.planning.tactical.CanonicalTacticalP
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAuthorityActivator
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningAdapter
 import com.romankozak.forwardappmobile.data.planning.strategic.CanonicalStrategicPlanningScopeExtensionSyncStore
+import com.romankozak.forwardappmobile.data.recurrence.planCanonicalRecurringSeriesMerge
 import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import com.romankozak.forwardappmobile.data.hierarchy.container.requireSelectiveBigPictureDependencyClosure
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
@@ -67,7 +68,6 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.*
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
-import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -308,20 +308,10 @@ class MergeLocalDataSourceImpl
                 "BackupImport",
                 "Applying Snapshot V${bundle.version} in MergeLocalDataSource: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}",
             )
-            val incomingPlanIdRemap =
-                bundle.dayPlans
-                    .mapNotNull { incomingPlan ->
-                        val existingPlan = findExistingPlanForIncomingDate(incomingPlan.date)
-                        if (existingPlan != null && existingPlan.id != incomingPlan.id) {
-                            incomingPlan.id to existingPlan.id
-                        } else {
-                            null
-                        }
-                    }.toMap()
-            val dayPlansToInsert =
-                bundle.dayPlans.filterNot { incomingPlan ->
-                    incomingPlanIdRemap.containsKey(incomingPlan.id)
-                }
+            val localPlans = dayPlanDao.getAllPlansSync().associateBy { it.id }
+            val dayMerge = dayPlanDao.planDayMerge(bundle, localPlans, db.dayPlanningScopeExtensionDao())
+            val incomingPlanIdRemap = dayMerge.legacyRemap
+            val dayPlansToInsert = dayMerge.rows
             val remappedDayFocusItems =
                 bundle.dayFocusItems.map { item ->
                     incomingPlanIdRemap[item.dayPlanId]?.let { existingPlanId ->
@@ -334,9 +324,7 @@ class MergeLocalDataSourceImpl
                         task.copy(dayPlanId = existingPlanId)
                     } ?: task
                 }
-            val validPlanIds =
-                (dayPlanDao.getAllPlansSync().map { plan -> plan.id } + dayPlansToInsert.map { plan -> plan.id })
-                    .toSet()
+            val validPlanIds = localPlans.keys + dayPlansToInsert.map { it.id }
 
             val localCanonicalThemeDefinitions =
                 canonicalDayThemeDao.getAllThemeDefinitionsSync().map { it.toCanonicalSnapshot() }
@@ -373,10 +361,15 @@ class MergeLocalDataSourceImpl
             // physical row while retaining a different incoming id. Contain that
             // alias instead of silently creating a second row. Live/tombstone
             // state is deliberately not conflict-resolved here.
+            val localFocusItems = dayFocusItemDao.getAllSync()
+            val localTasks = dayTaskDao.getAllTasksSync()
+            if (remappedDayTasks.any { it.recurrence != null } || remappedDayFocusItems.any { it.recurrence != null }) {
+                val personalDays = db.dayPlanningScopeExtensionDao().getAll().filter { it.localDate != null }.map { it.scopeId } +
+                    bundle.dayPlanningScopeExtensions.orEmpty().filter { it.localDate != null }.map { it.scopeId }
+                requirePersonalDayRecurrenceOwners(personalDays.toSet(), remappedDayTasks, remappedDayFocusItems, localTasks, localFocusItems)
+            }
             val localFocusOccurrenceIdsByLogicalKey =
-                dayFocusItemDao
-                    .getAllSync()
-                    .mapNotNull { item ->
+                localFocusItems.mapNotNull { item ->
                         item.recurringKey?.let { recurringKey ->
                             (item.dayPlanId to recurringKey) to item.id
                         }
@@ -385,9 +378,7 @@ class MergeLocalDataSourceImpl
                         valueTransform = { it.second },
                     )
             val localCanonicalFocusOccurrenceIdsByLogicalKey =
-                dayFocusItemDao
-                    .getAllSync()
-                    .mapNotNull { item ->
+                localFocusItems.mapNotNull { item ->
                         val seriesId = item.recurrenceSeriesId ?: return@mapNotNull null
                         val dayKey = item.recurrenceOccurrenceDayKey ?: return@mapNotNull null
                         (seriesId to dayKey) to item.id
@@ -401,7 +392,7 @@ class MergeLocalDataSourceImpl
                     .filter { item -> incomingPlanIdRemap.containsKey(item.dayPlanId) }
                     .mapTo(hashSetOf()) { item -> item.id }
 
-            val localFocusItemsById = dayFocusItemDao.getAllSync().associateBy { item -> item.id }
+            val localFocusItemsById = localFocusItems.associateBy { item -> item.id }
             val dayFocusItemsToInsert =
                 remappedDayFocusItems
                     .filter { item -> item.dayPlanId in validPlanIds }
@@ -455,9 +446,7 @@ class MergeLocalDataSourceImpl
             // Live and tombstone rows share the same (seriesId, occurrenceDayKey)
             // identity, so this also preserves anti-resurrection semantics.
             val localCanonicalTaskOccurrenceIdsByLogicalKey =
-                dayTaskDao
-                    .getAllTasksSync()
-                    .mapNotNull { task ->
+                localTasks.mapNotNull { task ->
                         val seriesId = task.recurrenceSeriesId ?: return@mapNotNull null
                         val dayKey = task.recurrenceOccurrenceDayKey ?: return@mapNotNull null
                         (seriesId to dayKey) to task.id
@@ -547,21 +536,12 @@ class MergeLocalDataSourceImpl
                             .dayFocusItemEntity(snapshot, snapshot.toEntity())
                     },
                 )
-                val localCanonicalSeriesById =
-                    canonicalRecurringSeriesDao.getAllSync().associateBy { series -> series.id }
                 canonicalRecurringSeriesDao.insertAll(
-                    bundle.recurringSeries
-                        .filter { incoming ->
-                            val local = localCanonicalSeriesById[incoming.id] ?: return@filter true
-                            val incomingUpdatedAt = incoming.updatedAt ?: Long.MIN_VALUE
-                            when {
-                                incoming.version != local.version -> incoming.version > local.version
-                                incomingUpdatedAt != local.updatedAt -> incomingUpdatedAt > local.updatedAt
-                                incoming.isDeleted != local.isDeleted -> incoming.isDeleted
-                                else -> false
-                            }
-                        }
-                        .map { it.toEntity() },
+                    planCanonicalRecurringSeriesMerge(
+                        incoming = bundle.recurringSeries,
+                        local = canonicalRecurringSeriesDao.getAllSync(),
+                        restoreExact = contextPersistenceMode == ContextPersistenceMode.RESTORE_COMPATIBILITY,
+                    ),
                 )
 
                 tacticalIterationDao.insertAll(bundle.tacticalIterations)
@@ -837,6 +817,10 @@ class MergeLocalDataSourceImpl
                 )
                 dayManagementRuntimeRepository.mergeSnapshot(runtimeState)
             }
+            if (contextPersistenceMode == ContextPersistenceMode.NORMAL_MERGE) {
+                db.reconcileMergedRealizations(bundle, dayTasksToInsert.map { it.dayPlanId } + dayFocusItemsToInsert.map { it.dayPlanId } +
+                    canonicalDayThemeMergePlan.dayThemes.map { it.dayPlanId } + canonicalDayThemeMergePlan.assignmentDocuments.map { it.dayPlanId })
+            }
             val affectedPlanIds =
                 (dayPlansToInsert.map { plan -> plan.id } + dayTasksToInsert.map { task -> task.dayPlanId })
                     .distinct()
@@ -922,28 +906,5 @@ class MergeLocalDataSourceImpl
                     }
                 }
             systemAppDao.insertAll(systemAppsToInsert)
-        }
-
-        private suspend fun findExistingPlanForIncomingDate(incomingDate: Long) =
-            dayPlanDao.getPlanForDateSync(localDayStart(incomingDate))
-                ?: dayPlanDao.getPlanForDateWindowSync(
-                    startInclusiveMillis = localDayStart(incomingDate),
-                    endExclusiveMillis = localDayStart(incomingDate) + DAY_IN_MILLIS,
-                    anchorMillis = incomingDate,
-                )
-
-        private fun localDayStart(timestamp: Long): Long =
-            Calendar
-                .getInstance()
-                .apply {
-                    timeInMillis = timestamp
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-
-        private companion object {
-            const val DAY_IN_MILLIS = 24 * 60 * 60 * 1000L
         }
     }

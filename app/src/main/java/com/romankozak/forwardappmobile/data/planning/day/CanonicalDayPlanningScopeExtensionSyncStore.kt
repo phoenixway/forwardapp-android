@@ -33,8 +33,12 @@ class CanonicalDayPlanningScopeExtensionSyncStore(
             val prospective = local.toMutableMap()
             val winners = mutableListOf<DayPlanningScopeExtension>()
 
-            incoming.forEach { candidate ->
-                val current = local[candidate.scopeId]
+            incoming.forEach { received ->
+                val current = local[received.scopeId]
+                // An older peer can echo the UUID without transporting its saved calendar key.
+                val candidate = if (received.localDate == null && current?.localDate != null) {
+                    received.copy(localDate = current.localDate, timeZoneId = current.timeZoneId)
+                } else received
                 current?.let { requireStableIdentity(it, candidate) }
                 val winner =
                     when {
@@ -42,6 +46,9 @@ class CanonicalDayPlanningScopeExtensionSyncStore(
                         candidate.version > current.version -> candidate
                         candidate.version < current.version -> null
                         candidate.sameTransportState(current) -> null
+                        candidate.localDate != null && candidate.version == 1L &&
+                            candidate.copy(updatedAt = current.updatedAt).sameTransportState(current) ->
+                            candidate.takeIf { (it.updatedAt ?: it.createdAt) > (current.updatedAt ?: current.createdAt) }
                         else ->
                             throw DayPlanningExtensionMergeConflictException(
                                 "Equal-version Day planning extension divergence for ${candidate.scopeId.value}",
@@ -107,9 +114,12 @@ class DayPlanningExtensionMergeConflictException(message: String) :
 
 internal fun DayPlanningScopeExtensionSnapshot.toDomainStrict(): DayPlanningScopeExtension =
     try {
+        verifyPersonalPlanningDay(scopeId, calendarDayStartMillis, localDate, timeZoneId)
         DayPlanningScopeExtension(
             scopeId = PlanningScopeId(scopeId),
             calendarDayStartMillis = calendarDayStartMillis,
+            localDate = localDate,
+            timeZoneId = timeZoneId,
             outcome = outcome?.toDayPlanningOutcomeStable(),
             plannedBudgetMinutes = plannedBudgetMinutes,
             createdAt = createdAt,
@@ -126,6 +136,8 @@ internal fun DayPlanningScopeExtension.toSnapshot(): DayPlanningScopeExtensionSn
     DayPlanningScopeExtensionSnapshot(
         scopeId = scopeId.value,
         calendarDayStartMillis = calendarDayStartMillis,
+        localDate = localDate,
+        timeZoneId = timeZoneId,
         outcome = outcome?.toStableCode(),
         plannedBudgetMinutes = plannedBudgetMinutes,
         createdAt = createdAt,
@@ -139,6 +151,7 @@ private fun requireValidDependency(
     extension: DayPlanningScopeExtension,
     scope: PlanningScope?,
 ) {
+    verifyPersonalPlanningDay(extension.scopeId.value, extension.calendarDayStartMillis, extension.localDate, extension.timeZoneId)
     val violations = validateDayPlanningScopeExtensionDependency(extension, scope)
     require(violations.isEmpty()) { "Day planning extension violates V3 contract: $violations" }
 }
@@ -147,6 +160,9 @@ private fun requireStableIdentity(
     local: DayPlanningScopeExtension,
     incoming: DayPlanningScopeExtension,
 ) {
+    require(local.localDate == null || (local.localDate == incoming.localDate && local.timeZoneId == incoming.timeZoneId)) {
+        "The personal Day calendar identity is immutable"
+    }
     require(local.createdAt == incoming.createdAt) {
         "Day planning extension createdAt cannot change for ${local.scopeId.value}"
     }
@@ -155,6 +171,7 @@ private fun requireStableIdentity(
 private fun DayPlanningScopeExtension.sameTransportState(other: DayPlanningScopeExtension): Boolean =
     scopeId == other.scopeId &&
         calendarDayStartMillis == other.calendarDayStartMillis &&
+        localDate == other.localDate && timeZoneId == other.timeZoneId &&
         outcome == other.outcome &&
         plannedBudgetMinutes == other.plannedBudgetMinutes &&
         createdAt == other.createdAt &&

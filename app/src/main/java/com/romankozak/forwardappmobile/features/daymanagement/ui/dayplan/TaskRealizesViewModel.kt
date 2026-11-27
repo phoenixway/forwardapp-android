@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
+import com.romankozak.forwardappmobile.data.recurrence.RecurringTaskRealizesEditor
+import com.romankozak.forwardappmobile.data.recurrence.TaskRealizesKind
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.*
@@ -36,6 +38,7 @@ class TaskRealizesViewModel @Inject constructor(
     private val themes: DayThemeRepository,
     @DefaultDispatcher private val readDispatcher: CoroutineDispatcher,
     @IoDispatcher private val writeDispatcher: CoroutineDispatcher,
+    private val recurring: RecurringTaskRealizesEditor,
 ) : ViewModel() {
     private val taskId = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
@@ -49,23 +52,36 @@ class TaskRealizesViewModel @Inject constructor(
     }.flowOn(readDispatcher).catch { error.value = "Не вдалося завантажити зв’язки"; emit(TaskRealizesState()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskRealizesState())
     fun select(id: String) { taskId.value = id }
-    fun togglePriority(id: String) {
+    fun togglePriority(id: String, forward: Boolean = false) {
         val task = state.value.task ?: return
-        command { relations.toggle(task.id, id) }
+        command {
+            val priority = state.value.priorities.firstOrNull { it.id == id }
+            if (task.recurrenceSeriesId != null && priority?.recurrenceSeriesId != null)
+                recurring.set(task.id, TaskRealizesKind.PRIORITIES, setOf(id), id !in task.realizedDayFocusItemIds, forward)
+            else relations.toggle(task.id, id)
+        }
     }
-    fun toggleTheme(id: String) {
+    fun toggleTheme(id: String, forward: Boolean = false) {
         val current = state.value; val task = current.task ?: return
         command {
         require(current.themes.any { it.id == id }) { "Тема недоступна для дня завдання" }
+        if (task.recurrenceSeriesId != null) {
+            recurring.set(task.id, TaskRealizesKind.THEMES, setOf(id), id !in current.selectedThemeIds, forward)
+            return@command
+        }
         themes.update(task.dayPlanId) { doc ->
             val ids = doc.assignments.singleOrNull { it.entityId == task.id }?.themeIds.orEmpty()
             withTaskThemes(doc, task, if (id in ids) ids - id else ids + id)
         }
         }
     }
-    fun acceptSuggestedThemes() {
+    fun acceptSuggestedThemes(forward: Boolean = false) {
         val current = state.value; val task = current.task ?: return
         command {
+        if (task.recurrenceSeriesId != null) {
+            recurring.set(task.id, TaskRealizesKind.THEMES, current.suggestedThemeIds, true, forward)
+            return@command
+        }
         themes.update(task.dayPlanId) { doc ->
             withTaskThemes(doc, task, doc.assignments.singleOrNull { it.entityId == task.id }?.themeIds.orEmpty() + current.suggestedThemeIds)
         }

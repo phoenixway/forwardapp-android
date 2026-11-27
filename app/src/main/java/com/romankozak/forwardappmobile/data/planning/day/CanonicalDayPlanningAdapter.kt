@@ -12,7 +12,7 @@ import com.romankozak.forwardappmobile.shared.core.domain.planning.DayPlanningOu
 import com.romankozak.forwardappmobile.shared.core.domain.planning.DayPlanningScopeExtension
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScope
 import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningScopeLifecycle
-import java.util.UUID
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -45,9 +45,10 @@ class CanonicalDayPlanningAdapter
                 )
             }
 
-        fun observeForCalendarDay(calendarDayStartMillis: Long): Flow<DayPlan?> =
-            combine(
-                dayPlanDao.getPlanForDate(calendarDayStartMillis),
+        fun observeForCalendarDay(timestamp: Long): Flow<DayPlan?> {
+            val key = PersonalPlanningDay.at(timestamp)
+            return combine(
+                dayPlanDao.observePersonalDay(key.start, key.scopeId),
                 planningDao.observeAllScopes(),
                 extensionDao.observeAll(),
             ) { legacy, scopes, extensions ->
@@ -61,6 +62,7 @@ class CanonicalDayPlanningAdapter
                     compose(row, scope, extension)
                 }
             }
+        }
 
         fun observeRange(startDate: Long, endDate: Long): Flow<List<DayPlan>> =
             combine(
@@ -93,15 +95,20 @@ class CanonicalDayPlanningAdapter
             calendarDayStartMillis: Long,
             title: String?,
             now: Long,
+            zone: ZoneId = ZoneId.systemDefault(),
         ): DayPlan {
             activator.requireActivated()
+            val key = PersonalPlanningDay.at(calendarDayStartMillis, zone)
             return database.withTransaction {
-                val existing = dayPlanDao.getPlanForDateSync(calendarDayStartMillis)
+                val existing = dayPlanDao.getActivePersonalDayPlans(key.start, key.scopeId).firstOrNull()
                 if (existing == null) {
+                    require(dayPlanDao.getPlanById(key.scopeId) == null && planningDao.getScope(key.scopeId) == null) {
+                        "The personal Day already has retained history. Restore it explicitly."
+                    }
                     val legacy =
                         DayPlan(
-                            id = UUID.randomUUID().toString(),
-                            date = calendarDayStartMillis,
+                            id = key.scopeId,
+                            date = key.start,
                             name = title,
                             status = DayStatus.PLANNED,
                             createdAt = now,
@@ -109,8 +116,12 @@ class CanonicalDayPlanningAdapter
                             syncedAt = null,
                             version = 1,
                         )
-                    val scope = legacy.toCanonicalDayPlanningScope()
-                    val extension = legacy.toCanonicalDayPlanningScopeExtension()
+                    // Version one denotes the shared initial state. The compatibility row records
+                    // the wall clock when this phone first opened it.
+                    val scope = legacy.toCanonicalDayPlanningScope().copy(createdAt = 0L)
+                    val extension = legacy.toCanonicalDayPlanningScopeExtension().copy(
+                        createdAt = 0L, localDate = key.date.toString(), timeZoneId = key.zone.id,
+                    )
                     dayPlanDao.insert(legacy)
                     planningDao.upsertScope(scope.toPlanningScopeEntity())
                     extensionDao.upsert(extension.toEntity())
@@ -118,9 +129,11 @@ class CanonicalDayPlanningAdapter
                 } else {
                     val scope = requireScope(existing.id)
                     val extension = requireExtension(existing.id)
+                    val nextTitle = title?.trim()?.takeIf(String::isNotEmpty) ?: scope.title
+                    if (nextTitle == scope.title) return@withTransaction compose(existing, scope, extension)
                     val updatedScope =
                         scope.copy(
-                            title = title?.trim()?.takeIf(String::isNotEmpty) ?: scope.title,
+                            title = nextTitle,
                             updatedAt = now,
                             syncedAt = null,
                             version = nextVersion(scope.version),

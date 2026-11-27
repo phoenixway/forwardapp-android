@@ -226,6 +226,8 @@ private fun SharedDayPlanningScopeExtensionSnapshot.toPlanningJson(): JsonObject
     buildJsonObject {
         put("scopeId", scopeId)
         put("calendarDayStartMillis", calendarDayStartMillis)
+        put("localDate", localDate?.let(::JsonPrimitive) ?: JsonNull)
+        put("timeZoneId", timeZoneId?.let(::JsonPrimitive) ?: JsonNull)
         put("outcome", outcome?.let(::JsonPrimitive) ?: JsonNull)
         put("plannedBudgetMinutes", plannedBudgetMinutes?.let(::JsonPrimitive) ?: JsonNull)
         put("createdAt", createdAt)

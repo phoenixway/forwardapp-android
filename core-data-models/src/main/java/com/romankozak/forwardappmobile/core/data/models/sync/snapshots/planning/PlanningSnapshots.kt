@@ -92,6 +92,8 @@ data class DayPlanningScopeExtensionSnapshot(
     val version: Long,
     @SerializedName("isDeleted")
     val isDeleted: Boolean,
+    @SerializedName("localDate") val localDate: String? = null,
+    @SerializedName("timeZoneId") val timeZoneId: String? = null,
 )
 
 /** Typed Tactical-cycle-only extension of a canonical TACTICAL_CYCLE PlanningScope. */

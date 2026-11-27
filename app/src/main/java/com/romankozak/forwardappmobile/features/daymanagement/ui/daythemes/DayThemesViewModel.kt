@@ -116,22 +116,7 @@ class DayThemesViewModel
         fun toggleTheme(entityId: String, themeId: String) {
             val dayPlanId = planId.value ?: return
             viewModelScope.launch {
-                repository.update(dayPlanId) { document ->
-                    val current =
-                        document.assignments.firstOrNull {
-                            it.dayPlanId == dayPlanId && it.entityId == entityId
-                        }
-                    val selected = current?.themeIds.orEmpty()
-                    val changed = if (themeId in selected) selected - themeId else selected + themeId
-                    val other =
-                        document.assignments.filterNot {
-                            it.dayPlanId == dayPlanId && it.entityId == entityId
-                        }
-                    document.copy(
-                        assignments =
-                            if (changed.isEmpty()) other else other + DayThemeAssignment(dayPlanId, entityId, changed),
-                    )
-                }
+                repository.toggleEntityTheme(dayPlanId, entityId, themeId)
             }
         }
 

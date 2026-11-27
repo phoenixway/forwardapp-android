@@ -1,6 +1,7 @@
 
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
@@ -116,12 +117,12 @@ class DayManagementRepository
             }
 
         fun getPlanForDate(date: Long): Flow<DayPlan?> =
-            canonicalDayPlanningAdapter.observeForCalendarDay(getDayStart(date))
+            canonicalDayPlanningAdapter.observeForCalendarDay(date)
 
         suspend fun getPlanIdForDate(date: Long): String? =
             withContext(ioDispatcher) {
-                val dayStart = getDayStart(date)
-                dayPlanDao.getPlanForDateSync(dayStart)?.id
+                val key = PersonalPlanningDay.at(date)
+                dayPlanDao.getActivePersonalDayPlans(key.start, key.scopeId).firstOrNull()?.id
             }
 
         suspend fun createOrUpdateDayPlan(
@@ -130,7 +131,7 @@ class DayManagementRepository
         ): DayPlan =
             withContext(ioDispatcher) {
                 canonicalDayPlanningAdapter.createOrUpdate(
-                    calendarDayStartMillis = getDayStart(date),
+                    calendarDayStartMillis = date,
                     title = name,
                     now = System.currentTimeMillis(),
                 )
@@ -346,9 +347,7 @@ class DayManagementRepository
                             add(Calendar.DAY_OF_YEAR, 1)
                         }
                         val tomorrow = getDayStart(calendar.timeInMillis)
-                        dayPlanDao.getPlanForDateSync(tomorrow)?.let { existing ->
-                            requireNotNull(canonicalDayPlanningAdapter.get(existing.id))
-                        } ?: canonicalDayPlanningAdapter.createOrUpdate(tomorrow, null, now)
+                        canonicalDayPlanningAdapter.createOrUpdate(tomorrow, null, now)
                     }
                 aiEventRepository.emit(
                     TaskDeferredEvent(

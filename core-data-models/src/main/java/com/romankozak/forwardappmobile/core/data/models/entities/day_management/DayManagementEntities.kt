@@ -180,6 +180,7 @@ data class DayTask @Ignore constructor(
     /** Typed DayFocusItem endpoints for this concrete day, never semantic identity or recurrence template. */
     @ColumnInfo(defaultValue = "'[]'")
     @SerializedName("realizedDayFocusItemIds") val realizedDayFocusItemIds: List<String> = emptyList(),
+    @SerializedName("realizesOverride") val realizesOverride: TaskRealizesOverride? = null,
 ) {
     /**
      * Room-only constructor for physical persistence.
@@ -225,6 +226,7 @@ data class DayTask @Ignore constructor(
         points: Int,
         projectWorkspaceId: String?,
         realizedDayFocusItemIds: List<String>,
+        realizesOverride: TaskRealizesOverride?,
     ) : this(
         id = id,
         dayPlanId = dayPlanId,
@@ -265,6 +267,7 @@ data class DayTask @Ignore constructor(
         points = points,
         projectWorkspaceId = projectWorkspaceId,
         realizedDayFocusItemIds = realizedDayFocusItemIds,
+        realizesOverride = realizesOverride,
         projectId = null,
     )
 }
@@ -334,6 +337,15 @@ data class DailyMetric(
 )
 
 class DailyPlanConverters {
+    private val gson = Gson()
+
+    @TypeConverter
+    fun fromTaskRealizesOverride(value: TaskRealizesOverride?): String? = value?.let { gson.toJson(it) }
+
+    @TypeConverter
+    fun toTaskRealizesOverride(value: String?): TaskRealizesOverride? =
+        value?.let { gson.fromJson(it, TaskRealizesOverride::class.java) }
+
     @TypeConverter
     fun fromDayStatus(status: DayStatus?): String? = status?.name
 

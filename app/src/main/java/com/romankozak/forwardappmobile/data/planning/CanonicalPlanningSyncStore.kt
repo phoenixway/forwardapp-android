@@ -1,10 +1,12 @@
 package com.romankozak.forwardappmobile.data.planning
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.data.planning.day.verifyPersonalPlanningDay
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSyncVersion
+import com.romankozak.forwardappmobile.data.recurrence.isInitialKeyedRecurrenceParticipation
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 
@@ -83,6 +85,10 @@ class CanonicalPlanningSyncStore(
                         incoming.version > local.version -> incoming
                         incoming.version < local.version -> null
                         incoming.sameTransportSemanticState(local) -> null
+                        incoming.kind == PlanningScopeKind.DAY && incoming.version == 1L &&
+                            incoming.copy(updatedAt = local.updatedAt).sameTransportSemanticState(local) &&
+                            isPersonalDay(incoming.id.value) ->
+                            incoming.takeIf { (it.updatedAt ?: it.createdAt) > (local.updatedAt ?: local.createdAt) }
                         else ->
                             throw PlanningMergeConflictException(
                                 "Equal-version Planning scope divergence for ${incoming.id.value}",
@@ -97,12 +103,18 @@ class CanonicalPlanningSyncStore(
 
             incomingCommitments.forEach { incoming ->
                 val local = localCommitments[incoming.id]
+                val incomingClock = incoming.updatedAt
+                val localClock = local?.updatedAt
                 val winner =
                     when {
                         local == null -> incoming
                         incoming.version > local.version -> incoming
                         incoming.version < local.version -> null
                         incoming.sameTransportSemanticState(local) -> null
+                        incomingClock != null && localClock != null &&
+                            incoming.copy(updatedAt = localClock).sameTransportSemanticState(local) &&
+                            database.isInitialKeyedRecurrenceParticipation(incoming) ->
+                            incoming.takeIf { incomingClock > localClock }
                         else ->
                             throw PlanningMergeConflictException(
                                 "Equal-version Planning commitment divergence for ${incoming.id.value}",
@@ -124,6 +136,11 @@ class CanonicalPlanningSyncStore(
             commitmentWinners.forEach { dao.upsertCommitment(it.toPlanningCommitmentEntity()) }
             CanonicalPlanningCommitmentRelationSyncStore(database).merge(relations)
         }
+    }
+
+    private suspend fun isPersonalDay(scopeId: String): Boolean {
+        val row = database.dayPlanningScopeExtensionDao().get(scopeId) ?: return false
+        return verifyPersonalPlanningDay(row.scopeId, row.calendarDayStartMillis, row.localDate, row.timeZoneId) != null
     }
 
     fun decodeAndValidateForRestore(

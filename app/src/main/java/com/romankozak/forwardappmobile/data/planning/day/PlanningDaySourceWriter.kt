@@ -59,11 +59,25 @@ class PlanningDaySourceWriter @Inject constructor(
     suspend fun persist(source: PlanningReferenceTarget?, writeTask: suspend () -> DayTask): DayTask =
         persist(source, System.currentTimeMillis(), writeTask)
 
-    suspend fun persist(source: PlanningReferenceTarget?, now: Long, writeTask: suspend () -> DayTask): DayTask = db.withTransaction {
+    suspend fun persist(source: PlanningReferenceTarget?, now: Long, writeTask: suspend () -> DayTask): DayTask =
+        persist(source, now, now, writeTask)
+
+    internal suspend fun persist(
+        source: PlanningReferenceTarget?,
+        now: Long,
+        initialCreatedAt: Long,
+        writeTask: suspend () -> DayTask,
+    ): DayTask = db.withTransaction {
         source?.let { references.requireTarget(it, live = true) }
         val task = writeTask()
         if (source != null) {
-            references.attach(PlanningReferenceOwner(PlanningReferenceOwnerKind.DAY_TASK, task.id), source, PlanningReferenceRole.SOURCE, now)
+            references.attach(
+                PlanningReferenceOwner(PlanningReferenceOwnerKind.DAY_TASK, task.id),
+                source,
+                PlanningReferenceRole.SOURCE,
+                now,
+                initialCreatedAt,
+            )
             if (source.kind == PlanningReferenceTargetKind.ORIENTATION) {
                 val existing = db.planningDao().getCommitment(dayTaskParticipationId(task.id).value)
                 if (existing != null) {
@@ -84,7 +98,7 @@ class PlanningDaySourceWriter @Inject constructor(
                         role = PlanningRoleCode.DAY_TASK, order = task.order, priorityLevel = null,
                         status = PlanningCommitmentStatus.PLANNED,
                         provenance = PlanningProvenance(PlanningProvenanceKind.MANUAL, "DAY_TASK", task.id),
-                        createdAt = now, updatedAt = now, syncedAt = null, version = 1, isDeleted = false,
+                        createdAt = initialCreatedAt, updatedAt = now, syncedAt = null, version = 1, isDeleted = false,
                     ),
                 )
             }

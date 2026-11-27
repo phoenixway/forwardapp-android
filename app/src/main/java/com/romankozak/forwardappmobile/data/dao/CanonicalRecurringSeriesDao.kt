@@ -33,6 +33,14 @@ interface CanonicalRecurringSeriesDao {
     @Update
     suspend fun update(series: CanonicalRecurringSeriesEntity)
 
+    @Query("""
+        SELECT item.* FROM day_focus_items AS item
+        JOIN canonical_recurring_series AS series ON series.id = item.recurrenceSeriesId
+        WHERE item.dayPlanId = :dayPlanId AND item.isDeleted = 0 AND series.isDeleted = 0
+          AND series.kind = item.type AND series.kind IN ('FOCUS', 'RESPONSIBILITY')
+    """)
+    suspend fun getRealizablePriorityOccurrences(dayPlanId: String): List<DayFocusItem>
+
     @Query("SELECT * FROM canonical_recurring_series WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): CanonicalRecurringSeriesEntity?
 

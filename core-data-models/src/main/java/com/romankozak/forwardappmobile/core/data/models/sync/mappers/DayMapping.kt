@@ -75,6 +75,7 @@ fun DayPlanSnapshot.toEntity(): DayPlan = DayPlan(
 // --- DayTask Mappings ---
 fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
     realizedDayFocusItemIds = realizedDayFocusItemIds,
+    realizesOverride = realizesOverride,
     id = id,
     dayPlanId = dayPlanId,
     title = title,
@@ -115,6 +116,7 @@ fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
 
 fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
     realizedDayFocusItemIds = realizedDayFocusItemIds.orEmpty(),
+    realizesOverride = realizesOverride,
     id = id,
     dayPlanId = dayPlanId,
     title = title,

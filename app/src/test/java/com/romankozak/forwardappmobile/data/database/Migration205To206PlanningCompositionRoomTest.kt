@@ -39,9 +39,9 @@ class Migration205To206PlanningCompositionRoomTest {
         }).build()
         try {
             FrameworkSQLiteOpenHelperFactory().create(config).use { it.writableDatabase }
-            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).allowMainThreadQueries().addMigrations(MIGRATION_205_206).build()
+            val room = Room.databaseBuilder(context, AppDatabase::class.java, name).allowMainThreadQueries().addMigrations(MIGRATION_205_206, MIGRATION_206_207).build()
             try {
-                assertEquals(206, room.openHelper.readableDatabase.version)
+                assertEquals(207, room.openHelper.readableDatabase.version)
                 runBlocking {
                     assertEquals("Preserved", room.orientationDao().getManagedSubject("subject")!!.title)
                     assertTrue(room.planningCommitmentRelationDao().getAll().isEmpty())

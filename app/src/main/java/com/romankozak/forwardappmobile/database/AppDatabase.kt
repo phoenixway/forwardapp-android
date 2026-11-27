@@ -238,7 +238,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 206,
+    version = 207,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

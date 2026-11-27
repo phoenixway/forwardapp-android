@@ -35,7 +35,7 @@ class TaskRealizesViewModelTest {
         }
     }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
-    private fun model() = TaskRealizesViewModel(relations, themes, dispatcher, dispatcher).also { store.put("model", it); it.select("task") }
+    private fun model() = TaskRealizesViewModel(relations, themes, dispatcher, dispatcher, io.mockk.mockk()).also { store.put("model", it); it.select("task") }
 
     @Test fun `priority updates reactive task links and themes require explicit acceptance`() = runBlocking<Unit> {
         val vm = model()

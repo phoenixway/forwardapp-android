@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes
 
+import com.romankozak.forwardappmobile.data.recurrence.RecurringTaskRealizesEditor
+import com.romankozak.forwardappmobile.data.recurrence.TaskRealizesKind
+import com.romankozak.forwardappmobile.data.recurrence.reconcileRecurringTaskLinks
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
@@ -77,7 +80,28 @@ class DayThemeRepository
         /** Explicit Day-entry command. Merely observing existing themes never materializes participation. */
         suspend fun prepareDay(dayPlanId: String, now: Long = System.currentTimeMillis()) {
             themeOrientationBridge.ensureCutOver()
-            carryForwardDayThemes(database, dao, themeOrientationBridge, planningAdapter, dayPlanId, now)
+            database.withTransaction {
+                carryForwardDayThemes(database, dao, themeOrientationBridge, planningAdapter, dayPlanId, now)
+                database.reconcileRecurringTaskLinks(dayPlanId, now)
+            }
+        }
+
+        suspend fun toggleEntityTheme(dayPlanId: String, entityId: String, themeId: String) {
+            val handled = database.withTransaction {
+                val task = database.dayTaskDao().getTaskById(entityId)
+                if (task?.recurrenceSeriesId == null || task.isDeleted || task.dayPlanId != dayPlanId) return@withTransaction false
+                val selected = dao.getAssignmentDocumentByDayPlanId(dayPlanId)?.takeUnless { it.isDeleted }
+                    ?.toCanonicalSnapshot()?.assignments.orEmpty().any { it.entityId == entityId && themeId in it.dayThemeIds }
+                RecurringTaskRealizesEditor(database).set(entityId, TaskRealizesKind.THEMES, setOf(themeId), !selected, forward = false)
+                true
+            }
+            if (handled) return
+            update(dayPlanId) { document ->
+                val selected = document.assignments.firstOrNull { it.entityId == entityId }?.themeIds.orEmpty()
+                val changed = if (themeId in selected) selected - themeId else selected + themeId
+                val other = document.assignments.filterNot { it.entityId == entityId }
+                document.copy(assignments = if (changed.isEmpty()) other else other + DayThemeAssignment(dayPlanId, entityId, changed))
+            }
         }
 
         suspend fun update(
@@ -154,6 +178,7 @@ class DayThemeRepository
                             listOf(document.toCanonicalEntity()),
                         )
                     }
+                    database.reconcileRecurringTaskLinks(dayPlanId, now)
                 }
             }
         }

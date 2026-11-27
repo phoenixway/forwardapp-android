@@ -99,6 +99,8 @@ data class DayPlanningScopeExtensionEntity(
     val syncedAt: Long?,
     val version: Long,
     val isDeleted: Boolean,
+    val localDate: String? = null,
+    val timeZoneId: String? = null,
 )
 
 @Entity(
