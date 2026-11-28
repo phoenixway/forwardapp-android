@@ -17,10 +17,11 @@ import com.google.gson.JsonParser
  * legacy TASK recurrence state and must not cross an ingress boundary.
  */
 fun requireNoLegacyTaskRecurrenceV1(rawJson: String) {
-    inspectLegacyTaskRecurrenceV1(
-        element = JsonParser.parseString(rawJson),
-        path = "$",
-    )
+    requireNoLegacyTaskRecurrenceV1(JsonParser.parseString(rawJson))
+}
+
+fun requireNoLegacyTaskRecurrenceV1(root: JsonElement) {
+    inspectLegacyTaskRecurrenceV1(root, path = "$")
 }
 
 private fun inspectLegacyTaskRecurrenceV1(

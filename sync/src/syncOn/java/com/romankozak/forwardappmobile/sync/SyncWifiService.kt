@@ -954,7 +954,13 @@ class SyncWifiService @Inject constructor(
             }
             if (!response.status.isSuccess()) error("Інший пристрій повернув помилку HTTP ${response.status.value}")
             val payload: String = response.body()
-            val isJsonObject = runCatching { com.google.gson.JsonParser.parseString(payload).isJsonObject }.getOrDefault(false)
+            val isJsonObject = runCatching {
+                com.google.gson.stream.JsonReader(payload.reader()).use { reader ->
+                    if (reader.peek() != com.google.gson.stream.JsonToken.BEGIN_OBJECT) return@use false
+                    reader.skipValue()
+                    reader.peek() == com.google.gson.stream.JsonToken.END_DOCUMENT
+                }
+            }.getOrDefault(false)
             check(isJsonObject) { "Інший пристрій повернув не JSON. Перегляньте журнал синхронізації на ньому." }
             Result.success(payload)
         } catch (e: Exception) {

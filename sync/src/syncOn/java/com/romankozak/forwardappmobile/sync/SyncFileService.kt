@@ -293,11 +293,9 @@ class SyncFileService @Inject constructor(
         allowEmpty: Boolean = false,
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
-            val normalizedJson = sanitizeIncomingBackupJson(jsonString)
-            val backupData = runCatching { gson.fromJson(normalizedJson, FullAppBackup::class.java) }.getOrNull()
-            val snapshotBundleToApply = resolveIncomingImportBundle(normalizedJson).snapshotBundle
+            val (snapshotBundleToApply, settings) = decodeLiveImport(jsonString, restoreSettings)
             Timber.tag("DaySyncImport").d(
-                "json import resolved chars=${normalizedJson.length} ${snapshotBundleToApply.describeDayPayload()}",
+                "json import resolved chars=${jsonString.length} ${snapshotBundleToApply.describeDayPayload()}",
             )
 
             if (isEffectivelyEmpty(snapshotBundleToApply)) {
@@ -306,15 +304,24 @@ class SyncFileService @Inject constructor(
             }
 
             mergeRepository.applyServerChanges(snapshotBundleToApply).getOrThrow()
-            if (restoreSettings) {
-                backupData?.settings?.settings?.let { localDataSource.restoreSettings(it) }
-            }
+            settings?.let { localDataSource.restoreSettings(it) }
 
             Result.success(snapshotBundleToApply.importItemCount())
         } catch (e: Exception) {
             Timber.tag(tag).e(e, "A critical error occurred during JSON import.")
             Result.failure(e)
         }
+    }
+
+    private fun decodeLiveImport(raw: String, restoreSettings: Boolean): Pair<SnapshotBundle, Map<String, String>?> {
+        val normalized = normalizeBackupNulls(raw)
+        val root = JsonParser.parseString(normalized).asJsonObject
+        requireNoLegacyTaskRecurrenceV1(root)
+        val bundle = resolveIncomingImportBundle(normalized, root).snapshotBundle
+        val settings = if (restoreSettings) {
+            runCatching { gson.fromJson(root.get("settings"), SettingsContent::class.java)?.settings }.getOrNull()
+        } else null
+        return bundle to settings
     }
 
     private fun normalizeIncomingSnapshotDefaults(bundle: SnapshotBundle): SnapshotBundle =
@@ -329,8 +336,10 @@ class SyncFileService @Inject constructor(
                 },
         )
 
-    private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
-        val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
+    private fun resolveIncomingImportBundle(
+        normalizedJson: String,
+        jsonObject: com.google.gson.JsonObject = JsonParser.parseString(normalizedJson).asJsonObject,
+    ): ResolvedImportBundle {
         val wireSnapshot = jsonObject.get("snapshotBundle")?.takeIf { it.isJsonObject }?.asJsonObject ?: jsonObject
         SnapshotBackupWireGuard.requireStableFields(wireSnapshot)
         gson.decodeCanonicalSnapshotRoot(jsonObject)?.let { decoded ->
@@ -406,11 +415,14 @@ class SyncFileService @Inject constructor(
 
     private fun sanitizeIncomingBackupJson(rawJson: String): String {
         requireNoLegacyTaskRecurrenceV1(rawJson)
-        return rawJson.replace(
+        return normalizeBackupNulls(rawJson)
+    }
+
+    private fun normalizeBackupNulls(rawJson: String): String =
+        rawJson.replace(
             Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
             "\"experimentalCapabilityIds\":[]",
         )
-    }
 }
 
 private fun SnapshotBundle.describeDayPayload(): String {

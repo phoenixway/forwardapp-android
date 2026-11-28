@@ -222,7 +222,6 @@ class WifiSyncServer(
                                 // Reject TASK recurrence-v1 while the payload is still raw JSON. Typed
                                 // compatibility DTOs intentionally still know these old fields, so checking
                                 // only after Gson parsing would allow legacy semantics to survive silently.
-                                com.romankozak.forwardappmobile.sync.requireNoLegacyTaskRecurrenceV1(body)
 
                                 // Canonical Wi-Fi import authority is snapshotBundle. Do not deserialize
                                 // legacy entity envelopes are intentionally not accepted here: stale shapes can
@@ -230,6 +229,7 @@ class WifiSyncServer(
                                 // allowed to block an otherwise valid canonical snapshot import.
                                 val rawRoot =
                                     com.google.gson.JsonParser.parseString(body).asJsonObject
+                                com.romankozak.forwardappmobile.sync.requireNoLegacyTaskRecurrenceV1(rawRoot)
                                 val rawSnapshot = rawRoot.get("snapshotBundle")
                                 if (rawSnapshot == null || rawSnapshot.isJsonNull) {
                                     eventJournal.finish(eventId, IllegalArgumentException("Canonical snapshotBundle section is required"))
