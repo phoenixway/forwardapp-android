@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.entitybrowser.*
+import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,5 +51,63 @@ class MagicBoxAttachmentResultsUiTest {
             attachmentError = "Read unavailable") } }
         ui.onNodeWithText("Read unavailable").assertIsDisplayed()
         ui.onNodeWithText("Treatment Workspace").assertIsDisplayed()
+    }
+
+    @Test fun `result type narrows mixed search and orientation subtype can be cleared`() {
+        val input = "Treatment"
+        val goal = CanonicalEntitySummary(
+            CanonicalEntityRef.Orientation("goal"),
+            "Treatment goal",
+            orientationKind = OrientationKind.GOAL,
+        )
+        val project = CanonicalEntitySummary(
+            CanonicalEntityRef.Orientation("project"),
+            "Treatment project",
+            orientationKind = OrientationKind.PROJECT,
+        )
+        val aspect = CanonicalEntitySummary(CanonicalEntityRef.Aspect("aspect"), "Treatment aspect")
+        ui.setContent {
+            MaterialTheme {
+                MagicBoxCanonicalResultContent(
+                    input = input,
+                    state = MagicBoxCanonicalState(input = input, results = listOf(goal, project, aspect, workspace)),
+                    attachmentState = MagicBoxAttachmentState(input = input, results = listOf(note)),
+                    attachmentsAvailable = true,
+                    onLegacyResults = {},
+                    onSelectSaved = {},
+                    onEntity = {},
+                    onAttachment = {},
+                )
+            }
+        }
+
+        ui.onNodeWithText("Усі типи").performClick()
+        ui.onNodeWithText("Вкладення").performClick()
+        ui.onNodeWithText("Treatment notes").assertIsDisplayed()
+        ui.onNodeWithText("Treatment goal").assertDoesNotExist()
+        ui.onNodeWithText("Усі підтипи").assertDoesNotExist()
+
+        ui.onNodeWithText("Вкладення").performClick()
+        ui.onNodeWithText("Аспекти").performClick()
+        ui.onNodeWithText("Treatment aspect").assertIsDisplayed()
+        ui.onNodeWithText("Treatment notes").assertDoesNotExist()
+
+        ui.onNodeWithText("Аспекти").performClick()
+        ui.onNodeWithText("Орієнтири").performClick()
+        ui.onNodeWithText("Усі підтипи").performClick()
+        ui.onNodeWithText("Ціль").performClick()
+        ui.onNodeWithText("Treatment goal").assertIsDisplayed()
+        ui.onNodeWithText("Treatment project").assertDoesNotExist()
+        ui.onNodeWithText("Treatment aspect").assertDoesNotExist()
+
+        ui.onNodeWithText("Ціль").performClick()
+        ui.onNodeWithText("Проєкт").performScrollTo().performClick()
+        ui.onNodeWithText("Treatment project").assertIsDisplayed()
+        ui.onNodeWithText("Treatment goal").assertDoesNotExist()
+
+        ui.onNodeWithText("Проєкт").performClick()
+        ui.onNodeWithText("Усі підтипи").performClick()
+        ui.onNodeWithText("Treatment goal").assertIsDisplayed()
+        ui.onNodeWithText("Treatment project").assertIsDisplayed()
     }
 }
