@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
@@ -134,7 +133,7 @@ class DeviceSyncViewModel @Inject constructor(
         _state.update { it.copy(syncingPeerId = peer.id, message = null) }
         val eventId = journal.begin(peer, "Вручну")
         try {
-            withTimeout(90_000L) { exchangeFullSnapshotWithPeer(syncRepository, peer) { journal.stage(eventId, it) } }
+            exchangeFullSnapshotWithPeer(syncRepository, peer) { journal.stage(eventId, it) }
             journal.finish(eventId)
             _state.update { it.copy(message = "${peer.name}: синхронізовано") }
         } catch (error: TimeoutCancellationException) {

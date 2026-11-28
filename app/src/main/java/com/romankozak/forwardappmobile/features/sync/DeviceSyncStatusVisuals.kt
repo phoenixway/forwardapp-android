@@ -40,6 +40,7 @@ internal fun syncEventTitle(event: WifiSyncEvent): String = when (event.outcome)
         else -> "Синхронізовано"
     }
     "error" -> when (event.stage) {
+        "Підготовка даних" -> "Помилка підготовки даних"
         "Надсилання даних" -> "Помилка надсилання"
         "Отримання даних" -> "Помилка отримання"
         "Злиття даних" -> "Помилка злиття"

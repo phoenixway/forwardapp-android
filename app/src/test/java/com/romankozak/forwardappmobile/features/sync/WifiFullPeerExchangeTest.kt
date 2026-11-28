@@ -7,7 +7,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class WifiFullPeerExchangeTest {
@@ -29,6 +31,28 @@ class WifiFullPeerExchangeTest {
             repository.pushFullBackupToPeer(peer.address, peer.key, "merged")
         }
         coVerify(exactly = 0) { repository.pushUnsyncedToWifi(any()) }
+    }
+
+    @Test fun `successful stages can together take longer than one stage timeout`() = runTest {
+        coEvery { repository.fetchFullBackupFromPeer(peer.address, peer.key) } coAnswers {
+            delay(20_000)
+            Result.success("remote")
+        }
+        coEvery { repository.importBackupJsonString("remote", false, true) } coAnswers {
+            delay(52_000)
+            Result.success(1)
+        }
+        coEvery { repository.createFullBackupJsonString() } coAnswers {
+            delay(14_000)
+            "merged"
+        }
+        coEvery { repository.pushFullBackupToPeer(peer.address, peer.key, "merged") } coAnswers {
+            delay(50_000)
+            Result.success(Unit)
+        }
+        val stages = mutableListOf<String>()
+        exchangeFullSnapshotWithPeer(repository, peer) { stages.add(it) }
+        assertThat(stages).containsExactly("Отримання даних", "Злиття даних", "Підготовка даних", "Надсилання даних").inOrder()
     }
 
     @Test fun `merge failure never sends a snapshot to the peer`() = runBlocking {

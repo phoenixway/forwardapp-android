@@ -16,7 +16,6 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -137,9 +136,7 @@ class WifiSyncManager(
             val eventId = eventJournal.begin(peer, "Автоматично")
             try {
                 check(currentWifiIpv4Address(application) != null) { "Wi‑Fi недоступний" }
-                withTimeout(90_000L) {
-                    exchangeFullSnapshotWithPeer(syncRepository, peer) { eventJournal.stage(eventId, it) }
-                }
+                exchangeFullSnapshotWithPeer(syncRepository, peer) { eventJournal.stage(eventId, it) }
                 eventJournal.finish(eventId)
                 successful++
                 lastAutoSyncSuccessAt = System.currentTimeMillis()

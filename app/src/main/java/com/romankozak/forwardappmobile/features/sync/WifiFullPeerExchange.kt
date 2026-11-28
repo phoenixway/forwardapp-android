@@ -4,6 +4,9 @@ import com.romankozak.forwardappmobile.data.repository.WifiAutoSyncPeer
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
+
+private const val STAGE_TIMEOUT_MILLIS = 90_000L
 
 private val peerExchangeMutex = Mutex()
 
@@ -14,10 +17,17 @@ internal suspend fun exchangeFullSnapshotWithPeer(
     onStage: suspend (String) -> Unit = {},
 ) = peerExchangeMutex.withLock {
     onStage("Отримання даних")
-    val remoteJson = repository.fetchFullBackupFromPeer(peer.address, peer.key).getOrThrow()
+    val remoteJson = withTimeout(STAGE_TIMEOUT_MILLIS) {
+        repository.fetchFullBackupFromPeer(peer.address, peer.key).getOrThrow()
+    }
     onStage("Злиття даних")
-    repository.importBackupJsonString(remoteJson, restoreSettings = false, allowEmpty = true).getOrThrow()
+    withTimeout(STAGE_TIMEOUT_MILLIS) {
+        repository.importBackupJsonString(remoteJson, restoreSettings = false, allowEmpty = true).getOrThrow()
+    }
+    onStage("Підготовка даних")
+    val localJson = withTimeout(STAGE_TIMEOUT_MILLIS) { repository.createFullBackupJsonString() }
     onStage("Надсилання даних")
-    val localJson = repository.createFullBackupJsonString()
-    repository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
+    withTimeout(STAGE_TIMEOUT_MILLIS) {
+        repository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
+    }
 }
