@@ -27,7 +27,6 @@ internal suspend fun exchangeFullSnapshotWithPeer(
     onStage("Підготовка даних")
     val localJson = withTimeout(STAGE_TIMEOUT_MILLIS) { repository.createFullBackupJsonString() }
     onStage("Надсилання даних")
-    withTimeout(STAGE_TIMEOUT_MILLIS) {
-        repository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
-    }
+    // The full-backup HTTP request owns the deadline through the peer's merge and response.
+    repository.pushFullBackupToPeer(peer.address, peer.key, localJson).getOrThrow()
 }

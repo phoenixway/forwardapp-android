@@ -33,7 +33,7 @@ class WifiFullPeerExchangeTest {
         coVerify(exactly = 0) { repository.pushUnsyncedToWifi(any()) }
     }
 
-    @Test fun `successful stages can together take longer than one stage timeout`() = runTest {
+    @Test fun `peer import may take longer than the local stage timeout`() = runTest {
         coEvery { repository.fetchFullBackupFromPeer(peer.address, peer.key) } coAnswers {
             delay(20_000)
             Result.success("remote")
@@ -47,7 +47,7 @@ class WifiFullPeerExchangeTest {
             "merged"
         }
         coEvery { repository.pushFullBackupToPeer(peer.address, peer.key, "merged") } coAnswers {
-            delay(50_000)
+            delay(110_000)
             Result.success(Unit)
         }
         val stages = mutableListOf<String>()

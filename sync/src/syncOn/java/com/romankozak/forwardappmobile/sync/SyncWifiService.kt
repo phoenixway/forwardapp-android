@@ -60,6 +60,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.TacticalPlanningScopeExtensionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.StrategicPlanningScopeExtensionSyncVersion
 import io.ktor.client.call.*
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -968,6 +969,11 @@ class SyncWifiService @Inject constructor(
             runCatching {
                 require(peerKey.isNotBlank()) { "Введіть ключ іншого пристрою" }
                 val response = client.post(buildWifiUrl(address, "/import")) {
+                    // The peer responds after decoding and merging the entire backup.
+                    timeout {
+                        requestTimeoutMillis = 180_000
+                        socketTimeoutMillis = 180_000
+                    }
                     headers.append(WIFI_PEER_KEY_HEADER, peerKey)
                     contentType(ContentType.Application.Json)
                     setBody(backupJson)
