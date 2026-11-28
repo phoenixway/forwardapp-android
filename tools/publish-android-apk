@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+apk="${1:?Supply the signed universal APK}"
+repository="${RELEASE_REPOSITORY:?Set APK_RELEASE_REPOSITORY to the distribution repository}"
+version="${RELEASE_VERSION:?Supply the APK versionName}"
+run_number="${GITHUB_RUN_NUMBER:?Run this from the Android build workflow}"
+version_pattern='^[0-9]+\.[0-9]+\.[0-9]+\.([1-9][0-9]{0,9})-exp$'
+
+if [[ -z ${GH_TOKEN:-} ]]; then
+    echo "::error::Set the APK_RELEASE_TOKEN Actions secret with Contents write access to $repository"
+    exit 1
+fi
+if [[ "${repository,,}" == "${GITHUB_REPOSITORY,,}" ]]; then
+    echo "::error::APK_RELEASE_REPOSITORY must be a separate repository"
+    exit 1
+fi
+if [[ ! "$version" =~ $version_pattern || "${BASH_REMATCH[1]}" != "$run_number" ]]; then
+    echo "::error::The APK versionName does not match this build run: $version"
+    exit 1
+fi
+
+releases="$(gh api "repos/$repository/releases?per_page=100" --paginate --jq '.[] | [.tag_name, .draft] | @tsv')"
+existing_draft=false
+while IFS=$'\t' read -r tag draft; do
+    if [[ "$tag" == "$version" && "$draft" == true ]]; then
+        existing_draft=true
+    elif [[ "$draft" == false && "$tag" =~ $version_pattern ]] && (( BASH_REMATCH[1] >= run_number )); then
+        echo "Release $tag already publishes this or a newer build. Keeping it in place."
+        exit 0
+    fi
+done <<< "$releases"
+
+if [[ "$existing_draft" == false ]]; then
+    run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+    gh release create "$version" --repo "$repository" --draft \
+        --title "ForwardApp $version" --notes "Signed experimental Android APK. Build: $run_url"
+fi
+
+gh release upload "$version" "$apk" --repo "$repository" --clobber
+gh release edit "$version" --repo "$repository" --draft=false --latest

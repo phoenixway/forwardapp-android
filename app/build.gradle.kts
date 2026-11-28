@@ -26,6 +26,7 @@ val abiFilterOverride =
         ?.map(String::trim)
         ?.filter(String::isNotBlank)
         ?.distinct()
+val distributionVersionCode = providers.gradleProperty("distributionVersionCode").map { it.toInt() }.orNull
 
 if (signingPropsFile.exists()) {
     signingPropsFile.inputStream().use { signingProps.load(it) }
@@ -55,8 +56,14 @@ android {
         applicationId = "com.romankozak.forwardappmobile"
         minSdk = 29
         targetSdk = 35
-        versionCode = 54
-        versionName = "1.20.0"
+        val baseVersionCode = 54
+        distributionVersionCode?.let {
+            require(it in (baseVersionCode + 1)..2_100_000_000) {
+                "distributionVersionCode must exceed the base versionCode and fit in the Android versionCode range"
+            }
+        }
+        versionCode = distributionVersionCode ?: baseVersionCode
+        versionName = "1.20.0" + (distributionVersionCode?.let { ".$it" } ?: "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     testOptions.unitTests.isIncludeAndroidResources = true

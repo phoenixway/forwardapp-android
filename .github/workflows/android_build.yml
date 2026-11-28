@@ -21,10 +21,21 @@ on:
           - debug
           - local
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build ${{ inputs.flavor }} ${{ inputs.build_type }}
     runs-on: ubuntu-latest
+    env:
+      FLAVOR: ${{ inputs.flavor }}
+      TYPE: ${{ inputs.build_type }}
+      PUBLISH_APK: >-
+        ${{ github.ref == 'refs/heads/dev' && inputs.flavor == 'exp' && inputs.build_type == 'release'
+        && vars.APK_RELEASE_REPOSITORY != '' && secrets.APK_RELEASE_TOKEN != '' }}
+    outputs:
+      release_version: ${{ steps.apk.outputs.release_version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -70,16 +81,18 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          FLAVOR="${{ inputs.flavor }}"
-          TYPE="${{ inputs.build_type }}"
           
           # Робимо першу літеру великою для назви таски Gradle
           FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
           TYPE_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${TYPE:0:1})${TYPE:1}"
           
           TASK="assemble${FLAVOR_CAP}${TYPE_CAP}"
+          GRADLE_ARGS=()
+          if [[ "$PUBLISH_APK" == true ]]; then
+            GRADLE_ARGS+=("-PdistributionVersionCode=$GITHUB_RUN_NUMBER")
+          fi
           echo "Running task: $TASK"
-          ./gradlew "$TASK" --stacktrace --build-cache --configuration-cache
+          ./gradlew "$TASK" "${GRADLE_ARGS[@]}" --stacktrace --build-cache --configuration-cache
 
       # Ваша корисна порада при помилці
       - name: Hint for Failed Build Logs
@@ -89,9 +102,10 @@ jobs:
           echo "gh run view --log-failed ${{ github.run_id }}"
 
       - name: Prepare single APK artifact
+        id: apk
         run: |
           set -euo pipefail
-          APK_DIR="app/build/outputs/apk/${{ inputs.flavor }}/${{ inputs.build_type }}"
+          APK_DIR="app/build/outputs/apk/$FLAVOR/$TYPE"
           mkdir -p artifact-apk
 
           UNIVERSAL_APK="$(find "$APK_DIR" -maxdepth 1 -type f -name "*universal*.apk" | head -n 1 || true)"
@@ -106,7 +120,22 @@ jobs:
             exit 1
           fi
 
-          cp "$SELECTED_APK" artifact-apk/
+          if [[ "$PUBLISH_APK" == true ]]; then
+            if [[ -z "$UNIVERSAL_APK" ]]; then
+              echo "::error::The Obtainium release requires a universal APK"
+              exit 1
+            fi
+            VERSION_NAME="$(jq -er --arg file "$(basename "$SELECTED_APK")" --argjson code "$GITHUB_RUN_NUMBER" '
+              select(.applicationId == "com.romankozak.forwardappmobile")
+              | .elements[]
+              | select(.outputFile == $file and .versionCode == $code)
+              | .versionName
+            ' "$APK_DIR/output-metadata.json")"
+            echo "release_version=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+            cp "$SELECTED_APK" artifact-apk/ForwardApp-exp-universal.apk
+          else
+            cp "$SELECTED_APK" artifact-apk/
+          fi
           echo "Selected APK: $(basename "$SELECTED_APK")"
 
       - name: Upload APK
@@ -116,3 +145,34 @@ jobs:
           path: artifact-apk/*.apk
           if-no-files-found: error
           retention-days: 1
+
+  publish:
+    name: Publish APK for Obtainium
+    needs: build
+    if: needs.build.outputs.release_version != ''
+    runs-on: ubuntu-latest
+    concurrency:
+      group: forwardapp-apk-release
+      queue: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk-exp-release
+          path: artifact-apk
+
+      - name: Verify APK signing
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --print-certs artifact-apk/ForwardApp-exp-universal.apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.APK_RELEASE_TOKEN }}
+          RELEASE_REPOSITORY: ${{ vars.APK_RELEASE_REPOSITORY }}
+          RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
+        run: bash tools/publish-android-apk artifact-apk/ForwardApp-exp-universal.apk

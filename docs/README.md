@@ -67,6 +67,9 @@ Authoritative for ChatGPT web workflow and AI CLI Bridge usage.
 
 ## Focused documentation
 
+`distribution/GITHUB-APK-RELEASES.md`
+- APK release setup, versioning, and the Obtainium update channel.
+
 `ui/MAIN-SCREEN-DOCK-PARITY.md`
 - `CURRENT` implemented main-screen UI structure / control inventory and HOST
   evidence; full device functional parity acceptance is explicitly pending.
