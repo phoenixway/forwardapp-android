@@ -96,6 +96,11 @@ class PersonalDayMergeRoomTest {
             plans.createOrUpdate(other.start, null, 2000, other.zone)
             assertEquals(listOf(key.scopeId), f.db.dayPlanDao().getActivePersonalDayPlans(key.start, key.scopeId).map { it.id })
             assertEquals(listOf(other.scopeId), f.db.dayPlanDao().getActivePersonalDayPlans(other.start, other.scopeId).map { it.id })
+            val fixed = PersonalPlanningDay(key.date, ZoneId.of("GMT+02:00"))
+            val fixedPlan = plans.createOrUpdate(fixed.start, null, 3000, fixed.zone)
+            assertEquals(fixed.scopeId, fixedPlan.id)
+            assertEquals("GMT+02:00", f.db.dayPlanningScopeExtensionDao().get(fixedPlan.id)?.timeZoneId)
+            assertNotEquals(key.scopeId, fixed.scopeId)
             assertNull(verifyPersonalPlanningDay("old", key.start, null, null))
             assertFalse(runCatching { verifyPersonalPlanningDay(key.scopeId, key.start, key.date.toString(), other.zone.id) }.isSuccess)
         }
@@ -108,6 +113,7 @@ class PersonalDayMergeRoomTest {
         val planning = CanonicalPlanningSyncStore(db)
         return SnapshotBundle(
             version = 2,
+            exportedAt = 1L,
             planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
             dayPlans = db.dayPlanDao().getAllPlansSync().map { it.toSnapshot() },
             planningScopes = planning.loadAllScopes(),

@@ -90,7 +90,7 @@ class TaskRecurrenceTemplateJsonTest {
             RecurrenceRule(RecurrenceFrequency.DAILY, 1, null), "2026-11-21", null, nextTemplate)
 
         val snapshot = series.toAndroidEntity().toSnapshot()
-        val payload = snapshot.template.getAsJsonObject("realizesDefaults")
+        val payload = snapshot.template.asJsonObject.getAsJsonObject("realizesDefaults")
         assertEquals(listOf("theme-a", "theme-b"), payload.getAsJsonArray("themeDefinitionIds").map { it.asString })
         assertEquals(listOf("priority-a", "priority-b"), payload.getAsJsonArray("prioritySeriesIds").map { it.asString })
         val restored = (snapshot.toEntity().toCanonicalSeries() as RecurringTaskSeries).template

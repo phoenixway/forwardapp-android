@@ -13,6 +13,8 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.planning.*
 import com.romankozak.forwardappmobile.shared.core.models.day.canonicalDayThemeId
 import java.util.Calendar
+import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
+import com.romankozak.forwardappmobile.data.planning.day.verifyPersonalPlanningDay
 
 /** Materialize only into an opened current/future DAY; browsing history never backfills it. */
 internal suspend fun carryForwardDayThemes(
@@ -29,7 +31,8 @@ internal suspend fun carryForwardDayThemes(
         target.lifecycle !in setOf(PlanningScopeLifecycle.DRAFT, PlanningScopeLifecycle.ACTIVE)) return@withTransaction 0
     val extensions = db.dayPlanningScopeExtensionDao().getAll().filterNot { it.isDeleted }
     val targetDay = extensions.singleOrNull { it.scopeId == dayPlanId } ?: return@withTransaction 0
-    val today = Calendar.getInstance().apply {
+    val calendarKey = verifyPersonalPlanningDay(dayPlanId, targetDay.calendarDayStartMillis, targetDay.localDate, targetDay.timeZoneId)
+    val today = calendarKey?.let { PersonalPlanningDay.at(now, it.zone).start } ?: Calendar.getInstance().apply {
         timeInMillis = now; set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }.timeInMillis
     if (targetDay.calendarDayStartMillis < today) return@withTransaction 0
@@ -47,6 +50,7 @@ internal suspend fun carryForwardDayThemes(
     val existingIds = existing.mapTo(hashSetOf()) { it.id }
     var order = planning.applyCanonicalProjection(existing, planning.getDayThemeCommitments(dayPlanId))
         .filterNot { it.isDeleted }.maxOfOrNull { it.order } ?: -1L
+    val creationBaseline = if (calendarKey != null) 0L else now
     val lineage = linkedMapOf<String, PlanningCommitmentId>()
     val additions = previousRows.filter { row ->
         !row.isDeleted && row.isActive && definitions[row.themeId]?.let { !it.isDeleted && !it.archived && it.carryForward } == true
@@ -57,7 +61,7 @@ internal suspend fun carryForwardDayThemes(
             "Day theme participation exists without its domain row"
         }
         lineage[id] = origins.getValue(canonicalDayThemeCommitmentId(source.id)).id
-        DayThemeSnapshot(id, source.themeId, dayPlanId, source.budgetPercent, ++order, true, now, now, null, 1, false)
+        DayThemeSnapshot(id, source.themeId, dayPlanId, source.budgetPercent, ++order, true, creationBaseline, now, null, 1, false)
     }
     if (additions.isNotEmpty()) {
         planning.applyProjectionChanges(additions, carriedFrom = lineage)

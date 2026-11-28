@@ -31,10 +31,12 @@ class RecurringTaskRealizesEditor @Inject constructor(private val db: AppDatabas
         val now = System.currentTimeMillis()
         val current = task.realizesOverride ?: TaskRealizesOverride()
         val override = if (isTheme) current.themes else current.priorities
+        val base = series.template.realizesOn(day)
+        val inherited = if (isTheme) base?.themeDefinitionIds.orEmpty() else base?.prioritySeriesIds.orEmpty()
         val next = when {
             forward -> override.copy(explicit = override.explicit - stable, excluded = override.excluded - stable)
-            selected -> override.copy(explicit = override.explicit + stable, excluded = override.excluded - stable)
-            else -> override.copy(explicit = override.explicit - stable, excluded = override.excluded + stable)
+            selected -> override.copy(explicit = (override.explicit - stable) + (stable - inherited), excluded = override.excluded - stable)
+            else -> override.copy(explicit = override.explicit - stable, excluded = (override.excluded - stable) + stable.intersect(inherited))
         }
         if (forward) {
             fun change(previous: RecurringTaskRealizesDefaults): RecurringTaskRealizesDefaults {

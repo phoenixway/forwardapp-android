@@ -1,6 +1,11 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes
 
 import com.google.common.truth.Truth.assertThat
+import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
+import com.romankozak.forwardappmobile.core.sync.createRoomMergeSubject
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.*
@@ -10,6 +15,7 @@ import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningSyncStore
 import com.romankozak.forwardappmobile.data.planning.day.*
 import com.romankozak.forwardappmobile.shared.core.models.day.canonicalDayThemeId
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.data.recurrence.*
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.*
 import kotlinx.coroutines.Dispatchers
@@ -25,12 +31,12 @@ class DayThemeCarryForwardRoomTest {
     private val today = Calendar.getInstance().apply { clear(); set(2026, Calendar.OCTOBER, 19) }.timeInMillis
     private fun previousDay() = Calendar.getInstance().apply { timeInMillis = today; add(Calendar.DAY_OF_YEAR, -1) }.timeInMillis
 
-    private suspend fun fixture(block: suspend (SemanticDeletionRoomFixture, ThemeOrientationBridge, CanonicalDayThemePlanningAdapter, CanonicalDayPlanningAuthorityActivator) -> Unit) {
+    private suspend fun fixture(keyedTarget: Boolean = false, block: suspend (SemanticDeletionRoomFixture, ThemeOrientationBridge, CanonicalDayThemePlanningAdapter, CanonicalDayPlanningAuthorityActivator) -> Unit) {
         SemanticDeletionRoomFixture().use { f ->
             val db = f.db
             val dao = db.canonicalDayThemeDao()
             db.dayPlanDao().insert(DayPlan(id = "yesterday", date = previousDay(), version = 1))
-            db.dayPlanDao().insert(DayPlan(id = "today", date = today, version = 1))
+            if (!keyedTarget) db.dayPlanDao().insert(DayPlan(id = "today", date = today, version = 1))
             for ((id, carry) in listOf("carry" to true, "oneoff" to false)) {
                 dao.upsertThemeDefinitions(listOf(ThemeDefinitionSnapshot(id, id, 1, "target", "", carry, false, 1, 1, null, 1, false).toCanonicalEntity()))
                 dao.upsertDayThemes(listOf(DayThemeSnapshot(canonicalDayThemeId("yesterday", id), id, "yesterday", 25, 0, true, 1, 1, null, 1, false).toCanonicalEntity()))
@@ -41,7 +47,43 @@ class DayThemeCarryForwardRoomTest {
             val authority = CanonicalDayPlanningAuthorityActivator(db, db.dayPlanDao(), dao, db.orientationDao(), db.planningDao(),
                 db.dayPlanningScopeExtensionDao(), db.dayPlanningAuthorityStateDao(), bridge)
             authority.ensureActivated(10)
+            if (keyedTarget) CanonicalDayPlanningAdapter(db, db.dayPlanDao(), db.planningDao(),
+                db.dayPlanningScopeExtensionDao(), authority).createOrUpdate(today, null, today)
             block(f, bridge, CanonicalDayThemePlanningAdapter(db.planningDao(), bridge, authority, db), authority)
+        }
+    }
+
+    @Test fun `independent carries from the same original theme converge and reject unequal budget or origin`() = runBlocking<Unit> {
+        val targetId = PersonalPlanningDay.at(today).scopeId
+        suspend fun exportCarry(db: AppDatabase): SnapshotBundle {
+            val themes = db.canonicalDayThemeDao().getDayThemesForDay(targetId).map { it.toCanonicalSnapshot() }
+            return SnapshotBundle(version = 2, planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
+                planningScopes = emptyList(), dayPlanningScopeExtensions = emptyList(),
+                tacticalPlanningScopeExtensions = emptyList(), strategicPlanningScopeExtensions = emptyList(),
+                planningCommitments = CanonicalPlanningSyncStore(db).loadAllCommitments().filter { it.scopeId == targetId },
+                themeDefinitions = emptyList(), dayThemes = themes, dayThemeAssignmentDocuments = emptyList())
+        }
+        fixture(keyedTarget = true) { a, bridgeA, planningA, _ ->
+            fixture(keyedTarget = true) { b, bridgeB, planningB, _ ->
+                assertThat(carryForwardDayThemes(a.db, a.db.canonicalDayThemeDao(), bridgeA, planningA, targetId, today + 1)).isEqualTo(1)
+                assertThat(carryForwardDayThemes(b.db, b.db.canonicalDayThemeDao(), bridgeB, planningB, targetId, today + 2)).isEqualTo(1)
+                val first = createRoomMergeSubject(a.db)
+                val second = createRoomMergeSubject(b.db)
+                val fromB = exportCarry(b.db)
+                val initial = exportCarry(a.db)
+                val peerRow = fromB.dayThemes!!.single()
+                assertThat(runCatching { first.applySnapshotBundle(fromB.copy(dayThemes = listOf(peerRow.copy(budgetPercent = 99)))) }.isFailure).isTrue()
+                val peerCommitment = fromB.planningCommitments!!.single()
+                assertThat(runCatching { first.applySnapshotBundle(fromB.copy(planningCommitments = listOf(
+                    peerCommitment.copy(version = peerCommitment.version + 1, provenanceSourceId = "different-origin")))) }.isFailure).isTrue()
+                assertThat(exportCarry(a.db).dayThemes).isEqualTo(initial.dayThemes)
+                first.applySnapshotBundle(fromB)
+                second.applySnapshotBundle(exportCarry(a.db))
+                first.applySnapshotBundle(exportCarry(b.db))
+                assertThat(exportCarry(a.db).planningCommitments).isEqualTo(exportCarry(b.db).planningCommitments)
+                assertThat(exportCarry(a.db).dayThemes).isEqualTo(exportCarry(b.db).dayThemes)
+                assertThat(exportCarry(a.db).planningCommitments!!.single().updatedAt).isEqualTo(today + 2)
+            }
         }
     }
 
@@ -77,6 +119,40 @@ class DayThemeCarryForwardRoomTest {
             editor.set(occurrence.id, TaskRealizesKind.THEMES, setOf(todayTheme), false, forward = true)
             assertThat(links("yesterday", converted.id)).containsExactly(yesterdayTheme)
             assertThat(links("today", occurrence.id)).isEmpty()
+        }
+    }
+
+    @Test fun `recurring priority resolves by series on each day and one-off stays on the converted task`() = runBlocking<Unit> {
+        fixture { f, _, _, _ ->
+            val db = f.db
+            val sources = recurrencePlanningSources(db)
+            val materializer = CanonicalRecurrenceMaterializationAdapter(db, Dispatchers.Unconfined, sources)
+            val author = CanonicalTaskRecurrenceAuthoringAdapter(db, materializer, sources)
+            val rule = RecurrenceRule(RecurrenceFrequency.DAILY, 1, null)
+            val prioritySeries = RecurringFocusSeries("focus-series", 1, 1, null, false, 1, rule, "2026-10-18", null,
+                RecurringFocusTemplate("Focus", null, emptyList(), 30))
+            db.canonicalRecurringSeriesDao().insert(prioritySeries.toAndroidEntity())
+            materializer.materializeForDate(previousDay())
+            val prior = db.dayFocusItemDao().getItemsForDayPlanSync("yesterday").single()
+            val oneOff = DayFocusItem(id = "one-time", dayPlanId = "yesterday", title = "One-time")
+            db.dayFocusItemDao().insertAll(listOf(oneOff))
+            val source = DayTask(id = "source", dayPlanId = "yesterday", title = "Task", version = 1,
+                realizedDayFocusItemIds = listOf(prior.id, oneOff.id))
+            db.dayTaskDao().insert(source)
+            val first = author.convertOneOffToSeries(source, source.title, null, null, null, null,
+                emptyList(), emptyList(), source.priority, null, source.points, source.executionStrictness, rule)
+            assertThat(first.realizedDayFocusItemIds).containsExactly(prior.id, oneOff.id)
+            materializer.materializeForDate(today)
+            val nextPriority = db.dayFocusItemDao().getItemsForDayPlanSync("today").single()
+            suspend fun next() = db.dayTaskDao().getTasksForDayIncludingDeletedSync("today").single()
+            assertThat(next().realizedDayFocusItemIds).containsExactly(nextPriority.id)
+            val editor = RecurringTaskRealizesEditor(db)
+            editor.set(first.id, TaskRealizesKind.PRIORITIES, setOf(prior.id), false, forward = true)
+            assertThat(next().realizedDayFocusItemIds).isEmpty()
+            assertThat(db.dayTaskDao().getTaskById(first.id)?.realizedDayFocusItemIds).containsExactly(oneOff.id)
+            val cleared = next()
+            materializer.materializeForDate(today)
+            assertThat(next()).isEqualTo(cleared)
         }
     }
 

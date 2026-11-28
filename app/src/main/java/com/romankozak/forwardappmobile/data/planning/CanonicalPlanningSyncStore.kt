@@ -1,11 +1,13 @@
 package com.romankozak.forwardappmobile.data.planning
 
 import androidx.room.withTransaction
-import com.romankozak.forwardappmobile.data.planning.day.verifyPersonalPlanningDay
+import com.romankozak.forwardappmobile.data.planning.day.isInitialPersonalDayThemeCarry
+import com.romankozak.forwardappmobile.data.planning.day.requireStablePersonalThemeCarryOrigin
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningCommitmentSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.planning.PlanningScopeSyncVersion
+import com.romankozak.forwardappmobile.data.planning.day.verifyPersonalPlanningDay
 import com.romankozak.forwardappmobile.data.recurrence.isInitialKeyedRecurrenceParticipation
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.planning.*
@@ -69,7 +71,10 @@ class CanonicalPlanningSyncStore(
                 localScopes[incoming.id]?.let { requireStableScopeIdentity(it, incoming) }
             }
             incomingCommitments.forEach { incoming ->
-                localCommitments[incoming.id]?.let { requireStableCommitmentIdentity(it, incoming) }
+                localCommitments[incoming.id]?.let { local ->
+                    requireStableCommitmentIdentity(local, incoming)
+                    database.requireStablePersonalThemeCarryOrigin(local, incoming)
+                }
             }
 
             val prospectiveScopes = localScopes.toMutableMap()
@@ -113,7 +118,7 @@ class CanonicalPlanningSyncStore(
                         incoming.sameTransportSemanticState(local) -> null
                         incomingClock != null && localClock != null &&
                             incoming.copy(updatedAt = localClock).sameTransportSemanticState(local) &&
-                            database.isInitialKeyedRecurrenceParticipation(incoming) ->
+                            (database.isInitialKeyedRecurrenceParticipation(incoming) || database.isInitialPersonalDayThemeCarry(incoming)) ->
                             incoming.takeIf { incomingClock > localClock }
                         else ->
                             throw PlanningMergeConflictException(

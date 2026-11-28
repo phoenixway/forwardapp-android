@@ -64,7 +64,7 @@ class CanonicalTaskRecurrenceAuthoringAdapter
 
             val now = System.currentTimeMillis()
             val seriesId = UUID.randomUUID().toString()
-            val startDayKey = canonicalLocalDayKey(dayPlan.date)
+            val startDayKey = appDatabase.recurrenceDayKey(dayPlan.id, dayPlan.date)
             val canonicalRule = rule.normalizedForSeriesStart(startDayKey)
             val template =
                 buildTemplate(
@@ -98,8 +98,8 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             appDatabase.canonicalRecurringSeriesDao().insert(series.copy(template = template.copy(planningSource = planningSource)).toAndroidEntity())
 
             val materialization =
-                materializationAdapter.materializeForDate(
-                    date = dayPlan.date,
+                materializationAdapter.materializeForPlan(
+                    planId = dayPlan.id,
                     now = now,
                 )
             val occurrenceId =

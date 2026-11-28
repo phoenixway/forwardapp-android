@@ -5,12 +5,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
 
-/** A named civil calendar captured at creation. A UTC offset cannot identify its zone. */
+/** The exact zone configured at creation, including an explicitly configured fixed-offset zone. */
 internal data class PersonalPlanningDay(val date: LocalDate, val zone: ZoneId) {
-    init {
-        require(zone.id in ZoneId.getAvailableZoneIds()) { "Day planning requires a named time zone" }
-    }
-
     val scopeId: String
         get() = UUID.nameUUIDFromBytes("forwardapp:personal-day:v1:$date:${zone.id}".toByteArray(Charsets.UTF_8)).toString()
     val start: Long

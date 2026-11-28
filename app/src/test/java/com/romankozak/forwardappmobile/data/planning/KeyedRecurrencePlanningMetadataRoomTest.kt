@@ -1,10 +1,13 @@
 package com.romankozak.forwardappmobile.data.planning
 
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority as AndroidTaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.DayPlanningScopeExtensionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningScopeEntity
 import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceMaterializationAdapter
+import com.romankozak.forwardappmobile.data.recurrence.CanonicalTaskRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.recurrence.recurrencePlanningSources
 import com.romankozak.forwardappmobile.data.recurrence.toAndroidEntity
 import com.romankozak.forwardappmobile.shared.core.models.day.TaskPriority
@@ -18,6 +21,7 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTa
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskTemplate
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -99,6 +103,56 @@ class KeyedRecurrencePlanningMetadataRoomTest {
                 planning.mergeIncoming(emptyList(), listOf(peerCommitment.copy(order = task.order + 1)))
             }.exceptionOrNull()
             assertTrue(conflict is PlanningMergeConflictException)
+        }
+    }
+
+    @Test
+    fun `explicit recurrence authoring uses the stored civil date even in a different device zone`() = runBlocking {
+        val originalZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        try {
+            PlanningSourceRoomFixture().use { fixture ->
+                val db = fixture.db
+                val day = PersonalPlanningDay(LocalDate.parse("2026-11-28"), ZoneId.of("Pacific/Kiritimati"))
+                val dayKey = day.date.toString()
+                db.dayPlanDao().insert(DayPlan(id = day.scopeId, date = day.start))
+                db.planningDao().upsertScope(
+                    PlanningScopeEntity(day.scopeId, "DAY", "ACTIVE", null, null, null, 0, 1, null, 1, false),
+                )
+                db.dayPlanningScopeExtensionDao().upsert(
+                    DayPlanningScopeExtensionEntity(
+                        day.scopeId, day.start, null, null, 0, 1, null, 1, false,
+                        localDate = dayKey, timeZoneId = day.zone.id,
+                    ),
+                )
+                val sources = recurrencePlanningSources(db)
+                val materializer = CanonicalRecurrenceMaterializationAdapter(db, Dispatchers.Unconfined, sources)
+                val author = CanonicalTaskRecurrenceAuthoringAdapter(db, materializer, sources)
+                val task = author.createSeriesForPlan(
+                    dayPlanId = day.scopeId,
+                    title = "Task",
+                    description = null,
+                    goalId = null,
+                    projectId = null,
+                    taskType = null,
+                    linkedProjectIds = emptyList(),
+                    linkedAttachmentIds = emptyList(),
+                    priority = AndroidTaskPriority.NONE,
+                    estimatedDurationMinutes = null,
+                    points = 0,
+                    executionStrictness = TaskExecutionStrictness.NORMAL,
+                    rule = RecurrenceRule(RecurrenceFrequency.DAILY, 1, null),
+                    order = 12,
+                )
+
+                assertEquals(day.scopeId, task.dayPlanId)
+                assertEquals(dayKey, task.recurrenceOccurrenceDayKey)
+                assertEquals(dayKey, db.canonicalRecurringSeriesDao().getAllSync().single().startDayKey)
+                assertEquals(12L, task.order)
+                assertEquals(2L, task.version)
+            }
+        } finally {
+            TimeZone.setDefault(originalZone)
         }
     }
 }

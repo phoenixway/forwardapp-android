@@ -1,5 +1,9 @@
 # Next
 
+## Personal day sync and recurring Realizes acceptance
+
+On two updated Android devices, open the same calendar date in the same named zone offline, then sync in both directions. Verify a recurring task with a theme and a recurring priority on the next matching day, including a one-day exclusion and a forward edit. Historical independently created plans require separate recovery. See [same-day merge](../sync/architecture/ANDROID-SAME-DAY-PLANNING-MERGE.md).
+
 ## Wi-Fi export and two-phone retry
 
 Update both phones to a build containing the export error fix. On each phone,

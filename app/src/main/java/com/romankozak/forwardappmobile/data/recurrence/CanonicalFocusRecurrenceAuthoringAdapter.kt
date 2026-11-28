@@ -9,7 +9,6 @@ import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceR
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.compareLocalDayKeys
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyDayOfWeek
-import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyOf
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.previousLocalDayKey
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceOccurrenceId
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceRuleMatchesDay
@@ -79,7 +78,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
 
             val now = System.currentTimeMillis()
             val seriesId = UUID.randomUUID().toString()
-            val startDayKey = canonicalLocalDayKey(dayPlan.date)
+            val startDayKey = appDatabase.recurrenceDayKey(dayPlan.id, dayPlan.date)
             val canonicalRule = rule.normalizedForSeriesStart(startDayKey)
             val template =
                 RecurringFocusTemplate(
@@ -102,8 +101,8 @@ class CanonicalFocusRecurrenceAuthoringAdapter
             appDatabase.canonicalRecurringSeriesDao().insert(series.toAndroidEntity())
 
             val materialization =
-                materializationAdapter.materializeForDate(
-                    date = dayPlan.date,
+                materializationAdapter.materializeForPlan(
+                    planId = dayPlan.id,
                     now = now,
                 )
             val occurrenceId =
@@ -145,7 +144,7 @@ class CanonicalFocusRecurrenceAuthoringAdapter
 
             val now = System.currentTimeMillis()
             val seriesId = UUID.randomUUID().toString()
-            val startDayKey = canonicalLocalDayKey(dayPlan.date)
+            val startDayKey = appDatabase.recurrenceDayKey(dayPlan.id, dayPlan.date)
             val canonicalRule = rule.normalizedForSeriesStart(startDayKey)
             val template =
                 RecurringFocusTemplate(
@@ -648,15 +647,4 @@ class CanonicalFocusRecurrenceAuthoringAdapter
             }
         }
 
-        private fun canonicalLocalDayKey(timestamp: Long): String {
-            val calendar =
-                java.util.Calendar.getInstance().apply {
-                    timeInMillis = timestamp
-                }
-            return localDayKeyOf(
-                year = calendar.get(java.util.Calendar.YEAR),
-                month = calendar.get(java.util.Calendar.MONTH) + 1,
-                day = calendar.get(java.util.Calendar.DAY_OF_MONTH),
-            )
-        }
     }

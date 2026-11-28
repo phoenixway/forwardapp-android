@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.shared.core.domain.recurrence
 
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceDayOfWeek
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceFrequency
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskRealizesDefaults
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -13,7 +14,7 @@ class RecurrenceJsFacadeTest {
     @Test
     fun `js task template factory preserves optional Realizes defaults and dated clears`() {
         fun createTaskTemplate(
-            defaults: com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskRealizesDefaults? = null,
+            defaults: RecurringTaskRealizesDefaults? = null,
             changes: Array<RecurringTaskRealizesChange> = emptyArray(),
         ) = createRecurringTaskTemplateForJs(
             title = "Task",

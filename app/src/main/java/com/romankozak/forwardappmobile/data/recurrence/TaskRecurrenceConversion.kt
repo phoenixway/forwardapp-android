@@ -36,7 +36,7 @@ internal suspend fun AppDatabase.convertTaskToRecurringSeries(
 
     val now = System.currentTimeMillis()
     val seriesId = UUID.randomUUID().toString()
-    val startDayKey = canonicalLocalDayKey(dayPlan.date)
+    val startDayKey = recurrenceDayKey(dayPlan.id, dayPlan.date)
     val canonicalRule = rule.normalizedForSeriesStart(startDayKey)
     val series =
         RecurringTaskSeries(

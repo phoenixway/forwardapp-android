@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile.core.sync
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.data.planning.day.requireCompatibleInitialThemeCarries
 
 import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
@@ -333,6 +334,9 @@ class MergeLocalDataSourceImpl
             val localCanonicalAssignmentDocuments =
                 canonicalDayThemeDao.getAllAssignmentDocumentsSync().map { it.toCanonicalSnapshot() }
 
+            if (!bundle.dayThemes.isNullOrEmpty()) {
+                db.requireCompatibleInitialThemeCarries(bundle.dayThemes.orEmpty(), localCanonicalDayThemes)
+            }
             val canonicalDayThemeMergePlan =
                 if (hasCanonicalDayThemePayload) {
                     planCanonicalDayThemeMerge(

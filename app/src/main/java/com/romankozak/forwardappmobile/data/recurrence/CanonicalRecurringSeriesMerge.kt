@@ -1,8 +1,8 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
-import com.google.gson.JsonParser
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
@@ -23,11 +23,12 @@ internal fun planCanonicalRecurringSeriesMerge(
             snapshot.updatedAt != previous.updatedAt -> snapshot.updatedAt.compareTo(previous.updatedAt)
             else -> snapshot.isDeleted.compareTo(previous.isDeleted)
         }
-        if (freshness < 0) return@mapNotNull null
+        if (previous != null && snapshot.version < previous.version) return@mapNotNull null
 
         if (snapshot.kind != RecurringSeriesKind.TASK.name) {
             return@mapNotNull if (freshness > 0) snapshot.toEntity() else null
         }
+        require(snapshot.template.isJsonObject) { "Invalid recurring task template for ${snapshot.id}" }
         val incomingTemplate = snapshot.template.asJsonObject
         val incomingIntent = incomingTemplate.readRealizesIntent()
         if (restoreExact || previous == null || previous.kind != snapshot.kind) {
@@ -36,7 +37,13 @@ internal fun planCanonicalRecurringSeriesMerge(
         val localTemplate = JsonParser.parseString(previous.templateJson).asJsonObject
         val localIntent = localTemplate.readRealizesIntent()
 
+        if (snapshot.version == previous.version && localIntent.isPresent && incomingIntent.isPresent) {
+            require(localIntent.defaults == incomingIntent.defaults && localIntent.changes == incomingIntent.changes) {
+                "Conflicting Realizes defaults at the same version for task series ${snapshot.id}"
+            }
+        }
         when {
+            freshness < 0 -> null
             freshness > 0 && !incomingIntent.isPresent && localIntent.isPresent ->
                 snapshot.copy(
                     template = incomingTemplate.deepCopy().apply(localIntent::writeInto),
@@ -45,13 +52,7 @@ internal fun planCanonicalRecurringSeriesMerge(
             !localIntent.isPresent && incomingIntent.isPresent ->
                 // A peer may already have received the same legacy revision without its intent.
                 previous.copy(templateJson = localTemplate.apply(incomingIntent::writeInto).toString())
-            else -> {
-                require(!localIntent.isPresent || !incomingIntent.isPresent ||
-                    localIntent.defaults == incomingIntent.defaults && localIntent.changes == incomingIntent.changes) {
-                    "Conflicting Realizes defaults at the same revision for task series ${snapshot.id}"
-                }
-                null
-            }
+            else -> null
         }
     }
 }

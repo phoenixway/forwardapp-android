@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
 import com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
@@ -26,6 +27,7 @@ internal fun createRoomMergeSubject(db: AppDatabase): MergeLocalDataSourceImpl {
             when (parameterType) {
                 AppDatabase::class.java -> db
                 DayPlanDao::class.java -> db.dayPlanDao()
+                CanonicalDayThemeDao::class.java -> db.canonicalDayThemeDao()
                 DayTaskDao::class.java -> db.dayTaskDao()
                 DayFocusItemDao::class.java -> db.dayFocusItemDao()
                 CanonicalRecurringSeriesDao::class.java -> db.canonicalRecurringSeriesDao()

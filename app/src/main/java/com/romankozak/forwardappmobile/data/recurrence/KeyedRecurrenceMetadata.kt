@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.planning.Planni
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceOwnerKind
 import com.romankozak.forwardappmobile.core.data.models.entities.planning.PlanningReferenceRole
 import com.romankozak.forwardappmobile.data.planning.day.dayTaskParticipationId
+import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import com.romankozak.forwardappmobile.data.planning.day.verifyPersonalPlanningDay
 import com.romankozak.forwardappmobile.data.planning.planningReferenceId
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -14,16 +15,26 @@ import com.romankozak.forwardappmobile.shared.core.domain.planning.PlanningRoleC
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.recurrenceOccurrenceId
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
 
-internal suspend fun AppDatabase.verifiedRecurrenceDayStart(planId: String, dayKey: String): Long? {
+internal suspend fun AppDatabase.verifiedRecurrenceDay(planId: String): PersonalPlanningDay? {
     val extension = dayPlanningScopeExtensionDao().get(planId)?.takeUnless { it.isDeleted } ?: return null
-    val day = verifyPersonalPlanningDay(
+    return verifyPersonalPlanningDay(
         extension.scopeId,
         extension.calendarDayStartMillis,
         extension.localDate,
         extension.timeZoneId,
-    ) ?: return null
+    )
+}
+
+internal suspend fun AppDatabase.verifiedRecurrenceDayStart(planId: String, dayKey: String): Long? {
+    val day = verifiedRecurrenceDay(planId) ?: return null
     check(day.date.toString() == dayKey) { "Recurring occurrence day does not match its keyed DayPlan" }
     return day.start.coerceAtLeast(0)
+}
+
+internal suspend fun AppDatabase.recurrenceDayKey(planId: String, date: Long): String {
+    val day = verifiedRecurrenceDay(planId) ?: return canonicalLocalDayKey(date)
+    check(date == day.start) { "DayPlan and its keyed recurrence date disagree: $planId" }
+    return day.date.toString()
 }
 
 internal suspend fun AppDatabase.hasKeyedRecurrenceCreation(

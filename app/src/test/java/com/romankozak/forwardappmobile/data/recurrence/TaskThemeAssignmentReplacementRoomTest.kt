@@ -178,6 +178,23 @@ class TaskThemeAssignmentReplacementRoomTest {
     }
 
     @Test
+    fun `equal version can reconcile endpoints arriving in different orders while retaining user intent`() = runTest {
+        val converted = convert(insertTask(insertPlan(20), "source"))
+        val selected = TaskRealizesTargetOverrides(excluded = setOf("excluded"))
+        val local = converted.copy(realizedDayFocusItemIds = listOf("priority"),
+            realizesOverride = TaskRealizesOverride(priorities = selected.copy(inheritedLinks = mapOf("series" to "priority"))))
+        val peer = converted.copy(realizesOverride = TaskRealizesOverride(
+            themes = TaskRealizesTargetOverrides(inheritedLinks = mapOf("definition" to "day-theme")), priorities = selected))
+        fun merge(a: DayTask, b: DayTask) = mergeDayTaskRealizations(a,
+            CanonicalRecurrenceSnapshotMapper.dayTaskSnapshot(b, b.toSnapshot()), b)
+        val result = merge(local, peer)
+        assertEquals(merge(peer, local), result)
+        assertEquals(listOf("priority"), result.realizedDayFocusItemIds)
+        assertEquals(mapOf("definition" to "day-theme"), result.realizesOverride?.themes?.inheritedLinks)
+        assertEquals(result, merge(result, peer))
+    }
+
+    @Test
     fun `override rejects malformed target IDs and unsupported format versions`() {
         val gson = Gson()
         for (json in listOf("""{"version":2}""", """{"version":1,"themes":{"excluded":[123]}}""")) {

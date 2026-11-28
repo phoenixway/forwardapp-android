@@ -258,6 +258,9 @@ their existing surface. Source metadata is retained, not cleared to fix display.
 
 ## Current Day Task Notes and Realizes (2026-10-20)
 
+The November 2026 recurrence extension adds series defaults keyed by theme definition and recurring priority series, plus per-occurrence overrides. Concrete same-day memberships remain in their established task and assignment owners. See [Recurring task Realizes](../recurrence/TASK-REALIZES-SERIES-PROPOSAL.md#implemented-android-contract-2026-11-28).
+
+
 DAY_TASK_REALIZES_NOTES_HOST_20261020
 
 DAY_TASK_PROPERTIES_SCREEN_HOST_20261020: Properties now use only the existing
@@ -944,7 +947,7 @@ Field ownership:
 
 | Field | Contract |
 |---|---|
-| `id` | Required durable identity, independent of a date, week key, or `arcKey`. Native records use canonical UUID identity; migration may use a documented deterministic UUID mapping. |
+| `id` | Required durable UUID. The personal Day creation rule in §7.1 derives it from the persisted civil date and configured zone. Other native scopes are independent of a week key or `arcKey`; migration may use a documented deterministic UUID mapping. |
 | `kind` | Required stable discriminator. It is not an Orientation kind. |
 | `lifecycle` | Required planning-container lifecycle. It is distinct from tombstone and from execution outcome. |
 | `title` | Optional human label. It does not make the scope a semantic Orientation. |
@@ -1033,6 +1036,8 @@ The common commitment deliberately excludes:
 ## 7. Identity and cardinality
 
 ### 7.1 Durable record identity
+
+**Personal Day creation, accepted 2026-11-28.** New Android personal days derive their scope/carrier UUID from the ISO local date and exact configured zone code. The typed Day extension transports both values; a bare date, receiver timezone or matching UTC offset cannot identify a historical UUID. Imported unkeyed Day rows retain their original identities. Opening an unchanged Day preserves its revision. The generation rule and same-origin merge conditions are specified in [Android same-day planning merge](../sync/architecture/ANDROID-SAME-DAY-PLANNING-MERGE.md).
 
 Both scopes and commitments have independent stable ids. Composite keys are
 not record identity because sync, tombstones, provenance, carry-forward, and

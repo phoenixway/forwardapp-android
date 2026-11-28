@@ -1,9 +1,10 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
-import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.planning.CanonicalPlanningReferenceRepository
+import com.romankozak.forwardappmobile.data.planning.day.PersonalPlanningDay
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.RecurrenceMaterializationPlan
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.planRecurringSeriesForDay
@@ -13,9 +14,9 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringRe
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,19 +51,40 @@ class CanonicalRecurrenceMaterializationAdapter
                 }
             }
 
+        internal suspend fun materializeForPlan(planId: String, now: Long): RecurrenceMaterializationPlan =
+            withContext(ioDispatcher) {
+                appDatabase.withTransaction {
+                    val plan = checkNotNull(appDatabase.dayPlanDao().getPlanById(planId)?.takeUnless { it.isDeleted }) {
+                        "No live DayPlan for recurrence materialization: $planId"
+                    }
+                    val day = appDatabase.verifiedRecurrenceDay(planId)
+                    if (day == null) {
+                        materializeInTransaction(date = plan.date, now = now)
+                    } else {
+                        check(plan.date == day.start) { "DayPlan and its keyed recurrence date disagree: $planId" }
+                        materializeInTransaction(listOf(plan), day.date.toString(), now)
+                    }
+                }
+            }
+
         private suspend fun materializeInTransaction(
             date: Long,
             now: Long,
         ): RecurrenceMaterializationPlan {
             val calendar = PersonalPlanningDay.at(date)
-            val dayKey = calendar.date.toString()
+            val plans = appDatabase.dayPlanDao().getActivePersonalDayPlans(calendar.start, calendar.scopeId)
+            return materializeInTransaction(plans, calendar.date.toString(), now)
+        }
 
-            val dayPlanDao = appDatabase.dayPlanDao()
+        private suspend fun materializeInTransaction(
+            plans: List<DayPlan>,
+            dayKey: String,
+            now: Long,
+        ): RecurrenceMaterializationPlan {
             val dayTaskDao = appDatabase.dayTaskDao()
             val dayFocusItemDao = appDatabase.dayFocusItemDao()
             val recurringSeriesDao = appDatabase.canonicalRecurringSeriesDao()
 
-            val plans = dayPlanDao.getActivePersonalDayPlans(calendar.start, calendar.scopeId)
             val planIds = plans.map { it.id }
             val keyedDayStart = planIds.singleOrNull()?.let { appDatabase.verifiedRecurrenceDayStart(it, dayKey) }
 
@@ -358,6 +380,5 @@ class CanonicalRecurrenceMaterializationAdapter
                 is RecurringFocusSeries -> template.sourceOrientationId
                 is RecurringResponsibilitySeries -> template.sourceOrientationId
                 is RecurringTaskSeries -> null
-            }
-
+        }
     }

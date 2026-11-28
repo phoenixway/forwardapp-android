@@ -1,8 +1,18 @@
 # Recurring task Realizes defaults
 
-Status **PROPOSED**. The current [Day Task Realizes contract](../architecture/CANONICAL-PLANNING-CONTRACT-V3.md#current-day-task-notes-and-realizes-2026-10-20) and [recurrence-v2 contract](RECURRENCE_V2_ANDROID_CANONICALIZATION_DEBT.md) remain authoritative until this proposal is accepted and implemented.
+The design below records the original proposal and its acceptance scenarios. The Android implementation status is recorded separately below. The current [Day Task Realizes contract](../architecture/CANONICAL-PLANNING-CONTRACT-V3.md#current-day-task-notes-and-realizes-2026-10-20) and [recurrence-v2 contract](RECURRENCE_V2_ANDROID_CANONICALIZATION_DEBT.md) remain authoritative for concrete Day records and scheduling.
 
-## Current authoring paths
+## Implemented Android contract (2026-11-28)
+
+Enabling Repeat on an existing task captures its selected active theme definitions and recurring priority series. Concrete links on the source day follow the replacement task ID. A one-off priority belongs only to its original day. Previously created series have no implied defaults. The author can set them explicitly from the Realizes tab.
+
+The task series carries its initial defaults and dated full replacements. Each occurrence resolves the latest replacement on or before its own civil date. A forward edit applies the selected targets to that date and subsequent replacements and reconciles existing live occurrences. This includes completed occurrences in that range. Earlier dates and unrelated properties retain their values. Priority series splits have a new identity and require explicit retargeting.
+
+An optional, versioned occurrence override records excluded and explicit targets and the concrete links managed by inheritance. One-day edits preserve exceptions during repeated preparation and sync. The current authoring picker offers endpoints available on the selected day. If a target is absent on a later day, its intent stays pending. Day preparation, recurrence materialization and Merge resolve it when the endpoint arrives. Exact Restore reads the saved records.
+
+Room 207 preserves old tasks with no override. A same-series legacy receipt missing both protected template fields preserves locally recorded defaults. An older client splitting a series can still create a successor without defaults. Use updated writers on all Android peers for cross-device series editing. Physical two-phone acceptance remains pending.
+
+## Authoring paths before implementation
 
 | Path | Current behavior |
 | --- | --- |
@@ -31,7 +41,7 @@ Extend the shared recurrence model and Android's explicit stable-key `TaskRecurr
 
 The numeric bundle version alone does not prove compatibility. Android's older task-series writer rebuilds the known JSON keys, so an unknown field can survive transport yet disappear on series edit. Check old Android and Desktop read, re-export and write paths, including the shared JS facade. Allow legacy writes affecting protected state only after proving lossless preservation or gating those writes by peer capability. Review exact Restore separately from Merge. Older backups should restore their supplied concrete links with no inferred inheritance.
 
-## Decisions needed before implementation
+## Original design questions
 
 - Approve whether a template selection should follow a target priority after its series splits. A split allocates a new series ID. Exact-ID resolution follows only the chosen segment unless an explicit, versioned successor mapping or retarget command is adopted. Exclude title or source-Orientation matching.
 - Use the existing occurrence/forward scope choice for Realizes edits. Confirm whether series selectors may choose a ThemeDefinition that is unavailable on the selected day. This proposal leaves that default dormant until ordinary day preparation creates the eligible DayTheme.
