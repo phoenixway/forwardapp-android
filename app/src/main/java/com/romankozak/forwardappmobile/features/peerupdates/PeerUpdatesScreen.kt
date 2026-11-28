@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.peerupdates
 
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -40,6 +41,7 @@ internal fun PeerUpdatesScreen(onBack: () -> Unit, model: PeerUpdatesViewModel =
     val host by model.lanHost.collectAsStateWithLifecycle()
     val searching by model.searching.collectAsStateWithLifecycle()
     val prompt by model.installPrompt.collectAsStateWithLifecycle()
+    val installRevision by PeerInstallEvents.revision.collectAsStateWithLifecycle()
     val shareIntent by model.shareIntent.collectAsStateWithLifecycle()
     var resumed by remember(lifecycle) { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     var failure by remember { mutableStateOf<String?>(null) }
@@ -70,6 +72,7 @@ internal fun PeerUpdatesScreen(onBack: () -> Unit, model: PeerUpdatesViewModel =
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer); model.stopLan() }
     }
+    LaunchedEffect(installRevision) { model.refresh() }
     LaunchedEffect(prompt, resumed) {
         val action = prompt ?: return@LaunchedEffect
         if (resumed) {
@@ -125,9 +128,10 @@ internal fun PeerUpdatesScreen(onBack: () -> Unit, model: PeerUpdatesViewModel =
                             SelectionContainer { Text("${active.address}\nShare code  ${active.code}") }
                             TextButton(onClick = {
                                 model.browserUrl?.let { link ->
-                                    launchShare(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link))
+                                    context.getSystemService(ClipboardManager::class.java)
+                                        .setPrimaryClip(ClipData.newPlainText("ForwardApp update link", link))
                                 }
-                            }) { Text("Share browser link") }
+                            }) { Text("Copy browser link") }
                         }
                     }
                 }

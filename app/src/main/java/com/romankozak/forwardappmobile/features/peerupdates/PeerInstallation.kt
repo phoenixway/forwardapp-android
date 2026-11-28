@@ -19,6 +19,7 @@ private const val RESULT = "result"
 internal data class PeerInstallPrompt(val sessionId: Int, val intent: Intent)
 internal object PeerInstallEvents {
     val prompt = MutableStateFlow<PeerInstallPrompt?>(null)
+    val revision = MutableStateFlow(0L)
 }
 
 internal class PeerInstallation(private val context: Context) {
@@ -104,5 +105,6 @@ class PeerInstallReceiver : BroadcastReceiver() {
                 PeerInstallEvents.prompt.value = null
             }
         }
+        PeerInstallEvents.revision.value += 1
     }
 }

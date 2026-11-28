@@ -40,7 +40,9 @@ internal data class PeerAddress(val host: String, val port: Int) {
         fun parse(text: String): PeerAddress {
             val raw = text.trim().split(':')
             require(raw.size in 1..2 && raw[0].matches(Regex("[0-9]{1,3}(\\.[0-9]{1,3}){3}"))) { "Enter a local IPv4 address and port" }
-            val host = InetAddress.getByName(raw[0])
+            val octets = raw[0].split('.').map { it.toInt() }
+            require(octets.all { it in 0..255 }) { "Invalid IPv4 address" }
+            val host = InetAddress.getByAddress(octets.map { it.toByte() }.toByteArray())
             require(host is Inet4Address && (host.isSiteLocalAddress || host.isLinkLocalAddress)) { "Enter a private LAN address" }
             val port = if (raw.size == 2) raw[1].toIntOrNull() else PEER_PORT
             require(port != null && port in 1..65535) { "Invalid port" }

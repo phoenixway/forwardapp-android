@@ -3,6 +3,12 @@ package com.romankozak.forwardappmobile.features.peerupdates
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
+import java.net.ServerSocket
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -12,6 +18,8 @@ import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 
 class PeerUpdatesTest {
+    @get:Rule val folder = TemporaryFolder()
+
     private val hash = "a".repeat(64)
     private val local = PeerManifest(1, "com.example.forward", "1.0", 10, "prod:release", 3, hash, listOf(hash), 29, "Test phone", listOf("arm64-v8a"))
     private val newer = local.copy(versionCode = 11)
@@ -73,4 +81,48 @@ class PeerUpdatesTest {
         assertThat(wasCancelled).isTrue()
         assertThat(output.size()).isEqualTo(64 * 1024)
     }
+
+    @Test fun localServerAuthorizesStreamsAndShutsDown() = runBlocking {
+        val source = folder.newFile("installed.apk").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val destination = folder.newFile("received.apk")
+        val port = ServerSocket(0).use { it.localPort }
+        val address = PeerAddress("127.0.0.1", port)
+        val packageFile = InstalledPeerPackage(source, newer, standalone = true)
+        withContext(Dispatchers.IO) {
+            PeerTransfer().use { transport ->
+                sharePeerPackage(packageFile, address).use { sharing ->
+                    val metadata = transport.manifest(address)
+                    assertThat(status(metadata)).isEqualTo(PeerCompatibility.NEWER)
+                    val wrong = if (sharing.code == "f".repeat(24)) "0".repeat(24) else "f".repeat(24)
+                    assertThat(runCatching { transport.download(address, wrong, metadata, destination) {} }.isFailure).isTrue()
+                    assertThat(destination.length()).isEqualTo(0)
+                    val digest = transport.download(address, sharing.code, metadata, destination) {}
+                    assertThat(digest).isEqualTo(metadata.sha256)
+                    assertThat(destination.readBytes()).isEqualTo(source.readBytes())
+                    source.writeBytes(byteArrayOf(1, 2, 4))
+                    val damagedDigest = transport.download(address, sharing.code, metadata, destination) {}
+                    assertThat(damagedDigest).isNotEqualTo(metadata.sha256)
+                }
+                assertThat(runCatching { transport.manifest(address) }.isFailure).isTrue()
+                val unsupported = runCatching { sharePeerPackage(packageFile.copy(standalone = false), address) }
+                assertThat(unsupported.isFailure).isTrue()
+            }
+        }
+    }
+
+
+    @Test fun interruptedAndRejectedDownloadsLeaveNoPartialFile() = runTest {
+        for (failure in listOf(java.io.IOException("Disconnected"), CancellationException(), IllegalArgumentException("SHA-256 mismatch"))) {
+            val directory = folder.newFolder()
+            val result = runCatching {
+                withVerifiedDownload(directory) { file ->
+                    file.writeText("partial APK")
+                    throw failure
+                }
+            }
+            assertThat(result.exceptionOrNull()).isSameInstanceAs(failure)
+            assertThat(directory.list().orEmpty().toList()).isEmpty()
+        }
+    }
+
 }

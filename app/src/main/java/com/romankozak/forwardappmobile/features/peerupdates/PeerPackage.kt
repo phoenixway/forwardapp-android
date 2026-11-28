@@ -122,6 +122,17 @@ internal suspend fun copyApk(
     return sha.digest().hex()
 }
 
+/** Keep a private transfer file only after the caller has completed verification. */
+internal suspend fun <T> withVerifiedDownload(directory: File, verify: suspend (File) -> T): T {
+    val file = File.createTempFile("peer-", ".apk", directory)
+    try {
+        return verify(file)
+    } catch (error: Throwable) {
+        file.delete()
+        throw error
+    }
+}
+
 internal fun ByteArray.hex(): String = joinToString("") { "%02x".format(it) }
 
 class PeerApkFileProvider : androidx.core.content.FileProvider()

@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -150,8 +151,8 @@ internal class PeerUpdatesViewModel(private val app: Application) : AndroidViewM
                 if (operation.value == PeerOperation.Idle) operation.value = PeerOperation.Message(error.message ?: "Sharing failed")
             } finally {
                 advertisement?.close()
-                server?.close()
                 share.value = null
+                withContext(NonCancellable + Dispatchers.IO) { server?.close() }
             }
         }
     }
@@ -170,15 +171,12 @@ internal class PeerUpdatesViewModel(private val app: Application) : AndroidViewM
         withContext(Dispatchers.IO) {
             check(downloads.isDirectory || downloads.mkdirs()) { "Unable to create download directory" }
             check(downloads.usableSpace / 2 >= manifest.size + 8_388_608) { "Not enough space for download and installation" }
-            val file = File.createTempFile("peer-", ".apk", downloads)
-            try {
+            withVerifiedDownload(downloads) { file ->
                 val digest = transfer.download(peer.address, code.trim().lowercase(), manifest, file) { done ->
                     operation.value = PeerOperation.Working("Downloading", done.toFloat() / manifest.size)
                 }
                 packages.verify(file, manifest, digest)
                 operation.value = PeerOperation.Ready(file, manifest)
-            } finally {
-                if ((operation.value as? PeerOperation.Ready)?.file != file) file.delete()
             }
         }
     }
