@@ -106,7 +106,7 @@ class MagicBoxAttachmentResultsUiTest {
         ui.onNodeWithText("Treatment goal").assertDoesNotExist()
 
         ui.onNodeWithText("Проєкт").performClick()
-        ui.onNodeWithText("Усі підтипи").performClick()
+        ui.onNodeWithText("Усі підтипи").performScrollTo().performClick()
         ui.onNodeWithText("Treatment goal").assertIsDisplayed()
         ui.onNodeWithText("Treatment project").assertIsDisplayed()
     }
