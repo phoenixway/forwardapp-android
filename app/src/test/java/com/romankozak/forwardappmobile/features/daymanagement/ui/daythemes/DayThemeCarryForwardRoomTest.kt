@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.data.models.sync.CURRENT_PLANNING_FORMAT_VERSION
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.sync.createRoomMergeSubject
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -58,10 +59,14 @@ class DayThemeCarryForwardRoomTest {
         suspend fun exportCarry(db: AppDatabase): SnapshotBundle {
             val themes = db.canonicalDayThemeDao().getDayThemesForDay(targetId).map { it.toCanonicalSnapshot() }
             return SnapshotBundle(version = 2, planningFormatVersion = CURRENT_PLANNING_FORMAT_VERSION,
-                planningScopes = emptyList(), dayPlanningScopeExtensions = emptyList(),
+                dayPlans = listOf(requireNotNull(db.dayPlanDao().getPlanById(targetId)).toSnapshot()),
+                planningScopes = CanonicalPlanningSyncStore(db).loadAllScopes().filter { it.id == targetId },
+                dayPlanningScopeExtensions = CanonicalDayPlanningScopeExtensionSyncStore(db).loadAll().filter { it.scopeId == targetId },
                 tacticalPlanningScopeExtensions = emptyList(), strategicPlanningScopeExtensions = emptyList(),
                 planningCommitments = CanonicalPlanningSyncStore(db).loadAllCommitments().filter { it.scopeId == targetId },
-                themeDefinitions = emptyList(), dayThemes = themes, dayThemeAssignmentDocuments = emptyList())
+                themeDefinitions = db.canonicalDayThemeDao().getAllThemeDefinitionsSync().filter { definition ->
+                    themes.any { it.themeId == definition.id }
+                }.map { it.toCanonicalSnapshot() }, dayThemes = themes, dayThemeAssignmentDocuments = emptyList())
         }
         fixture(keyedTarget = true) { a, bridgeA, planningA, _ ->
             fixture(keyedTarget = true) { b, bridgeB, planningB, _ ->
