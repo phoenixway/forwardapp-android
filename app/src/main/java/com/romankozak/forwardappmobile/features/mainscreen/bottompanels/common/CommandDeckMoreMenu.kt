@@ -46,6 +46,7 @@ fun CommandDeckMoreActionButton(
     onNavigateToAiLifeManagement: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToDeviceSync: () -> Unit,
+    onNavigateToPeerUpdates: () -> Unit,
     onExportToFile: () -> Unit,
     onImportFromFileRequest: (Uri) -> Unit,
     onSelectiveImportFromFileRequest: (Uri) -> Unit,
@@ -135,6 +136,7 @@ fun CommandDeckMoreActionButton(
                     },
                 onNavigateToSettings = { runAfterSheetDismiss(onNavigateToSettings) },
                 onNavigateToDeviceSync = { runAfterSheetDismiss(onNavigateToDeviceSync) },
+                onNavigateToPeerUpdates = { runAfterSheetDismiss(onNavigateToPeerUpdates) },
                 featureToggles = featureToggles,
                 containerColor = moreSheetColor,
             )

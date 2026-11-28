@@ -15,6 +15,7 @@ data class BottomPanelGlobalActions(
     val onShowCreateActions: () -> Unit,
     val onNavigateToSettings: () -> Unit,
     val onNavigateToDeviceSync: () -> Unit,
+    val onNavigateToPeerUpdates: () -> Unit,
     val onNavigateToInbox: () -> Unit,
     val onNavigateToTracker: () -> Unit,
     val onNavigateToReminders: () -> Unit,

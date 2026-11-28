@@ -90,12 +90,14 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["peerBuildType"] = "debug"
             buildConfigField("boolean", "SYNC_ENABLED", "false")
         }
 
         create("local") {
             initWith(getByName("release"))
             applicationIdSuffix = null
+            manifestPlaceholders["peerBuildType"] = "local"
             isDebuggable = true
             isMinifyEnabled = false
             isShrinkResources = false
@@ -110,6 +112,7 @@ android {
 
         release {
             isMinifyEnabled = true
+            manifestPlaceholders["peerBuildType"] = "release"
             buildConfigField("boolean", "SYNC_ENABLED", "false")
             isShrinkResources = true
             proguardFiles(
@@ -134,11 +137,13 @@ android {
     productFlavors {
         create("prod") {
             dimension = "env"
+            manifestPlaceholders["peerFlavor"] = "prod"
             isDefault = true
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "false")
         }
         create("exp") {
             dimension = "env"
+            manifestPlaceholders["peerFlavor"] = "exp"
             versionNameSuffix = "-exp"
             buildConfigField("Boolean", "IS_EXPERIMENTAL_BUILD", "true")
         }

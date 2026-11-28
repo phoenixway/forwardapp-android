@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,6 +60,7 @@ internal fun MoreBottomSheetContent(
     onNavigateToAiLifeManagement: () -> Unit,
     onShowImportExportSheet: () -> Unit,
     onNavigateToDeviceSync: () -> Unit,
+    onNavigateToPeerUpdates: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onNavigateToEntityLibrary: () -> Unit,
@@ -140,6 +142,11 @@ internal fun MoreBottomSheetContent(
                 icon = Icons.Outlined.Sync,
                 label = "Sync between devices",
                 onClick = onNavigateToDeviceSync,
+            )
+            MoreSheetMenuItem(
+                icon = Icons.Outlined.SystemUpdate,
+                label = "Peer Updates",
+                onClick = onNavigateToPeerUpdates,
             )
             MoreSheetMenuItem(
                 icon = Icons.Outlined.Info,
