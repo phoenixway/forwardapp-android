@@ -33,7 +33,7 @@ jobs:
       TYPE: ${{ inputs.build_type }}
       PUBLISH_APK: >-
         ${{ github.ref == 'refs/heads/dev' && inputs.flavor == 'exp' && inputs.build_type == 'release'
-        && vars.APK_RELEASE_REPOSITORY != '' && secrets.APK_RELEASE_TOKEN != '' }}
+        && vars.APK_RELEASE_REPOSITORY != '' && secrets.ACTIONSSECRET != '' }}
     outputs:
       release_version: ${{ steps.apk.outputs.release_version }}
 
@@ -172,7 +172,7 @@ jobs:
 
       - name: Publish GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.APK_RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTIONSSECRET }}
           RELEASE_REPOSITORY: ${{ vars.APK_RELEASE_REPOSITORY }}
           RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
         run: bash tools/publish-android-apk artifact-apk/ForwardApp-exp-universal.apk

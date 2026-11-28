@@ -9,7 +9,7 @@ contains a single standalone universal APK.
 
 In the Android source repository's Actions settings:
 
-1. Add the `APK_RELEASE_TOKEN` secret. Use a fine-grained GitHub token scoped to
+1. Add the `ACTIONSSECRET` secret. Use a fine-grained GitHub token scoped to
    `phoenixway/forwardapp-apks` with the repository permission **Contents: Read
    and write**. Renew the secret when the token expires.
 2. Set the `APK_RELEASE_REPOSITORY` Actions variable to

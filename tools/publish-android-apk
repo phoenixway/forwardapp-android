@@ -8,7 +8,7 @@ run_number="${GITHUB_RUN_NUMBER:?Run this from the Android build workflow}"
 version_pattern='^[0-9]+\.[0-9]+\.[0-9]+\.([1-9][0-9]{0,9})-exp$'
 
 if [[ -z ${GH_TOKEN:-} ]]; then
-    echo "::error::Set the APK_RELEASE_TOKEN Actions secret with Contents write access to $repository"
+    echo "::error::Set the ACTIONSSECRET Actions secret with Contents write access to $repository"
     exit 1
 fi
 if [[ "${repository,,}" == "${GITHUB_REPOSITORY,,}" ]]; then
